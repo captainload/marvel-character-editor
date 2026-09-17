@@ -2455,6 +2455,67 @@ input[type=number],
   color: var(--text-main);
 }
 
+.power-title-btn {
+  background: transparent;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font-family: inherit;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text-main);
+  cursor: pointer;
+  text-align: left;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  text-decoration: underline dotted var(--text-muted);
+  text-underline-offset: 3px;
+  transition: color 0.15s ease, text-decoration-color 0.15s ease;
+}
+
+.power-title-btn:hover {
+  color: var(--marvel-gold);
+  text-decoration: underline solid var(--marvel-gold);
+}
+
+.tag-power-adjusted {
+  background: rgba(34, 197, 94, 0.18);
+  color: #22c55e;
+  border: 1px solid rgba(34, 197, 94, 0.45);
+  font-weight: 700;
+  font-size: 10pt;
+  padding: 2px 8px;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+}
+
+.power-adj-card {
+  background: rgba(15, 23, 42, 0.4);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 10px 14px;
+  color: var(--text-main);
+}
+
+.power-adj-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 10pt;
+  text-align: left;
+}
+
+.power-adj-table thead tr {
+  background: rgba(15, 23, 42, 0.6);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.power-adj-table th,
+.power-adj-table td {
+  padding: 6px 10px;
+}
+
 .power-notes {
   color: var(--text-muted);
 }
@@ -3636,6 +3697,40 @@ body[data-theme="manilla"] .inv-stage-card.failed {
 body[data-theme="manilla"] .power-title {
   color: #000000 !important;
   font-weight: 800;
+}
+
+body[data-theme="manilla"] .power-title-btn {
+  color: #000000 !important;
+  font-weight: 800;
+  text-decoration-color: #475569;
+}
+
+body[data-theme="manilla"] .power-title-btn:hover {
+  color: #b45309 !important;
+  text-decoration-color: #b45309;
+}
+
+body[data-theme="manilla"] .tag-power-adjusted {
+  background: rgba(22, 101, 52, 0.12) !important;
+  color: #15803d !important;
+  border-color: rgba(22, 101, 52, 0.4) !important;
+}
+
+body[data-theme="manilla"] .power-adj-card {
+  background: #eae6df !important;
+  border-color: #c2bcaf !important;
+  color: #000000 !important;
+}
+
+body[data-theme="manilla"] .power-adj-table thead tr {
+  background: #e2ded7 !important;
+  border-color: #c2bcaf !important;
+  color: #000000 !important;
+}
+
+body[data-theme="manilla"] .power-adj-table th,
+body[data-theme="manilla"] .power-adj-table td {
+  color: #000000 !important;
 }
 
 body[data-theme="manilla"] .power-notes {
@@ -4973,6 +5068,39 @@ body[data-theme="aqua"] .inv-stage-card.failed {
 /* Aqua: Powers & Stunts */
 body[data-theme="aqua"] .power-title {
   color: #f0fdfa;
+}
+
+body[data-theme="aqua"] .power-title-btn {
+  color: #f0fdfa;
+  text-decoration-color: #0284c7;
+}
+
+body[data-theme="aqua"] .power-title-btn:hover {
+  color: #38bdf8;
+  text-decoration-color: #38bdf8;
+}
+
+body[data-theme="aqua"] .tag-power-adjusted {
+  background: rgba(16, 185, 129, 0.2) !important;
+  color: #34d399 !important;
+  border-color: rgba(16, 185, 129, 0.5) !important;
+}
+
+body[data-theme="aqua"] .power-adj-card {
+  background: #183e6a !important;
+  border-color: #23588e !important;
+  color: #f0fdfa !important;
+}
+
+body[data-theme="aqua"] .power-adj-table thead tr {
+  background: #143256 !important;
+  border-color: #23588e !important;
+  color: #f0fdfa !important;
+}
+
+body[data-theme="aqua"] .power-adj-table th,
+body[data-theme="aqua"] .power-adj-table td {
+  color: #f0fdfa !important;
 }
 
 body[data-theme="aqua"] .power-notes {

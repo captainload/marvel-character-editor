@@ -33,6 +33,8 @@ const App = {
     assembly: null
   },
   isWidthWarningDismissed: false,
+  powerAdjustment: false,
+  activeAdjustmentPowerIndex: null,
 
   init() {
     // 1. Viewport Width 1080px Check
@@ -490,6 +492,60 @@ const App = {
       cheatTableOpt.addEventListener('change', (e) => {
         this.setUniversalTableMode(e.target.value);
       });
+    }
+
+    // Power Adjustment Preference Init & Listeners
+    const powerAdjOpt = document.getElementById('option-power-adjustment');
+    const savedPowerAdj = typeof localStorage !== 'undefined' ? localStorage.getItem('msh_option_power_adjustment') : null;
+    this.powerAdjustment = (savedPowerAdj === 'true');
+    if (this.character && this.character.powerAdjustment !== undefined && savedPowerAdj === null) {
+      this.powerAdjustment = !!this.character.powerAdjustment;
+    }
+    if (this.character) {
+      this.character.powerAdjustment = this.powerAdjustment;
+    }
+    if (powerAdjOpt) {
+      powerAdjOpt.checked = this.powerAdjustment;
+      powerAdjOpt.addEventListener('change', (e) => {
+        this.setPowerAdjustment(e.target.checked);
+      });
+    }
+
+    // Power Adjustment Modal Listeners
+    const btnCloseAdjModal = document.getElementById('btn-close-adj-modal');
+    const btnCancelAdj = document.getElementById('btn-cancel-adj');
+    const modalPowerAdj = document.getElementById('modal-power-adjustment');
+    if (btnCloseAdjModal && modalPowerAdj) {
+      btnCloseAdjModal.addEventListener('click', () => modalPowerAdj.classList.remove('open'));
+    }
+    if (btnCancelAdj && modalPowerAdj) {
+      btnCancelAdj.addEventListener('click', () => modalPowerAdj.classList.remove('open'));
+    }
+
+    const adjAspectInc = document.getElementById('adj-aspect-increase');
+    const adjAspectDec = document.getElementById('adj-aspect-decrease');
+    const adjColShift = document.getElementById('adj-column-shift');
+    const adjCharCreation = document.getElementById('adj-char-creation');
+    const btnApplyAdj = document.getElementById('btn-apply-adj');
+    const btnResetAdj = document.getElementById('btn-reset-adj');
+
+    if (adjAspectInc) {
+      adjAspectInc.addEventListener('change', () => this.handleAdjustmentAspectChanged('increase'));
+    }
+    if (adjAspectDec) {
+      adjAspectDec.addEventListener('change', () => this.handleAdjustmentAspectChanged('decrease'));
+    }
+    if (adjColShift) {
+      adjColShift.addEventListener('change', () => this.updateAdjustmentPreview());
+    }
+    if (adjCharCreation) {
+      adjCharCreation.addEventListener('change', () => this.updateAdjustmentPreview());
+    }
+    if (btnApplyAdj) {
+      btnApplyAdj.addEventListener('click', (e) => this.handleApplyPowerAdjustment(e));
+    }
+    if (btnResetAdj) {
+      btnResetAdj.addEventListener('click', (e) => this.handleResetPowerAdjustment(e));
     }
 
     // File / Options Dropdown Menu Toggle
@@ -1466,12 +1522,24 @@ const App = {
         }
       }
 
+      let adjustedBadgeHtml = '';
+      if (p.adjustments && p.adjustments.shift) {
+        const incAspect = p.adjustments.aspectA?.label || 'Aspect';
+        const decAspect = p.adjustments.aspectB?.label || 'Aspect';
+        adjustedBadgeHtml = `<span class="meta-tag tag-power-adjusted" title="Power Adjusted: +${p.adjustments.shift} CS ${incAspect}, -${p.adjustments.shift} CS ${decAspect}">⚡ Adjusted</span>`;
+      }
+
+      const powerTitleHtml = this.powerAdjustment
+        ? `<button type="button" class="power-title-btn" data-adjust-power="${idx}" title="Click to adjust power statistics (House Rule)">${p.name}</button>`
+        : `<strong class="power-title" style="font-size: 1.15rem;">${p.name}</strong>`;
+
       card.innerHTML = `
         <div class="card-header">
-          <div style="display: flex; align-items: center; gap: 8px;">
-            <strong class="power-title" style="font-size: 1.15rem;">${p.name}</strong>
+          <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+            ${powerTitleHtml}
             <button type="button" class="help-circle-btn" title="View details and rules for ${p.name}" data-power-name="${p.name}">?</button>
             ${badgeHtml}
+            ${adjustedBadgeHtml}
           </div>
           <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
             <span class="meta-tag tag-power-cp" style="font-weight: 700;">${cpCost} CP</span>
@@ -1632,6 +1700,14 @@ const App = {
         this.showHelpModal('power', p.name);
       });
 
+      const adjustPowerBtn = card.querySelector(`[data-adjust-power="${idx}"]`);
+      if (adjustPowerBtn) {
+        adjustPowerBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          this.openPowerAdjustmentModal(idx);
+        });
+      }
+
       const rollPowerBtn = card.querySelector(`[data-roll-power="${idx}"]`);
       if (rollPowerBtn) {
         rollPowerBtn.addEventListener('click', (e) => {
@@ -1763,6 +1839,442 @@ const App = {
 
     const modal = document.getElementById('stunt-modal');
     if (modal) modal.classList.remove('open');
+  },
+
+  openPowerAdjustmentModal(powerIndex) {
+    const power = this.character.powers[powerIndex];
+    if (!power) return;
+    this.activeAdjustmentPowerIndex = powerIndex;
+
+    const modal = document.getElementById('modal-power-adjustment');
+    if (!modal) return;
+
+    const pRank = UniversalTableEngine.getRankByName(power.rankName);
+    const powerNameEl = document.getElementById('adj-power-name');
+    const rankBadgeEl = document.getElementById('adj-power-rank-badge');
+    const statusEl = document.getElementById('adj-adjustment-status');
+    const metaInfoEl = document.getElementById('adj-power-meta-info');
+
+    if (powerNameEl) powerNameEl.textContent = power.name;
+    if (rankBadgeEl) rankBadgeEl.textContent = `${pRank.name} (${power.rankValue})`;
+
+    const isCurrentlyAdjusted = !!(power.adjustments && power.adjustments.shift);
+    if (statusEl) {
+      if (isCurrentlyAdjusted) {
+        statusEl.innerHTML = `<span style="color: #22c55e;">⚡ Active Adjustment (+${power.adjustments.shift} / -${power.adjustments.shift} CS)</span>`;
+      } else {
+        statusEl.innerHTML = `<span style="color: var(--text-muted);">Unadjusted (Base Stats)</span>`;
+      }
+    }
+
+    if (metaInfoEl) {
+      metaInfoEl.textContent = `Category: ${power.category || 'Superhuman Power'} | Base Power Rank: ${pRank.name} (${power.rankValue})`;
+    }
+
+    // Aspects
+    const aspects = (typeof getPowerRankAspects === 'function') ? getPowerRankAspects(power, power.rankName) : [];
+    const noticeEl = document.getElementById('adj-single-aspect-notice');
+    const controlsEl = document.getElementById('adj-controls-container');
+    const btnApply = document.getElementById('btn-apply-adj');
+    const btnReset = document.getElementById('btn-reset-adj');
+
+    if (aspects.length < 2) {
+      if (noticeEl) noticeEl.style.display = 'block';
+      if (controlsEl) controlsEl.style.display = 'none';
+      if (btnApply) btnApply.style.display = 'none';
+      if (btnReset) btnReset.style.display = isCurrentlyAdjusted ? 'inline-block' : 'none';
+      modal.classList.add('open');
+      return;
+    }
+
+    if (noticeEl) noticeEl.style.display = 'none';
+    if (controlsEl) controlsEl.style.display = 'flex';
+    if (btnApply) btnApply.style.display = 'inline-block';
+    if (btnReset) btnReset.style.display = isCurrentlyAdjusted ? 'inline-block' : 'none';
+
+    // Populate aspect selects
+    const incSel = document.getElementById('adj-aspect-increase');
+    const decSel = document.getElementById('adj-aspect-decrease');
+    if (incSel && decSel) {
+      incSel.innerHTML = '';
+      decSel.innerHTML = '';
+
+      aspects.forEach(asp => {
+        const opt1 = document.createElement('option');
+        opt1.value = asp.key;
+        opt1.textContent = asp.label;
+        incSel.appendChild(opt1);
+
+        const opt2 = document.createElement('option');
+        opt2.value = asp.key;
+        opt2.textContent = asp.label;
+        decSel.appendChild(opt2);
+      });
+
+      if (isCurrentlyAdjusted) {
+        incSel.value = power.adjustments.aspectA?.key || aspects[0].key;
+        decSel.value = power.adjustments.aspectB?.key || (aspects[1] ? aspects[1].key : aspects[0].key);
+      } else {
+        incSel.value = aspects[0].key;
+        decSel.value = (aspects[1] ? aspects[1].key : aspects[0].key);
+      }
+    }
+
+    // Character Creation checkbox
+    const charCreationCheck = document.getElementById('adj-char-creation');
+    if (charCreationCheck) {
+      if (isCurrentlyAdjusted && power.adjustments.isCharCreation !== undefined) {
+        charCreationCheck.checked = !!power.adjustments.isCharCreation;
+      } else {
+        const hasKarma = this.character.hasAccumulatedKarma ? this.character.hasAccumulatedKarma() : false;
+        charCreationCheck.checked = !hasKarma;
+      }
+    }
+
+    // Check if re-adjustment
+    const hasPriorAdjustments = isCurrentlyAdjusted || (power.adjustmentHistory && power.adjustmentHistory.length > 0) || (power.adjustments?.history?.length > 0);
+    const reqBadge = document.getElementById('adj-rationale-required-badge');
+    if (reqBadge) {
+      reqBadge.style.display = hasPriorAdjustments ? 'inline' : 'none';
+    }
+
+    const rationaleInput = document.getElementById('adj-rationale');
+    if (rationaleInput) {
+      rationaleInput.value = isCurrentlyAdjusted ? (power.adjustments.rationale || '') : '';
+    }
+
+    this.populateAdjustmentShifts();
+    this.updateAdjustmentPreview();
+
+    modal.classList.add('open');
+  },
+
+  handleAdjustmentAspectChanged(changedType) {
+    const incSel = document.getElementById('adj-aspect-increase');
+    const decSel = document.getElementById('adj-aspect-decrease');
+    if (!incSel || !decSel) return;
+
+    if (incSel.value === decSel.value) {
+      const options = Array.from(incSel.options).map(o => o.value);
+      const other = options.find(v => v !== (changedType === 'increase' ? incSel.value : decSel.value));
+      if (other) {
+        if (changedType === 'increase') {
+          decSel.value = other;
+        } else {
+          incSel.value = other;
+        }
+      }
+    }
+
+    this.populateAdjustmentShifts();
+    this.updateAdjustmentPreview();
+  },
+
+  populateAdjustmentShifts() {
+    const power = this.character.powers[this.activeAdjustmentPowerIndex];
+    if (!power) return;
+
+    const incSel = document.getElementById('adj-aspect-increase');
+    const decSel = document.getElementById('adj-aspect-decrease');
+    const shiftSel = document.getElementById('adj-column-shift');
+    if (!incSel || !decSel || !shiftSel) return;
+
+    const aspects = (typeof getPowerRankAspects === 'function') ? getPowerRankAspects(power, power.rankName) : [];
+    const aspA = aspects.find(a => a.key === incSel.value);
+    const aspB = aspects.find(a => a.key === decSel.value);
+
+    if (!aspA || !aspB) return;
+
+    const maxShift = (typeof getMaxAdjustmentShift === 'function')
+      ? getMaxAdjustmentShift(aspA.baseRank, aspB.baseRank)
+      : 2;
+
+    const prevVal = parseInt(shiftSel.value) || (power.adjustments?.shift || 1);
+    shiftSel.innerHTML = '';
+
+    if (maxShift <= 0) {
+      const opt = document.createElement('option');
+      opt.value = '0';
+      opt.textContent = '0 CS (Already at Feeble / Amazing boundary)';
+      shiftSel.appendChild(opt);
+    } else {
+      for (let s = 1; s <= maxShift; s++) {
+        const opt = document.createElement('option');
+        opt.value = s.toString();
+        opt.textContent = `${s} CS (+${s} / -${s} CS)`;
+        shiftSel.appendChild(opt);
+      }
+    }
+
+    if (prevVal <= maxShift && prevVal >= 1) {
+      shiftSel.value = prevVal.toString();
+    } else if (maxShift >= 1) {
+      shiftSel.value = '1';
+    }
+  },
+
+  updateAdjustmentPreview() {
+    const power = this.character.powers[this.activeAdjustmentPowerIndex];
+    if (!power) return;
+
+    const incSel = document.getElementById('adj-aspect-increase');
+    const decSel = document.getElementById('adj-aspect-decrease');
+    const shiftSel = document.getElementById('adj-column-shift');
+    const charCreationCheck = document.getElementById('adj-char-creation');
+    const previewBody = document.getElementById('adj-preview-body');
+    const costText = document.getElementById('adj-cost-text');
+    const karmaText = document.getElementById('adj-available-karma');
+    const btnApply = document.getElementById('btn-apply-adj');
+
+    if (!incSel || !decSel || !shiftSel || !previewBody) return;
+
+    const aspects = (typeof getPowerRankAspects === 'function') ? getPowerRankAspects(power, power.rankName) : [];
+    const aspA = aspects.find(a => a.key === incSel.value);
+    const aspB = aspects.find(a => a.key === decSel.value);
+
+    const shift = parseInt(shiftSel.value) || 0;
+    const isCharCreation = !!(charCreationCheck && charCreationCheck.checked);
+    const cost = (typeof calculatePowerAdjustmentCost === 'function')
+      ? calculatePowerAdjustmentCost(shift, isCharCreation)
+      : (isCharCreation || shift <= 1 ? 0 : (shift - 1) * 100);
+
+    const availableKarma = this.character.currentKarma || 0;
+
+    if (costText) {
+      if (cost === 0) {
+        costText.innerHTML = '<span style="color: #22c55e;">0 KP (Free)</span>';
+      } else {
+        costText.innerHTML = `<span style="color: var(--marvel-gold);">${cost} KP</span>`;
+      }
+    }
+
+    if (karmaText) {
+      karmaText.textContent = `${availableKarma} KP`;
+      if (cost > availableKarma && !isCharCreation) {
+        karmaText.innerHTML = `<span style="color: #ef4444; font-weight: 700;">${availableKarma} KP (Need ${cost} KP)</span>`;
+      }
+    }
+
+    if (btnApply) {
+      if (shift <= 0 || (cost > availableKarma && !isCharCreation)) {
+        btnApply.disabled = true;
+        btnApply.style.opacity = '0.5';
+        btnApply.style.cursor = 'not-allowed';
+      } else {
+        btnApply.disabled = false;
+        btnApply.style.opacity = '1';
+        btnApply.style.cursor = 'pointer';
+      }
+    }
+
+    if (!aspA || !aspB || shift <= 0) {
+      previewBody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: var(--text-muted); padding: 10px;">Cannot adjust (at rank limits)</td></tr>`;
+      return;
+    }
+
+    const rankA = UniversalTableEngine.applyColumnShift(aspA.baseRank, +shift);
+    const rankB = UniversalTableEngine.applyColumnShift(aspB.baseRank, -shift);
+
+    const valA_base = aspA.getValue(aspA.baseRank);
+    const valA_adj = aspA.getValue(rankA.name);
+
+    const valB_base = aspB.getValue(aspB.baseRank);
+    const valB_adj = aspB.getValue(rankB.name);
+
+    previewBody.innerHTML = `
+      <tr style="border-bottom: 1px solid var(--border-color);">
+        <td style="padding: 6px 10px; font-weight: 700; color: #22c55e;">${aspA.label}</td>
+        <td style="padding: 6px 10px;">${aspA.baseRank} (${valA_base})</td>
+        <td style="padding: 6px 10px; color: #22c55e; font-weight: 700;">+${shift} CS</td>
+        <td style="padding: 6px 10px; font-weight: 700; color: #22c55e;">${rankA.name} (${valA_adj})</td>
+      </tr>
+      <tr>
+        <td style="padding: 6px 10px; font-weight: 700; color: #ef4444;">${aspB.label}</td>
+        <td style="padding: 6px 10px;">${aspB.baseRank} (${valB_base})</td>
+        <td style="padding: 6px 10px; color: #ef4444; font-weight: 700;">-${shift} CS</td>
+        <td style="padding: 6px 10px; font-weight: 700; color: #ef4444;">${rankB.name} (${valB_adj})</td>
+      </tr>
+    `;
+  },
+
+  async handleApplyPowerAdjustment(mouseEvent = null) {
+    const power = this.character.powers[this.activeAdjustmentPowerIndex];
+    if (!power) return;
+
+    const incSel = document.getElementById('adj-aspect-increase');
+    const decSel = document.getElementById('adj-aspect-decrease');
+    const shiftSel = document.getElementById('adj-column-shift');
+    const charCreationCheck = document.getElementById('adj-char-creation');
+    const rationaleInput = document.getElementById('adj-rationale');
+
+    if (!incSel || !decSel || !shiftSel) return;
+
+    const keyA = incSel.value;
+    const keyB = decSel.value;
+    if (keyA === keyB) {
+      await this.showCustomAlert('Please select two different aspects to adjust (one to increase and one to decrease).', 'Invalid Aspects', mouseEvent);
+      return;
+    }
+
+    const shift = parseInt(shiftSel.value) || 0;
+    if (shift <= 0) {
+      await this.showCustomAlert('Column shift must be at least 1 CS.', 'Invalid Shift', mouseEvent);
+      return;
+    }
+
+    const isCurrentlyAdjusted = !!(power.adjustments && power.adjustments.shift);
+    const hasPriorAdjustments = isCurrentlyAdjusted || (power.adjustmentHistory && power.adjustmentHistory.length > 0) || (power.adjustments?.history?.length > 0);
+    const rationale = (rationaleInput ? rationaleInput.value : '').trim();
+
+    if (hasPriorAdjustments && !rationale) {
+      await this.showCustomAlert(
+        'Adjusting the same power more than once strictly requires an in-game explanation (e.g. intensive training, mutation evolution, tech modification) approved by your GM.\n\nPlease enter an explanation in the Rationale field before applying.',
+        '⚠️ In-Game Explanation Required',
+        mouseEvent
+      );
+      return;
+    }
+
+    const isCharCreation = !!(charCreationCheck && charCreationCheck.checked);
+    const cost = (typeof calculatePowerAdjustmentCost === 'function')
+      ? calculatePowerAdjustmentCost(shift, isCharCreation)
+      : (isCharCreation || shift <= 1 ? 0 : (shift - 1) * 100);
+
+    const availableKarma = this.character.currentKarma || 0;
+    if (cost > availableKarma && !isCharCreation) {
+      await this.showCustomAlert(
+        `This adjustment costs ${cost} Karma Points, but you only have ${availableKarma} KP available. Cannot complete adjustment!`,
+        '⚠️ Inadequate Karma Points',
+        mouseEvent
+      );
+      return;
+    }
+
+    if (cost > 0) {
+      const confirmed = await this.showCustomConfirm(
+        `Applying a +${shift} / -${shift} CS adjustment costs ${cost} Karma Points.\n\nHero currently has ${availableKarma} KP.\nDo you want to spend ${cost} KP to apply this permanent power adjustment?`,
+        '⚡ Confirm Karma Spend',
+        mouseEvent,
+        `Spend ${cost} KP`,
+        'Cancel'
+      );
+      if (!confirmed) return;
+
+      this.character.updateKarma(-cost, `Power Adjustment: ${power.name} (+${shift}CS ${keyA} / -${shift}CS ${keyB})`);
+    }
+
+    const aspects = (typeof getPowerRankAspects === 'function') ? getPowerRankAspects(power, power.rankName) : [];
+    const aspA = aspects.find(a => a.key === keyA);
+    const aspB = aspects.find(a => a.key === keyB);
+    const rankA = UniversalTableEngine.applyColumnShift(aspA.baseRank, +shift);
+    const rankB = UniversalTableEngine.applyColumnShift(aspB.baseRank, -shift);
+
+    const existingHistory = (power.adjustments && power.adjustments.history)
+      ? [...power.adjustments.history]
+      : ((power.adjustmentHistory) ? [...power.adjustmentHistory] : []);
+
+    if (power.adjustments && power.adjustments.shift) {
+      existingHistory.push({
+        shift: power.adjustments.shift,
+        aspectA: power.adjustments.aspectA,
+        aspectB: power.adjustments.aspectB,
+        karmaCost: power.adjustments.karmaCost,
+        rationale: power.adjustments.rationale,
+        timestamp: power.adjustments.timestamp
+      });
+    }
+
+    power.adjustments = {
+      shift: shift,
+      aspectA: {
+        key: aspA.key,
+        label: aspA.label,
+        shift: +shift,
+        baseRank: aspA.baseRank,
+        adjustedRank: rankA.name,
+        adjustedRankValue: rankA.num,
+        adjustedFormatted: aspA.getValue(rankA.name)
+      },
+      aspectB: {
+        key: aspB.key,
+        label: aspB.label,
+        shift: -shift,
+        baseRank: aspB.baseRank,
+        adjustedRank: rankB.name,
+        adjustedRankValue: rankB.num,
+        adjustedFormatted: aspB.getValue(rankB.name)
+      },
+      karmaCost: cost,
+      isCharCreation: isCharCreation,
+      rationale: rationale,
+      timestamp: new Date().toISOString(),
+      history: existingHistory
+    };
+
+    delete power.adjustmentHistory;
+
+    this.saveState();
+    this.renderPowers();
+    this.renderAttacks();
+    this.renderVitals();
+
+    const modal = document.getElementById('modal-power-adjustment');
+    if (modal) modal.classList.remove('open');
+
+    await this.showCustomAlert(
+      `"${power.name}" adjusted successfully!\n\n• ${aspA.label}: +${shift} CS ➔ ${rankA.name} (${aspA.getValue(rankA.name)})\n• ${aspB.label}: -${shift} CS ➔ ${rankB.name} (${aspB.getValue(rankB.name)})${cost > 0 ? `\n• Karma Spent: ${cost} KP` : ' (Free)'}`,
+      '⚡ Power Adjusted',
+      mouseEvent
+    );
+  },
+
+  async handleResetPowerAdjustment(mouseEvent = null) {
+    const power = this.character.powers[this.activeAdjustmentPowerIndex];
+    if (!power || !power.adjustments) return;
+
+    const confirmed = await this.showCustomConfirm(
+      `Reset "${power.name}" back to its base rank statistics?\n\nNote: Any Karma spent on prior adjustments is not refunded.`,
+      '↩️ Reset Power Adjustment',
+      mouseEvent,
+      'Reset to Base',
+      'Cancel'
+    );
+    if (!confirmed) return;
+
+    const existingHistory = (power.adjustments && power.adjustments.history)
+      ? [...power.adjustments.history]
+      : [];
+
+    if (power.adjustments.shift) {
+      existingHistory.push({
+        shift: power.adjustments.shift,
+        aspectA: power.adjustments.aspectA,
+        aspectB: power.adjustments.aspectB,
+        karmaCost: power.adjustments.karmaCost,
+        rationale: power.adjustments.rationale,
+        timestamp: power.adjustments.timestamp,
+        action: 'reset'
+      });
+    }
+
+    power.adjustments = null;
+    if (existingHistory.length > 0) {
+      power.adjustmentHistory = existingHistory;
+    }
+
+    this.saveState();
+    this.renderPowers();
+    this.renderAttacks();
+    this.renderVitals();
+
+    const modal = document.getElementById('modal-power-adjustment');
+    if (modal) modal.classList.remove('open');
+
+    await this.showCustomAlert(
+      `"${power.name}" has been restored to its base rank statistics.`,
+      '↩️ Power Reset',
+      mouseEvent
+    );
   },
 
   handleAddPower(mouseEvent = null) {
@@ -2873,6 +3385,20 @@ const App = {
     if (opt) opt.checked = this.useResourcePoints;
     this.renderBackground();
     this.renderEquipment();
+    this.saveState();
+  },
+
+  setPowerAdjustment(enabled) {
+    this.powerAdjustment = !!enabled;
+    if (this.character) {
+      this.character.powerAdjustment = this.powerAdjustment;
+    }
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem('msh_option_power_adjustment', this.powerAdjustment ? 'true' : 'false');
+    }
+    const opt = document.getElementById('option-power-adjustment');
+    if (opt) opt.checked = this.powerAdjustment;
+    this.renderPowers();
     this.saveState();
   },
 

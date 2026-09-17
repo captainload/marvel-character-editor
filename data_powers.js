@@ -3787,7 +3787,252 @@ function getPowerDetails(power, rankName) {
     details.speed = resolveSpeed(rawSpeed, effectiveRank);
   }
 
+  // If power has active power adjustments, apply adjusted values & badges
+  if (power && typeof power === 'object' && power.adjustments) {
+    const adj = power.adjustments;
+    const applyAdjToKey = (aspectObj) => {
+      if (!aspectObj || !aspectObj.key) return;
+      const key = aspectObj.key;
+      const shiftSign = aspectObj.shift > 0 ? `+${aspectObj.shift}` : `${aspectObj.shift}`;
+      const badge = `(${shiftSign}CS [${aspectObj.adjustedRank}])`;
+
+      if (key === 'range') {
+        details.range = `${aspectObj.adjustedFormatted} ${badge}`;
+      } else if (key === 'duration') {
+        details.duration = `${aspectObj.adjustedFormatted} ${badge}`;
+      } else if (key === 'areaOfEffect') {
+        details.areaOfEffect = `${aspectObj.adjustedFormatted} ${badge}`;
+      } else if (key === 'targets') {
+        details.targets = `${aspectObj.adjustedFormatted} ${badge}`;
+      } else if (key === 'speed') {
+        details.speed = `${aspectObj.adjustedFormatted} ${badge}`;
+      } else if (key === 'intensity') {
+        details.intensity = `${aspectObj.adjustedFormatted} ${badge}`;
+      } else {
+        details[key] = `${aspectObj.adjustedFormatted} ${badge}`;
+      }
+    };
+
+    if (adj.aspectA) applyAdjToKey(adj.aspectA);
+    if (adj.aspectB) applyAdjToKey(adj.aspectB);
+  }
+
   return details;
+}
+
+const WEIGHT_BY_RANK = {
+  'Shift 0': '0 lbs',
+  'Feeble': '50 lbs',
+  'Poor': '100 lbs',
+  'Typical': '200 lbs',
+  'Good': '400 lbs',
+  'Excellent': '800 lbs',
+  'Remarkable': '1 ton (2,000 lbs)',
+  'Fantastic': '5 tons',
+  'Incredible': '10 tons',
+  'Spectacular': '25 tons',
+  'Amazing': '50 tons',
+  'Sensational': '65 tons',
+  'Monstrous': '80 tons',
+  'Awesome': '150 tons',
+  'Unearthly': '250 tons',
+  'Shift X': '500 tons',
+  'Shift Y': '1,000 tons',
+  'Shift Z': '10,000 tons',
+  'Class 1000': '100,000 tons',
+  'Class 3000': '1,000,000 tons',
+  'Class 5000': '10,000,000 tons'
+};
+
+function getPowerRankAspects(power, rankName) {
+  if (!power) return [];
+  const pName = typeof power === 'string' ? power : power.name;
+  const pCode = typeof power === 'object' ? (power.code || power.powerCode || power.id) : power;
+  
+  let catalogPower = null;
+  if (pCode && POWERS_BY_CODE[pCode]) {
+    catalogPower = POWERS_BY_CODE[pCode];
+  } else if (pName) {
+    catalogPower = POWERS_BY_NAME[pName.toLowerCase()] || POWERS_CATALOG.find(p => p.name.toLowerCase() === pName.toLowerCase());
+  }
+
+  const code = catalogPower ? catalogPower.code : pCode;
+  const baseAttrs = (code && POWER_ATTRIBUTES[code]) ? POWER_ATTRIBUTES[code] : {};
+  const effectiveRank = rankName || (typeof power === 'object' ? power.rankName : null) || (catalogPower ? catalogPower.defaultRank : 'Typical');
+  const desc = ((catalogPower ? catalogPower.description : '') + ' ' + (catalogPower ? catalogPower.rulesText : '')).toLowerCase();
+
+  const aspects = [];
+
+  const getRankNum = (r) => {
+    if (typeof UniversalTableEngine !== 'undefined') {
+      return UniversalTableEngine.getRankByName(r).num;
+    }
+    return r;
+  };
+
+  // 1. Intensity / Effect
+  let intensityLabel = 'Intensity / Primary Effect';
+  if (catalogPower) {
+    if (catalogPower.category === 'Energy Emission' || desc.includes('damage') || desc.includes('blast') || desc.includes('bolt') || desc.includes('beam')) {
+      intensityLabel = 'Intensity / Damage';
+    } else if (catalogPower.category === 'Defensive' || desc.includes('armor') || desc.includes('protection') || desc.includes('field')) {
+      intensityLabel = 'Intensity / Protection';
+    } else if (desc.includes('material strength') || catalogPower.category === 'Matter Creation') {
+      intensityLabel = 'Intensity / Material Strength';
+    } else if (catalogPower.category === 'Detection' || desc.includes('sense') || desc.includes('detect')) {
+      intensityLabel = 'Intensity / Detection Sensitivity';
+    } else if (catalogPower.category === 'Lifeform Control' || catalogPower.category === 'Mental Enhancement') {
+      intensityLabel = 'Intensity / Control Level';
+    }
+  }
+
+  aspects.push({
+    key: 'intensity',
+    label: intensityLabel,
+    baseRank: effectiveRank,
+    getValue: (r) => `${r} (${getRankNum(r)})`
+  });
+
+  // 2. Range
+  const rawRange = baseAttrs.range;
+  if (rawRange && (rawRange.includes('Rank') || rawRange === 'Rank')) {
+    aspects.push({
+      key: 'range',
+      label: 'Range',
+      baseRank: effectiveRank,
+      getValue: (r) => {
+        const dist = RANGE_BY_RANK[r] || '2 areas';
+        if (rawRange === 'Rank') return dist;
+        if (rawRange === 'Touch / Rank') return `Touch / ${dist}`;
+        if (rawRange === 'Rank (Visual)') return `${dist} (Visual)`;
+        return dist;
+      }
+    });
+  }
+
+  // 3. Duration
+  const rawDuration = baseAttrs.duration;
+  if (rawDuration && (rawDuration.includes('Rank') || rawDuration === 'Rank turns')) {
+    aspects.push({
+      key: 'duration',
+      label: 'Duration',
+      baseRank: effectiveRank,
+      getValue: (r) => `${getRankNum(r)} turns (${r})`
+    });
+  }
+
+  // 4. Area of Effect
+  const rawArea = baseAttrs.areaOfEffect;
+  if (rawArea && (rawArea.includes('Rank') || rawArea === '1 area' || desc.includes('areas equal to'))) {
+    aspects.push({
+      key: 'areaOfEffect',
+      label: 'Area of Effect',
+      baseRank: effectiveRank,
+      getValue: (r) => {
+        if (rawArea && rawArea.includes('10%')) {
+          const num = getRankNum(r);
+          const areas = Math.max(1, Math.round(num * 0.1));
+          return `${areas} areas (${r})`;
+        }
+        return `${RANGE_BY_RANK[r] || '2 areas'} radius`;
+      }
+    });
+  }
+
+  // 5. Targets
+  const rawTargets = baseAttrs.targets;
+  if (rawTargets && (rawTargets.includes('Rank') || desc.includes('targets equal to') || desc.includes('target equal to'))) {
+    aspects.push({
+      key: 'targets',
+      label: 'Number of Targets',
+      baseRank: effectiveRank,
+      getValue: (r) => `Up to ${getRankNum(r)} targets (${r})`
+    });
+  }
+
+  // 6. Movement Speed
+  if (baseAttrs.speed) {
+    let speedLabel = 'Movement Speed';
+    if (baseAttrs.speed === 'Flight') speedLabel = 'Flight Speed';
+    else if (baseAttrs.speed === 'Land') speedLabel = 'Land Speed';
+    else if (baseAttrs.speed === 'Water') speedLabel = 'Swimming Speed';
+
+    aspects.push({
+      key: 'speed',
+      label: speedLabel,
+      baseRank: effectiveRank,
+      getValue: (r) => {
+        if (baseAttrs.speed === 'Flight') return FLIGHT_SPEED[r] || FLIGHT_SPEED['Typical'];
+        if (baseAttrs.speed === 'Land') return LAND_SPEED[r] || LAND_SPEED['Typical'];
+        if (baseAttrs.speed === 'Water') return WATER_SPEED[r] || WATER_SPEED['Typical'];
+        return r;
+      }
+    });
+  }
+
+  // 7. Special Rank Stats
+  if (code === 'S27' || (desc.includes('duplicate') && (desc.includes('power rank number') || desc.includes('equal to')))) {
+    aspects.push({
+      key: 'duplicates',
+      label: 'Duplicates Created',
+      baseRank: effectiveRank,
+      getValue: (r) => `Up to ${getRankNum(r)} duplicates (${r})`
+    });
+  }
+
+  if (code === 'M14' || (desc.includes('designs') && desc.includes('memorize'))) {
+    aspects.push({
+      key: 'designs',
+      label: 'Designs Memorized',
+      baseRank: effectiveRank,
+      getValue: (r) => `Up to ${getRankNum(r)} designs (${r})`
+    });
+  }
+
+  if (code === 'M30' || desc.includes('weight') || desc.includes('lift')) {
+    aspects.push({
+      key: 'weight_capacity',
+      label: 'Weight / Mass Capacity',
+      baseRank: effectiveRank,
+      getValue: (r) => WEIGHT_BY_RANK[r] || '1 ton'
+    });
+  }
+
+  if (code === 'S14' || desc.includes('elongate') || desc.includes('stretching')) {
+    aspects.push({
+      key: 'elongation_reach',
+      label: 'Elongation Reach',
+      baseRank: effectiveRank,
+      getValue: (r) => RANGE_BY_RANK[r] || '2 areas'
+    });
+  }
+
+  return aspects;
+}
+
+function calculatePowerAdjustmentCost(shift, isCharCreation = false) {
+  if (isCharCreation) return 0;
+  const s = parseInt(shift) || 0;
+  if (s <= 1) return 0;
+  return (s - 1) * 100;
+}
+
+function getMaxAdjustmentShift(aspectA_baseRank, aspectB_baseRank) {
+  const activeRanks = (typeof UniversalTableEngine !== 'undefined') ? UniversalTableEngine.ranks : [
+    { name: 'Shift 0' }, { name: 'Feeble' }, { name: 'Poor' }, { name: 'Typical' },
+    { name: 'Good' }, { name: 'Excellent' }, { name: 'Remarkable' }, { name: 'Incredible' },
+    { name: 'Amazing' }, { name: 'Monstrous' }, { name: 'Unearthly' }
+  ];
+  const rankNames = activeRanks.map(r => r.name.toLowerCase());
+  const idxFeeble = rankNames.indexOf('feeble');
+  const idxAmazing = rankNames.indexOf('amazing');
+  const idxA = rankNames.indexOf((aspectA_baseRank || '').toLowerCase());
+  const idxB = rankNames.indexOf((aspectB_baseRank || '').toLowerCase());
+
+  if (idxA === -1 || idxB === -1) return 0;
+  const maxIncreaseA = Math.max(0, idxAmazing - idxA);
+  const maxDecreaseB = Math.max(0, idxB - idxFeeble);
+  return Math.min(maxIncreaseA, maxDecreaseB);
 }
 
 if (typeof globalThis !== 'undefined') {
@@ -3800,7 +4045,11 @@ if (typeof globalThis !== 'undefined') {
   globalThis.FLIGHT_SPEED = FLIGHT_SPEED;
   globalThis.LAND_SPEED = LAND_SPEED;
   globalThis.WATER_SPEED = WATER_SPEED;
+  globalThis.WEIGHT_BY_RANK = WEIGHT_BY_RANK;
   globalThis.getPowerDetails = getPowerDetails;
+  globalThis.getPowerRankAspects = getPowerRankAspects;
+  globalThis.calculatePowerAdjustmentCost = calculatePowerAdjustmentCost;
+  globalThis.getMaxAdjustmentShift = getMaxAdjustmentShift;
 }
 
 if (typeof module !== 'undefined' && module.exports) {
@@ -3814,6 +4063,10 @@ if (typeof module !== 'undefined' && module.exports) {
     FLIGHT_SPEED,
     LAND_SPEED,
     WATER_SPEED,
-    getPowerDetails
+    WEIGHT_BY_RANK,
+    getPowerDetails,
+    getPowerRankAspects,
+    calculatePowerAdjustmentCost,
+    getMaxAdjustmentShift
   };
 }

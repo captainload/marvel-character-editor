@@ -123,6 +123,7 @@ class FASERIPCharacter {
         areaOfEffect: p.areaOfEffect !== undefined ? p.areaOfEffect : (catalogPower ? catalogPower.areaOfEffect : null),
         targets: p.targets !== undefined ? p.targets : (catalogPower ? catalogPower.targets : null),
         speed: p.speed !== undefined ? p.speed : (catalogPower ? catalogPower.speed : null),
+        adjustments: p.adjustments || null,
         notes: p.notes || '',
         stunts: Array.isArray(p.stunts) ? p.stunts.map(s => {
           if (typeof s === 'string') {
@@ -372,6 +373,10 @@ class FASERIPCharacter {
     return this.currentKarma;
   }
 
+  hasAccumulatedKarma() {
+    return this.advancementLog.some(e => e.type === 'karma_gain' || (e.amount > 0 && e.type !== 'initial'));
+  }
+
   addCondition(conditionName) {
     if (!this.conditions.includes(conditionName)) {
       this.conditions.push(conditionName);
@@ -418,6 +423,7 @@ class FASERIPCharacter {
       areaOfEffect: powerData.areaOfEffect !== undefined ? powerData.areaOfEffect : (catalogPower ? catalogPower.areaOfEffect : null),
       targets: powerData.targets !== undefined ? powerData.targets : (catalogPower ? catalogPower.targets : null),
       speed: powerData.speed !== undefined ? powerData.speed : (catalogPower ? catalogPower.speed : null),
+      adjustments: powerData.adjustments || null,
       notes: powerData.notes || '',
       stunts: Array.isArray(powerData.stunts) ? [...powerData.stunts] : []
     };
@@ -1307,8 +1313,28 @@ class FASERIPCharacter {
       let isDefensive = false;
       let actionType = 'energy';
       let abilityName = 'Agility';
-      let dmgVal = p.rankValue;
-      let range = `${Math.max(1, Math.round(p.rankValue / 10))} areas`;
+
+      let pRankName = p.rankName;
+      let pRankValue = p.rankValue;
+      if (p.adjustments) {
+        if (p.adjustments.aspectA?.key === 'intensity') {
+          pRankName = p.adjustments.aspectA.adjustedRank;
+          pRankValue = p.adjustments.aspectA.adjustedRankValue;
+        } else if (p.adjustments.aspectB?.key === 'intensity') {
+          pRankName = p.adjustments.aspectB.adjustedRank;
+          pRankValue = p.adjustments.aspectB.adjustedRankValue;
+        }
+      }
+
+      let dmgVal = pRankValue;
+      let range = `${Math.max(1, Math.round(pRankValue / 10))} areas`;
+      if (p.adjustments) {
+        if (p.adjustments.aspectA?.key === 'range') {
+          range = p.adjustments.aspectA.adjustedFormatted;
+        } else if (p.adjustments.aspectB?.key === 'range') {
+          range = p.adjustments.aspectB.adjustedFormatted;
+        }
+      }
 
       if (pName.includes('blast') || pName.includes('bolt') || pName.includes('ray') || pName.includes('beam') || pName.includes('generation') || pName.includes('emission')) {
         isOffensive = true;
@@ -1325,7 +1351,7 @@ class FASERIPCharacter {
         isOffensive = true;
         actionType = 'energy';
         abilityName = 'Psyche';
-        range = `${Math.max(1, Math.round(p.rankValue / 10))} areas`;
+        range = `${Math.max(1, Math.round(pRankValue / 10))} areas`;
       }
 
       if (pName.includes('force field') || pName.includes('shield') || pName.includes('reflection') || pName.includes('absorption') || pName.includes('armor') || pName.includes('resistance') || pName.includes('invisibility') || pName.includes('phasing')) {
@@ -1333,18 +1359,20 @@ class FASERIPCharacter {
       }
 
       if (isOffensive) {
+        const adjSuffix = p.adjustments ? ` [Adjusted]` : '';
+        const adjNote = p.adjustments ? ` [Adjusted: +${p.adjustments.shift} ${p.adjustments.aspectA.label} / -${p.adjustments.shift} ${p.adjustments.aspectB.label}]` : '';
         attacks.push({
           id: 'atk_p_' + p.id,
-          name: `${p.name} (${p.rankName})`,
+          name: `${p.name} (${pRankName})${adjSuffix}`,
           category: 'Power',
           actionType: actionType,
           abilityName: abilityName,
-          baseRank: p.rankName,
+          baseRank: pRankName,
           columnShift: 0,
-          damage: `${p.rankValue} (${p.rankName})`,
+          damage: `${pRankValue} (${pRankName})`,
           damageValue: dmgVal,
           range: range,
-          notes: p.notes || `Power Rank: ${p.rankName} (${p.rankValue}). Stunts: ${p.stunts?.length || 0}`
+          notes: (p.notes || `Power Rank: ${pRankName} (${pRankValue}). Stunts: ${p.stunts?.length || 0}`) + adjNote
         });
       }
 

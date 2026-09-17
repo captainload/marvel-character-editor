@@ -826,5 +826,55 @@ Each carries `allowsSpecialization: true` and tailored `specPlaceholder` text.
   - `scratch/verify_all_catalogs.js`: Passed 100%
 - **Mirroring & Version Control**:
   - Mirrored `app.js` and `walkthrough.md` to `H:\My Drive\RPG development\Marvel\`.
-  - Committed and pushed to GitHub `main`.
+  - Committed and pushed to GitHub `main` (commit `37f4d22`).
+
+---
+
+## Power Roll Buttons
+
+### Overview of User Request
+- "Powers don't have roll butons (although stunts do)."
+
+### Design & Implementation Details
+1. **Power Card Header Controls** ([`app.js`](file:///C:/Users/admin/.gemini/antigravity/brain/90637841-9270-481f-944c-4ab42ceec14e/app.js)):
+   - Added `<button type="button" class="power-roll-btn" data-roll-power="${idx}" title="Roll ${p.name} FEAT">🎲 Roll</button>` to the right-hand action controls of each power card, sitting between the rank pill and the delete button.
+   - Tied each `.power-roll-btn` to `this.rollPowerFEAT(p, e)`.
+2. **Power Roll Orchestration (`rollPowerFEAT` & `getPowerActionType`)**:
+   - Implemented `getPowerActionType(power)` to map power names and categories to canonical battle action types:
+     - `energy`: Blasts, bolts, rays, beams, emissions.
+     - `force`: Concussion beams, kinetic bolts, vibration.
+     - `defense`: Force fields, body armor, shields, resistance.
+     - `reflection`: Reflection/deflection powers.
+     - `edged`: Claws, fangs, blades.
+     - `shooting`: Web shooting, projectiles, missiles.
+     - `slugfest`: Martial/fighting powers.
+     - `standard`: Mental powers (Telepathy), travel (Flight), utility, etc.
+   - Implemented `rollPowerFEAT(power, clickEvent)` which opens the Universal FEAT roller targeting the power's rank, displaying the power name, rank preview, and battle effect.
+3. **Styling & Theme Support** ([`styles.css`](file:///C:/Users/admin/.gemini/antigravity/brain/90637841-9270-481f-944c-4ab42ceec14e/styles.css)):
+   - Shared `.power-roll-btn` styling with `.stunt-roll-btn` at $\ge 10\text{pt}$ font size and 28px height.
+   - Supported high-contrast styling across:
+     - **Default / Four-Color**: Blue pill (`#1e3a8a` bg, `#bfdbfe` text, `#3b82f6` border).
+     - **Manilla Theme**: Cream pill (`#e2ded6` bg, `#000000` text, `#c2bcaf` border) avoiding unreadable font combos.
+     - **Aqua Theme**: Deep marine pill (`#183e6a` bg, `#f0fdfa` text, `#23588e` border).
+
+### Verification
+- **New Unit Test Suite** ([`scratch/test_power_roll_buttons.js`](file:///C:/Users/admin/.gemini/antigravity/brain/90637841-9270-481f-944c-4ab42ceec14e/scratch/test_power_roll_buttons.js)):
+  - Verified `.power-roll-btn` in base, Manilla, and Aqua theme CSS with $\ge 10\text{pt}$ typography.
+  - Verified `getPowerActionType` mappings for all major power categories.
+  - Verified `renderPowers()` renders `.power-roll-btn` on power cards and preserves `.stunt-roll-btn` on stunts.
+  - Verified `.power-roll-btn` click opens the FEAT roller with accurate rank and action type.
+  - Verified `executeRollerFEAT()` resolves rolls with battle effect and color result formatting.
+- **Full Regression Test Suite**:
+  - `check_undeclared.js`: Passed
+  - `test_dropdown_placeholders.js`: Passed
+  - `test_talents_starred_and_specializations.js`: Passed
+  - `test_tsr_talents_only.js`: Passed
+  - `test_resource_points_rule.js`: Passed
+  - `test_ohotmu_and_filters.js`: Passed
+  - `test_unreadable_combos_fixed.js`: Passed
+  - `verify_all_catalogs.js`: Passed
+- **Mirroring & Version Control**:
+  - Mirrored `app.js`, `styles.css`, and `walkthrough.md` to `H:\My Drive\RPG development\Marvel\`.
+  - Committed and pushed to GitHub repository `main`.
+
 

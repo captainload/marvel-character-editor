@@ -1386,10 +1386,11 @@ const App = {
             <button type="button" class="help-circle-btn" title="View details and rules for ${p.name}" data-power-name="${p.name}">?</button>
             ${badgeHtml}
           </div>
-          <div style="display: flex; align-items: center; gap: 10px;">
+          <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
             <span class="meta-tag tag-power-cp" style="font-weight: 700;">${cpCost} CP</span>
             <span class="rank-pill" style="background-color: ${pRank.color};">${pRank.name} (${p.rankValue})</span>
-            <button class="icon-btn" style="padding: 2px 8px; min-height: 28px; background: #881337;" data-del-power="${idx}">✕</button>
+            <button type="button" class="power-roll-btn" data-roll-power="${idx}" title="Roll ${p.name} FEAT">🎲 Roll</button>
+            <button class="icon-btn" style="padding: 2px 8px; min-height: 28px; background: #881337;" data-del-power="${idx}" title="Delete Power">✕</button>
           </div>
         </div>
         <div class="power-notes" style="font-size: 10.5pt; margin-bottom: 8px;">
@@ -1543,6 +1544,14 @@ const App = {
         this.showHelpModal('power', p.name);
       });
 
+      const rollPowerBtn = card.querySelector(`[data-roll-power="${idx}"]`);
+      if (rollPowerBtn) {
+        rollPowerBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          this.rollPowerFEAT(p, e);
+        });
+      }
+
       card.querySelector('[data-del-power]').addEventListener('click', () => {
         this.character.powers.splice(idx, 1);
         this.saveState();
@@ -1551,6 +1560,54 @@ const App = {
 
       container.appendChild(card);
     });
+  },
+
+  getPowerActionType(power) {
+    if (!power) return 'standard';
+    if (power.actionType) return power.actionType;
+    const name = (power.name || '').toLowerCase();
+    const cat = (power.category || '').toLowerCase();
+
+    if (name.includes('reflection')) return 'reflection';
+    if (name.includes('force field') || name.includes('shield') || name.includes('absorption') || name.includes('armor') || name.includes('resistance') || cat.includes('defensive')) {
+      return 'defense';
+    }
+    if (name.includes('claw') || name.includes('fang') || name.includes('sting') || name.includes('blade') || name.includes('weapon')) {
+      return 'edged';
+    }
+    if (name.includes('shoot') || name.includes('missile') || name.includes('projectile') || name.includes('web') || name.includes('entangle')) {
+      return 'shooting';
+    }
+    if (name.includes('force') || name.includes('concussion') || name.includes('kinetic') || name.includes('vibration')) {
+      return 'force';
+    }
+    if (name.includes('blast') || name.includes('bolt') || name.includes('ray') || name.includes('beam') || name.includes('generation') || name.includes('emission') || cat.includes('energy emission')) {
+      return 'energy';
+    }
+    if (cat.includes('fighting')) {
+      return 'slugfest';
+    }
+    return 'standard';
+  },
+
+  rollPowerFEAT(power, clickEvent = null) {
+    if (!power) return;
+    const actionType = this.getPowerActionType(power);
+    const rankName = power.rankName || 'Typical';
+    const rankObj = UniversalTableEngine.getRankByName(rankName);
+    const rankVal = power.rankValue ?? rankObj.num ?? 6;
+
+    this.openRoller({
+      name: `${power.name} FEAT`,
+      abilityName: `${power.name} (${rankName})`,
+      initialRank: rankName,
+      shift: 0,
+      actionType: actionType,
+      damageValue: rankVal,
+      isPower: true,
+      powerId: power.id,
+      notes: power.notes || `Power Rank: ${rankName} (${rankVal})`
+    }, clickEvent);
   },
 
   openStuntModal(powerId) {

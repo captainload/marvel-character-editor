@@ -2329,6 +2329,7 @@ body.sticky-header-active .top-tabs-bar {
   border-color: rgba(245, 158, 11, 0.4);
 }
 
+.power-roll-btn,
 .stunt-roll-btn {
   display: inline-flex;
   align-items: center;
@@ -2345,6 +2346,7 @@ body.sticky-header-active .top-tabs-bar {
   transition: all 0.15s ease;
 }
 
+.power-roll-btn:hover,
 .stunt-roll-btn:hover {
   background: #2563eb;
   color: #fff;
@@ -3674,12 +3676,14 @@ body[data-theme="manilla"] .stunt-badge.mastered {
   font-weight: 700;
 }
 
+body[data-theme="manilla"] .power-roll-btn,
 body[data-theme="manilla"] .stunt-roll-btn {
   background: #e2ded6;
   border-color: #c2bcaf;
   color: #000000;
 }
 
+body[data-theme="manilla"] .power-roll-btn:hover,
 body[data-theme="manilla"] .stunt-roll-btn:hover {
   background: #ded7cb;
   color: #000000;
@@ -4916,6 +4920,19 @@ body[data-theme="aqua"] .stunt-desc {
 body[data-theme="aqua"] .stunt-emulate-tag {
   color: #38bdf8;
   border-color: #23588e;
+}
+
+body[data-theme="aqua"] .power-roll-btn,
+body[data-theme="aqua"] .stunt-roll-btn {
+  background: #183e6a;
+  border-color: #23588e;
+  color: #f0fdfa;
+}
+
+body[data-theme="aqua"] .power-roll-btn:hover,
+body[data-theme="aqua"] .stunt-roll-btn:hover {
+  background: #1f4f86;
+  color: #22d3ee;
 }
 
 body[data-theme="aqua"] .starred-power-banner {

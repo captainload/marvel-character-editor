@@ -236,7 +236,7 @@ const App = {
     // Inventions Buttons & Multi-Power / Boost Actions
     const btnAddInvPwr = document.getElementById('btn-add-inv-power');
     if (btnAddInvPwr) {
-      btnAddInvPwr.addEventListener('click', () => this.addInvPower());
+      btnAddInvPwr.addEventListener('click', (e) => this.addInvPower(e));
     }
 
     const btnAddInvBst = document.getElementById('btn-add-inv-boost');
@@ -807,9 +807,13 @@ const App = {
 
     const btnPrevInvPower = document.getElementById('btn-preview-inv-power');
     if (btnPrevInvPower) {
-      btnPrevInvPower.addEventListener('click', () => {
+      btnPrevInvPower.addEventListener('click', (e) => {
         const pSel = document.getElementById('inv-power-select');
-        if (pSel && pSel.value) this.showHelpModal('power', pSel.value);
+        if (pSel && pSel.value) {
+          this.showHelpModal('power', pSel.value);
+        } else {
+          this.showCustomAlert('Please select an invention superpower first to view its details.', 'Select Power', e);
+        }
       });
     }
 
@@ -1752,6 +1756,7 @@ const App = {
     const invPwrSel = document.getElementById('inv-power-select');
     if (!invPwrSel || !globalThis.MSH_POWERS) return;
 
+    const previousVal = invPwrSel.value;
     const q = (filterText || '').toLowerCase().trim();
     const filtered = q ? globalThis.MSH_POWERS.filter(p => 
       p.name.toLowerCase().includes(q) || 
@@ -1766,7 +1771,7 @@ const App = {
       cats[c].push(p);
     });
 
-    let html = '';
+    let html = '<option value="">-- Select Power --</option>';
     for (const catName in cats) {
       html += `<optgroup label="${catName}">`;
       html += cats[catName].map(p => {
@@ -1776,6 +1781,12 @@ const App = {
       html += `</optgroup>`;
     }
     invPwrSel.innerHTML = html;
+
+    if (previousVal && invPwrSel.querySelector(`option[value="${previousVal}"]`)) {
+      invPwrSel.value = previousVal;
+    } else {
+      invPwrSel.value = '';
+    }
   },
 
   renderTalentDropdown(filterText = '') {
@@ -2817,13 +2828,22 @@ const App = {
     this.setTheme(nextTheme);
   },
 
-  addInvPower() {
+  addInvPower(mouseEvent = null) {
     const pwrSel = document.getElementById('inv-power-select');
     const rankSel = document.getElementById('inv-power-rank');
     if (!pwrSel || !rankSel || !globalThis.MSH_POWERS) return;
 
+    if (!pwrSel.value) {
+      this.showCustomAlert('Please select a superpower from the dropdown before adding to the device.', 'Select Power', mouseEvent);
+      return;
+    }
+
     const catalogPower = globalThis.MSH_POWERS.find(p => p.name === pwrSel.value || p.id === pwrSel.value);
-    const pName = catalogPower ? catalogPower.name : pwrSel.value;
+    if (!catalogPower) {
+      this.showCustomAlert('Please select a superpower from the dropdown before adding to the device.', 'Select Power', mouseEvent);
+      return;
+    }
+    const pName = catalogPower.name;
     const rObj = UniversalTableEngine.getRankByName(rankSel.value);
 
     this.invPowers.push({
@@ -2835,6 +2855,7 @@ const App = {
       isStarred: catalogPower ? !!catalogPower.isStarred : false
     });
 
+    pwrSel.value = '';
     this.renderInvPowersList();
     this.handleCalculateInvention();
   },
@@ -2955,7 +2976,7 @@ const App = {
       sourceType: this.invSourceType || 'tech',
       powers: this.invPowers,
       abilityBoosts: this.invAbilityBoosts,
-      targetPowerName: document.getElementById('inv-power-select')?.value || 'Energy Blast',
+      targetPowerName: (this.invPowers && this.invPowers.length > 0 ? this.invPowers[0].name : '') || document.getElementById('inv-power-select')?.value || 'Energy Blast',
       targetPowerRank: document.getElementById('inv-power-rank')?.value || 'Remarkable',
       materialRank: document.getElementById('inv-material-rank')?.value || 'Remarkable',
       inventorReasonRank: this.character.abilities.reason.rankName,

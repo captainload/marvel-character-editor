@@ -435,7 +435,9 @@
                   <input type="text" id="filter-inv-power-search" placeholder="🔍 Filter powers..." style="font-size: 10pt; padding: 2px 8px; border-radius: 4px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-main); width: 140px;">
                 </div>
                 <div style="display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) auto auto; gap: 8px; align-items: center;">
-                  <select id="inv-power-select" class="field-input" style="min-width: 0;"></select>
+                  <select id="inv-power-select" class="field-input" style="min-width: 0;">
+                    <option value="">-- Select Power --</option>
+                  </select>
                   <select id="inv-power-rank" class="field-input" style="min-width: 0;"></select>
                   <button type="button" class="help-circle-btn" id="btn-preview-inv-power" title="View details of selected power">?</button>
                   <button type="button" class="icon-btn primary" id="btn-add-inv-power" style="padding: 4px 10px; min-height: 40px; font-size: 10pt;" title="Add power to invention">➕ Add</button>

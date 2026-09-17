@@ -339,7 +339,9 @@
               <input type="text" id="filter-power-search" placeholder="🔍 Filter powers..." style="font-size: 10pt; padding: 2px 8px; border-radius: 4px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-main); width: 140px;">
             </div>
             <div style="display: flex; gap: 6px; align-items: center;">
-              <select id="select-power-catalog" class="field-input" style="min-height: 44px; flex: 1;"></select>
+              <select id="select-power-catalog" class="field-input" style="min-height: 44px; flex: 1;">
+                <option value="">-- Select Power --</option>
+              </select>
               <button type="button" class="help-circle-btn" id="btn-preview-power" title="View details of selected superpower">?</button>
             </div>
           </div>
@@ -673,7 +675,9 @@
           </div>
 
           <div style="display: flex; gap: 8px; margin-bottom: 8px; align-items: center;">
-            <select id="select-talent-catalog" class="field-input" style="flex:1; min-height: 44px;"></select>
+            <select id="select-talent-catalog" class="field-input" style="flex:1; min-height: 44px;">
+              <option value="">-- Select Talent --</option>
+            </select>
             <button type="button" class="help-circle-btn" id="btn-preview-talent" title="View details of selected talent">?</button>
             <button class="icon-btn primary" id="btn-add-talent" style="min-height: 44px;">➕ Add Talent</button>
           </div>

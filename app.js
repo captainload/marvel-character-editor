@@ -795,9 +795,13 @@ const App = {
     // Preview "?" Buttons adjacent to dropdown selectors
     const btnPrevPower = document.getElementById('btn-preview-power');
     if (btnPrevPower) {
-      btnPrevPower.addEventListener('click', () => {
+      btnPrevPower.addEventListener('click', (e) => {
         const pSel = document.getElementById('select-power-catalog');
-        if (pSel && pSel.value) this.showHelpModal('power', pSel.value);
+        if (pSel && pSel.value) {
+          this.showHelpModal('power', pSel.value);
+        } else {
+          this.showCustomAlert('Please select a superpower from the dropdown first to view its details.', 'Select Power', e);
+        }
       });
     }
 
@@ -811,9 +815,13 @@ const App = {
 
     const btnPrevTalent = document.getElementById('btn-preview-talent');
     if (btnPrevTalent) {
-      btnPrevTalent.addEventListener('click', () => {
+      btnPrevTalent.addEventListener('click', (e) => {
         const tSel = document.getElementById('select-talent-catalog');
-        if (tSel && tSel.value) this.showHelpModal('talent', tSel.value);
+        if (tSel && tSel.value) {
+          this.showHelpModal('talent', tSel.value);
+        } else {
+          this.showCustomAlert('Please select a talent from the dropdown first to view its details.', 'Select Talent', e);
+        }
       });
     }
 
@@ -1608,13 +1616,20 @@ const App = {
     if (modal) modal.classList.remove('open');
   },
 
-  handleAddPower() {
+  handleAddPower(mouseEvent = null) {
     const powerId = document.getElementById('select-power-catalog').value;
+    if (!powerId) {
+      this.showCustomAlert('Please select a superpower from the dropdown before adding.', 'Select Power', mouseEvent);
+      return;
+    }
     const rankName = document.getElementById('select-new-power-rank').value;
     const manualExceptional = document.getElementById('check-power-exceptional') ? document.getElementById('check-power-exceptional').checked : false;
 
     const catalogPower = globalThis.MSH_POWERS.find(p => p.id === powerId);
-    if (!catalogPower) return;
+    if (!catalogPower) {
+      this.showCustomAlert('Please select a superpower from the dropdown before adding.', 'Select Power', mouseEvent);
+      return;
+    }
 
     const isStarred = !!(catalogPower.isStarred || catalogPower.countsAsTwo || catalogPower.powerSlots > 1);
     const isExceptional = isStarred || manualExceptional;
@@ -1636,12 +1651,19 @@ const App = {
 
     this.saveState();
     this.render();
+
+    const pCatSel = document.getElementById('select-power-catalog');
+    if (pCatSel) {
+      pCatSel.value = '';
+      this.syncPowerSelectionUI();
+    }
   },
 
   renderPowerDropdown(filterText = '') {
     const pCatSel = document.getElementById('select-power-catalog');
     if (!pCatSel || !globalThis.MSH_POWERS) return;
 
+    const previousVal = pCatSel.value;
     const q = (filterText || '').toLowerCase().trim();
     const filtered = q ? globalThis.MSH_POWERS.filter(p => 
       p.name.toLowerCase().includes(q) || 
@@ -1657,7 +1679,7 @@ const App = {
       cats[c].push(p);
     });
 
-    let html = '';
+    let html = '<option value="">-- Select Power --</option>';
     for (const catName in cats) {
       html += `<optgroup label="${catName}">`;
       html += cats[catName].map(p => {
@@ -1668,6 +1690,12 @@ const App = {
       html += `</optgroup>`;
     }
     pCatSel.innerHTML = html;
+
+    if (previousVal && pCatSel.querySelector(`option[value="${previousVal}"]`)) {
+      pCatSel.value = previousVal;
+    } else {
+      pCatSel.value = '';
+    }
 
     this.syncPowerSelectionUI();
   },
@@ -1680,7 +1708,19 @@ const App = {
     const labelExpText = document.getElementById('label-power-exceptional-text');
     const bannerEl = document.getElementById('power-starred-banner');
 
-    if (!selectedP) return;
+    if (!selectedP) {
+      if (checkExp) {
+        checkExp.checked = false;
+        checkExp.disabled = false;
+      }
+      if (labelExpText) {
+        labelExpText.textContent = 'Exceptional Power (2x Rank CP)';
+      }
+      if (bannerEl) {
+        bannerEl.style.display = 'none';
+      }
+      return;
+    }
 
     const isStarred = !!(selectedP.isStarred || selectedP.countsAsTwo || selectedP.powerSlots > 1);
 
@@ -1759,8 +1799,7 @@ const App = {
 
     const learnedTalents = (this.character && Array.isArray(this.character.talents)) ? this.character.talents : [];
 
-    let html = '';
-    let firstSelectable = null;
+    let html = '<option value="">-- Select Talent --</option>';
 
     for (const grp in groups) {
       html += `<optgroup label="${grp}">`;
@@ -1784,10 +1823,8 @@ const App = {
           return `<option value="${t.id || t.name}" disabled style="opacity: 0.5;">${starPrefix}${starName} (${slotsText}, ${costText}) [Already Learned]</option>`;
         } else if (allowsSpec && learnedCount > 0) {
           // Can be learned multiple times with different specializations
-          if (!firstSelectable) firstSelectable = t.id || t.name;
           return `<option value="${t.id || t.name}">${starPrefix}${starName} (${slotsText}, ${costText}) [${learnedCount} learned - Add Specialty]</option>`;
         } else {
-          if (!firstSelectable) firstSelectable = t.id || t.name;
           return `<option value="${t.id || t.name}">${starPrefix}${starName} (${slotsText}, ${costText})</option>`;
         }
       }).join('');
@@ -1798,8 +1835,8 @@ const App = {
     // Preserve previous selection if still available and enabled
     if (previousVal && tSel.querySelector(`option[value="${previousVal}"]:not([disabled])`)) {
       tSel.value = previousVal;
-    } else if (firstSelectable) {
-      tSel.value = firstSelectable;
+    } else {
+      tSel.value = '';
     }
 
     this.updateTalentSpecializationInput();
@@ -4070,8 +4107,15 @@ const App = {
     const tSel = document.getElementById('select-talent-catalog');
     if (!tSel) return;
     const talentQuery = tSel.value;
+    if (!talentQuery) {
+      this.showCustomAlert('Please select a talent from the dropdown before adding.', 'Select Talent', mouseEvent);
+      return;
+    }
     const catTalent = (globalThis.MSH_TALENTS || []).find(t => t.id === talentQuery || t.name === talentQuery);
-    if (!catTalent) return;
+    if (!catTalent) {
+      this.showCustomAlert('Please select a talent from the dropdown before adding.', 'Select Talent', mouseEvent);
+      return;
+    }
 
     const specInput = document.getElementById('input-talent-specialization');
     const specialization = (specInput ? specInput.value : '').trim();
@@ -4112,6 +4156,10 @@ const App = {
     this.saveState();
     this.render();
     this.renderTalentDropdown();
+    if (tSel) {
+      tSel.value = '';
+      this.updateTalentSpecializationInput();
+    }
 
     if (result.elevatedResources) {
       this.showCustomAlert(`Heir to Fortune added! Your Resources have been elevated to Remarkable (30) (minimum required by Heir to Fortune).`, 'Resources Elevated', mouseEvent);

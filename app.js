@@ -4757,6 +4757,7 @@ const App = {
     const c = colorMap[featResult.color] || '#fff';
 
     // Show '[roll] + [KP] KP' in the roll result's box with colored KP badge
+    const diceVisual = document.getElementById('roller-dice-num');
     if (diceVisual) {
       diceVisual.innerHTML = `${rawRoll} <span class="dice-kp-badge">+ ${spentKarma} KP</span>`;
       diceVisual.style.borderColor = c;

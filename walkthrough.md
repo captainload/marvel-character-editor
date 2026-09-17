@@ -664,3 +664,167 @@ Addressed user feedback:
   - Reverse-engineering success on Fantasticar, Shocker gauntlets, Goblin glider, and proper blocking on Cap's shield.
 - Ran all regression suites (`verify_all_catalogs.js`, `test_unreadable_combos_fixed.js`, `test_resource_points_rule.js`, `test_tsr_talents_only.js`, `test_cheatsheet_contrast_and_stability.js`): All 100% passing.
 - Synchronized all files to Google Drive mirror at `H:\My Drive\RPG development\Marvel\`.
+
+---
+
+## Starred Talents, Duplicate Prevention & Specialization Fields
+
+### Overview of User Requests
+1. **Duplicate Prevention & Specializations**:
+   - Don't allow duplicate talents unless each one can apply to a different speciality.
+   - For talents like these, provide a small field to note the specialization.
+2. **Starred Talents Treatment**:
+   - Starred talents weren't being treated as such in cost, slots, or mechanics.
+   - Specifically, implement the **Heir to Fortune** rule (guaranteeing minimum Remarkable (30) Resources).
+
+---
+
+### Implementation Details
+
+#### 1. Identification of the 10 Canonical TSR Starred Talents
+Per TSR *Marvel Super Heroes Advanced Set Player's Book* (TSR 6876, p. 10, Table 8: Talents and p. 15-16, 89-91), talents marked with an asterisk (*) count as **two talent slots** and cost **20 Character Points (CP)** instead of 10 CP. The 10 canonical starred talents are:
+1. `t_wep_marksman`: **Marksman\*** (Weapon Skills) — 2 Slots, 20 CP
+2. `t_wep_master`: **Weapons Master\*** (Weapon Skills) — 2 Slots, 20 CP
+3. `t_wep_spec`: **Weapon Specialist\*** (Weapon Skills) — 2 Slots, 20 CP (`allowsSpecialization: true`)
+4. `t_prof_med`: **Medicine\*** (Professional Skills) — 2 Slots, 20 CP
+5. `t_prof_law_enf`: **Law Enforcement\*** (Professional Skills) — 2 Slots, 20 CP
+6. `t_mystic_background`: **Mystic Background\*** (Mystic and Mental Skills) — 2 Slots, 20 CP
+7. `t_other_animal`: **Animal Training\*** (Other Skills) — 2 Slots, 20 CP (`allowsSpecialization: true`)
+8. `t_other_heir`: **Heir to Fortune\*** (Other Skills) — 2 Slots, 20 CP (`minResourcesRank: 'Remarkable', minResourcesRankValue: 30`)
+9. `t_other_student`: **Student\*** (Other Skills) — 2 Slots, 20 CP
+10. `t_other_leadership`: **Leadership\*** (Other Skills) — 2 Slots, 20 CP
+
+Each entry in [`data_talents.js`](file:///C:/Users/admin/.gemini/antigravity/brain/90637841-9270-481f-944c-4ab42ceec14e/data_talents.js) now explicitly declares `isStarred: true, slots: 2, costCP: 20`.
+
+#### 2. The 14 Specialization Talents (`allowsSpecialization: true`)
+Identified all 14 canonical TSR talents that can be acquired multiple times for distinct specializations:
+1. `t_wep_spec`: **Weapon Specialist\*** (e.g. *Captain America's Shield, Bow, Katana*)
+2. `t_other_languages`: **Languages** (e.g. *French, German, Japanese, Russian, Latin*)
+3. `t_prof_pilot`: **Pilot** (e.g. *Helicopters, Jet Fighters, Propeller, VTOL*)
+4. `t_pil_driver`: **Driver** (e.g. *High-Performance Racing, Motorcycles, Armored Rigs*)
+5. `t_pil_spacecraft`: **Pilot: Spacecraft** (e.g. *Orbital Shuttles, Starships, Alien Fighters*)
+6. `t_pil_boats`: **Pilot: Boats / Submersibles** (e.g. *Submarines, Speedboats, Hovercraft*)
+7. `t_other_artist`: **Artist** (e.g. *Painting, Sculpture, Writing, Illustration*)
+8. `t_other_performer`: **Performer** (e.g. *Acting, Singing, Dance, Stage Magic*)
+9. `t_other_trivia`: **Trivia** (e.g. *20th Century Pop Culture, Super-Hero Lore*)
+10. `t_other_animal`: **Animal Training\*** (e.g. *Canines, Birds of Prey, Big Cats*)
+11. `t_prof_engineering`: **Engineering** (e.g. *Mechanical, Electrical, Civil, Aerospace*)
+12. `t_prof_military`: **Military** (e.g. *Special Forces, Navy SEALs, Intelligence*)
+13. `t_prof_law`: **Law** (e.g. *Criminal, Corporate, Superhuman Rights*)
+14. `t_sci_phys`: **Physics** (e.g. *Astrophysics, Quantum, Particle, Nuclear*)
+
+Each carries `allowsSpecialization: true` and tailored `specPlaceholder` text.
+
+#### 3. Character Model Logic & Math ([`character_model.js`](file:///C:/Users/admin/.gemini/antigravity/brain/90637841-9270-481f-944c-4ab42ceec14e/character_model.js))
+- **Point-Buy Spending**: Updated `calculateSpentPoints()` to sum each talent's actual `costCP` (20 CP for Starred, 10 CP for standard, 15 CP for Pilot: Spacecraft) rather than hardcoding a flat 15 CP multiplier.
+- **Slot Counting**: Added `getTotalTalentSlots()` returning the sum of `t.slots || (t.isStarred ? 2 : 1)`.
+- **Duplicate Prevention**: In `addTalent(data)`:
+  - If `!allowsSpecialization`: Attempting to add a talent already learned is strictly rejected (`success: false`).
+  - If `allowsSpecialization`: Adding the talent without specifying a specialization is rejected; adding an identical specialization (case-insensitive) is rejected; adding different specializations is permitted.
+- **Inline Specialization Editing**: Added `updateTalentSpecialization(index, newSpec)` with duplicate validation across sibling instances of the talent.
+- **Heir to Fortune Rule**:
+  - When `t_other_heir` is added: If current Resources $< \text{Remarkable (30)}$, saves prior resources (`t.priorResources = { rankName, rankValue }`) and elevates Resources to **Remarkable (30)**.
+  - While active: `setResourceRank(rankName)` clamps Resources to a minimum of **Remarkable (30)**.
+  - When removed: Restores prior Resources rank from `t.priorResources`.
+- **Combat Integration**: In `compileAttacks()`, matches `Weapon Specialist` instances against equipped weapons using both weapon name and `ws.specialization`, granting $+2\text{CS}$ to the specified weapon.
+
+#### 4. User Interface ([`index.html`](file:///C:/Users/admin/.gemini/antigravity/brain/90637841-9270-481f-944c-4ab42ceec14e/index.html), [`app.js`](file:///C:/Users/admin/.gemini/antigravity/brain/90637841-9270-481f-944c-4ab42ceec14e/app.js), [`styles.css`](file:///C:/Users/admin/.gemini/antigravity/brain/90637841-9270-481f-944c-4ab42ceec14e/styles.css))
+- **Talents Dropdown**:
+  - Starred talents are clearly marked with `⭐ Name* (2 Slots, 20 CP)`.
+  - Non-specialization talents already learned are disabled and tagged `[Already Learned]`.
+  - Specialization talents show `[N learned - Add Specialty]`.
+- **Dynamic Specialization Input Row**:
+  - `#talent-specialization-row` automatically reveals when a specialization talent is selected in `#select-talent-catalog`, displaying a tailored placeholder and helper text. Pressing Enter adds the talent directly.
+- **Inline Specialty Fields on Cards**:
+  - Each talent card with `allowsSpecialization` renders an inline text box: `Specialty: [ input ]`. Editing updates the specialization and re-renders attacks in real-time.
+- **Header & Badges**:
+  - Header displays dynamic slot and CP counts: `🥋 Talents & Skills (N Learned · M Slots)`.
+  - Starred cards feature a distinct `⭐ Starred (2 Slots)` badge and `20 CP` tag.
+- **Theme Support**: `.talent-spec-box`, `.talent-spec-label`, and `.talent-spec-hint` styled for high-contrast visibility across Four-Color, Manilla, and Aqua themes.
+- **Help Modal (`showHelpModal`)**: Displays starred status, 2-slot cost callout, specialization permissions, and Heir to Fortune minimum resource rules.
+
+---
+
+### Verification
+- **New Automated Test Suite**: [`scratch/test_talents_starred_and_specializations.js`](file:///C:/Users/admin/.gemini/antigravity/brain/90637841-9270-481f-944c-4ab42ceec14e/scratch/test_talents_starred_and_specializations.js) passed 100%:
+  - 10 TSR Starred Talents verified (2 slots, 20 CP).
+  - 14 Specialization Talents verified with input placeholders.
+  - Standard duplicate prevention strictly enforced.
+  - Multiple distinct specializations allowed for specialization talents.
+  - Starred talents slot count and point costs verified.
+  - Heir to Fortune elevation to Remarkable (30), clamping, and restoration on removal verified.
+  - Weapon Specialist specialization combat integration verified (+2CS to specialized weapon).
+- **All Regression Suites Passed**:
+  - `scratch/test_tsr_talents_only.js`: Passed
+  - `scratch/test_resource_points_rule.js`: Passed
+  - `scratch/test_unreadable_combos_fixed.js`: Passed
+  - `scratch/test_ohotmu_and_filters.js`: Passed
+  - `scratch/verify_all_catalogs.js`: Passed
+- **Repository**: Committed (`f1a24d9`) and pushed to `main`, mirrored to Google Drive at `H:\My Drive\RPG development\Marvel\`.
+
+---
+
+## Dropdown Placeholder Entries ("-- Select Power --" & "-- Select Talent --")
+
+### Overview of User Requests
+- Add a "select talent" placeholder entry to the Talents dropdown.
+- Add a "select power" placeholder entry to the Powers dropdown.
+- Add a "select power" placeholder item to the invention powers dropdown.
+
+### Implementation Details
+1. **Static HTML Elements** ([`index.html`](file:///C:/Users/admin/.gemini/antigravity/brain/90637841-9270-481f-944c-4ab42ceec14e/index.html)):
+   - Added `<option value="">-- Select Power --</option>` to `#select-power-catalog`.
+   - Added `<option value="">-- Select Talent --</option>` to `#select-talent-catalog`.
+   - Added `<option value="">-- Select Power --</option>` to `#inv-power-select`.
+2. **Dynamic Rendering & UI Synchronization** ([`app.js`](file:///C:/Users/admin/.gemini/antigravity/brain/90637841-9270-481f-944c-4ab42ceec14e/app.js)):
+   - **`renderPowerDropdown()`**: Prepends `<option value="">-- Select Power --</option>`. Defaults to this placeholder on load or when resetting after adding a power.
+   - **`syncPowerSelectionUI()`**: Gracefully handles `!selectedP` (when the placeholder is selected) by clearing/enabling the Exceptional checkbox and hiding the starred power banner.
+   - **`renderTalentDropdown()`**: Prepends `<option value="">-- Select Talent --</option>`. Defaults to this placeholder on load or when resetting after adding a talent.
+   - **`updateTalentSpecializationInput()`**: Correctly hides `#talent-specialization-row` and clears specialty inputs when the placeholder is selected.
+   - **`renderInvPowerDropdown()`**: Prepends `<option value="">-- Select Power --</option>`. Defaults to this placeholder on load and resets to it after adding a power to an invention.
+   - **Button Guards**:
+     - `handleAddPower()`, `handleAddTalent()`, and `addInvPower()` display a helpful notification (`"Please select a superpower/talent from the dropdown before adding."`) if clicked while the placeholder is selected.
+     - Preview `?` buttons (`btn-preview-power`, `btn-preview-talent`, `btn-preview-inv-power`) display a helpful prompt to select an item first.
+3. **Verification**:
+   - Created and ran [`scratch/test_dropdown_placeholders.js`](file:///C:/Users/admin/.gemini/antigravity/brain/90637841-9270-481f-944c-4ab42ceec14e/scratch/test_dropdown_placeholders.js).
+   - Ran all regression suites (`test_talents_starred_and_specializations.js`, `test_tsr_talents_only.js`, `test_resource_points_rule.js`): All 100% passing.
+   - Committed as `c5a96f4` on `main`, pushed to GitHub, and mirrored to `H:\My Drive\RPG development\Marvel\`.
+
+---
+
+## Universal Dice Roller Fix (executeRollerFEAT)
+
+### Overview of User Request
+- "The dice roller isn't allowing dice rolls."
+
+### Root Cause Analysis
+- When clicking `🎲 Roll` (`#btn-roller-roll`), `executeRollerFEAT()` threw:
+  ```text
+  ReferenceError: diceVisual is not defined
+      at Object.executeRollerFEAT (app.js:4760)
+  ```
+- The variable `const diceVisual = document.getElementById('roller-dice-num');` was declared inside `openRoller()` when opening the modal, but was omitted inside `executeRollerFEAT()`. This caused every dice roll attempt to immediately crash before rendering the roll outcome, battle effects, equipment procurement, or invention stage resolutions.
+
+### Implementation Details
+- In [`app.js`](file:///C:/Users/admin/.gemini/antigravity/brain/90637841-9270-481f-944c-4ab42ceec14e/app.js) inside `executeRollerFEAT()`:
+  - Added `const diceVisual = document.getElementById('roller-dice-num');` immediately prior to updating its `innerHTML`, `borderColor`, and `color`.
+  - Verified that all downstream FEAT handlers (combat attacks, resource procurement, invention design/procurement/assembly stages, and power stunt tracking) execute without error.
+
+### Verification
+- **Diagnostic & Integration Test Suite** ([`scratch/check_undeclared.js`](file:///C:/Users/admin/.gemini/antigravity/brain/90637841-9270-481f-944c-4ab42ceec14e/scratch/check_undeclared.js)):
+  - Test 1 (Standard Combat FEAT): Passed without throwing.
+  - Test 2 (Resource FEAT & Equipment Procurement): Passed without throwing.
+  - Test 3 (Invention Stage FEAT): Passed without throwing.
+  - Test 4 (Power Stunt FEAT): Passed without throwing.
+- **Full Regression Test Suites**:
+  - `scratch/test_dropdown_placeholders.js`: Passed 100%
+  - `scratch/test_talents_starred_and_specializations.js`: Passed 100%
+  - `scratch/test_tsr_talents_only.js`: Passed 100%
+  - `scratch/test_resource_points_rule.js`: Passed 100%
+  - `scratch/test_ohotmu_and_filters.js`: Passed 100%
+  - `scratch/test_unreadable_combos_fixed.js`: Passed 100%
+  - `scratch/verify_all_catalogs.js`: Passed 100%
+- **Mirroring & Version Control**:
+  - Mirrored `app.js` and `walkthrough.md` to `H:\My Drive\RPG development\Marvel\`.
+  - Committed and pushed to GitHub `main`.
+

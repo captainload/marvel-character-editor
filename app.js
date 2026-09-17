@@ -1897,7 +1897,7 @@ const App = {
     const requiresShieldApproval = (accessType === 'shield');
 
     const isRPMode = !!(this.useResourcePoints || (this.character && this.character.useResourcePoints));
-    const rpBudget = this.character ? this.character.getResourcePointsBudget() : (heroRankVal * 4);
+    const rpBudget = this.character ? this.character.getResourcePointsBudget() : (heroRankVal * 2);
     const rpSpent = this.character ? (this.character.spentResourcePoints || 0) : 0;
     const rpAvailable = this.character ? this.character.getAvailableResourcePoints() : Math.max(0, rpBudget - rpSpent);
     const rpCost = effectiveCostVal;
@@ -2055,7 +2055,7 @@ const App = {
             <span class="res-points-highlight">Available: ${avail} / ${budget} RP</span>
             <span class="res-spent-highlight">(Spent: ${spent} RP)</span>
           `;
-          storeResBadge.title = `Resource Points Rule Active: Budget = 4 × Resource Number (${budget} RP). Spent: ${spent} RP. Available: ${avail} RP.`;
+          storeResBadge.title = `Resource Points Rule Active: Budget = 2 × Resource Number (${budget} RP). Spent: ${spent} RP. Available: ${avail} RP.`;
         } else {
           storeResBadge.innerHTML = `
             <span class="res-rank-highlight">Resources: ${resRank} (${resNum})</span>
@@ -4014,7 +4014,7 @@ const App = {
     if (bgBudget) bgBudget.textContent = `${budget} RP`;
 
     const bgCalcHint = document.getElementById('background-rp-calc-hint');
-    if (bgCalcHint) bgCalcHint.textContent = `4 × ${this.character.resources?.rankValue || 6}`;
+    if (bgCalcHint) bgCalcHint.textContent = `2 × ${this.character.resources?.rankValue || 6}`;
 
     const bgSpent = document.getElementById('background-rp-spent-input');
     if (bgSpent) bgSpent.value = spent;
@@ -4040,7 +4040,7 @@ const App = {
     const ruleNotice = document.getElementById('background-rp-rule-notice');
     if (ruleNotice) {
       if (isRPActive) {
-        ruleNotice.innerHTML = `<strong>Resource Points Rule Active:</strong> Monthly budget is <strong>4 &times; Resource Number</strong> (${budget} RP). Equipment purchases automatically deduct their rank number in RP.`;
+        ruleNotice.innerHTML = `<strong>Resource Points Rule Active:</strong> Monthly budget is <strong>2 &times; Resource Number</strong> (${budget} RP). Equipment purchases automatically deduct their rank number in RP.`;
       } else {
         ruleNotice.innerHTML = `<strong>Standard TSR FEAT Rules Active:</strong> Equipment purchases resolve via Resource FEAT rolls (Player's Book p. 18). You can enable the Resource Points Rule in <strong>⚙️ Options</strong>.`;
       }

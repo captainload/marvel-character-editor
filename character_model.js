@@ -668,14 +668,14 @@ class FASERIPCharacter {
 
   /**
    * Resource Points Rule:
-   * Monthly budget = 4 * Resource Number (rank value).
+   * Monthly budget = 2 * Resource Number (rank value).
    * Equipment costs equal rank value.
    */
   getResourcePointsBudget() {
     const rankVal = (this.resources && this.resources.rankValue !== undefined)
       ? this.resources.rankValue
       : (UniversalTableEngine.getRankByName(this.resources?.rankName || 'Typical')?.num || 6);
-    return rankVal * 4;
+    return rankVal * 2;
   }
 
   getAvailableResourcePoints() {

@@ -531,17 +531,17 @@ Addressed user feedback:
 
 2. **"Resource Points" Rule Option**:
    - **Configuration & Persistence**: Added a dedicated checkbox toggle `<input type="checkbox" id="option-resource-points">` in the Options modal under **"Resource & Economy Rules"**, persisted in `localStorage` (`msh_option_resource_points`) and saved directly onto the character model (`character.useResourcePoints`).
-   - **Monthly Budget Calculation**: Under the rule, monthly purchasing power is equal to **4 &times; Resource Number** (`character.getResourcePointsBudget()`):
-     - Feeble (2) $\to$ 8 RP / month
-     - Poor (4) $\to$ 16 RP / month
-     - Typical (6) $\to$ 24 RP / month
-     - Good (10) $\to$ 40 RP / month
-     - Excellent (20) $\to$ 80 RP / month
-     - Remarkable (30) $\to$ 120 RP / month
-     - Incredible (40) $\to$ 160 RP / month
-     - Amazing (50) $\to$ 200 RP / month
-     - Monstrous (75) $\to$ 300 RP / month
-     - Unearthly (100) $\to$ 400 RP / month
+   - **Monthly Budget Calculation**: Under the rule, monthly purchasing power is equal to **2 &times; Resource Number** (`character.getResourcePointsBudget()`):
+     - Feeble (2) $\to$ 4 RP / month
+     - Poor (4) $\to$ 8 RP / month
+     - Typical (6) $\to$ 12 RP / month
+     - Good (10) $\to$ 20 RP / month
+     - Excellent (20) $\to$ 40 RP / month
+     - Remarkable (30) $\to$ 60 RP / month
+     - Incredible (40) $\to$ 80 RP / month
+     - Amazing (50) $\to$ 100 RP / month
+     - Monstrous (75) $\to$ 150 RP / month
+     - Unearthly (100) $\to$ 200 RP / month
    - **Rank-Based Equipment Costs**: Equipment items cost Resource Points equal to their rank value (e.g., Poor item = 4 RP, Good item = 10 RP, Remarkable item = 30 RP; Black Market items reflect the +1CS marked-up rank value).
 
 3. **Background Tab Tracking & Side-by-Side Resource Rank**:
@@ -581,7 +581,7 @@ Addressed user feedback:
    - **Store Header Streamlining**: Removed `.store-access-bar-hint` (`Player's Book p. 18 & 41`) from `.store-access-bar` in `index.html`. The Equipment Store clearance bar now presents clean, uncluttered toggle buttons for Military, Black Market, and S.H.I.E.L.D. access without verbose rulebook citations.
    - **Dedicated Cheat Sheet Procurement & Market Clearances Reference**: Relegated the full canonical procurement table and citation guide to `#cheatsheet-modal` under a dedicated subsection:
      - **Standard Resource FEAT Checks (Player's Book p. 18)**: Complete FEAT table for automatic purchases (Cost $\le$ Resources $-3$ ranks), Green FEATs (1-2 ranks below), Yellow FEATs (equal cost), and unaffordable purchases (cost exceeds Resources; Karma spend prohibition noted).
-     - **Market Clearances & Resource Points Option**: Clear documentation of Military clearance (Player's Book p. 18), Black Market underworld access (+1CS cost markup per Player's Book p. 41), S.H.I.E.L.D. Tech requisition protocols, and the optional Resource Points rule ($4\times$ Resource Number budget).
+     - **Market Clearances & Resource Points Option**: Clear documentation of Military clearance (Player's Book p. 18), Black Market underworld access (+1CS cost markup per Player's Book p. 41), S.H.I.E.L.D. Tech requisition protocols, and the optional Resource Points rule ($2\times$ Resource Number budget).
 
 2. **Total Elimination of "Black on Dark Grey" Combinations**:
    - **Store & Clearance Filter Buttons**: In Manilla theme, `.store-filter-btn` and `.store-access-filter-btn` previously had `color: #000000;` applied without overriding `background: #162032;`, resulting in black text on dark slate grey buttons. Fully remediated with crisp `#ffffff` white background, `#0f172a` dark slate text, `#f1f5f9` hover, and `#b91c1c` / `#0369a1` active states.

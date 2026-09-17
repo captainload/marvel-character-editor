@@ -1,0 +1,2018 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Marvel Super Heroes (FASERIP) - Character Builder & Editor</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bangers&display=swap" rel="stylesheet">
+</head>
+<body>
+
+  <!-- 1080px Screen Width Warning Banner -->
+  <div id="screen-width-warning">
+    <span>⚠️ <strong>Screen Width Warning:</strong> This application requires a minimum screen width of 1080 pixels. Please switch to portrait mode on mobile or use a larger screen.</span>
+    <button class="icon-btn" id="btn-dismiss-width-warning" style="padding: 4px 10px; min-height: 32px; background: rgba(0,0,0,0.4); border-color: #fff; color: #fff;">✕ Dismiss</button>
+  </div>
+
+  <!-- Sticky Container for Persistent Header & Tabs -->
+  <div id="app-sticky-header">
+    <!-- Top Bar & Header Navigation -->
+    <header class="topbar">
+      <div class="brand-section">
+        <div class="msh-logo">MSH FASERIP</div>
+        <div class="header-name-box">
+          <input type="text" id="header-char-name" class="header-name-input" value="The Vanguard" title="Click to edit Character Name">
+        </div>
+      </div>
+
+      <!-- CMF Point-Buy Budget Indicator -->
+      <div class="point-buy-badge" id="point-buy-badge" title="Classic Marvel Forever Point-Buy Budget">
+        <span>CP Budget:</span>
+        <span class="point-numbers"><span id="header-points-spent">48</span> / <span id="header-points-budget">550</span></span>
+        <span style="color: var(--text-muted);">(<span id="header-points-remaining" style="color: #38bdf8; font-weight:700;">502</span> left)</span>
+      </div>
+
+      <!-- Top Action Toolbar -->
+      <div class="top-controls">
+        <button id="btn-cheatsheet" class="icon-btn" title="Rules Cheat Sheet & Universal Table">📖 Cheat Sheet</button>
+        <a href="msh_rules_errata_report.html" target="_blank" class="icon-btn" title="View 36-Issue Rules Errata Report" style="text-decoration: none;">⚖️ Errata</a>
+        
+        <!-- File / Options Dropdown Menu -->
+        <div class="dropdown-container" id="file-options-dropdown-container">
+          <button type="button" id="btn-file-options" class="icon-btn dropdown-toggle" title="File operations and Application Options">📁 File / Options ▾</button>
+          <div id="file-options-menu" class="dropdown-menu">
+            <button type="button" class="dropdown-item" id="menu-item-save">💾 Save Character (.msh)</button>
+            <label class="dropdown-item" style="cursor: pointer; margin-bottom: 0;">
+              📂 Open Character (.msh)
+              <input type="file" id="import-file-input" accept=".msh,.json" style="display: none;">
+            </label>
+            <div class="dropdown-divider"></div>
+            <button type="button" class="dropdown-item" id="menu-item-touch-toggle">📱 Touch Controls: <strong id="menu-item-touch-status">OFF</strong></button>
+            
+            <!-- Theme Flyout Submenu Container -->
+            <div class="dropdown-submenu-container" id="menu-theme-submenu-container">
+              <button type="button" class="dropdown-item dropdown-submenu-toggle" id="menu-item-theme-flyout" aria-haspopup="true" aria-expanded="false">
+                <span class="submenu-item-left">
+                  <span>🎨</span> Theme: <strong id="menu-item-theme-status">Four-color</strong>
+                </span>
+                <span class="submenu-arrow">◀</span>
+              </button>
+              <div class="dropdown-submenu" id="theme-flyout-menu">
+                <button type="button" class="dropdown-item theme-option-btn active" data-theme-val="four-color">
+                  <span class="theme-check-icon" id="theme-check-four-color">✓</span>
+                  <span class="theme-btn-label">Four-color (Default)</span>
+                </button>
+                <button type="button" class="dropdown-item theme-option-btn" data-theme-val="manilla">
+                  <span class="theme-check-icon" id="theme-check-manilla"></span>
+                  <span class="theme-btn-label">Manilla</span>
+                </button>
+                <button type="button" class="dropdown-item theme-option-btn" data-theme-val="aqua">
+                  <span class="theme-check-icon" id="theme-check-aqua"></span>
+                  <span class="theme-btn-label">Aqua</span>
+                </button>
+              </div>
+            </div>
+
+            <div class="dropdown-divider"></div>
+            <button type="button" class="dropdown-item" id="menu-item-options">⚙️ Preferences & Options...</button>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Top-Row Tab Navigation Bar -->
+    <nav class="top-tabs-bar">
+      <button class="nav-tab-btn active" data-tab="main-stats">📊 Main Stats & Actions</button>
+      <button class="nav-tab-btn" data-tab="powers">⚡ Powers (<span id="tab-power-count">0</span>)</button>
+      <button class="nav-tab-btn" data-tab="invention">🔬 Invention Lab</button>
+      <button class="nav-tab-btn" data-tab="equipment">🎒 Equipment (<span id="tab-equipment-count">0</span>)</button>
+      <button class="nav-tab-btn" data-tab="talents">🥋 Talents & Contacts</button>
+      <button class="nav-tab-btn" data-tab="background">📜 Background & Form</button>
+    </nav>
+  </div>
+
+  <!-- Main Content Application Container -->
+  <main class="app-container">
+
+    <!-- TAB 1: MAIN STATS & ACTIONS -->
+    <section class="tab-pane active" id="tab-pane-main-stats">
+      
+      <!-- Condensed Vitals Bar (Health & Karma live bars) -->
+      <div class="vitals-row condensed">
+        <!-- Health Chip -->
+        <div class="vital-chip compact">
+          <div class="vital-left">
+            <span class="vital-title">❤️ Health</span>
+            <span class="vital-numbers"><span id="vital-health-cur">100</span>/<span id="vital-health-max">100</span></span>
+          </div>
+          <div class="vital-progress-bg">
+            <div class="vital-progress-fill health-fill" id="vital-health-fill" style="width: 100%;"></div>
+          </div>
+          <div class="vital-steppers">
+            <button class="icon-btn" id="btn-health-minus10" title="-10 Health">-10</button>
+            <button class="icon-btn" id="btn-health-minus1" title="-1 Health">-1</button>
+            <button class="icon-btn" id="btn-health-plus1" title="+1 Health">+1</button>
+            <button class="icon-btn" id="btn-health-plus10" title="+10 Health">+10</button>
+          </div>
+        </div>
+
+        <!-- Karma Chip -->
+        <div class="vital-chip compact">
+          <div class="vital-left">
+            <span class="vital-title">✨ Karma</span>
+            <span class="vital-numbers"><span id="vital-karma-cur">100</span> <span style="font-size: 10pt; color: var(--text-muted);">(<span id="vital-karma-base">100</span>)</span></span>
+          </div>
+          <div class="vital-progress-bg">
+            <div class="vital-progress-fill karma-fill" id="vital-karma-fill" style="width: 100%;"></div>
+          </div>
+          <div class="vital-steppers">
+            <button class="icon-btn" id="btn-karma-minus10" title="-10 Karma">-10</button>
+            <button class="icon-btn" id="btn-karma-plus10" title="+10 Karma">+10</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Condensed CMF Point-Buy Budget Configuration Bar -->
+      <div class="point-buy-strip">
+        <div class="point-tier-group">
+          <span class="field-label" style="margin-bottom: 0; font-weight: 700;">Tier:</span>
+          <select id="point-tier-select" class="field-input compact" style="font-weight: 700;">
+            <option value="150">150 CP - Skilled Human / Agent</option>
+            <option value="200">200 CP - Street Vigilante / Mystery Man</option>
+            <option value="300">300 CP - Costumed Adventurer / Low-Powered</option>
+            <option value="400" selected>400 CP - Established Hero / Mutant</option>
+            <option value="500">500 CP - Major Superhero / Avenger</option>
+            <option value="600">600 CP - World-Class Hero / Powerhouse</option>
+            <option value="custom">Custom Point Pool</option>
+          </select>
+        </div>
+
+        <div id="custom-budget-box" style="display: none; align-items: center; gap: 6px;">
+          <input type="number" id="input-custom-budget" class="field-input compact" value="400" style="width: 80px; text-align: center;">
+          <button class="icon-btn" id="btn-apply-custom-budget" style="padding: 2px 8px; min-height: 28px;">Apply</button>
+        </div>
+
+        <div class="spent-breakdown-text">
+          Spent: <strong id="spent-abilities">42</strong> FASERIP · <strong id="spent-powers">0</strong> Pwr · <strong id="spent-talents">0</strong> Tal · <strong id="spent-contacts">0</strong> Con · <strong id="spent-resources">6</strong> Res
+        </div>
+      </div>
+
+      <!-- Dense 2-Column Grid: Primary Abilities & Defenses (Left) vs. Roll20 Attack Actions (Right) -->
+      <div class="dense-grid-2">
+        
+        <!-- COLUMN 1: FASERIP Abilities, Defenses, Conditions -->
+        <div style="display: flex; flex-direction: column; gap: 16px;">
+          
+          <!-- S32 Swarm Collective Profile Banner (Active if S32 Collective Mass form) -->
+          <div id="swarm-banner-box" class="swarm-banner" style="display: none;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <strong style="color: #fef3c7;">S32 COLLECTIVE MASS (SWARM)</strong>
+              <span style="font-size: 10pt; color: #fed7aa;">Dragon #134 Rules</span>
+            </div>
+            <div class="swarm-toggle-group">
+              <button id="btn-swarm-active" class="swarm-toggle-btn active">Combined Swarm Stats</button>
+              <button id="btn-indiv-active" class="swarm-toggle-btn">Individual Constituent Stats</button>
+            </div>
+          </div>
+
+          <!-- Primary FASERIP Card -->
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">📊 Primary Abilities (FASERIP)</span>
+              <span style="color: var(--text-muted);">Point-for-Point Rank Value</span>
+            </div>
+
+            <div class="faserip-grid">
+              
+              <!-- Fighting -->
+              <div class="ability-row">
+                <span class="ability-letter">F</span>
+                <span class="ability-name">Fighting</span>
+                <select class="field-input ability-rank-select" data-ability="fighting" id="select-rank-fighting"></select>
+                <span class="rank-value" id="rank-num-fighting">6</span>
+                <button class="roll-action-btn" id="roll-btn-fighting" title="Roll Fighting FEAT">🎲</button>
+              </div>
+
+              <!-- Agility -->
+              <div class="ability-row">
+                <span class="ability-letter">A</span>
+                <span class="ability-name">Agility</span>
+                <select class="field-input ability-rank-select" data-ability="agility" id="select-rank-agility"></select>
+                <span class="rank-value" id="rank-num-agility">6</span>
+                <button class="roll-action-btn" id="roll-btn-agility" title="Roll Agility FEAT">🎲</button>
+              </div>
+
+              <!-- Strength -->
+              <div class="ability-row">
+                <span class="ability-letter">S</span>
+                <span class="ability-name">Strength</span>
+                <select class="field-input ability-rank-select" data-ability="strength" id="select-rank-strength"></select>
+                <span class="rank-value" id="rank-num-strength">6</span>
+                <button class="roll-action-btn" id="roll-btn-strength" title="Roll Strength FEAT">🎲</button>
+              </div>
+
+              <!-- Endurance -->
+              <div class="ability-row">
+                <span class="ability-letter">E</span>
+                <span class="ability-name">Endurance</span>
+                <select class="field-input ability-rank-select" data-ability="endurance" id="select-rank-endurance"></select>
+                <span class="rank-value" id="rank-num-endurance">6</span>
+                <button class="roll-action-btn" id="roll-btn-endurance" title="Roll Endurance FEAT">🎲</button>
+              </div>
+
+              <!-- Reason -->
+              <div class="ability-row">
+                <span class="ability-letter">R</span>
+                <span class="ability-name">Reason</span>
+                <select class="field-input ability-rank-select" data-ability="reason" id="select-rank-reason"></select>
+                <span class="rank-value" id="rank-num-reason">6</span>
+                <button class="roll-action-btn" id="roll-btn-reason" title="Roll Reason FEAT">🎲</button>
+              </div>
+
+              <!-- Intuition -->
+              <div class="ability-row">
+                <span class="ability-letter">I</span>
+                <span class="ability-name">Intuition</span>
+                <select class="field-input ability-rank-select" data-ability="intuition" id="select-rank-intuition"></select>
+                <span class="rank-value" id="rank-num-intuition">6</span>
+                <button class="roll-action-btn" id="roll-btn-intuition" title="Roll Intuition FEAT">🎲</button>
+              </div>
+
+              <!-- Psyche -->
+              <div class="ability-row">
+                <span class="ability-letter">P</span>
+                <span class="ability-name">Psyche</span>
+                <select class="field-input ability-rank-select" data-ability="psyche" id="select-rank-psyche"></select>
+                <span class="rank-value" id="rank-num-psyche">6</span>
+                <button class="roll-action-btn" id="roll-btn-psyche" title="Roll Psyche FEAT">🎲</button>
+              </div>
+
+            </div>
+
+            <!-- Resources & Popularity -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 14px;">
+              <div style="background: #141c2c; border: 1px solid var(--border-color); border-radius: 6px; padding: 8px 12px; display: flex; align-items: center; justify-content: space-between;">
+                <div>
+                  <div class="field-label">Resources</div>
+                  <select class="field-input" id="select-rank-resources" style="min-height: 36px;"></select>
+                </div>
+                <button class="roll-action-btn" id="roll-btn-resources" title="Resource Procurement FEAT">🎲</button>
+              </div>
+
+              <div style="background: #141c2c; border: 1px solid var(--border-color); border-radius: 6px; padding: 8px 12px; display: flex; align-items: center; justify-content: space-between;">
+                <div>
+                  <div class="field-label">Popularity</div>
+                  <input type="number" id="input-popularity" class="field-input" value="10" style="width: 70px; min-height: 36px; text-align: center;">
+                </div>
+                <button class="roll-action-btn" id="roll-btn-popularity" title="Popularity Reaction FEAT">🎲</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Defenses Card -->
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">🛡️ Defenses & Armor</span>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+              <div style="background: #162032; border: 1px solid #2a3a54; border-radius: 6px; padding: 10px;">
+                <span class="defense-badge-title">Body Armor</span>
+                <div style="font-size: 1.15rem; font-weight: 800; color: #38bdf8;" id="def-body-armor">None</div>
+                <span style="color: var(--text-muted);" id="def-body-armor-notes">Standard clothing</span>
+              </div>
+              <div style="background: #162032; border: 1px solid #2a3a54; border-radius: 6px; padding: 10px;">
+                <span class="defense-badge-title">Force Field</span>
+                <div style="font-size: 1.15rem; font-weight: 800; color: #38bdf8;" id="def-force-field">None</div>
+                <span style="color: var(--text-muted);" id="def-force-field-notes">No active field</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Conditions Card -->
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">🩺 Active Conditions</span>
+            </div>
+            <div id="conditions-list" style="display: flex; flex-wrap: wrap; gap: 8px; min-height: 34px;"></div>
+            <div style="display: flex; gap: 8px; margin-top: 10px;">
+              <input type="text" id="input-new-condition" class="field-input" placeholder="e.g. Stunned 2 turns" style="flex:1;">
+              <button class="icon-btn" id="btn-add-condition">+ Add Condition</button>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- COLUMN 2: Roll20-Style Attack Actions -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">⚔️ Attack Actions & Combat FEATs</span>
+            <span style="color: var(--text-muted);">One-Touch Roll against Universal Action Table</span>
+          </div>
+          <div class="attacks-list" id="attacks-container">
+            <!-- Dynamically compiled attack chips rendered here -->
+          </div>
+        </div>
+
+      </div>
+
+    </section>
+
+    <!-- TAB 2: POWERS -->
+    <section class="tab-pane" id="tab-pane-powers">
+      
+      <!-- Add Power Form -->
+      <!-- Add Power Form -->
+      <div class="card">
+        <div class="card-header">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span class="card-title">⚡ Add Superpower (CMF Point-Buy: 10 Base + Rank)</span>
+            <span id="powers-slots-badge" class="meta-tag" style="font-size: 10pt;">Slots: 0</span>
+          </div>
+        </div>
+        <div style="display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 12px; align-items: end;">
+          <div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+              <span class="field-label" style="margin-bottom: 0;">Choose Superpower (271 Canonical Powers):</span>
+              <input type="text" id="filter-power-search" placeholder="🔍 Filter powers..." style="font-size: 10pt; padding: 2px 8px; border-radius: 4px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-main); width: 140px;">
+            </div>
+            <div style="display: flex; gap: 6px; align-items: center;">
+              <select id="select-power-catalog" class="field-input" style="min-height: 44px; flex: 1;"></select>
+              <button type="button" class="help-circle-btn" id="btn-preview-power" title="View details of selected superpower">?</button>
+            </div>
+          </div>
+          <div>
+            <span class="field-label">Desired Power Rank:</span>
+            <select id="select-new-power-rank" class="field-input" style="min-height: 44px;"></select>
+          </div>
+          <div style="display: flex; align-items: center; min-height: 44px;">
+            <label class="checkbox-label" id="label-power-exceptional-container" title="Exceptional/Starred powers cost 20 base CP + 2x Rank">
+              <input type="checkbox" id="check-power-exceptional">
+              <span id="label-power-exceptional-text">Exceptional Power (2x Rank CP)</span>
+            </label>
+          </div>
+          <button class="icon-btn primary" id="btn-add-power" style="min-height: 44px;">➕ Add Power</button>
+        </div>
+        <div id="power-starred-banner" class="starred-power-banner" style="display: none; margin-top: 10px; padding: 8px 12px; border-radius: 4px; font-size: 10pt;">
+          ★ <strong>Official Starred Power:</strong> Per TSR rules (Player's Book p. 19 & UPB p. 16-19), this heavyweight power automatically allocates <strong>2 power slots</strong> and uses CMF Exceptional point-buy pricing (<strong>20 CP Base + 2× Rank CP</strong>).
+        </div>
+      </div>
+
+      <!-- Active Powers List -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">📖 Hero's Active Superhuman Powers</span>
+        </div>
+        <div class="powers-list" id="powers-container">
+          <!-- Active powers rendered here -->
+        </div>
+      </div>
+
+    </section>
+
+    <!-- TAB 3: INVENTION LAB (Machines of Doom Expansion) -->
+    <section class="tab-pane" id="tab-pane-invention">
+      
+      <div class="calc-rule-callout" style="margin-bottom: 12px;">
+        <strong>Machines of Doom Engineering Rules:</strong> Custom gadgets, powered armor, and robotics incorporate multiple UPB powers (+1CS per additional power) and ability boosts (+1CS per boosted stat). Prebuilt rulebook equipment can be reverse-engineered to determine manufacturing specs (unique items like Cap's Shield or Mjolnir are non-reproducible).
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 18px;">
+        
+        <!-- Section 1: Custom Inventions & Robotics -->
+        <div class="card">
+          <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+            <span class="card-title" id="inv-custom-card-title">🔬 Custom Device & Machine Builder</span>
+            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+              <select id="select-quick-load-blueprint" class="field-input compact" style="font-size: 10pt; padding: 2px 8px; min-height: 30px; width: 190px; max-width: 100%;">
+                <option value="">📂 Load Blueprint...</option>
+              </select>
+              <div class="tech-magic-toggle">
+                <button type="button" class="tech-magic-btn active" id="btn-inv-toggle-tech" title="Technological Devices & Machines of Doom">⚙️ Tech</button>
+                <button type="button" class="tech-magic-btn" id="btn-inv-toggle-magic" title="Mystical Relics & Artifact Forging">🔮 Magic</button>
+              </div>
+              <button type="button" class="icon-btn" id="btn-inv-new" style="padding: 4px 10px; font-size: 10pt; min-height: 30px; background: #334155; border-color: #64748b; color: #f8fafc;" title="Clear and start a fresh invention">➕ New Invention</button>
+            </div>
+          </div>
+
+          <div style="display: flex; flex-direction: column; gap: 14px;">
+            <div>
+              <span class="field-label" id="inv-name-label">Invention / Device Name:</span>
+              <input type="text" id="inv-name" class="field-input" value="" placeholder="Enter device or artifact name...">
+            </div>
+
+            <div style="display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px;">
+              <div style="min-width: 0;">
+                <span class="field-label">Device Category:</span>
+                <select id="inv-cat" class="field-input">
+                  <option value="Weapon">Offensive Weapon</option>
+                  <option value="Battlesuit">Powered Battlesuit / Exosuit</option>
+                  <option value="Robot/Drone">Robot / Drone (Machines of Doom)</option>
+                  <option value="Propulsion">Propulsion / Vehicle</option>
+                  <option value="Utility">Sensory / Utility Device</option>
+                  <option value="Cybernetics">Cybernetic Enhancement / Implant</option>
+                </select>
+              </div>
+              <div style="min-width: 0;">
+                <span class="field-label">Chassis Material Strength:</span>
+                <select id="inv-material-rank" class="field-input"></select>
+              </div>
+            </div>
+
+            <!-- Multi-Power & Ability Boosts Grid (Full Width Side-by-Side) -->
+            <div style="display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px;">
+              <!-- Multi-Power Interface -->
+              <div style="background: #141c2c; border: 1px solid var(--border-color); border-radius: 6px; padding: 12px; min-width: 0;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-wrap: wrap; gap: 6px;">
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <strong style="color: var(--marvel-gold);">⚡ Embedded Superhuman Powers</strong>
+                    <span class="meta-tag" id="inv-power-count-badge" style="font-size: 10pt;">0 Powers</span>
+                  </div>
+                  <input type="text" id="filter-inv-power-search" placeholder="🔍 Filter powers..." style="font-size: 10pt; padding: 2px 8px; border-radius: 4px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-main); width: 140px;">
+                </div>
+                <div style="display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) auto auto; gap: 8px; align-items: center;">
+                  <select id="inv-power-select" class="field-input" style="min-width: 0;"></select>
+                  <select id="inv-power-rank" class="field-input" style="min-width: 0;"></select>
+                  <button type="button" class="help-circle-btn" id="btn-preview-inv-power" title="View details of selected power">?</button>
+                  <button type="button" class="icon-btn primary" id="btn-add-inv-power" style="padding: 4px 10px; min-height: 40px; font-size: 10pt;" title="Add power to invention">➕ Add</button>
+                </div>
+                <!-- Added Powers List -->
+                <div id="inv-added-powers-list" style="display: flex; flex-direction: column; gap: 6px; margin-top: 10px;">
+                  <span style="font-size: 10pt; color: var(--text-dim);">No powers added yet. Select a power and rank above to include in device.</span>
+                </div>
+              </div>
+
+              <!-- Ability Boosts Section (Battlesuits, Exoskeletons, Drugs, Cybernetics) -->
+              <div style="background: #141c2c; border: 1px solid var(--border-color); border-radius: 6px; padding: 12px; min-width: 0;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-wrap: wrap; gap: 6px;">
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <strong style="color: #38bdf8;">💪 Ability Enhancements & Boosts</strong>
+                    <span class="meta-tag" id="inv-boost-count-badge" style="font-size: 10pt;">0 Boosts</span>
+                  </div>
+                </div>
+                <div style="display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 1.2fr) auto; gap: 8px; align-items: center;">
+                  <select id="inv-boost-ability" class="field-input" style="min-width: 0;">
+                    <option value="Fighting">Fighting</option>
+                    <option value="Agility">Agility</option>
+                    <option value="Strength" selected>Strength</option>
+                    <option value="Endurance">Endurance</option>
+                    <option value="Reason">Reason</option>
+                    <option value="Intuition">Intuition</option>
+                    <option value="Psyche">Psyche</option>
+                  </select>
+                  <select id="inv-boost-mode" class="field-input" style="min-width: 0;">
+                    <option value="set" selected>Set Rank</option>
+                    <option value="bonus">+CS Bonus</option>
+                  </select>
+                  <select id="inv-boost-rank" class="field-input" style="min-width: 0;"></select>
+                  <button type="button" class="icon-btn" id="btn-add-inv-boost" style="padding: 4px 10px; min-height: 40px; font-size: 10pt; background: #0284c7; border-color: #38bdf8; color: #fff;" title="Add ability boost to device">➕ Add</button>
+                </div>
+                <!-- Added Boosts List -->
+                <div id="inv-added-boosts-list" style="display: flex; flex-direction: column; gap: 6px; margin-top: 10px;">
+                  <span style="font-size: 10pt; color: var(--text-dim);">No ability boosts added. (Optional: enhance Strength, Agility, etc.)</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Hardware Boosts & Limitations -->
+            <div>
+              <span class="field-label">Hardware Boosts & Limitations (Machines of Doom):</span>
+              <div class="boosts-limits-grid">
+                <div>
+                  <strong style="color: #34d399; font-size: 10.5pt;">Boosts (+1CS Difficulty):</strong>
+                  <label class="checkbox-label"><input type="checkbox" id="inv-boost-area"> Area Effect (+1CS)</label>
+                  <label class="checkbox-label"><input type="checkbox" id="inv-boost-piercing"> Armor Piercing (+1CS)</label>
+                  <label class="checkbox-label"><input type="checkbox" id="inv-boost-overcharge"> Overcharge Capacitor (+1CS)</label>
+                  <label class="checkbox-label"><input type="checkbox" id="inv-boost-range"> Extended Range (+1CS)</label>
+                  <label class="checkbox-label"><input type="checkbox" id="inv-boost-ai"> Autonomous AI Targeting (+1CS)</label>
+                </div>
+                <div>
+                  <strong style="color: #f87171; font-size: 10.5pt;">Limits (-1CS Difficulty):</strong>
+                  <label class="checkbox-label"><input type="checkbox" id="inv-limit-ammo"> Limited Ammo / 3-5 Shots (-1CS)</label>
+                  <label class="checkbox-label"><input type="checkbox" id="inv-limit-tether"> External Power Tether (-1CS)</label>
+                  <label class="checkbox-label"><input type="checkbox" id="inv-limit-bulky"> Bulky / Two-Handed (-1CS)</label>
+                  <label class="checkbox-label"><input type="checkbox" id="inv-limit-cooldown"> 1-Turn Cooldown (-1CS)</label>
+                  <label class="checkbox-label"><input type="checkbox" id="inv-limit-burnout"> Burnout Risk on White (-1CS)</label>
+                </div>
+              </div>
+            </div>
+
+            <!-- Feasibility Results Card (Auto-Calculated in Real-Time, Space-Efficient Design) -->
+            <div class="feasibility-compact-card" id="inv-feasibility-block">
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <strong style="color: #38bdf8; font-size: 10.5pt;" id="inv-feasibility-title">📊 Engineering Feasibility (Auto-Calculated)</strong>
+                <span class="meta-tag" style="color: var(--marvel-gold); font-size: 10pt; padding: 1px 6px;">⚡ Real-Time</span>
+              </div>
+              <div class="feasibility-metrics-grid">
+                <div class="feasibility-pill">
+                  <span style="color: var(--text-muted);" id="inv-base-label">Base Tech Rank:</span>
+                  <strong id="inv-base-check">Remarkable (30)</strong>
+                </div>
+                <div class="feasibility-pill">
+                  <span style="color: var(--text-muted);" id="inv-diff-label">Project Difficulty:</span>
+                  <strong id="inv-difficulty-rank" style="color: var(--marvel-gold);">Remarkable</strong>
+                </div>
+                <div class="feasibility-pill">
+                  <span style="color: var(--text-muted);" id="inv-days-label">Estimated Build Time:</span>
+                  <strong id="inv-build-days" style="color: #38bdf8;">3 Days</strong>
+                </div>
+                <div class="feasibility-pill">
+                  <span style="color: var(--text-muted);" id="inv-power-label">Power Supply:</span>
+                  <span id="inv-power-source" style="font-weight: 600; color: var(--text-main); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 130px;" title="">Micro-Fusion Cell (10 uses)</span>
+                </div>
+              </div>
+              <div id="inv-material-warn" class="material-warn-text" style="font-size: 10pt;"></div>
+            </div>
+
+            <!-- Interactive 3-Stage Invention FEAT Workflow -->
+            <div class="inv-workflow-container" style="border-radius: 6px; padding: 14px; display: flex; flex-direction: column; gap: 12px;">
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <strong class="inv-process-heading" style="font-size: 11pt;" id="inv-process-title">🛠️ Invention Process: 3 Required FEATs</strong>
+                <span class="meta-tag" id="inv-process-summary-badge" style="font-size: 10pt;">0 / 3 Passed</span>
+              </div>
+
+              <!-- Stage 1: Blueprint Design FEAT -->
+              <div class="invention-stage-box inv-stage-box" id="inv-stage-box-blueprint" style="border-radius: 6px; padding: 10px; display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap;">
+                <div>
+                  <div class="inv-stage-title" style="font-weight: 700; font-size: 10.5pt;" id="inv-stage-blueprint-title">1. 📐 Blueprint Design FEAT</div>
+                  <div style="font-size: 10pt; color: var(--text-muted);" id="inv-stage-blueprint-desc"><span id="inv-stage-blueprint-attr">Reason</span> FEAT vs <span id="inv-blueprint-target-text" style="color: #93c5fd; font-weight: 700;">Remarkable</span> (Karma allowed)</div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <span class="meta-tag" id="inv-stage-blueprint-status" style="font-size: 10pt;">Pending</span>
+                  <button type="button" class="icon-btn" id="btn-roll-inv-blueprint" style="padding: 4px 10px; min-height: 34px; font-size: 10pt;">🎲 Roll Design</button>
+                </div>
+              </div>
+
+              <!-- Stage 2: Resource Procurement FEAT -->
+              <div class="invention-stage-box inv-stage-box" id="inv-stage-box-resource" style="border-radius: 6px; padding: 10px; display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap;">
+                <div>
+                  <div class="inv-stage-title" style="font-weight: 700; font-size: 10.5pt;" id="inv-stage-resource-title">2. 🔩 Resource Procurement FEAT</div>
+                  <div style="font-size: 10pt; color: var(--text-muted);" id="inv-stage-resource-desc">Resource FEAT vs <span id="inv-resource-target-text" style="color: #93c5fd; font-weight: 700;">Remarkable</span> (No Karma per p. 18)</div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <span class="meta-tag" id="inv-stage-resource-status" style="font-size: 10pt;">Pending</span>
+                  <button type="button" class="icon-btn" id="btn-roll-inv-resource" style="padding: 4px 10px; min-height: 34px; font-size: 10pt;">🎲 Roll Resources</button>
+                </div>
+              </div>
+
+              <!-- Stage 3: Assembly & Construction FEAT -->
+              <div class="invention-stage-box inv-stage-box" id="inv-stage-box-assembly" style="border-radius: 6px; padding: 10px; display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap;">
+                <div>
+                  <div class="inv-stage-title" style="font-weight: 700; font-size: 10.5pt;" id="inv-stage-assembly-title">3. 🛠️ Assembly & Construction FEAT</div>
+                  <div style="font-size: 10pt; color: var(--text-muted);" id="inv-stage-assembly-desc"><span id="inv-stage-assembly-attr">Reason</span> FEAT vs <span id="inv-assembly-target-text" style="color: #93c5fd; font-weight: 700;">Remarkable</span> (<span id="inv-stage-assembly-facil">Requires Workshop</span>)</div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <span class="meta-tag" id="inv-stage-assembly-status" style="font-size: 10pt;">Pending</span>
+                  <button type="button" class="icon-btn" id="btn-roll-inv-assembly" style="padding: 4px 10px; min-height: 34px; font-size: 10pt;">🎲 Roll Assembly</button>
+                </div>
+              </div>
+
+              <!-- Stage 4: Installation Button -->
+              <button class="icon-btn" id="btn-add-invention-to-gear" style="margin-top: 4px; background: #065f46; border-color: #059669; color: #fff; min-height: 42px; opacity: 0.5; cursor: not-allowed; font-size: 10pt;" title="Complete all 3 FEATs above to fabricate and install">
+                📦 Add Completed Invention to Hero's Equipment
+              </button>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Section 2: Known Blueprints & Schematics Archive -->
+        <div class="card" id="card-known-blueprints">
+          <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span class="card-title">📐 Known Blueprints & Schematics Archive</span>
+              <span class="meta-tag" id="known-blueprints-count-badge" style="font-size: 10pt;">0 Blueprints</span>
+            </div>
+            <input type="text" id="filter-known-blueprints" placeholder="🔍 Filter blueprints..." style="font-size: 10pt; padding: 4px 10px; border-radius: 4px; border: 1px solid var(--border-color); background: var(--bg-main); color: var(--text-main); width: 180px;">
+          </div>
+
+          <div style="display: flex; flex-direction: column; gap: 10px;">
+            <div class="calc-rule-callout" style="margin-bottom: 0px; font-size: 10pt;">
+              <strong>Mastered Schematics:</strong> Any device successfully assembled or equipment item reverse-engineered is stored in this archive. Building from a known blueprint <strong>bypasses the Phase 1 Blueprint Design FEAT</strong> automatically!
+            </div>
+
+            <!-- Blueprints List Container -->
+            <div id="known-blueprints-container" style="display: flex; flex-direction: column; gap: 8px;">
+              <span style="color: var(--text-dim); text-align: center; padding: 12px; font-size: 10pt;">No known blueprints yet. Complete a custom invention or reverse-engineer equipment below to master schematics.</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 3: Prebuilt Equipment Reverse-Engineering -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">🔍 Reverse-Engineer Rulebook Equipment</span>
+          </div>
+
+          <div style="display: flex; flex-direction: column; gap: 14px;">
+            <p style="color: var(--text-muted);">
+              Select any prebuilt equipment from the official rulebooks to calculate its raw material procurement, blueprint design FEAT, and workshop build time:
+            </p>
+
+            <div>
+              <span class="field-label">Select Rulebook Equipment:</span>
+              <div style="display: flex; gap: 8px; align-items: center; min-width: 0; max-width: 100%;">
+                <select id="select-reverse-engineer-item" class="field-input" style="min-height: 44px; flex: 1; min-width: 0; max-width: 100%;"></select>
+                <button type="button" class="help-circle-btn" id="btn-preview-rev-item" title="View details of selected equipment">?</button>
+                <button type="button" class="icon-btn" id="btn-clear-reverse-engineer" title="Cancel selection and reset reverse-engineering analysis" style="padding: 4px 10px; min-height: 44px; font-size: 11pt;">✕</button>
+              </div>
+            </div>
+
+            <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+              <button class="icon-btn primary" id="btn-calc-reverse-engineer" style="flex: 1; min-height: 40px; font-size: 10pt;">🔬 Reverse-Engineer Item</button>
+              <button type="button" class="icon-btn" id="btn-cancel-reverse-engineer" style="min-height: 40px; background: #334155; font-size: 10pt;" title="Cancel equipment selection and reset analysis">✕ Cancel Selection</button>
+            </div>
+
+            <div id="reverse-engineer-result-box" style="background: #090e18; border: 1px solid var(--border-color); border-radius: 6px; padding: 14px; min-height: 120px; display: flex; flex-direction: column; justify-content: center;">
+              <span style="color: var(--text-dim); text-align: center;">Select an item above to analyze manufacturing specifications.</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </section>
+
+    <!-- TAB 4: EQUIPMENT STORE & INVENTORY -->
+    <section class="tab-pane" id="tab-pane-equipment">
+      
+      <div class="card">
+        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+          <div>
+            <span class="card-title">🎒 Character Gear & Carrying Inventory</span>
+            <div style="color: var(--text-muted); font-size: 10pt; margin-top: 2px;">Equipped and carried weapons, tactical armor, communications, and custom inventions.</div>
+          </div>
+          <button type="button" class="icon-btn primary" id="btn-open-equipment-store" style="font-size: 11pt; padding: 8px 18px; min-height: 42px;">
+            🛒 Open Rulebook Equipment Store (126 TSR Items)
+          </button>
+        </div>
+
+        <div class="attacks-list" id="equipment-container" style="margin-top: 10px;">
+          <!-- Equipped and carried items rendered here -->
+        </div>
+      </div>
+
+    </section>
+
+    <!-- TAB 5: TALENTS & CONTACTS -->
+    <section class="tab-pane" id="tab-pane-talents">
+      
+      <div class="dense-grid-2">
+        
+        <!-- Talents -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">🥋 Talents & Skills (15 CP each)</span>
+          </div>
+
+          <div style="display: flex; gap: 10px; margin-bottom: 8px;">
+            <input type="text" id="filter-talent-search" class="field-input" placeholder="🔍 Quick filter talents (159 skills & proficiencies)..." style="min-height: 38px;">
+          </div>
+
+          <div style="display: flex; gap: 8px; margin-bottom: 14px; align-items: center;">
+            <select id="select-talent-catalog" class="field-input" style="flex:1; min-height: 44px;"></select>
+            <button type="button" class="help-circle-btn" id="btn-preview-talent" title="View details of selected talent">?</button>
+            <button class="icon-btn primary" id="btn-add-talent" style="min-height: 44px;">➕ Add Talent</button>
+          </div>
+
+          <div class="talents-grid" id="talents-container">
+            <!-- Talents rendered here -->
+          </div>
+        </div>
+
+        <!-- Contacts -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">🤝 Contacts & Allies (5 CP each)</span>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr auto; gap: 10px; margin-bottom: 14px; align-items: end;">
+            <div>
+              <span class="field-label">Contact Name:</span>
+              <input type="text" id="input-contact-name" class="field-input" placeholder="e.g. Commissioner Gordon">
+            </div>
+            <div>
+              <span class="field-label">Profession / Role:</span>
+              <input type="text" id="input-contact-role" class="field-input" placeholder="e.g. Police Contact">
+            </div>
+            <button class="icon-btn primary" id="btn-add-contact">➕ Add Contact</button>
+          </div>
+
+          <div class="talents-grid" id="contacts-container">
+            <!-- Contacts rendered here -->
+          </div>
+        </div>
+
+      </div>
+
+    </section>
+
+    <!-- TAB 6: BACKGROUND & PHYSICAL FORM -->
+    <section class="tab-pane" id="tab-pane-background">
+      
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">📜 Hero Biography, Identity & Physical Form</span>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px;">
+          <div>
+            <span class="field-label">Real Name / Secret ID:</span>
+            <input type="text" id="bio-real-name" class="field-input" value="Secret Identity">
+          </div>
+          <div>
+            <span class="field-label">Physical Form (UPB + Dragon #134):</span>
+            <select id="bio-physical-form" class="field-input"></select>
+          </div>
+          <div>
+            <span class="field-label">Legal Identity Status:</span>
+            <select id="bio-identity" class="field-input">
+              <option value="Secret">Secret</option>
+              <option value="Public">Public</option>
+              <option value="Known to Authorities">Known to Authorities</option>
+            </select>
+          </div>
+
+          <div>
+            <span class="field-label">Gender:</span>
+            <input type="text" id="bio-gender" class="field-input" value="Unknown">
+          </div>
+          <div>
+            <span class="field-label">Age:</span>
+            <input type="text" id="bio-age" class="field-input" value="Adult">
+          </div>
+          <div>
+            <span class="field-label">Height & Weight:</span>
+            <input type="text" id="bio-dimensions" class="field-input" value="6'0&quot;, 190 lbs">
+          </div>
+
+          <div>
+            <span class="field-label">Group Affiliation:</span>
+            <input type="text" id="bio-affiliation" class="field-input" value="Solo / Independent">
+          </div>
+          <div>
+            <span class="field-label">Base of Operations:</span>
+            <input type="text" id="bio-base" class="field-input" value="New York City">
+          </div>
+          <div>
+            <span class="field-label">Hair & Eyes:</span>
+            <input type="text" id="bio-hair-eyes" class="field-input" value="Brown hair, Brown eyes">
+          </div>
+
+          <div style="grid-column: span 3;">
+            <span class="field-label">Origin Story & Background Lore:</span>
+            <textarea id="bio-backstory" class="field-input" rows="4" style="width: 100%; resize: vertical;" placeholder="Document your hero's origins, tragic encounters, radioactive exposure, or military training..."></textarea>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- MODAL: DIE ROLLER & UNIVERSAL TABLE FEAT RESOLUTION (Compact 50% Redesign) -->
+  <div id="roller-modal" class="modal-overlay">
+    <div class="modal-box roller-compact">
+      <div class="modal-header compact">
+        <span class="modal-title" id="roller-title">FEAT Roll</span>
+        <div style="display: flex; align-items: center; gap: 6px;">
+          <button type="button" class="icon-btn roller-popout-btn" id="btn-roller-popout" title="Pop-out floating modeless window">↗ Pop-out</button>
+          <button class="modal-close">&times;</button>
+        </div>
+      </div>
+      <div class="modal-body compact">
+        
+        <!-- Ability & Effective Rank Bar -->
+        <div class="roller-rank-bar">
+          <div>
+            <span class="field-label">Action / Stat</span>
+            <strong id="roller-ability" style="color: #38bdf8; font-size: 10.5pt;">Fighting</strong>
+          </div>
+          <div style="text-align: right;">
+            <span class="field-label">Effective Rank</span>
+            <strong id="roller-rank-preview" style="font-size: 11pt; color: #fff;">Remarkable (30)</strong>
+          </div>
+        </div>
+
+        <!-- 4-Color Universal Table Threshold Grid: White, Green, Yellow, Red -->
+        <div class="roller-thresh-grid">
+          <div class="thresh-box white">
+            <span class="thresh-name">White</span>
+            <span class="thresh-val" id="roller-thresh-white">01-35</span>
+          </div>
+          <div class="thresh-box green">
+            <span class="thresh-name">Green</span>
+            <span class="thresh-val" id="roller-thresh-green">36+</span>
+          </div>
+          <div class="thresh-box yellow">
+            <span class="thresh-name">Yellow</span>
+            <span class="thresh-val" id="roller-thresh-yellow">66+</span>
+          </div>
+          <div class="thresh-box red">
+            <span class="thresh-name">Red</span>
+            <span class="thresh-val" id="roller-thresh-red">95+</span>
+          </div>
+        </div>
+
+        <!-- CS Stepper & Control (Positioned Just Above Spend Karma Control) -->
+        <div class="roller-stepper-row">
+          <div class="stepper-controls">
+            <button type="button" class="stepper-btn" id="btn-roller-shift-down" title="Shift Left (-1 CS)">−</button>
+            <button type="button" class="stepper-btn" id="btn-roller-shift-up" title="Shift Right (+1 CS)">+</button>
+          </div>
+          <div class="cs-control-display">
+            <span class="field-label" style="margin-bottom: 0;">Column Shift:</span>
+            <strong id="roller-shift-val" style="font-size: 11pt; color: #38bdf8;">+0 CS</strong>
+          </div>
+        </div>
+
+        <!-- Pre-Roll Karma Spending Stepper/Field (Committed BEFORE rolling) -->
+        <div class="roller-karma-spend-row">
+          <div class="karma-spend-label">
+            <span>Spend Karma:</span>
+            <span class="karma-avail-hint">(Avail: <strong id="roller-avail-karma">0</strong> KP)</span>
+          </div>
+          <div class="karma-stepper-controls">
+            <button type="button" class="stepper-btn" id="btn-karma-spend-minus10" title="-10 Karma">−10</button>
+            <button type="button" class="stepper-btn" id="btn-karma-spend-minus1" title="-1 Karma">−1</button>
+            <input type="number" id="roller-karma-spend-input" class="field-input compact" min="0" value="0" style="width: 54px; text-align: center; font-weight: 700; padding: 2px 4px;">
+            <button type="button" class="stepper-btn" id="btn-karma-spend-plus1" title="+1 Karma">+1</button>
+            <button type="button" class="stepper-btn" id="btn-karma-spend-plus10" title="+10 Karma">+10</button>
+          </div>
+        </div>
+
+        <!-- Roll Action Row: Roll Button (cut by 75%) placed to the LEFT of the Dice Readout '[roll] + [KP]' -->
+        <div class="roller-action-row">
+          <button class="icon-btn primary" id="btn-roller-roll">🎲 Roll</button>
+          <div class="roller-dice-visual" id="roller-dice-num">-- <span class="dice-kp-badge">+ 0 KP</span></div>
+        </div>
+
+        <!-- Row showing brief details about CS's that went into the final result -->
+        <div class="roller-cs-breakdown-row" id="roller-cs-details">
+          <span style="color: var(--text-muted); font-weight: 700;">CS Details:</span>
+          <span id="roller-cs-details-text">Base: Typical · Shift: +0 CS → Final: Typical (6)</span>
+        </div>
+
+        <!-- Battle Effect Outcome Box (No huge banner) -->
+        <div class="battle-effect-box compact">
+          <div style="font-size: 10.5pt; font-weight: 700; color: #fff;" id="roller-effect-desc">Click Roll to resolve action.</div>
+        </div>
+
+      </div>
+      <div class="modal-footer compact">
+        <button class="icon-btn modal-close-btn">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: RULES CHEAT SHEET & UNIVERSAL TABLE -->
+  <div id="cheatsheet-modal" class="modal-overlay">
+    <div class="modal-box large">
+      <div class="modal-header">
+        <span class="modal-title">📖 Marvel Super Heroes Rules Cheat Sheet</span>
+        <button class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div style="display: flex; gap: 8px; border-bottom: 1px solid var(--border-color); margin-bottom: 14px; flex-wrap: wrap;">
+          <button class="icon-btn active" id="cheat-tab-btn-combat" onclick="App.switchCheatTab('combat')">⚔️ Combat FEATs</button>
+          <button class="icon-btn" id="cheat-tab-btn-table" onclick="App.switchCheatTab('table')">🎲 Universal Table Matrix</button>
+          <button class="icon-btn" id="cheat-tab-btn-movement" onclick="App.switchCheatTab('movement')">🏃 Movement & Speed</button>
+          <button class="icon-btn" id="cheat-tab-btn-health" onclick="App.switchCheatTab('health')">❤️ Health & Recovery</button>
+          <button class="icon-btn" id="cheat-tab-btn-materials" onclick="App.switchCheatTab('materials')">🛡️ Materials & Modifiers</button>
+        </div>
+
+        <!-- Cheat Section: Combat -->
+        <div id="cheat-section-combat" class="cheatsheet-section">
+          <h3>⚔️ Tactical Combat Actions & Battle Effects Resolution Table</h3>
+          <p style="margin-bottom: 10px;">Cross-reference action type and FEAT roll color on the Universal Table to resolve combat outcomes:</p>
+          
+          <table class="cheat-table">
+            <thead>
+              <tr>
+                <th style="width: 18%;">Action / FEAT</th>
+                <th style="width: 10%;">Ability</th>
+                <th style="width: 14%;"><span class="feat-white">White (Failure)</span></th>
+                <th style="width: 18%;"><span class="feat-green">Green (Standard)</span></th>
+                <th style="width: 20%;"><span class="feat-yellow">Yellow (Superior)</span></th>
+                <th style="width: 20%;"><span class="feat-red">Red (Critical)</span></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Slugfest</strong> (Unarmed Strike)</td>
+                <td>Fighting</td>
+                <td><span class="feat-white">Miss</span> (0 damage)</td>
+                <td><span class="feat-green">Hit</span> (Strength damage)</td>
+                <td><span class="feat-yellow">Slam FEAT</span> (Damage + target checks Slam)</td>
+                <td><span class="feat-red">Stun FEAT</span> (Damage + target checks Stun)</td>
+              </tr>
+              <tr>
+                <td><strong>Blunt Weapons</strong> (Clubs, Maces, Staff)</td>
+                <td>Fighting</td>
+                <td><span class="feat-white">Miss</span> (0 damage)</td>
+                <td><span class="feat-green">Hit</span> (Weapon or Str damage)</td>
+                <td><span class="feat-yellow">Slam FEAT</span> (Damage + target checks Slam)</td>
+                <td><span class="feat-red">Stun FEAT</span> (Damage + target checks Stun)</td>
+              </tr>
+              <tr>
+                <td><strong>Edged Weapons</strong> (Swords, Knives, Claws)</td>
+                <td>Fighting</td>
+                <td><span class="feat-white">Miss</span> (0 damage)</td>
+                <td><span class="feat-green">Hit</span> (Weapon or Str damage)</td>
+                <td><span class="feat-yellow">Stun FEAT</span> (Damage + target checks Stun)</td>
+                <td><span class="feat-red">Kill FEAT</span> (Damage + target checks Kill)</td>
+              </tr>
+              <tr>
+                <td><strong>Shooting</strong> (Guns, Bows, Darts)</td>
+                <td>Agility</td>
+                <td><span class="feat-white">Miss</span> (0 damage)</td>
+                <td><span class="feat-green">Hit</span> (Weapon damage)</td>
+                <td><span class="feat-yellow">Bullseye</span> (Double damage or precise disarm)</td>
+                <td><span class="feat-red">Kill FEAT</span> (Damage + target checks Kill)</td>
+              </tr>
+              <tr>
+                <td><strong>Energy Blasts</strong> (Plasma, Lasers, Lightning)</td>
+                <td>Agility / Psyche</td>
+                <td><span class="feat-white">Miss</span> (0 damage)</td>
+                <td><span class="feat-green">Hit</span> (Power Rank damage)</td>
+                <td><span class="feat-yellow">Bullseye</span> (Double damage or pinpoint strike)</td>
+                <td><span class="feat-red">Kill / Disintegrate</span> (Damage + Kill check)</td>
+              </tr>
+              <tr>
+                <td><strong>Force Blasts</strong> (Concussive Force, TK)</td>
+                <td>Agility / Psyche</td>
+                <td><span class="feat-white">Miss</span> (0 damage)</td>
+                <td><span class="feat-green">Hit</span> (Power Rank force damage)</td>
+                <td><span class="feat-yellow">Slam FEAT</span> (Force damage + Slam check)</td>
+                <td><span class="feat-red">Stun FEAT</span> (Force damage + Stun check)</td>
+              </tr>
+              <tr>
+                <td><strong>Grappling / Hold</strong></td>
+                <td>Strength</td>
+                <td><span class="feat-white">Miss</span> (Target escapes hold)</td>
+                <td><span class="feat-green">Partial Hold</span> (Target suffers -2CS)</td>
+                <td><span class="feat-yellow">Full Hold</span> (Target immobilized)</td>
+                <td><span class="feat-red">Pin & Crush</span> (Full hold + Str damage/turn)</td>
+              </tr>
+              <tr>
+                <td><strong>Escape from Hold / Pin</strong></td>
+                <td>Strength or Agility</td>
+                <td><span class="feat-white">Held Fast</span> (Cannot break hold)</td>
+                <td><span class="feat-green">Shift Grip</span> (+1CS to next escape roll)</td>
+                <td><span class="feat-yellow">Break Free</span> (Escapes hold; turn ends)</td>
+                <td><span class="feat-red">Reverse Hold</span> (Escapes & places hold on foe!)</td>
+              </tr>
+              <tr>
+                <td><strong>Charging / Tackle</strong></td>
+                <td>Endurance</td>
+                <td><span class="feat-white">Miss</span> (Charger falls prone)</td>
+                <td><span class="feat-green">Tackle</span> (Str damage + 1 area Slam)</td>
+                <td><span class="feat-yellow">Smash</span> (+1CS Str damage + 2 areas Slam)</td>
+                <td><span class="feat-red">Grand Slam</span> (Damage + 1-10 area Slam & Stun)</td>
+              </tr>
+              <tr>
+                <td><strong>Throwing Object / Missile</strong></td>
+                <td>Agility</td>
+                <td><span class="feat-white">Miss</span> (0 damage)</td>
+                <td><span class="feat-green">Hit</span> (Lesser of Str or Material damage)</td>
+                <td><span class="feat-yellow">Bullseye</span> (Pinpoint hit or trip)</td>
+                <td><span class="feat-red">Stun FEAT</span> (Damage + target checks Stun)</td>
+              </tr>
+              <tr>
+                <td><strong>Catching Item / Ally</strong></td>
+                <td>Agility</td>
+                <td><span class="feat-white">Miss / Dropped</span> (Full fall damage)</td>
+                <td><span class="feat-green">Safe Catch</span> (Safely catches up to Str weight)</td>
+                <td><span class="feat-yellow">Intercept & Cushion</span> (Catches weapon/missile)</td>
+                <td><span class="feat-red">Counter-Catch</span> (Catch & redirect in same turn)</td>
+              </tr>
+              <tr>
+                <td><strong>Dodging</strong> (1991 Revised Active Defense)</td>
+                <td>Agility</td>
+                <td><span class="feat-white">0CS</span> (No modifier to attacker)</td>
+                <td><span class="feat-green">-2CS</span> penalty to attacker's roll</td>
+                <td><span class="feat-yellow">-4CS</span> penalty to attacker's roll</td>
+                <td><span class="feat-red">-6CS</span> penalty to attacker's roll</td>
+              </tr>
+              <tr>
+                <td><strong>Evading</strong> (Melee Hand-to-Hand Defense)</td>
+                <td>Fighting</td>
+                <td><span class="feat-white">0CS</span> (No modifier to attacker)</td>
+                <td><span class="feat-green">-2CS</span> penalty to melee attacker</td>
+                <td><span class="feat-yellow">-4CS</span> penalty to melee attacker</td>
+                <td><span class="feat-red">Automatic Miss</span> (Attacker misses completely!)</td>
+              </tr>
+              <tr>
+                <td><strong>Blocking / Parrying</strong> (Shield / Melee)</td>
+                <td>Fighting</td>
+                <td><span class="feat-white">Full Damage</span> (Block fails)</td>
+                <td><span class="feat-green">Damage Absorbed</span> (Up to Shield/Material rank)</td>
+                <td><span class="feat-yellow">Absorbed + Off-Balance</span> (Foe -1CS next turn)</td>
+                <td><span class="feat-red">Absorbed + Disarm</span> (Disarms foe / Free riposte)</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <h3>💥 Secondary Combat Conditions & Resolution Tables</h3>
+          
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 10px;">
+            <!-- Slam Conditions -->
+            <div>
+              <h4>💨 Slam Result Resolution</h4>
+              <p>When an attack inflicts a Slam result, compare attacker's Strength/Damage against the target's Strength/Endurance:</p>
+              <table class="cheat-table" style="margin-top: 6px;">
+                <thead>
+                  <tr>
+                    <th>Relative Power</th>
+                    <th>Result on Target</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>Attacker &le; Target</td>
+                    <td><span class="feat-white">No Effect</span> or knocked back 1 area</td>
+                  </tr>
+                  <tr>
+                    <td>Attacker &gt; Target by 1 Rank</td>
+                    <td>Knocked back 1-2 areas + knocked prone</td>
+                  </tr>
+                  <tr>
+                    <td>Attacker &gt; Target by 2+ Ranks</td>
+                    <td><strong>Grand Slam:</strong> Knocked back 1-10 (1d10) areas + Stun check!</td>
+                  </tr>
+                  <tr>
+                    <td>Collision with Barrier</td>
+                    <td>Target takes damage equal to lesser of wall Material rank or 10 damage per remaining area.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Stun Conditions -->
+            <div>
+              <h4>💫 Stun FEAT Resolution</h4>
+              <p>When an attack inflicts a Stun result, the target immediately makes an <span class="feat-green">Endurance FEAT</span>:</p>
+              <table class="cheat-table" style="margin-top: 6px;">
+                <thead>
+                  <tr>
+                    <th>Endurance FEAT Color</th>
+                    <th>Stun Outcome</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><span class="feat-white">White (Failure)</span></td>
+                    <td><strong>Knocked Out:</strong> Target is unconscious for 1-10 (1d10) rounds!</td>
+                  </tr>
+                  <tr>
+                    <td><span class="feat-green">Green</span></td>
+                    <td><strong>Stunned:</strong> Loses next action; drops guard.</td>
+                  </tr>
+                  <tr>
+                    <td><span class="feat-yellow">Yellow</span></td>
+                    <td><strong>Shaken:</strong> -1CS to all actions for 1 round.</td>
+                  </tr>
+                  <tr>
+                    <td><span class="feat-red">Red</span></td>
+                    <td><strong>No Effect:</strong> Shakes off the concussive blow immediately.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 10px;">
+            <!-- Kill Conditions -->
+            <div>
+              <h4>☠️ Kill FEAT Resolution (Lethal Edged / Shooting / Energy)</h4>
+              <p>When an attack achieves a Kill result, the target immediately makes an <span class="feat-green">Endurance FEAT</span>:</p>
+              <table class="cheat-table" style="margin-top: 6px;">
+                <thead>
+                  <tr>
+                    <th>Endurance FEAT Color</th>
+                    <th>Lethal Outcome</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><span class="feat-white">White (Failure)</span></td>
+                    <td><strong>Mortal Wound:</strong> Health reduced to 0; hero begins <em>Dying</em>!</td>
+                  </tr>
+                  <tr>
+                    <td><span class="feat-green">Green</span></td>
+                    <td><strong>Severe Injury:</strong> Broken bone or severed muscle; double damage or -2CS.</td>
+                  </tr>
+                  <tr>
+                    <td><span class="feat-yellow">Yellow</span></td>
+                    <td><strong>Blood Loss:</strong> Normal damage + 1-10 ongoing damage each turn.</td>
+                  </tr>
+                  <tr>
+                    <td><span class="feat-red">Red</span></td>
+                    <td><strong>Flesh Wound:</strong> Normal attack damage only; no lethal effect.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Multiple Attacks & Initiative -->
+            <div>
+              <h4>⚡ Multi-Attacks, Initiative & Surprise</h4>
+              <ul style="padding-left: 20px; line-height: 1.7; color: #cbd5e1; margin-top: 6px;">
+                <li><strong>Multiple Attacks in 1 Round:</strong> A hero may attempt multiple strikes by rolling Fighting (melee) or Agility (ranged) before acting:
+                  <br>• 2 attacks: Requires a <span class="feat-yellow">Yellow FEAT</span>.
+                  <br>• 3 attacks: Requires a <span class="feat-red">Red FEAT</span>.
+                  <br>• Failure (<span class="feat-white">White</span>): Fumbles and loses all attacks this turn!
+                </li>
+                <li><strong>Team Initiative:</strong> At the start of each round, each team rolls 1d10. High roll acts first.</li>
+                <li><strong>Surprise:</strong> Roll Intuition vs foe's Intuition. Surprised characters cannot Dodge, Evade, or Block on round 1.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <!-- Cheat Section: Universal Table -->
+        <div id="cheat-section-table" class="cheatsheet-section" style="display: none;">
+          <h3>🎲 Universal Action Table Matrix (All 18 Ranks)</h3>
+          <p>The core engine of the FASERIP system. Roll 1d100 (percentile dice) and cross-reference rank to determine FEAT color result:</p>
+          <table class="universal-table-view">
+            <thead>
+              <tr>
+                <th>Rank & Number</th>
+                <th><span class="feat-white">White (Failure)</span></th>
+                <th><span class="feat-green">Green (Standard)</span></th>
+                <th><span class="feat-yellow">Yellow (Superior)</span></th>
+                <th><span class="feat-red">Red (Critical)</span></th>
+              </tr>
+            </thead>
+            <tbody id="cheatsheet-table-body"></tbody>
+          </table>
+
+          <div class="calc-rule-callout" style="margin-top: 14px;">
+            <strong>📐 Column Shifts (CS):</strong>
+            <br>• <strong>+1CS:</strong> Shifts one column to the right (e.g. Typical &rarr; Good).
+            <br>• <strong>-1CS:</strong> Shifts one column to the left (e.g. Typical &rarr; Poor).
+            <br>• Absolute bounds: Shifts cannot drop below <strong>Shift 0</strong> or exceed <strong>Beyond</strong>.
+          </div>
+        </div>
+
+        <!-- Cheat Section: Movement -->
+        <div id="cheat-section-movement" class="cheatsheet-section" style="display: none;">
+          <div class="calc-rule-callout">
+            <strong>⏱️ Universal Time & Scale Constants:</strong>
+            <br>• <strong>1 Turn = 6 Seconds</strong> (10 Turns = 1 Minute of combat).
+            <br>• <strong>1 City Area = 132 Feet (44 yards)</strong> (approx. 40 meters / typical Manhattan city block width).
+            <br>• <strong>Speed Conversion:</strong> 1 Area per Turn = <strong>15 Miles Per Hour (MPH)</strong> = 22 Feet per Second (fps).
+          </div>
+
+          <div id="cheat-movement-area-rule-callout" class="calc-rule-callout" style="border-left: 3px solid var(--marvel-gold); margin-top: 8px;">
+            <strong>📐 Active Area Division Rule: <span id="cheat-active-area-rule" style="color: var(--marvel-gold);">Standard Full Areas: 1 Area = 132 Feet (Default TSR Rules)</span></strong>
+            <div id="cheat-active-area-rule-desc" style="color: #cbd5e1; font-size: 10pt; margin-top: 4px;">
+              <strong>Standard Rule Active:</strong> 1 Area is 132 feet across (approx. 44 yards / 1 city block width). Standard movement and combat ranges apply. To adjust between Quarter Area (33 ft quadrants) or Six Subareas (22 ft squares), open <strong>File/Options &rarr; Application Preferences</strong>.
+            </div>
+          </div>
+
+          <h3>🏃 Ground Movement & Running Speed Table</h3>
+          <p>Ground speed by Land Speed Rank or Endurance Rank for sprinting:</p>
+          <table class="cheat-table">
+            <thead>
+              <tr>
+                <th>Rank</th>
+                <th>Areas / Turn</th>
+                <th>MPH</th>
+                <th>Feet / Turn</th>
+                <th>Feet / Sec</th>
+                <th>Tactical Notes & Real-World Examples</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Shift 0</strong> (0)</td>
+                <td>0</td>
+                <td>0 mph</td>
+                <td>0 ft</td>
+                <td>0 fps</td>
+                <td>Immobilized, paralyzed, unconscious.</td>
+              </tr>
+              <tr>
+                <td><strong>Feeble</strong> (2)</td>
+                <td>1</td>
+                <td>15 mph</td>
+                <td>132 ft</td>
+                <td>22 fps</td>
+                <td>Injured crawl or slow elder walk.</td>
+              </tr>
+              <tr>
+                <td><strong>Poor</strong> (4)</td>
+                <td>2</td>
+                <td>30 mph</td>
+                <td>264 ft</td>
+                <td>44 fps</td>
+                <td>Normal human brisk run / steady jog.</td>
+              </tr>
+              <tr>
+                <td><strong>Typical</strong> (6)</td>
+                <td>3</td>
+                <td>45 mph</td>
+                <td>396 ft</td>
+                <td>66 fps</td>
+                <td>Normal human all-out sprint; Olympic sprinter.</td>
+              </tr>
+              <tr>
+                <td><strong>Good</strong> (10)</td>
+                <td>4</td>
+                <td>60 mph</td>
+                <td>528 ft</td>
+                <td>88 fps</td>
+                <td>Peak human athlete sprint (Captain America).</td>
+              </tr>
+              <tr>
+                <td><strong>Excellent</strong> (20)</td>
+                <td>5</td>
+                <td>75 mph</td>
+                <td>660 ft</td>
+                <td>110 fps</td>
+                <td>Enhanced runner; highway car speed.</td>
+              </tr>
+              <tr>
+                <td><strong>Remarkable</strong> (30)</td>
+                <td>6</td>
+                <td>90 mph</td>
+                <td>792 ft</td>
+                <td>132 fps</td>
+                <td>Superhuman sprinting (Spider-Man, Wolverine sprint).</td>
+              </tr>
+              <tr>
+                <td><strong>Incredible</strong> (40)</td>
+                <td>7</td>
+                <td>105 mph</td>
+                <td>924 ft</td>
+                <td>154 fps</td>
+                <td>Express train speed; rapid urban traversal.</td>
+              </tr>
+              <tr>
+                <td><strong>Amazing</strong> (50)</td>
+                <td>8</td>
+                <td>120 mph</td>
+                <td>1,056 ft</td>
+                <td>176 fps</td>
+                <td>Bullet train speed; high-velocity runner.</td>
+              </tr>
+              <tr>
+                <td><strong>Monstrous</strong> (75)</td>
+                <td>9</td>
+                <td>135 mph</td>
+                <td>1,188 ft</td>
+                <td>198 fps</td>
+                <td>Formula 1 race car speed.</td>
+              </tr>
+              <tr>
+                <td><strong>Unearthly</strong> (100)</td>
+                <td>10</td>
+                <td>150 mph</td>
+                <td>1,320 ft</td>
+                <td>220 fps</td>
+                <td>Supersonic ground velocity baseline (Quicksilver).</td>
+              </tr>
+              <tr>
+                <td><strong>Shift X</strong> (150)</td>
+                <td>15</td>
+                <td>225 mph</td>
+                <td>1,980 ft</td>
+                <td>330 fps</td>
+                <td>Super-speed runner crossing districts in seconds.</td>
+              </tr>
+              <tr>
+                <td><strong>Shift Y</strong> (200)</td>
+                <td>20</td>
+                <td>300 mph</td>
+                <td>2,640 ft</td>
+                <td>440 fps</td>
+                <td>Subsonic rocket speed on land.</td>
+              </tr>
+              <tr>
+                <td><strong>Shift Z</strong> (500)</td>
+                <td>30</td>
+                <td>450 mph</td>
+                <td>3,960 ft</td>
+                <td>660 fps</td>
+                <td>Transonic ground speed.</td>
+              </tr>
+              <tr>
+                <td><strong>Class 1000</strong> (1000)</td>
+                <td>45</td>
+                <td>675 mph</td>
+                <td>5,940 ft</td>
+                <td>990 fps</td>
+                <td>Near Mach 1 / Speed of Sound ground sprint!</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <h3>✈️ Air Movement & Flight Speed Table</h3>
+          <p>Flight speeds in combat tactical scale and long-distance cruising:</p>
+          <table class="cheat-table">
+            <thead>
+              <tr>
+                <th>Flight Rank</th>
+                <th>Combat (Areas/Turn)</th>
+                <th>Air Speed (MPH)</th>
+                <th>Category / Mach</th>
+                <th>Flight Dynamics & Tactical Rules</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Feeble</strong> (2)</td>
+                <td>2</td>
+                <td>30 mph</td>
+                <td>Gliding / Hover</td>
+                <td>Low-altitude drift, vulnerable target in combat.</td>
+              </tr>
+              <tr>
+                <td><strong>Poor</strong> (4)</td>
+                <td>3</td>
+                <td>45 mph</td>
+                <td>Autogyro / Slow</td>
+                <td>Light aircraft / slow helicopter cruise.</td>
+              </tr>
+              <tr>
+                <td><strong>Typical</strong> (6)</td>
+                <td>4</td>
+                <td>60 mph</td>
+                <td>Light Aircraft</td>
+                <td>Standard propeller flight speed; urban patrol.</td>
+              </tr>
+              <tr>
+                <td><strong>Good</strong> (10)</td>
+                <td>6</td>
+                <td>90 mph</td>
+                <td>Fast Helicopter</td>
+                <td>WW1 fighter plane; highly maneuverable dogfighter.</td>
+              </tr>
+              <tr>
+                <td><strong>Excellent</strong> (20)</td>
+                <td>8</td>
+                <td>120 mph</td>
+                <td>Commuter Craft</td>
+                <td>Fast urban transit flight (Falcon, Vulture baseline).</td>
+              </tr>
+              <tr>
+                <td><strong>Remarkable</strong> (30)</td>
+                <td>15</td>
+                <td>225 mph</td>
+                <td>WW2 Fighter</td>
+                <td>High-speed pursuit (Iron Man armor Mark I/II cruise).</td>
+              </tr>
+              <tr>
+                <td><strong>Incredible</strong> (40)</td>
+                <td>20</td>
+                <td>300 mph</td>
+                <td>Subsonic Jet</td>
+                <td>Commercial jet airliner cruise; rapid state transit.</td>
+              </tr>
+              <tr>
+                <td><strong>Amazing</strong> (50)</td>
+                <td>30</td>
+                <td>450 mph</td>
+                <td>High Subsonic</td>
+                <td>Approaching sound barrier; agile high-altitude dogfight.</td>
+              </tr>
+              <tr>
+                <td><strong>Monstrous</strong> (75)</td>
+                <td>45</td>
+                <td>675 mph</td>
+                <td>Transonic (Mach 0.9)</td>
+                <td>Military jet cruise; rapid continental transit.</td>
+              </tr>
+              <tr>
+                <td><strong>Unearthly</strong> (100)</td>
+                <td>60</td>
+                <td>900 mph</td>
+                <td>Supersonic (Mach 1.2)</td>
+                <td>Breaks sound barrier; generates sonic boom shockwave!</td>
+              </tr>
+              <tr>
+                <td><strong>Shift X</strong> (150)</td>
+                <td>100</td>
+                <td>1,500 mph</td>
+                <td>Mach 2.0</td>
+                <td>Mach 2 military interceptor (Thor, Iron Man top flight).</td>
+              </tr>
+              <tr>
+                <td><strong>Shift Y</strong> (200)</td>
+                <td>200</td>
+                <td>3,000 mph</td>
+                <td>Mach 4.0 (Hypersonic)</td>
+                <td>Upper atmosphere skip; coast-to-coast in 45 minutes.</td>
+              </tr>
+              <tr>
+                <td><strong>Shift Z</strong> (500)</td>
+                <td>400</td>
+                <td>6,000 mph</td>
+                <td>Mach 8.0 (Sub-Orbital)</td>
+                <td>Sub-orbital trajectory; orbits globe in 90 minutes.</td>
+              </tr>
+              <tr>
+                <td><strong>Class 1000</strong></td>
+                <td>1,000</td>
+                <td>15,000 mph</td>
+                <td>Mach 20 (Orbital Escape)</td>
+                <td>Escape velocity (7 miles/sec); leaves Earth atmosphere.</td>
+              </tr>
+              <tr>
+                <td><strong>Class 3000</strong></td>
+                <td>3,000</td>
+                <td>45,000 mph</td>
+                <td>Lunar Transit</td>
+                <td>Reaches Earth's Moon in under 5 hours.</td>
+              </tr>
+              <tr>
+                <td><strong>Class 5000</strong></td>
+                <td>6,000</td>
+                <td>90,000 mph</td>
+                <td>Solar Interplanetary</td>
+                <td>Traverses solar system between planets.</td>
+              </tr>
+              <tr>
+                <td><strong>Beyond</strong></td>
+                <td>Lightspeed+</td>
+                <td>186,282 miles/sec</td>
+                <td>Hyperspace / Interstellar</td>
+                <td>Instantaneous faster-than-light cosmic transit (Silver Surfer).</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <h3>🪂 Specialized Movement, Maneuvers & Falling Damage</h3>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+            <div>
+              <h4>Vertical Climbing & Diving</h4>
+              <ul style="padding-left: 20px; line-height: 1.7; color: #cbd5e1;">
+                <li><strong>Climbing Straight Up:</strong> Moving vertically upward costs <strong>double movement</strong> (1/2 normal speed in areas).</li>
+                <li><strong>Diving Straight Down:</strong> Gravity adds a free <strong>+2 areas/turn bonus</strong> (+30 mph) to dive speed.</li>
+                <li><strong>High-Speed Turns:</strong> Turning &gt; 45° at speeds &ge; 6 areas/turn requires an <span class="feat-green">Agility FEAT</span>. Failure (<span class="feat-white">White</span>) causes overshoot or temporary stall!</li>
+              </ul>
+            </div>
+            <div>
+              <h4>Falling Damage Scale</h4>
+              <table class="cheat-table" style="margin-top: 6px;">
+                <thead>
+                  <tr>
+                    <th>Fall Height</th>
+                    <th>Damage Inflicted</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>1 Story (10-15 ft / 1 Area)</td>
+                    <td>Typical (6) Blunt Damage</td>
+                  </tr>
+                  <tr>
+                    <td>2 Stories (20-30 ft)</td>
+                    <td>Excellent (20) Blunt Damage</td>
+                  </tr>
+                  <tr>
+                    <td>3-4 Stories (40-60 ft)</td>
+                    <td>Remarkable (30) Blunt Damage</td>
+                  </tr>
+                  <tr>
+                    <td>5-7 Stories (75-100 ft)</td>
+                    <td>Incredible (40) Blunt Damage</td>
+                  </tr>
+                  <tr>
+                    <td>8-10 Stories (120-150 ft)</td>
+                    <td>Amazing (50) Blunt Damage</td>
+                  </tr>
+                  <tr>
+                    <td>Terminal Velocity (10+ Stories)</td>
+                    <td>Monstrous (75) to Unearthly (100) max</td>
+                  </tr>
+                </tbody>
+              </table>
+              <p style="font-size: 11pt; color: #94a3b8;">* An Acrobatics FEAT (<span class="feat-green">Green</span>: -1CS, <span class="feat-yellow">Yellow</span>: -2CS, <span class="feat-red">Red</span>: -3CS) can cushion the fall.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Cheat Section: Health -->
+        <div id="cheat-section-health" class="cheatsheet-section" style="display: none;">
+          <h3>❤️ Zero Health, Dying & Bleedout Mechanics</h3>
+          <p>Rules for mortal combat, bleedout, resuscitation, and natural recuperation:</p>
+          
+          <div class="calc-rule-callout">
+            <strong>⚠️ The Dying Condition (Bleedout Rule):</strong>
+            <br>When a character is reduced to <strong>0 Health</strong> from lethal attacks (edged weapons, shooting, energy blasts, or lethal blunt impacts):
+            <br>1. The hero immediately passes out and begins <strong>Dying</strong>.
+            <br>2. <strong>Bleedout Rate:</strong> At the conclusion of each combat round, the character loses <strong>1 point from their Endurance Rank Number</strong> (e.g. Remarkable 30 becomes 29, 28...).
+            <br>3. <strong>Death:</strong> When the character's Endurance drops to <strong>Shift 0 (0 points)</strong>, the character is clinically dead and cannot be revived by normal means.
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 14px;">
+            <div>
+              <h4>🚑 First Aid & Medical Stabilization</h4>
+              <ul style="padding-left: 20px; line-height: 1.7; color: #cbd5e1;">
+                <li><strong>Administering First Aid:</strong> Any conscious ally can spend 1 entire action administering First Aid to a dying character.
+                  <br>• Normal hero: Requires a <span class="feat-green">Reason FEAT</span> (or <span class="feat-green">Intuition FEAT</span>).
+                  <br>• First Aid Talent: Automatic success + hero stabilizes instantly.
+                  <br>• Medicine / Surgery Talent: Automatic stabilization + immediately restores 1-10 Health points.
+                </li>
+                <li><strong>Halting Bleedout:</strong> Once successfully stabilized, Endurance point loss stops immediately. The character remains unconscious at 0 Health until treated.</li>
+              </ul>
+            </div>
+
+            <div>
+              <h4>🛌 Natural Healing & Recovery Rates</h4>
+              <ul style="padding-left: 20px; line-height: 1.7; color: #cbd5e1;">
+                <li><strong>Health Recovery:</strong> A resting character recovers Health equal to their <strong>Endurance Rank Number</strong> for every <strong>24 hours of rest</strong>.
+                  <br>• Regeneration Power: Recovers Health every round or minute according to power rank.
+                </li>
+                <li><strong>Endurance Recovery:</strong> Lost Endurance points from bleedout recover at a rate of <strong>1 Endurance point per day of complete bed rest</strong>.</li>
+                <li><strong>Passing Out (Non-Lethal Blunt Damage):</strong> When reduced to 0 Health from punches, kicks, or blunt weapons:
+                  <br>• Character does NOT bleed out.
+                  <br>• Remains unconscious for 1-10 (1d10) turns.
+                  <br>• Awakens automatically with 1 Health.
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <!-- Cheat Section: Materials & Modifiers -->
+        <div id="cheat-section-materials" class="cheatsheet-section" style="display: none;">
+          <h3>🛡️ Material Strength Ranks & Object Destruction</h3>
+          <p>Material Strength determines the defensive absorption of shields, wall barriers, body armor, and vehicle hulls:</p>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+            <div>
+              <table class="cheat-table">
+                <thead>
+                  <tr>
+                    <th>Material Rank</th>
+                    <th>Value</th>
+                    <th>Common Materials & Barriers</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><strong>Feeble</strong></td>
+                    <td>2</td>
+                    <td>Cloth, paper, standard window glass, cardboard.</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Poor</strong></td>
+                    <td>4</td>
+                    <td>Plaster, drywall, thin plywood, aluminum foil.</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Typical</strong></td>
+                    <td>6</td>
+                    <td>Hardwood, heavy plastic, bullet-resistant glass.</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Good</strong></td>
+                    <td>10</td>
+                    <td>Brick masonry, soft stone, solid aluminum, asphalt.</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Excellent</strong></td>
+                    <td>20</td>
+                    <td>Poured concrete, granite, wrought iron, bronze.</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Remarkable</strong></td>
+                    <td>30</td>
+                    <td>Reinforced concrete, structural steel I-beams.</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Incredible</strong></td>
+                    <td>40</td>
+                    <td>Hardened titanium alloy, bank vault doors, military armor.</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Amazing</strong></td>
+                    <td>50</td>
+                    <td>Super-alloys, crystalline diamond, high-tech composite armor.</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Monstrous</strong></td>
+                    <td>75</td>
+                    <td>Vibranium (Wakandan), carbonadium, alien starship hull.</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Unearthly</strong></td>
+                    <td>100</td>
+                    <td>True Adamantium, Asgardian uru metal (Mjolnir).</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div>
+              <h4>🔨 Bending & Breaking Objects (Strength vs Material)</h4>
+              <p>To smash or breach an obstacle, make a Strength FEAT against the material rank:</p>
+              <table class="cheat-table" style="margin-top: 6px;">
+                <thead>
+                  <tr>
+                    <th>FEAT Roll</th>
+                    <th>Effect on Material</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><span class="feat-white">White (Failure)</span></td>
+                    <td>No damage; hero cannot budge or dent the object.</td>
+                  </tr>
+                  <tr>
+                    <td><span class="feat-green">Green</span></td>
+                    <td><strong>Bends / Cracks:</strong> Inflicts damage equal to hero's Strength number.</td>
+                  </tr>
+                  <tr>
+                    <td><span class="feat-yellow">Yellow</span></td>
+                    <td><strong>Breaches / Tears:</strong> Punches a human-sized hole or tears obstacle open.</td>
+                  </tr>
+                  <tr>
+                    <td><span class="feat-red">Red</span></td>
+                    <td><strong>Shatters / Obliterates:</strong> Completely destroys obstacle into rubble!</td>
+                  </tr>
+                </tbody>
+              </table>
+
+              <h4>🎯 Range, Visibility & Cover Column Shifts</h4>
+              <table class="cheat-table" style="margin-top: 6px;">
+                <thead>
+                  <tr>
+                    <th>Situation / Condition</th>
+                    <th>Column Shift</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>Point Blank Range (Same area, missile weapon)</td>
+                    <td><strong style="color: #38bdf8;">+1CS</strong> to attack</td>
+                  </tr>
+                  <tr>
+                    <td>Target in Partial Cover (Hiding behind wall/car)</td>
+                    <td><strong style="color: #f87171;">-1CS</strong> to attack</td>
+                  </tr>
+                  <tr>
+                    <td>Heavy Cover, Dense Fog, or Dim Light</td>
+                    <td><strong style="color: #f87171;">-2CS</strong> to attack</td>
+                  </tr>
+                  <tr>
+                    <td>Total Darkness or Completely Invisible Target</td>
+                    <td><strong style="color: #f87171;">-4CS</strong> (Blind-Fighting reduces to -1CS)</td>
+                  </tr>
+                  <tr>
+                    <td>Extreme Range (Outer limit of weapon range)</td>
+                    <td><strong style="color: #f87171;">-1CS to -2CS</strong></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="icon-btn modal-close-btn">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: APPLICATION PREFERENCES & OPTIONS -->
+  <div id="options-modal" class="modal-overlay">
+    <div class="modal-box">
+      <div class="modal-header">
+        <span class="modal-title">⚙️ Application Preferences & Options</span>
+        <button class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div style="display: flex; flex-direction: column; gap: 14px;">
+          <div style="font-weight: 700; color: #fff; font-size: 11pt; border-bottom: 1px solid var(--border-color); padding-bottom: 6px;">Interface Layout & Display</div>
+          <label class="checkbox-label" style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer;">
+            <input type="checkbox" id="option-sticky-header" style="margin-top: 3px;">
+            <div>
+              <strong style="color: var(--text-main, #fff);">Persistent Top Bar & Tabs (Sticky Navigation)</strong>
+              <div style="color: var(--text-muted, #94a3b8); font-size: 10pt; margin-top: 2px;">Keeps character header, CP tracker, and navigation tabs fixed at the top of the window while scrolling.</div>
+            </div>
+          </label>
+          <label class="checkbox-label" style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer;">
+            <input type="checkbox" id="option-touch-friendly" style="margin-top: 3px;">
+            <div>
+              <strong style="color: var(--text-main, #fff);">Touch-Friendly Sizing (Larger Interactive Controls)</strong>
+              <div style="color: var(--text-muted, #94a3b8); font-size: 10pt; margin-top: 2px;">Slightly increases the hit targets and sizes of interactive controls (steppers, dropdowns, editable fields, and action buttons) to facilitate comfortable touchscreen and tablet usage.</div>
+            </div>
+          </label>
+
+          <div style="font-weight: 700; color: var(--text-main, #fff); font-size: 11pt; border-bottom: 1px solid var(--border-color); padding-bottom: 6px; margin-top: 6px;">Visual Color Theme</div>
+          <div>
+            <span class="field-label" style="margin-bottom: 6px; color: var(--text-muted, #cbd5e1);">Theme Palette:</span>
+            <select id="option-theme" class="field-input" style="min-height: 40px;">
+              <option value="four-color">Four-color (Default Marvel Dark)</option>
+              <option value="manilla">Manilla</option>
+              <option value="aqua">Aqua (Blues, Greens & Cyans)</option>
+            </select>
+            <div style="color: var(--text-muted, #94a3b8); font-size: 10pt; margin-top: 6px; line-height: 1.5;">
+              Select your preferred display theme:
+              <br>• <strong>Four-color:</strong> Classic dark comic aesthetic with high-contrast Marvel Red and Gold accents.
+              <br>• <strong>Manilla:</strong> Soft off-white and light grey stationery backgrounds with crisp dark slate typography.
+              <br>• <strong>Aqua:</strong> Vibrant oceanic palette featuring deep blues, sea greens, and radiant cyans.
+            </div>
+          </div>
+
+          <div style="font-weight: 700; color: #fff; font-size: 11pt; border-bottom: 1px solid var(--border-color); padding-bottom: 6px; margin-top: 6px;">Tactical Movement & Area Grids</div>
+          <div>
+            <span class="field-label" style="margin-bottom: 6px; color: #cbd5e1;">Area Division Rule:</span>
+            <select id="option-area-division" class="field-input" style="min-height: 40px;">
+              <option value="standard">Standard Full Areas: 1 Area = 132 Feet (Default TSR Rules)</option>
+              <option value="quarter">Quarter Area Rule: 4 Quadrants of 33 Feet (33 ft / quadrant)</option>
+              <option value="six">Six Subareas Rule: 6 Squares of 22 Feet (22 ft / subarea)</option>
+            </select>
+            <div style="color: #94a3b8; font-size: 10pt; margin-top: 6px; line-height: 1.5;">
+              Divides standard area squares into smaller tactical units for battle-mats and miniatures:
+              <br>• <strong>Quarter Area:</strong> 4 quadrants of 33 ft each (2&times;2 sub-grid per area).
+              <br>• <strong>Six Subareas:</strong> 6 squares of 22 ft each (2&times;3 sub-grid per area).
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="icon-btn primary modal-close-btn">Done</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: EQUIPMENT STORE (Large Pop-up Wide Format - Max 2 Rows Per Item) -->
+  <div id="equipment-store-modal" class="modal-overlay">
+    <div class="modal-box store-modal-box">
+      <div class="modal-header">
+        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+          <span class="modal-title">🛒 Rulebook Equipment Store</span>
+          <span class="meta-tag" id="store-item-count-tag" style="color: var(--marvel-gold); font-size: 10.5pt; font-weight: 700;">Showing 126 of 126 TSR Items</span>
+        </div>
+        <button class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body" style="padding: 14px 18px; display: flex; flex-direction: column; gap: 10px; flex: 1; overflow: hidden;">
+        
+        <!-- Clearance & Market Access Toggles (Military, Black Market, S.H.I.E.L.D.) -->
+        <div class="store-access-bar">
+          <div class="store-access-bar-left">
+            <span class="store-access-bar-label">Store Clearances:</span>
+            <button type="button" id="toggle-store-military" class="store-access-toggle" data-access="military" title="Toggle Military Access to unlock combat firearms, ordnance, and heavy suits">
+              <span class="toggle-icon">🎖️</span> Military Access: <strong class="toggle-status">OFF</strong>
+            </button>
+            <button type="button" id="toggle-store-blackmarket" class="store-access-toggle" data-access="black_market" title="Toggle Black Market underworld access (+1CS cost markup per Player's Book p. 41)">
+              <span class="toggle-icon">🕵️</span> Black Market (+1CS): <strong class="toggle-status">OFF</strong>
+            </button>
+            <button type="button" id="toggle-store-shield" class="store-access-toggle" data-access="shield" title="Toggle S.H.I.E.L.D. Tech Clearance (Requisition requires GM approval per purchase)">
+              <span class="toggle-icon">🦅</span> S.H.I.E.L.D. Tech: <strong class="toggle-status">OFF</strong>
+            </button>
+          </div>
+          <div class="store-access-bar-hint">
+            <span>TSR Rules: <strong style="color: var(--marvel-gold);">Player's Book p. 18 &amp; 41</strong></span>
+          </div>
+        </div>
+
+        <!-- Store Filters Bar: Search, Category Pills, and Access Filter Pills -->
+        <div style="display: flex; gap: 10px; align-items: center; justify-content: space-between; flex-wrap: wrap;">
+          <div style="flex: 1; min-width: 260px; display: flex; gap: 6px; align-items: center;">
+            <input type="text" id="filter-store-search" class="field-input" placeholder="🔍 Search weapons, firearms, armor, ammo, vehicles, gear..." style="min-height: 38px; font-size: 10.5pt; flex: 1;">
+            <button type="button" id="btn-clear-store-search" class="icon-btn" style="padding: 4px 10px; min-height: 38px; font-size: 11pt;" title="Clear search filters">✕</button>
+          </div>
+          
+          <div style="display: flex; gap: 6px; flex-wrap: wrap; align-items: center;" id="store-access-filter-group">
+            <span style="font-size: 10pt; color: #94a3b8; font-weight: 700;">Access:</span>
+            <button type="button" class="store-access-filter-btn active" data-store-access="all">All</button>
+            <button type="button" class="store-access-filter-btn" data-store-access="civilian">Civilian</button>
+            <button type="button" class="store-access-filter-btn" data-store-access="military">Military</button>
+            <button type="button" class="store-access-filter-btn" data-store-access="black_market">Black Market</button>
+            <button type="button" class="store-access-filter-btn" data-store-access="shield">S.H.I.E.L.D.</button>
+          </div>
+
+          <div style="display: flex; gap: 6px; flex-wrap: wrap;" id="store-category-filter-group">
+            <button type="button" class="store-filter-btn active" data-store-cat="all">All Items</button>
+            <button type="button" class="store-filter-btn" data-store-cat="weapons">Weapons</button>
+            <button type="button" class="store-filter-btn" data-store-cat="firearms">Firearms &amp; Heavy</button>
+            <button type="button" class="store-filter-btn" data-store-cat="melee">Melee &amp; Thrown</button>
+            <button type="button" class="store-filter-btn" data-store-cat="armor">Armor &amp; Suits</button>
+            <button type="button" class="store-filter-btn" data-store-cat="robotics">Robotics &amp; Tech</button>
+            <button type="button" class="store-filter-btn" data-store-cat="vehicles">Vehicles</button>
+            <button type="button" class="store-filter-btn" data-store-cat="electronics">Electronics</button>
+            <button type="button" class="store-filter-btn" data-store-cat="artifacts">Artifacts</button>
+          </div>
+        </div>
+
+        <div style="flex: 1; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 6px; background: #0b111e;">
+          <table class="store-wide-table">
+            <thead>
+              <tr>
+                <th style="width: 19%;">Item Name</th>
+                <th style="width: 11%;">Category</th>
+                <th style="width: 13%;">Access</th>
+                <th style="width: 9%;">Cost Rank</th>
+                <th style="width: 16%;">Damage / Protection</th>
+                <th style="width: 23%;">Description &amp; Stats</th>
+                <th style="width: 9%; text-align: center;">Action</th>
+              </tr>
+            </thead>
+            <tbody id="store-equipment-tbody">
+              <!-- Rendered dynamically -->
+            </tbody>
+          </table>
+        </div>
+        <!-- Persistent Hover Description Tooltip -->
+        <div id="store-desc-hover-tooltip" class="store-desc-popover" style="display: none;"></div>
+      </div>
+      <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center;">
+        <span style="color: var(--text-muted); font-size: 10pt;">Items procured with Resources are added directly to your Character Gear.</span>
+        <button class="icon-btn modal-close-btn">Done</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: EQUIPMENT PROCUREMENT & RESOURCE FEAT EVALUATOR (TSR Player's Book p. 18 & 41) -->
+  <div id="procurement-modal" class="modal-overlay">
+    <div class="modal-box" style="max-width: 660px; width: 95%;">
+      <div class="modal-header">
+        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+          <span class="modal-title" id="procure-item-title">🛒 Procure Equipment</span>
+          <span id="procure-item-access-badge" class="meta-tag">Civilian</span>
+        </div>
+        <button class="modal-close" id="btn-close-procurement">&times;</button>
+      </div>
+      <div class="modal-body" style="padding: 16px 20px; display: flex; flex-direction: column; gap: 14px;">
+        
+        <!-- Comparison Cards: Hero Resources vs Item Cost -->
+        <div class="procure-comparison-grid">
+          <div class="procure-card">
+            <div class="procure-card-title">Hero Resources</div>
+            <div class="procure-card-val" id="procure-hero-resources">Typical (6)</div>
+            <div class="procure-card-sub" id="procure-hero-res-sub">Personal Resource Rank</div>
+          </div>
+          <div class="procure-vs-indicator">VS</div>
+          <div class="procure-card">
+            <div class="procure-card-title">Item Cost</div>
+            <div class="procure-card-val" id="procure-item-cost">Poor (4)</div>
+            <div class="procure-card-sub" id="procure-item-cost-sub">Official Cost Rank</div>
+          </div>
+        </div>
+
+        <!-- TSR Rulebook Evaluation & Verdict Banner -->
+        <div class="procure-verdict-box" id="procure-verdict-box">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+            <span id="procure-verdict-icon" style="font-size: 1.3rem;">🟢</span>
+            <strong id="procure-verdict-heading" style="font-size: 11pt; color: #34d399;">Automatic Purchase</strong>
+          </div>
+          <div id="procure-verdict-desc" style="font-size: 10pt; color: #cbd5e1; line-height: 1.45;">
+            Item cost is 3 or more ranks below character's Resources. Acquired automatically with no Resource FEAT roll required (Player's Book p. 18).
+          </div>
+        </div>
+
+        <!-- S.H.I.E.L.D. Special Clearance Notice -->
+        <div id="procure-shield-notice" class="procure-notice-box" style="display: none;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="font-size: 1.2rem;">🦅</span>
+            <strong style="color: #38bdf8; font-size: 10.5pt;">S.H.I.E.L.D. Tech Clearance Required</strong>
+          </div>
+          <div style="font-size: 10pt; color: #cbd5e1; margin-top: 4px;">
+            Classified agency technology. Under game rules, each piece of S.H.I.E.L.D. equipment requires direct Judge/GM approval for requisition.
+          </div>
+          <label class="checkbox-label" style="margin-top: 10px; color: #7dd3fc; font-weight: 700; cursor: pointer;">
+            <input type="checkbox" id="procure-shield-gm-approval"> GM Approval Granted for Requisition
+          </label>
+        </div>
+
+        <!-- Restricted Clearance Warning Notice -->
+        <div id="procure-restricted-notice" class="procure-notice-box" style="display: none;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="font-size: 1.2rem;">⛔</span>
+            <strong style="color: #f87171; font-size: 10.5pt;" id="procure-restricted-heading">Restricted Access Hardware</strong>
+          </div>
+          <div style="font-size: 10pt; color: #cbd5e1; margin-top: 4px;" id="procure-restricted-desc">
+            This hardware requires specific authorization.
+          </div>
+        </div>
+
+        <!-- Item Specifications & Lore -->
+        <div class="procure-stats-box" id="procure-item-details">
+          <!-- Dynamically injected -->
+        </div>
+
+      </div>
+      <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap;">
+        <button type="button" class="icon-btn" id="btn-cancel-procure">Cancel</button>
+        <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;" id="procure-actions-container">
+          <!-- Action buttons rendered dynamically based on status -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: ADD / EDIT POWER STUNT -->
+  <div id="stunt-modal" class="modal-overlay">
+    <div class="modal-box">
+      <div class="modal-header">
+        <span class="modal-title" id="stunt-modal-title">⚡ Add Power Stunt</span>
+        <button class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+          <input type="hidden" id="stunt-power-id">
+          <input type="hidden" id="stunt-edit-id">
+
+          <div>
+            <span class="field-label">Parent Superpower:</span>
+            <div id="stunt-parent-power-name" style="color: var(--marvel-gold); font-weight: 700; font-size: 11pt;">--</div>
+          </div>
+
+          <div>
+            <span class="field-label">Stunt Name:</span>
+            <input type="text" id="stunt-name-input" class="field-input" placeholder="e.g., Blinding Flash, Gliding Surface, Precision Shield">
+          </div>
+
+          <div>
+            <span class="field-label">Stunt Description & Mechanics:</span>
+            <textarea id="stunt-desc-input" class="field-input" rows="3" placeholder="Describe the tactical application, effect, duration, or range..."></textarea>
+          </div>
+
+          <!-- Stunt Power Emulation -->
+          <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border-color); border-radius: 6px; padding: 10px;">
+            <label class="checkbox-label" style="cursor: pointer;">
+              <input type="checkbox" id="stunt-emulate-check">
+              <strong style="color: #38bdf8;">Emulates Another Superpower?</strong>
+            </label>
+            <div id="stunt-emulate-select-row" style="display: none; margin-top: 8px;">
+              <span class="field-label">Select Emulated Power (Universal Catalog):</span>
+              <select id="stunt-emulated-power-select" class="field-input"></select>
+            </div>
+          </div>
+
+          <div>
+            <label class="checkbox-label" style="cursor: pointer;">
+              <input type="checkbox" id="stunt-learned-check">
+              <span><strong>Mastered / Fully Learned</strong> (If unchecked, requires colored successes or 1,000 KP to master)</span>
+            </label>
+          </div>
+
+          <div id="stunt-successes-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; background: rgba(15, 23, 42, 0.4); border: 1px solid var(--border-color); border-radius: 6px; padding: 10px;">
+            <div>
+              <span class="field-label">Red Successes (0-1):</span>
+              <input type="number" id="stunt-red-successes" class="field-input" min="0" max="1" value="0">
+            </div>
+            <div>
+              <span class="field-label">Yellow Successes (0-2):</span>
+              <input type="number" id="stunt-yellow-successes" class="field-input" min="0" max="2" value="0">
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="icon-btn" id="btn-cancel-stunt">Cancel</button>
+        <button type="button" class="icon-btn primary" id="btn-save-stunt">💾 Save Stunt</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: CUSTOM IN-UI DIALOG (ALERTS & CONFIRMATIONS) -->
+  <div id="ui-dialog-modal" class="modal-overlay">
+    <div class="modal-box ui-dialog-box" id="ui-dialog-box">
+      <div class="modal-header compact" id="ui-dialog-header">
+        <span class="modal-title" id="ui-dialog-title">Notification</span>
+        <button type="button" class="modal-close" id="btn-ui-dialog-close">&times;</button>
+      </div>
+      <div class="modal-body compact" style="padding: 14px 16px;">
+        <div id="ui-dialog-message"></div>
+      </div>
+      <div class="modal-footer compact" id="ui-dialog-footer" style="padding: 10px 16px; display: flex; justify-content: flex-end; gap: 8px;">
+        <button type="button" class="icon-btn" id="btn-ui-dialog-cancel" style="display: none;">Cancel</button>
+        <button type="button" class="icon-btn primary" id="btn-ui-dialog-ok">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: HELP & ERRATA DETAILS -->
+  <div id="help-modal" class="modal-overlay">
+    <div class="modal-box">
+      <div class="modal-header">
+        <span class="modal-title" id="help-title">Rules Reference</span>
+        <button class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body" id="help-body"></div>
+      <div class="modal-footer">
+        <button class="icon-btn modal-close-btn">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts Loading -->
+  <script src="universal_table.js"></script>
+  <script src="data_forms.js"></script>
+  <script src="data_powers.js"></script>
+  <script src="data_talents.js"></script>
+  <script src="data_equipment.js"></script>
+  <script src="inventions.js"></script>
+  <script src="character_model.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

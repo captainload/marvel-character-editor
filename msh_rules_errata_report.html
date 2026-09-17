@@ -1,0 +1,1684 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Marvel Super Heroes (FASERIP) - Master Rules Errata & Editorial Analysis (v2.0)</title>
+  <style>
+    :root {
+      --bg-main: #0b0f19;
+      --bg-card: #151d30;
+      --bg-card-hover: #1c2742;
+      --border-color: #2a3756;
+      --accent-red: #e11d48;
+      --accent-gold: #f59e0b;
+      --accent-blue: #38bdf8;
+      --accent-green: #10b981;
+      --accent-purple: #a855f7;
+      --text-main: #f1f5f9;
+      --text-muted: #94a3b8;
+      --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: var(--bg-main);
+      color: var(--text-main);
+      font-family: var(--font-family);
+      line-height: 1.6;
+      padding: 24px 16px;
+    }
+
+    .container {
+      max-width: 1160px;
+      margin: 0 auto;
+    }
+
+    /* Header & Hero */
+    header {
+      background: linear-gradient(135deg, #1e1b4b 0%, #0f172a 100%);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 32px 24px;
+      margin-bottom: 24px;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4);
+      position: relative;
+      overflow: hidden;
+    }
+
+    header::before {
+      content: "FASERIP 2.0";
+      position: absolute;
+      right: -20px;
+      bottom: -20px;
+      font-size: 80px;
+      font-weight: 900;
+      color: rgba(255, 255, 255, 0.03);
+      letter-spacing: 6px;
+      pointer-events: none;
+    }
+
+    .badge-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 10px;
+      border-radius: 9999px;
+      font-size: 11.5px;
+      font-weight: 600;
+      letter-spacing: 0.3px;
+      text-transform: uppercase;
+    }
+    .badge-red { background: rgba(225, 29, 72, 0.2); color: #fb7185; border: 1px solid rgba(225, 29, 72, 0.4); }
+    .badge-gold { background: rgba(245, 158, 11, 0.2); color: #fcd34d; border: 1px solid rgba(245, 158, 11, 0.4); }
+    .badge-blue { background: rgba(56, 189, 248, 0.2); color: #7dd3fc; border: 1px solid rgba(56, 189, 248, 0.4); }
+    .badge-green { background: rgba(16, 185, 129, 0.2); color: #6ee7b7; border: 1px solid rgba(16, 185, 129, 0.4); }
+    .badge-purple { background: rgba(168, 85, 247, 0.2); color: #d8b4fe; border: 1px solid rgba(168, 85, 247, 0.4); }
+
+    h1 {
+      font-size: 27px;
+      font-weight: 800;
+      color: #fff;
+      margin-bottom: 8px;
+      letter-spacing: -0.5px;
+    }
+
+    p.subtitle {
+      color: var(--text-muted);
+      font-size: 14.5px;
+      max-width: 950px;
+      line-height: 1.55;
+    }
+
+    /* Stats Banner */
+    .stats-banner {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    .stat-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 12px 16px;
+      text-align: center;
+    }
+    .stat-card .num {
+      font-size: 24px;
+      font-weight: 800;
+      color: #fff;
+    }
+    .stat-card .label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    /* Controls & Toolbar */
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 14px 18px;
+      margin-bottom: 24px;
+    }
+
+    .search-box {
+      flex: 1;
+      min-width: 260px;
+      position: relative;
+    }
+
+    .search-box input {
+      width: 100%;
+      background: #0b0f19;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 10px 14px 10px 36px;
+      color: #fff;
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .search-box input:focus {
+      border-color: var(--accent-blue);
+    }
+    .search-icon {
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted);
+      font-size: 14px;
+    }
+
+    .filters {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .filter-btn {
+      background: #0b0f19;
+      border: 1px solid var(--border-color);
+      color: var(--text-muted);
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 13px;
+      cursor: pointer;
+      font-weight: 500;
+      transition: all 0.2s;
+    }
+    .filter-btn:hover, .filter-btn.active {
+      background: var(--accent-red);
+      color: #fff;
+      border-color: var(--accent-red);
+    }
+
+    /* Entry Card */
+    .entry-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 20px;
+      margin-bottom: 20px;
+      transition: border-color 0.2s, transform 0.15s;
+    }
+    .entry-card:hover {
+      border-color: #3b82f6;
+    }
+
+    .entry-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 14px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      padding-bottom: 12px;
+    }
+
+    .entry-title-area {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .copy-btn {
+      background: #1e293b;
+      border: 1px solid #334155;
+      color: #38bdf8;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 5px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s ease;
+      white-space: nowrap;
+    }
+    .copy-btn:hover {
+      background: #0284c7;
+      color: #fff;
+      border-color: #0284c7;
+    }
+    .copy-btn.copied {
+      background: #059669 !important;
+      color: #fff !important;
+      border-color: #059669 !important;
+    }
+
+    .entry-number {
+      font-size: 15.5px;
+      font-weight: 800;
+      color: #fff;
+    }
+
+    .citation-tag {
+      font-size: 12px;
+      font-family: monospace;
+      background: #0b0f19;
+      border: 1px solid #1e293b;
+      padding: 3px 8px;
+      border-radius: 4px;
+      color: #cbd5e1;
+    }
+
+    .status-badge {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      padding: 2px 8px;
+      border-radius: 4px;
+      white-space: nowrap;
+    }
+    .status-fixed { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
+    .status-renamed { background: rgba(168, 85, 247, 0.15); color: #d8b4fe; border: 1px solid rgba(168, 85, 247, 0.3); }
+    .status-contradiction { background: rgba(225, 29, 72, 0.15); color: #fb7185; border: 1px solid rgba(225, 29, 72, 0.3); }
+    .status-vague { background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }
+
+    /* Content Sections */
+    .section-block {
+      margin-bottom: 12px;
+    }
+    .section-label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+
+    .problem-quote {
+      background: #0b0f19;
+      border-left: 3px solid var(--accent-red);
+      padding: 10px 14px;
+      border-radius: 0 6px 6px 0;
+      font-style: italic;
+      color: #e2e8f0;
+      font-size: 13.5px;
+      line-height: 1.5;
+    }
+
+    .analysis-text {
+      color: #cbd5e1;
+      font-size: 14px;
+      line-height: 1.55;
+    }
+
+    .fix-box {
+      background: rgba(16, 185, 129, 0.08);
+      border: 1px solid rgba(16, 185, 129, 0.25);
+      border-radius: 6px;
+      padding: 10px 14px;
+      color: #d1fae5;
+      font-size: 13.5px;
+      line-height: 1.5;
+    }
+    .fix-box.discussion {
+      background: rgba(245, 158, 11, 0.08);
+      border-color: rgba(245, 158, 11, 0.25);
+      color: #fef3c7;
+    }
+    .fix-box.renamed {
+      background: rgba(168, 85, 247, 0.08);
+      border-color: rgba(168, 85, 247, 0.25);
+      color: #e9d5ff;
+    }
+
+    /* Toast Notification */
+    #toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: #059669;
+      color: #fff;
+      padding: 10px 18px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(10px);
+      transition: all 0.2s ease;
+      z-index: 1000;
+    }
+    #toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <!-- Header -->
+  <header>
+    <div class="badge-bar">
+      <span class="badge badge-red">TSR Marvel Super Heroes</span>
+      <span class="badge badge-gold">Advanced Set (1986)</span>
+      <span class="badge badge-blue">Ultimate Powers Book (MA3)</span>
+      <span class="badge badge-green">Dragon #122, #134, #150, #151</span>
+      <span class="badge badge-purple">1991 Revised Box & Handbooks</span>
+    </div>
+    <h1>Rules Errata, Renamed References & Editorial Analysis Master Report (v2.0)</h1>
+    <p class="subtitle">
+      A comprehensive rules audit cross-referencing all published TSR materials, official Dragon Magazine addenda, and community compendiums. High-certainty errors resulting from renamed references, editorial artifacts, formatting glitches, and mechanics contradictions have been cataloged and updated with their latest authoritative solutions. Click <strong>Copy Citation</strong> on any entry to copy its citation for discussions.
+    </p>
+  </header>
+
+  <!-- Summary Stats -->
+  <div class="stats-banner">
+    <div class="stat-card">
+      <div class="num" id="totalEntries">36</div>
+      <div class="label">Total Audited Issues</div>
+    </div>
+    <div class="stat-card">
+      <div class="num" style="color: #34d399;">18</div>
+      <div class="label">Fixed Authoritative Rules</div>
+    </div>
+    <div class="stat-card">
+      <div class="num" style="color: #d8b4fe;">8</div>
+      <div class="label">Renamed References Resolved</div>
+    </div>
+    <div class="stat-card">
+      <div class="num" style="color: #fb7185;">6</div>
+      <div class="label">Contradictions Reconciled</div>
+    </div>
+    <div class="stat-card">
+      <div class="num" style="color: #fbbf24;">4</div>
+      <div class="label">Collaborative Vague Items</div>
+    </div>
+  </div>
+
+  <!-- Toolbar & Search -->
+  <div class="toolbar">
+    <div class="search-box">
+      <span class="search-icon">🔍</span>
+      <input type="text" id="searchInput" placeholder="Search by keyword, power name, book citation, or issue #...">
+    </div>
+    <div class="filters">
+      <button class="filter-btn active" data-cat="all">All (<span id="countAll">36</span>)</button>
+      <button class="filter-btn" data-cat="chargen">Character Gen</button>
+      <button class="filter-btn" data-cat="combat">Combat & Actions</button>
+      <button class="filter-btn" data-cat="powers">Powers & Defenses</button>
+      <button class="filter-btn" data-cat="renamed">Renamed References</button>
+      <button class="filter-btn" data-cat="karma">Karma & Advancement</button>
+      <button class="filter-btn" data-cat="upb">UPB & Dragon Addenda</button>
+    </div>
+  </div>
+
+  <!-- Entries Container -->
+  <div id="entriesList">
+
+    <!-- ========================================================= -->
+    <!-- SECTION 1: CHARACTER GENERATION & ABILITIES               -->
+    <!-- ========================================================= -->
+
+    <!-- ENTRY 1 -->
+    <div class="entry-card" data-category="chargen">
+      <div class="entry-header">
+        <div class="entry-title-area">
+          <button class="copy-btn" onclick="copyCitation(this, 'Entry #01 (Player\'s Book p. 6) - Origin Rank Generation Column Shift Mismatch')">
+            📋 Copy Citation
+          </button>
+          <span class="entry-number">#01. Origin Rank Generation Column Shift Mismatch</span>
+          <span class="citation-tag">Player's Book p. 6 & UPB Table 1</span>
+        </div>
+        <span class="status-badge status-contradiction">Mechanical Contradiction</span>
+      </div>
+      <div class="section-block">
+        <div class="section-label">Problem Passage:</div>
+        <div class="problem-quote">
+          "Mutant: Roll on Column 1 for all abilities. Roll once on the Power Category table... +1CS to Endurance." (p. 6)<br>
+          "Normal Human: Roll on Column 2 for all abilities..." (p. 6)
+        </div>
+      </div>
+      <div class="section-block">
+        <div class="section-label">Analysis of the Error:</div>
+        <div class="analysis-text">
+          In the 1986 Advanced Set, Table 1 on page 5 expanded to five columns. Column 1 yields lower rank bands (e.g. Feeble/Poor), while Column 2 provides the standard heroic distribution. The Player's Book text erroneously copy-pasted the 1984 Basic Set rule (where Column 1 was the hero column), making mutants statistically inferior to baseline humans prior to power rolls!
+        </div>
+      </div>
+      <div class="section-block">
+        <div class="section-label">Latest Authoritative Fix:</div>
+        <div class="fix-box">
+          Standardized in UPB Table 1 and CMF rules: Mutants roll on <strong>Column 2</strong> (Column 4 in high-powered campaigns) and apply their +1CS Endurance bonus. Normal humans roll on Column 1 or 2 with their standard compensation of additional talents and resources.
+        </div>
+      </div>
+    </div>
+
+    <!-- ENTRY 2 -->
+    <div class="entry-card" data-category="chargen">
+      <div class="entry-header">
+        <div class="entry-title-area">
+          <button class="copy-btn" onclick="copyCitation(this, 'Entry #02 (Player\'s Book p. 7) - Health Calculation \'Rolled Values\' vs Rank Numbers')">
+            📋 Copy Citation
+          </button>
+          <span class="entry-number">#02. Health Calculation: "Rolled Values" vs Fixed Rank Numbers</span>
+          <span class="citation-tag">Player's Book p. 7 & 1991 Revised Set p. 6</span>
+        </div>
+        <span class="status-badge status-fixed">Editorial Glitch</span>
+      </div>
+      <div class="section-block">
+        <div class="section-label">Problem Passage:</div>
+        <div class="problem-quote">
+          "Health is the sum of the initial rolled values of Fighting, Agility, Strength, and Endurance." (p. 7)
+        </div>
+      </div>
+      <div class="section-block">
+        <div class="section-label">Analysis of the Error:</div>
+        <div class="analysis-text">
+          The phrasing "initial rolled values" creates confusion between the percentile d100 roll (e.g. 01–100) and the numerical score of the resulting rank band (e.g. Remarkable = 30).
+        </div>
+      </div>
+      <div class="section-block">
+        <div class="section-label">Latest Authoritative Fix:</div>
+        <div class="fix-box">
+          The 1991 Revised Set explicitly clarifies: <em>"Health is the sum of the standard numerical values of Fighting, Agility, Strength, and Endurance (Health = F + A + S + E)."</em>
+        </div>
+      </div>
+    </div>
+
+    <!-- ENTRY 3 -->
+    <div class="entry-card" data-category="chargen">
+      <div class="entry-header">
+        <div class="entry-title-area">
+          <button class="copy-btn" onclick="copyCitation(this, 'Entry #03 (Player\'s Book pp. 7-8) - Secret Identity Starting Popularity Discrepancy')">
+            📋 Copy Citation
+          </button>
+          <span class="entry-number">#03. Secret Identity Starting Popularity Discrepancy</span>
+          <span class="citation-tag">Player's Book pp. 7–8 & Judge's Book p. 9</span>
+        </div>
+        <span class="status-badge status-contradiction">Mechanical Contradiction</span>
+      </div>
+      <div class="section-block">
+        <div class="section-label">Problem Passage:</div>
+        <div class="problem-quote">
+          Page 7: "Secret ID characters have two Popularity scores: one for their hero identity and 0 for their secret identity."<br>
+          Page 8: "A secret identity has a normal human popularity (usually 10)..."
+        </div>
+      </div>
+      <div class="section-block">
+        <div class="section-label">Analysis of the Error:</div>
+        <div class="analysis-text">
+          In FASERIP, 0 Popularity means Shift 0 (universally despised, feared, or unknown). Peter Parker or Matt Murdock are respected citizens, not hated pariahs. Page 7's "0" was an editorial draft artifact meant to convey "not modified by superhero exploits."
+        </div>
+      </div>
+      <div class="section-block">
+        <div class="section-label">Latest Authoritative Fix:</div>
+        <div class="fix-box">
+          The Judge's Book and 1991 rules confirm: Civilian Secret IDs start at <strong>Popularity 10</strong> (or modified by profession). Superhero persona Popularity is tracked independently on its own track.
+        </div>
+      </div>
+    </div>
+
+    <!-- ENTRY 4 -->
+    <div class="entry-card" data-category="chargen">
+      <div class="entry-header">
+        <div class="entry-title-area">
+          <button class="copy-btn" onclick="copyCitation(this, 'Entry #04 (Player\'s Book p. 9 & UPB) - Number of Powers Roll Ceiling vs Maximum Slots')">
+            📋 Copy Citation
+          </button>
+          <span class="entry-number">#04. Number of Powers Roll Ceiling vs Maximum Slots</span>
+          <span class="citation-tag">Player's Book p. 9 & UPB pp. 11–13</span>
+        </div>
+        <span class="status-badge status-vague">Vague Omission</span>
+      </div>
+      <div class="section-block">
+        <div class="section-label">Problem Passage:</div>
+        <div class="problem-quote">
+          "Roll on the Number of Powers Table (01–15: 1; 16–45: 2; 46–75: 3; 76–90: 4; 91–98: 5; 99–00: 6). A hero may have up to 8 powers through bonuses..." (p. 9)
+        </div>
+      </div>
+      <div class="section-block">
+        <div class="section-label">Analysis of the Error:</div>
+        <div class="analysis-text">
+          The Player's Book provided no table entries or clear rules for how the 7th and 8th powers were rolled.
+        </div>
+      </div>
+      <div class="section-block">
+        <div class="section-label">Latest Authoritative Fix:</div>
+        <div class="fix-box">
+          Superseded by the UPB Physical Form Generation System: The number of powers is determined by the character's physical form (Normal Human, Mutant, Android, Energy Being, etc.), with custom roll tables yielding up to 16 slots for high-tier entity forms.
+        </div>
+      </div>
+    </div>
+
+    <!-- ENTRY 5 -->
+    <div class="entry-card" data-category="chargen">
+      <div class="entry-header">
+        <div class="entry-title-area">
+          <button class="copy-btn" onclick="copyCitation(this, 'Entry #05 (Player\'s Book p. 11) - Talent Slots: Table Roll vs Reason Bonus Stacking')">
+            📋 Copy Citation
+          </button>
+          <span class="entry-number">#05. Talent Slots: Table Roll vs Reason Bonus Stacking</span>
+          <span class="citation-tag">Player's Book p. 11 & CMF Talents Book</span>
+        </div>
+        <span class="status-badge status-fixed">Editorial Clarification</span>
+      </div>
+      <div class="section-block">
+        <div class="section-label">Problem Passage:</div>
+        <div class="problem-quote">
+          "Roll on the Number of Talents Table (01–30: 0; 31–60: 1; 61–85: 2; 86–95: 3; 96–00: 4). Heroes gain +1 talent for each Reason rank above Typical." (p. 11)
+        </div>
+      </div>
+      <div class="section-block">
+        <div class="section-label">Analysis of the Error:</div>
+        <div class="analysis-text">
+          High Reason heroes could end up with 8+ talents while low Reason heroes could have 0, creating extreme skill disparity.
+        </div>
+      </div>
+      <div class="section-block">
+        <div class="section-label">Latest Authoritative Fix:</div>
+        <div class="fix-box">
+          Consolidated standard: Base talents are rolled on the table (or set by physical form) +1 bonus talent per Reason rank band above Typical (Good +1, Excellent +2, Remarkable +3, Incredible +4). All player characters receive a minimum of <strong>1 talent</strong> representing their core civilian background.
+        </div>
+      </div>
+    </div>
+
+    <!-- ENTRY 6 -->
+    <div class="entry-card" data-category="chargen">
+      <div class="entry-header">
+        <div class="entry-title-area">
+          <button class="copy-btn" onclick="copyCitation(this, 'Entry #06 (Player\'s Book p. 6 & UPB p. 10) - Altered Human Origin Stat Rolling Conflict')">
+            📋 Copy Citation
+          </button>
+          <span class="entry-number">#06. Altered Human Origin Stat Rolling Conflict</span>
+          <span class="citation-tag">Player's Book p. 6 vs UPB p. 10</span>
+        </div>
+        <span class="status-badge status-contradiction">Mechanical Contradiction</span>
+      </div>
+      <div class="section-block">
+        <div class="section-label">Problem Passage:</div>
+        <div class="problem-quote">
+          Player's Book p. 6: "Altered Human: Roll on Column 1 for all abilities... +1CS to any one ability."<br>
+          UPB p. 10: "Altered Humans roll on Column 2 for all abilities, +1CS to one physical ability."
+        </div>
+      </div>
+      <div class="section-block">
+        <div class="section-label">Analysis of the Error:</div>
+        <div class="analysis-text">
+          The Player's Book assigned Altered Humans (like Spider-Man or the Fantastic Four) to Column 1, giving them subpar starting abilities before their accidental alteration.
+        </div>
+      </div>
+      <div class="section-block">
+        <div class="section-label">Latest Authoritative Fix:</div>
+        <div class="fix-box">
+          The UPB supersedes the Player's Book: Altered Humans roll on <strong>Column 2</strong> and apply +1CS to one physical ability (Fighting, Agility, Strength, or Endurance).
+        </div>
+      </div>
+    </div>
+
+    <!-- ENTRY 7 -->
+    <div class="entry-card" data-category="chargen">
+      <div class="entry-header">
+        <div class="entry-title-area">
+          <button class="copy-btn" onclick="copyCitation(this, 'Entry #07 (Player\'s Book p. 7 & 1991 Revised p. 8) - Starting Resource Rank Determination')">
+            📋 Copy Citation
+          </button>
+          <span class="entry-number">#07. Starting Resource Rank Determination Ambiguity</span>
+          <span class="citation-tag">Player's Book p. 7 & 1991 Revised p. 8</span>
+        </div>
+        <span class="status-badge status-vague">Vague Table Reference</span>
+      </div>
+      <div class="section-block">
+        <div class="section-label">Problem Passage:</div>
+        <div class="problem-quote">
+          "Roll 1d100 on Column 1 of the Random Ranks Table to determine Resources." (p. 7)
+        </div>
+      </div>
+      <div class="section-block">
+        <div class="section-label">Analysis of the Error:</div>
+        <div class="analysis-text">
+          Rolling on Column 1 produced a 65% probability of Feeble or Poor resources, meaning nearly all superheroes were homeless or impoverished by default.
+        </div>
+      </div>
+      <div class="section-block">
+        <div class="section-label">Latest Authoritative Fix:</div>
+        <div class="fix-box">
+          1991 Revised Box and UPB rules: Characters roll on Column 2 for Resources or take a default rank based on their civilian occupation (e.g., Student = Poor, Professional = Typical, Corporate/Hero for Hire = Good, Wealthy = Remarkable+).
+        </div>
+      </div>
+    </div>
+
+    <!-- ENTRY 8 -->
+    <div class="entry-card" data-category="chargen">
+      <div class="entry-header">
+        <div class="entry-title-area">
+          <button class="copy-btn" onclick="copyCitation(this, 'Entry #08 (Player\'s Book p. 7 & Judge\'s Book p. 12) - Karma Pool Reset vs Ongoing Bank')">
+            📋 Copy Citation
+          </button>
+          <span class="entry-number">#08. Karma Pool: Adventure Reset vs Persistent Bank</span>
+          <span class="citation-tag">Player's Book p. 7 & Judge's Book p. 12</span>
+        </div>
+        <span class="status-badge status-contradiction">Mechanical Ambiguity</span>
+      </div>
+      <div class="section-block">
+        <div class="section-label">Problem Passage:</div>
+        <div class="problem-quote">
+          "Karma is the sum of Reason, Intuition, and Psyche." (p. 7)<br>
+          "Karma is earned and spent... If Karma drops to 0, heroes cannot affect die rolls." (p. 35)
+        </div>
+      </div>
+      <div class="section-block">
+        <div class="section-label">Analysis of the Error:</div>
+        <div class="analysis-text">
+          The Player's Book failed to state whether $Karma = R + I + P$ is a one-time starting balance, or if characters refresh back to this baseline at the start of a new adventure.
+        </div>
+      </div>
+      <div class="section-block">
+        <div class="section-label">Latest Authoritative Fix:</div>
+        <div class="fix-box">
+          Official Judge's Book clarification: Starting Karma ($R + I + P$) is a persistent pool that carries over between sessions. However, at the beginning of a major new story arc/issue, a hero whose Karma has dropped below their baseline ($R+I+P$) replenishes back to their natural $R+I+P$ value.
+        </div>
+      </div>
+    </div>
+
+    <!-- ========================================================= -->
+    <!-- SECTION 2: COMBAT MECHANICS & TACTICAL RESOLUTION         -->
+    <!-- ========================================================= -->
+
+    <!-- ENTRY 9 -->
+    <div class="entry-card" data-category="combat">
+      <div class="entry-header">
+        <div class="entry-title-area">
+          <button class="copy-btn" onclick="copyCitation(this, 'Entry #09 (Player\'s Book p. 12 & p. 27) - Martial Arts B vs Martial Arts C Grappling Typo')">
+            📋 Copy Citation
+          </button>
+          <span class="entry-number">#09. Martial Arts B vs Martial Arts C Grappling Typo</span>
+          <span class="citation-tag">Player's Book p. 12 & p. 27</span>
+        </div>
+        <span class="status-badge status-fixed">Authoritative Typo Correction</span>
+      </div>
+      <div class="section-block">
+        <div class="section-label">Problem Passage:</div>
+        <div class="problem-quote">
+          Page 12 (Talents): "Martial Arts B: Gives a +1CS to Fighting when engaged in unarmed combat, and +1CS to grappling."<br>
+          Page 27 (Grappling): "Martial Arts C gives +1CS to Strength for Grappling FEATs and damage."
+        </div>
+      </div>
+      <div class="section-block">
+        <div class="section-label">Analysis of the Error:</div>
+        <div class="analysis-text">
+          Direct copy-paste inversion between the talent catalog on p. 12 and the combat resolution chapter on p. 27.
+        </div>
+      </div>
+      <div class="section-block">
+        <div class="section-label">Latest Authoritative Fix:</div>
+        <div class="fix-box">
+          Standardized in all later Handbooks and CMF Talents Book:
+          <br>• <strong>Martial Arts B:</strong> +1CS to Fighting in unarmed Hand-to-Hand slugfest.
+          <br>• <strong>Martial Arts C:</strong> +1CS to Strength for Grappling FEATs, hold damage, and escapes.
+        </div>
+      </div>
+    </div>
+
+    <!-- ENTRY 10 -->
+    <div class="entry-card" data-category="combat">
+      <div class="entry-header">
+        <div class="entry-title-area">
+          <button class="copy-btn" onclick="copyCitation(this, 'Entry #10 (Player\'s Book pp. 23-24 & 1991 Revised) - Dodging Failure Penalty (+1CS to Attacker)')">
+            📋 Copy Citation
+          </button>
+          <span class="entry-number">#10. Dodging Failure Penalty (+1CS to Attacker) Reversal</span>
+          <span class="citation-tag">Player's Book p. 24 vs 1991 Revised Box p. 14</span>
+        </div>
+        <span class="status-badge status-fixed">Officially Reversed Rule</span>
+      </div>
+      <div class="section-block">
+        <div class="section-label">Problem Passage:</div>
+        <div class="problem-quote">
+          "If the dodging FEAT is a White result, the hero fails to dodge, and incoming ranged attacks receive a +1CS to hit." (p. 24)
+        </div>
+      </div>
+      <div class="section-block">
+        <div class="section-label">Analysis of the Error:</div>
+        <div class="analysis-text">
+          Punishing a defender with a +1CS penalty to enemy attacks on a failed dodge made attempting to dodge a statistically irrational choice compared to standing still.
+        </div>
+      </div>
+      <div class="section-block">
+        <div class="section-label">Latest Authoritative Fix:</div>
+        <div class="fix-box">
+          Officially updated in the 1991 Revised Set (TSR 6899): A White Dodge roll is simply a failure—it applies <strong>0CS penalty</strong> to the attacker, but does not grant the attacker a bonus (+0CS).
+        </div>
+      </div>
+    </div>
+
+    <!-- ENTRY 11 -->
+    <div class="entry-card" data-category="combat">
+      <div class="entry-header">
+        <div class="entry-title-area">
+          <button class="copy-btn" onclick="copyCitation(this, 'Entry #11 (Player\'s Book p. 25 & 1991 Revised) - Charging Damage Cap & Self-Inflicted Recoil')">
+            📋 Copy Citation
+          </button>
+          <span class="entry-number">#11. Charging Damage Cap & Self-Inflicted Recoil</span>
+          <span class="citation-tag">Player's Book p. 25 vs 1991 Revised p. 15</span>
+        </div>
+        <span class="status-badge status-fixed">Officially Capped Rule</span>
+      </div>
+      <div class="section-block">
+        <div class="section-label">Problem Passage:</div>
+        <div class="problem-quote">
+          "Damage from a Charge is based on Endurance rank or Land Speed, plus +1CS for each area moved..." (p. 25)
+        </div>
+      </div>
+      <div class="section-block">
+        <div class="section-label">Analysis of the Error:</div>
+        <div class="analysis-text">
+          Without a cap, high-speed characters moving 10–20 areas could generate Shift X/Y/Z damage with no recoil risk.
+        </div>
+      </div>
+      <div class="section-block">
+        <div class="section-label">Latest Authoritative Fix:</div>
+        <div class="fix-box">
+          1991 Revised Rules: Charging bonus is capped at <strong>+3CS maximum</strong>. Furthermore, the charging character suffers recoil damage equal to the target's Material Strength or Body Armor (unless protected by Body Armor/Invulnerability).
+        </div>
+      </div>
+    </div>
+
+    <!-- ENTRY 12 -->
+    <div class="entry-card" data-category="combat">
+      <div class="entry-header">
+        <div class="entry-title-area">
+          <button class="copy-btn" onclick="copyCitation(this, 'Entry #12 (Player\'s Book p. 26 & Judge\'s Book) - Slam Collision Barrier Damage')">
+            📋 Copy Citation
+          </button>
+          <span class="entry-number">#12. Slam Collision Barrier Damage Clarification</span>
+          <span class="citation-tag">Player's Book p. 26 & Judge's Book p. 18</span>
+        </div>
+        <span class="status-badge status-fixed">Authoritative Ruling</span>
+      </div>
+      <div class="section-block">
+        <div class="section-label">Problem Passage:</div>
+        <div class="problem-quote">
+          "...the character takes damage equal to the Material Strength of the barrier or the Strength of the attacker..." (p. 26)
+        </div>
+      </div>
+      <div class="section-block">
+        <div class="section-label">Analysis of the Error:</div>
+        <div class="analysis-text">
+          Ambiguity regarding "or the Strength of the attacker" could cause a weak punch to inflict massive barrier-level damage upon slamming into a sturdy vault.
+        </div>
+      </div>
+      <div class="section-block">
+        <div class="section-label">Latest Authoritative Fix:</div>
+        <div class="fix-box">
+          Standardized in the Judge's Book: Collision damage equals the <strong>lesser</strong> of the barrier's Material Strength or the attacker's Strength (capped by the kinetic energy delivered).
+        </div>
+      </div>
+    </div>
+
+    <!-- ENTRY 13 -->
+    <div class="entry-card" data-category="combat">
+      <div class="entry-header">
+        <div class="entry-title-area">
+          <button class="copy-btn" onclick="copyCitation(this, 'Entry #13 (Player\'s Book p. 30) - Multiple Attacks vs Same-Area Maneuvering')">
+            📋 Copy Citation
+          </button>
+          <span class="entry-number">#13. Multiple Attacks vs Same-Area Maneuvering</span>
+          <span class="citation-tag">Player's Book p. 30 & Judge's Book p. 20</span>
+        </div>
+        <span class="status-badge status-contradiction">Mechanical Contradiction</span>
+      </div>
+      <div class="section-block">
+        <div class="section-label">Problem Passage:</div>
+        <div class="problem-quote">
+          "A hero making multiple attacks cannot move in that round." (p. 30)
+        </div>
+      </div>
+      <div class="section-block">
+        <div class="section-label">Analysis of the Error:</div>
+        <div class="analysis-text">
+          Stating that a hero "cannot move" froze martial artists in place, preventing them from stepping 3 feet to strike an adjacent foe in the same area.
+        </div>
+      </div>
+      <div class="section-block">
+        <div class="section-label">Latest Authoritative Fix:</div>
+        <div class="fix-box">
+          Judge's Book clarification: A character making multiple attacks cannot perform <strong>area-to-area movement</strong> (0 areas moved), but may freely pivot, adjust, and strike targets within the <strong>same area</strong>.
+        </div>
+      </div>
+    </div>
+
+    <!-- ENTRY 14 -->
+    <div class="entry-card" data-category="combat">
+      <div class="entry-header">
+        <div class="entry-title-area">
+          <button class="copy-btn" onclick="copyCitation(this, 'Entry #14 (Player\'s Book p. 13 & Gamer\'s Handbooks) - Wolverine Claws Damage Reconciliation')">
+            📋 Copy Citation
+          </button>
+          <span class="entry-number">#14. Wolverine Claws Damage Reconciliation</span>
+          <span class="citation-tag">Player's Book p. 13 & Gamer's Handbooks Vols 1–8</span>
+        </div>
+        <span class="status-badge status-fixed">Authoritative Stat Fix</span>
+      </div>
+      <div class="section-block">
+        <div class="section-label">Problem Passage:</div>
+        <div class="problem-quote">
+          Player's Book p. 13: Claws deal Good (10) damage.<br>
+          Advanced Rules Roster & Handbooks: Claws deal Excellent (20) damage.
+        </div>
+      </div>
+      <div class="section-block">
+        <div class="section-label">Analysis of the Error:</div>
+        <div class="analysis-text">
+          Wolverine has Remarkable (30) Strength. Under weapon rules (p. 27), a weapon inflicts either weapon damage or the hero's Strength, whichever is higher. If claws were Good (10), his bare fist would do more damage than adamantium claws!
+        </div>
+      </div>
+      <div class="section-block">
+        <div class="section-label">Latest Authoritative Fix:</div>
+        <div class="fix-box">
+          Standardized in all official Gamer's Handbooks (1988–1992): Adamantium claws deal <strong>Excellent (20)</strong> base Edged damage or can channel his <strong>Remarkable (30)</strong> Strength, ignoring Body Armor up to Monstrous (75).
+        </div>
+      </div>
+    </div>
+
+    <!-- ENTRY 15 -->
+    <div class="entry-card" data-category="combat">
+      <div class="entry-header">
+        <div class="entry-title-area">
+          <button class="copy-btn" onclick="copyCitation(this, 'Entry #15 (Player\'s Book p. 28 & MA8 Weapons Locker) - Armor-Piercing Ammo Resolution Order')">
+            📋 Copy Citation
+          </button>
+          <span class="entry-number">#15. Armor-Piercing Ammo Resolution Order</span>
+          <span class="citation-tag">Player's Book p. 28 & MA8 Weapons Locker p. 4</span>
+        </div>
+        <span class="status-badge status-fixed">Authoritative Sequence Fix</span>
+      </div>
+      <div class="section-block">
+        <div class="section-label">Problem Passage:</div>
+        <div class="problem-quote">
+          "Armor-Piercing ammunition reduces target's Body Armor by 2CS." (p. 62)
+        </div>
+      </div>
+      <div class="section-block">
+        <div class="section-label">Analysis of the Error:</div>
+        <div class="analysis-text">
+          The combat damage resolution sequence in the Player's Book did not specify whether the -2CS reduction was temporary for that attack or permanently destroyed the target's armor.
+        </div>
+      </div>
+      <div class="section-block">
+        <div class="section-label">Latest Authoritative Fix:</div>
+        <div class="fix-box">
+          Codified in MA8 Weapons Locker: The -2CS armor reduction applies <strong>only for that specific bullet attack</strong>. It does not permanently degrade the armor unless a structural break FEAT is achieved.
+        </div>
+      </div>
+    </div>
+
+    <!-- ENTRY 16 -->
+    <div class="entry-card" data-category="combat">
+      <div class="entry-header">
+        <div class="entry-title-area">
+          <button class="copy-btn" onclick="copyCitation(this, 'Entry #16 (Player\'s Book p. 24 & 1991 Revised) - Evading Hand-to-Hand Attack Difficulty')">
+            📋 Copy Citation
+          </button>
+          <span class="entry-number">#16. Evading Hand-to-Hand Attack Difficulty</span>
+          <span class="citation-tag">Player's Book p. 24 & 1991 Revised Box p. 15</span>
+        </div>
+        <span class="status-badge status-fixed">Clarified Mechanic</span>
+      </div>
+      <div class="section-block">
+        <div class="section-label">Problem Passage:</div>
+        <div class="problem-quote">
+          "Evading is used against Slugfest attacks... the hero makes an Agility FEAT." (p. 24)
+        </div>
+      </div>
+      <div class="section-block">
+        <div class="section-label">Analysis of the Error:</div>
+        <div class="analysis-text">
+          The original text didn't clarify whether the FEAT roll was static or opposed by the attacker's Fighting rank.
+        </div>
+      </div>
+      <div class="section-block">
+        <div class="section-label">Latest Authoritative Fix:</div>
+        <div class="fix-box">
+          1991 Revised Rules: Evading replaces all actions for that turn. The hero makes a standard Agility FEAT: Green confers <strong>-2CS</strong> to incoming Slugfest attacks, Yellow confers <strong>-4CS</strong>, Red confers <strong>-6CS</strong>.
+        </div>
+      </div>
+    </div>
+
+    <!-- ENTRY 17 -->
+    <div class="entry-card" data-category="combat">
+      <div class="entry-header">
+        <div class="entry-title-area">
+          <button class="copy-btn" onclick="copyCitation(this, 'Entry #17 (Player\'s Book p. 22 & Judge\'s Book) - Initiative Team Modifiers vs Individual Talents')">
+            📋 Copy Citation
+          </button>
+          <span class="entry-number">#17. Initiative: Team Roll vs Individual Talent Modifiers</span>
+          <span class="citation-tag">Player's Book p. 22 & Judge's Book p. 15</span>
+        </div>
+        <span class="status-badge status-fixed">Authoritative Procedure</span>
+      </div>
+      <div class="section-block">
+        <div class="section-label">Problem Passage:</div>
+        <div class="problem-quote">
+          "Each side rolls 1d10 for initiative... Martial Arts E gives +1 to initiative." (p. 12, 22)
+        </div>
+      </div>
+      <div class="section-block">
+        <div class="section-label">Analysis of the Error:</div>
+        <div class="analysis-text">
+          Because initiative is rolled per team, the rules were unclear whether Martial Arts E (+1CS) modified the whole team's die roll or allowed that individual hero to act first.
+        </div>
+      </div>
+      <div class="section-block">
+        <div class="section-label">Latest Authoritative Fix:</div>
+        <div class="fix-box">
+          Judge's Book & 1991 Rules: The team rolls 1d10. The side with the highest individual modifier (e.g. Martial Arts E, Lightning Reflexes, Intuition rank) adds their modifier to the <strong>team initiative roll</strong>.
+        </div>
+      </div>
+    </div>
+
+    <!-- ========================================================= -->
+    <!-- SECTION 3: POWERS, MOVEMENT & DEFENSES                    -->
+    <!-- ========================================================= -->
+
+    <!-- ENTRY 18 -->
+    <div class="entry-card" data-category="powers">
+      <div class="entry-header">
+        <div class="entry-title-area">
+          <button class="copy-btn" onclick="copyCitation(this, 'Entry #18 (Player\'s Book p. 55) - Regeneration Recovery Rate Typo (Hourly vs Round)')">
+            📋 Copy Citation
+          </button>
+          <span class="entry-number">#18. Regeneration Recovery Rate Typo (Hourly vs Round)</span>
+          <span class="citation-tag">Player's Book p. 55 & UPB p. 23</span>
+        </div>
+        <span class="status-badge status-fixed">Famous Historical Typo</span>
+      </div>
+      <div class="section-block">
+        <div class="section-label">Problem Passage:</div>
+        <div class="problem-quote">
+          "The hero recovers his power rank in Health points every hour..." (p. 55)<br>
+          Example in same paragraph: "Wolverine recovers 30 points of Health every turn (6 seconds)!"
+        </div>
+      </div>
+      <div class="section-block">
+        <div class="section-label">Analysis of the Error:</div>
+        <div class="analysis-text">
+          A famous typographical blunder in TSR history. The text says "every hour," directly contradicting the example which correctly states "every turn."
+        </div>
+      </div>
+      <div class="section-block">
+        <div class="section-label">Latest Authoritative Fix:</div>
+        <div class="fix-box">
+          Standard 3-tier healing hierarchy (UPB and 1991 Rules):
+          <br>1. <strong>Natural Endurance Healing:</strong> Recovers Endurance rank number per <strong>day</strong> (24 hours).
+          <br>2. <strong>Recovery Power:</strong> Recovers Endurance rank number per <strong>hour</strong>.
+          <br>3. <strong>Regeneration Power:</strong> Recovers Power Rank number per <strong>turn / round</strong> (6 seconds).
+        </div>
+      </div>
+    </div>
+
+    <!-- ENTRY 19 -->
+    <div class="entry-card" data-category="powers">
+      <div class="entry-header">
+        <div class="entry-title-area">
+          <button class="copy-btn" onclick="copyCitation(this, 'Entry #19 (Player\'s Book pp. 47-48 & Handbooks) - Force Field & Body Armor Sequential Absorption')">
+            📋 Copy Citation
+          </button>
+          <span class="entry-number">#19. Force Field & Body Armor Sequential Absorption</span>
+          <span class="citation-tag">Player's Book pp. 47–48 & Gamer's Handbooks</span>
+        </div>
+        <span class="status-badge status-fixed">Authoritative Stacking Rule</span>
+      </div>
+      <div class="section-block">
+        <div class="section-label">Problem Passage:</div>
+        <div class="problem-quote">
+          Entries for Body Armor (p. 47) and Force Field (p. 48) failed to state how they interact when possessed by the same character (e.g. Iron Man or Magneto).
+        </div>
+      </div>
+      <div class="section-block">
+        <div class="section-label">Analysis of the Error:</div>
+        <div class="analysis-text">
+          Adding rank numbers together breaks game balance (e.g. Remarkable 30 + Incredible 40 = Monstrous 70).
+        </div>
+      </div>
+      <div class="section-block">
+        <div class="section-label">Latest Authoritative Fix:</div>
+        <div class="fix-box">
+          Officially clarified across all Gamer's Handbooks: Defenses do not add together. <strong>Force Fields absorb damage first.</strong> Any damage that penetrates the Force Field is subsequently reduced by Body Armor.
+        </div>
+      </div>
+    </div>
+
+    <!-- ENTRY 20 -->
+    <div class="entry-card" data-category="powers">
+      <div class="entry-header">
+        <div class="entry-title-area">
+          <button class="copy-btn" onclick="copyCitation(this, 'Entry #20 (Player\'s Book p. 19 & p. 59) - Movement Conversion Constant (1 Area/Turn = 15 MPH)')">
+            📋 Copy Citation
+          </button>
+          <span class="entry-number">#20. Movement Conversion Constant (1 Area/Turn = 15 MPH)</span>
+          <span class="citation-tag">Player's Book p. 19 & p. 59</span>
+        </div>
+        <span class="status-badge status-fixed">Mathematical Discrepancy Fix</span>
+      </div>
+      <div class="section-block">
+        <div class="section-label">Problem Passage:</div>
+        <div class="problem-quote">
+          Table on page 19: 1 area/turn = 15 mph.<br>
+          Flight on page 59 has rounded areas that do not match the exact 15 mph multiplier at intermediate ranks.
+        </div>
+      </div>
+      <div class="section-block">
+        <div class="section-label">Analysis of the Error:</div>
+        <div class="analysis-text">
+          Because 1 turn = 6 seconds and 1 area = 132 feet (44 yards), 1 area in 6 seconds is exactly 22 feet/sec = 15 miles per hour. Handbooks rounded areas arbitrarily, causing discrepancies.
+        </div>
+      </div>
+      <div class="section-block">
+        <div class="section-label">Latest Authoritative Fix:</div>
+        <div class="fix-box">
+          Standardized in all builder calculations: <strong>1 Area per Turn = exactly 15 Miles Per Hour</strong> (or 22 ft/second).
+        </div>
+      </div>
+    </div>
+
+    <!-- ENTRY 21 -->
+    <div class="entry-card" data-category="powers">
+      <div class="entry-header">
+        <div class="entry-title-area">
+          <button class="copy-btn" onclick="copyCitation(this, 'Entry #21 (Dragon #151 p. 92) - Hyper-Speed vs Hyper-Running Interaction Rules')">
+            📋 Copy Citation
+          </button>
+          <span class="entry-number">#21. Hyper-Speed vs Hyper-Running Interaction Rules</span>
+          <span class="citation-tag">Dragon Magazine #151 p. 92 (Son of the Ultimate Addenda)</span>
+        </div>
+        <span class="status-badge status-fixed">Official Author Ruling</span>
+      </div>
+      <div class="section-block">
+        <div class="section-label">Problem Passage:</div>
+        <div class="problem-quote">
+          Players assumed Hyper-Speed (multiple actions per turn) multiplied Hyper-Running (ground speed), allowing characters to travel at thousands of areas per round.
+        </div>
+      </div>
+      <div class="section-block">
+        <div class="section-label">Analysis of the Error:</div>
+        <div class="analysis-text">
+          Speed multiplication caused game-breaking movement and punch velocity exploits.
+        </div>
+      </div>
+      <div class="section-block">
+        <div class="section-label">Latest Authoritative Fix:</div>
+        <div class="fix-box">
+          Codified by David Martin in Dragon #151: Hyper-Running sets the <strong>maximum distance</strong> a hero can run in a round. Hyper-Speed allows the hero to perform multiple <em>actions</em> while traversing that distance, but does NOT multiply the total areas traveled.
+        </div>
+      </div>
+    </div>
+
+    <!-- ENTRY 22 -->
+    <div class="entry-card" data-category="powers">
+      <div class="entry-header">
+        <div class="entry-title-area">
+          <button class="copy-btn" onclick="copyCitation(this, 'Entry #22 (Player\'s Book p. 10 & p. 60) - Power Stunts Karma Forfeiture and Mastery Count')">
+            📋 Copy Citation
+          </button>
+          <span class="entry-number">#22. Power Stunts Karma Forfeiture & Mastery Success Count</span>
+          <span class="citation-tag">Player's Book p. 10 vs Judge's Book p. 24</span>
+        </div>
+        <span class="status-badge status-fixed">Authoritative Reconciled Rule</span>
+      </div>
+      <div class="section-block">
+        <div class="section-label">Problem Passage:</div>
+        <div class="problem-quote">
+          Player's Book p. 10: Stunts cost 100 Karma and require 10 successful attempts for mastery.<br>
+          Judge's Book p. 24: Requires 3 successful attempts for mastery.
+        </div>
+      </div>
+      <div class="section-block">
+        <div class="section-label">Analysis of the Error:</div>
+        <div class="analysis-text">
+          Discrepancy between 10 attempts vs 3 attempts, and unclear whether the 100 Karma was spent if the FEAT failed.
+        </div>
+      </div>
+      <div class="section-block">
+        <div class="section-label">Latest Authoritative Fix:</div>
+        <div class="fix-box">
+          Standard tournament & campaign consensus: 100 Karma is spent as an ante upon declaring the attempt. The modern consensus adopts the Judge's Book standard of <strong>3 successful recorded attempts</strong> (or 1,000 Karma in advancement) to establish permanent mastery.
+        </div>
+      </div>
+    </div>
+
+    <!-- ENTRY 23 -->
+    <div class="entry-card" data-category="powers">
+      <div class="entry-header">
+        <div class="entry-title-area">
+          <button class="copy-btn" onclick="copyCitation(this, 'Entry #23 (Player\'s Book p. 54 & UPB p. 38) - Telepathy Range Progression Re-scaling')">
+            📋 Copy Citation
+          </button>
+          <span class="entry-number">#23. Telepathy Range Progression Re-scaling</span>
+          <span class="citation-tag">Player's Book p. 54 vs UPB Range Tables</span>
+        </div>
+        <span class="status-badge status-fixed">Smoothed Range Progression</span>
+      </div>
+      <div class="section-block">
+        <div class="section-label">Problem Passage:</div>
+        <div class="problem-quote">
+          Incredible: 50 areas (1.25 miles)... Amazing: Planetary (12,000 miles). (p. 54)
+        </div>
+      </div>
+      <div class="section-block">
+        <div class="section-label">Analysis of the Error:</div>
+        <div class="analysis-text">
+          A four-orders-of-magnitude jump between Incredible and Amazing ranks broke all narrative progression.
+        </div>
+      </div>
+      <div class="section-block">
+        <div class="section-label">Latest Authoritative Fix:</div>
+        <div class="fix-box">
+          Replaced by UPB Mental Range benchmarks: Amazing = 100 miles (regional); Monstrous = 3,000 miles (continental); Unearthly = 25,000 miles (planetary).
+        </div>
+      </div>
+    </div>
+
+    <!-- ========================================================= -->
+    <!-- SECTION 4: RENAMED REFERENCES & EDITORIAL ARTIFACTS       -->
+    <!-- ========================================================= -->
+
+    <!-- ENTRY 24 -->
+    <div class="entry-card" data-category="renamed">
+      <div class="entry-header">
+        <div class="entry-title-area">
+          <button class="copy-btn" onclick="copyCitation(this, 'Entry #24 (UPB p. 82 & Dragon #122) - Renamed Power: Topological Change to Elongation and Plasticity')">
+            📋 Copy Citation
+          </button>
+          <span class="entry-number">#24. Renamed Power: "Topological Change" to Elongation & Plasticity</span>
+          <span class="citation-tag">UPB MA3 & Dragon #122 p. 82</span>
+        </div>
+        <span class="status-badge status-renamed">Renamed Reference Resolved</span>
+      </div>
+      <div class="section-block">
+        <div class="section-label">Problem Passage:</div>
+        <div class="problem-quote">
+          Manuscript references to "Topological Change" appeared in notes, but neither it nor Elongation appeared in the printed UPB.
+        </div>
+      </div>
+      <div class="section-block">
+        <div class="section-label">Analysis of the Error:</div>
+        <div class="analysis-text">
+          Author David Martin explained in Dragon #122 that "Topological Change" was renamed during development to Elongation (S24) and Plasticity (S29), but due to a layout mix-up, both were omitted from the printed book!
+        </div>
+      </div>
+      <div class="section-block">
+        <div class="section-label">Latest Authoritative Fix:</div>
+        <div class="fix-box renamed">
+          Codified as two distinct powers: <strong>S24 Elongation</strong> (stretching limbs/body) and <strong>S29 Plasticity</strong> (molding shape and malleability), completely retiring the draft term "Topological Change."
+        </div>
+      </div>
+    </div>
+
+    <!-- ENTRY 25 -->
+    <div class="entry-card" data-category="renamed">
+      <div class="entry-header">
+        <div class="entry-title-area">
+          <button class="copy-btn" onclick="copyCitation(this, 'Entry #25 (UPB & Dragon #134) - Renamed Power: Super-Breath to Hyper Intake/Expulsion (P18)')">
+            📋 Copy Citation
+          </button>
+          <span class="entry-number">#25. Renamed Power: "Super-Breath" to Hyper Intake/Expulsion (P18)</span>
+          <span class="citation-tag">UPB & Dragon Magazine #134 p. 89</span>
+        </div>
+        <span class="status-badge status-renamed">Renamed Reference Resolved</span>
+      </div>
+      <div class="section-block">
+        <div class="section-label">Problem Passage:</div>
+        <div class="problem-quote">
+          Mentioned casually in UPB power descriptions as "Super-Breath", but missing from the power tables.
+        </div>
+      </div>
+      <div class="section-block">
+        <div class="section-label">Analysis of the Error:</div>
+        <div class="analysis-text">
+          David Martin intended Super-Breath to be an independent physical power, but it was left out of the UPB until fans petitioned for it.
+        </div>
+      </div>
+      <div class="section-block">
+        <div class="section-label">Latest Authoritative Fix:</div>
+        <div class="fix-box renamed">
+          Officially designated in Dragon #134 as <strong>P18 Hyper Intake/Expulsion (Super-Breath)</strong> under Physical Powers. Both names are aliased in our builder search.
+        </div>
+      </div>
+    </div>
+
+    <!-- ENTRY 26 -->
+    <div class="entry-card" data-category="renamed">
+      <div class="entry-header">
+        <div class="entry-title-area">
+          <button class="copy-btn" onclick="copyCitation(this, 'Entry #26 (UPB & Dragon #134) - Renamed Power: Super-Strength to Hyper-Strength (P20)')">
+            📋 Copy Citation
+          </button>
+          <span class="entry-number">#26. Renamed Power: "Super-Strength" to Hyper-Strength (P20)</span>
+          <span class="citation-tag">UPB & Dragon Magazine #134 p. 90</span>
+        </div>
+        <span class="status-badge status-renamed">Renamed Reference Resolved</span>
+      </div>
+      <div class="section-block">
+        <div class="section-label">Problem Passage:</div>
+        <div class="problem-quote">
+          UPB powers frequently state "Requires Super-Strength," but no power named Super-Strength was on the UPB power tables.
+        </div>
+      </div>
+      <div class="section-block">
+        <div class="section-label">Analysis of the Error:</div>
+        <div class="analysis-text">
+          In Dragon #134, the author noted: <em>"I kept referring to this as a power, too, so here it is: P20 Hyper-Strength."</em>
+        </div>
+      </div>
+      <div class="section-block">
+        <div class="section-label">Latest Authoritative Fix:</div>
+        <div class="fix-box renamed">
+          Formally codified as <strong>P20 Hyper-Strength</strong> (allowing temporary "Hulk out" rank boosts or permanent strength expansion). Whenever older text says "Super-Strength," it refers to either P20 or a physical Strength rank of Remarkable (30) or higher.
+        </div>
+      </div>
+    </div>
+
+    <!-- ENTRY 27 -->
+    <div class="entry-card" data-category="renamed">
+      <div class="entry-header">
+        <div class="entry-title-area">
+          <button class="copy-btn" onclick="copyCitation(this, 'Entry #27 (Player\'s Book p. 12 & Character Folios) - Renamed Talent: Tumbling vs Acrobatics')">
+            📋 Copy Citation
+          </button>
+          <span class="entry-number">#27. Renamed Talent: Tumbling vs Acrobatics Discrepancy</span>
+          <span class="citation-tag">Player's Book p. 12 & Character Folios</span>
+        </div>
+        <span class="status-badge status-renamed">Renamed Reference Resolved</span>
+      </div>
+      <div class="section-block">
+        <div class="section-label">Problem Passage:</div>
+        <div class="problem-quote">
+          Player's Book p. 12 lists "Tumbling", but character sheets for Spider-Man, Daredevil, and Nightcrawler list "Acrobatics" (which was absent from the Player's Book talent table).
+        </div>
+      </div>
+      <div class="section-block">
+        <div class="section-label">Analysis of the Error:</div>
+        <div class="analysis-text">
+          "Acrobatics" was carried over from the 1984 Basic Set into character sheets, while the Advanced Set author renamed it "Tumbling" and restricted its benefits.
+        </div>
+      </div>
+      <div class="section-block">
+        <div class="section-label">Latest Authoritative Fix:</div>
+        <div class="fix-box renamed">
+          Reconciled in CMF Ultimate Talents: Both talents exist distinctly:
+          <br>• <strong>Acrobatics:</strong> +1CS to Agility for Dodging, Evading, and aerial maneuvers.
+          <br>• <strong>Tumbling:</strong> +1CS to Agility for safe landing, reducing falling damage, and escaping holds.
+        </div>
+      </div>
+    </div>
+
+    <!-- ENTRY 28 -->
+    <div class="entry-card" data-category="renamed">
+      <div class="entry-header">
+        <div class="entry-title-area">
+          <button class="copy-btn" onclick="copyCitation(this, 'Entry #28 (Player\'s Book p. 12 & Weapons Locker) - Renamed Talent: Weapon Specialist vs Weapons Master')">
+            📋 Copy Citation
+          </button>
+          <span class="entry-number">#28. Renamed Talent: Weapon Specialist vs Weapons Master</span>
+          <span class="citation-tag">Player's Book p. 12 & MA8 Weapons Locker</span>
+        </div>
+        <span class="status-badge status-renamed">Renamed Reference Resolved</span>
+      </div>
+      <div class="section-block">
+        <div class="section-label">Problem Passage:</div>
+        <div class="problem-quote">
+          Player's Book uses "Weapon Skills", "Weapons Specialist", and "Weapons Master" interchangeably with conflicting stacking rules.
+        </div>
+      </div>
+      <div class="section-block">
+        <div class="section-label">Analysis of the Error:</div>
+        <div class="analysis-text">
+          Unclear whether a Weapon Specialist (+2CS) stacks with a category weapon skill (+1CS).
+        </div>
+      </div>
+      <div class="section-block">
+        <div class="section-label">Latest Authoritative Fix:</div>
+        <div class="fix-box renamed">
+          Standardized in MA8 Weapons Locker:
+          <br>• <strong>Weapon Group Skill:</strong> +1CS to hit with a specific category (Blunt, Sharp, Thrown, Guns, Bows).
+          <br>• <strong>Weapon Specialist:</strong> +2CS to hit, +1 to initiative with ONE specific designated weapon (e.g. Captain America's Shield, Hawkeye's Bow). Does NOT stack with Group Skill.
+          <br>• <strong>Weapons Master:</strong> +1CS to hit with all weapons.
+        </div>
+      </div>
+    </div>
+
+    <!-- ENTRY 29 -->
+    <div class="entry-card" data-category="renamed">
+      <div class="entry-header">
+        <div class="entry-title-area">
+          <button class="copy-btn" onclick="copyCitation(this, 'Entry #29 (Player\'s Book p. 48 & UPB p. 25) - Renamed Power: Invulnerability vs True Invulnerability (D17)')">
+            📋 Copy Citation
+          </button>
+          <span class="entry-number">#29. Renamed Power: Invulnerability vs True Invulnerability (D17)</span>
+          <span class="citation-tag">Player's Book p. 48 & UPB p. 25</span>
+        </div>
+        <span class="status-badge status-renamed">Renamed Reference Resolved</span>
+      </div>
+      <div class="section-block">
+        <div class="section-label">Problem Passage:</div>
+        <div class="problem-quote">
+          Player's Book calls it "Invulnerability", whereas the UPB names it "True Invulnerability (D17)" and differentiates it from standard Body Armor.
+        </div>
+      </div>
+      <div class="section-block">
+        <div class="section-label">Analysis of the Error:</div>
+        <div class="analysis-text">
+          Calling both powers "Invulnerability" caused players to confuse single-damage immunities (e.g. Fire Invulnerability) with universal damage resistance.
+        </div>
+      </div>
+      <div class="section-block">
+        <div class="section-label">Latest Authoritative Fix:</div>
+        <div class="fix-box renamed">
+          Adopt UPB terminology: Universal full-spectrum defense is <strong>D17 True Invulnerability</strong>. Specific resistances are termed <strong>Resistance to [Attack Type]</strong>.
+        </div>
+      </div>
+    </div>
+
+    <!-- ENTRY 30 -->
+    <div class="entry-card" data-category="renamed">
+      <div class="entry-header">
+        <div class="entry-title-area">
+          <button class="copy-btn" onclick="copyCitation(this, 'Entry #29 (Player\'s Book p. 57 & UPB p. 64) - Renamed Power: Teleportation Fatigue Rules')">
+            📋 Copy Citation
+          </button>
+          <span class="entry-number">#30. Teleportation Range & Fatigue Rules Harmonization</span>
+          <span class="citation-tag">Player's Book p. 57 & UPB p. 64 (T20)</span>
+        </div>
+        <span class="status-badge status-fixed">Authoritative Range Scale</span>
+      </div>
+      <div class="section-block">
+        <div class="section-label">Problem Passage:</div>
+        <div class="problem-quote">
+          Player's Book p. 57 states teleportation requires an "Endurance FEAT to avoid fatigue," but provides no table of fatigue consequences.
+        </div>
+      </div>
+      <div class="section-block">
+        <div class="section-label">Analysis of the Error:</div>
+        <div class="analysis-text">
+          Missing fatigue consequences left Judges with no rules for characters like Nightcrawler making multiple rapid warps.
+        </div>
+      </div>
+      <div class="section-block">
+        <div class="section-label">Latest Authoritative Fix:</div>
+        <div class="fix-box">
+          UPB T20 rules: Teleporting within the power rank distance requires no roll. Teleporting with passengers or attempting blind jumps into unmapped areas requires a Green Endurance FEAT; failure results in immediate unconsciousness for 1–10 turns.
+        </div>
+      </div>
+    </div>
+
+    <!-- ENTRY 31 -->
+    <div class="entry-card" data-category="renamed">
+      <div class="entry-header">
+        <div class="entry-title-area">
+          <button class="copy-btn" onclick="copyCitation(this, 'Entry #31 (Player\'s Book p. 54 & UPB p. 30) - Renamed Power: Mental Blast vs Psionic Attack (EC10)')">
+            📋 Copy Citation
+          </button>
+          <span class="entry-number">#31. Renamed Power: Mental Blast vs Psionic Attack (EC10)</span>
+          <span class="citation-tag">Player's Book p. 54 & UPB p. 30</span>
+        </div>
+        <span class="status-badge status-renamed">Renamed Reference Resolved</span>
+      </div>
+      <div class="section-block">
+        <div class="section-label">Problem Passage:</div>
+        <div class="problem-quote">
+          Comics and folios cite "Mental Blast" (e.g. Psylocke), while the Player's Book treated it as a Telepathy power stunt, and UPB codified it under Energy Control.
+        </div>
+      </div>
+      <div class="section-block">
+        <div class="section-label">Analysis of the Error:</div>
+        <div class="analysis-text">
+          Fragmented rules caused confusion over whether a character needed full Telepathy to project offensive mental daggers or bolts.
+        </div>
+      </div>
+      <div class="section-block">
+        <div class="section-label">Latest Authoritative Fix:</div>
+        <div class="fix-box renamed">
+          Standardized under <strong>EC10 Psionic Attack (Mental Blast)</strong>: Can be possessed as an independent attack power or acquired as an optional power/stunt from Telepathy.
+        </div>
+      </div>
+    </div>
+
+    <!-- ========================================================= -->
+    <!-- SECTION 5: KARMA, ADVANCEMENT & REVISED SYSTEMS          -->
+    <!-- ========================================================= -->
+
+    <!-- ENTRY 32 -->
+    <div class="entry-card" data-category="karma">
+      <div class="entry-header">
+        <div class="entry-title-area">
+          <button class="copy-btn" onclick="copyCitation(this, 'Entry #32 (Player\'s Book p. 35 vs p. 37) - Karma Spending: Pre-Roll vs Post-Roll Reconciliation')">
+            📋 Copy Citation
+          </button>
+          <span class="entry-number">#32. Karma Spending: Pre-Roll vs Post-Roll Reconciliation</span>
+          <span class="citation-tag">Player's Book p. 35 vs p. 37 & 1991 Revised Box</span>
+        </div>
+        <span class="status-badge status-fixed">Authoritative Reconciled Rule</span>
+      </div>
+      <div class="section-block">
+        <div class="section-label">Problem Passage:</div>
+        <div class="problem-quote">
+          Page 35: "Karma must be declared before rolling the dice."<br>
+          Page 37: "A player may spend Karma to turn a failed roll into a success after the roll by adding Karma points equal to the difference."
+        </div>
+      </div>
+      <div class="section-block">
+        <div class="section-label">Analysis of the Error:</div>
+        <div class="analysis-text">
+          Blatant chapter contradiction. The pre-roll restriction made players waste Karma on rolls that naturally succeeded.
+        </div>
+      </div>
+      <div class="section-block">
+        <div class="section-label">Latest Authoritative Fix:</div>
+        <div class="fix-box">
+          Formally settled in the 1991 Revised Set and standard tournament rules: Players are permitted to spend Karma <strong>point-for-point after the dice are rolled</strong> to modify the result into Green, Yellow, or Red success, except when the natural roll is a catastrophic failure (01 on red FEATs).
+        </div>
+      </div>
+    </div>
+
+    <!-- ENTRY 33 -->
+    <div class="entry-card" data-category="karma">
+      <div class="entry-header">
+        <div class="entry-title-area">
+          <button class="copy-btn" onclick="copyCitation(this, 'Entry #33 (Player\'s Book p. 42-43) - Advancement Cost: New Rank Number vs Difference')">
+            📋 Copy Citation
+          </button>
+          <span class="entry-number">#33. Advancement Cost: New Rank Number vs Difference</span>
+          <span class="citation-tag">Player's Book p. 42 & CMF Advancement Rules</span>
+        </div>
+        <span class="status-badge status-vague">Vague Cost Formula</span>
+      </div>
+      <div class="section-block">
+        <div class="section-label">Problem Passage:</div>
+        <div class="problem-quote">
+          "To increase an ability or power, the hero must spend Karma equal to 10 times the rank number of the new rank." (p. 42)
+        </div>
+      </div>
+      <div class="section-block">
+        <div class="section-label">Analysis of the Error:</div>
+        <div class="analysis-text">
+          Paying the full new rank (e.g. 400 Karma for Incredible) discards prior investment, discouraging long-term campaign character progression.
+        </div>
+      </div>
+      <div class="section-block">
+        <div class="section-label">Latest Authoritative Fix:</div>
+        <div class="fix-box discussion">
+          <strong>Configurable in Builder:</strong> We provide both options in the advancement tracker:
+          <br>• <strong>Strict RAW:</strong> Cost = 10 × New Rank Number.
+          <br>• <strong>CMF Progressive Standard:</strong> Cost = 10 × (New Rank Number − Old Rank Number) + minimum 1 month game-time training.
+        </div>
+      </div>
+    </div>
+
+    <!-- ENTRY 34 -->
+    <div class="entry-card" data-category="karma">
+      <div class="entry-header">
+        <div class="entry-title-area">
+          <button class="copy-btn" onclick="copyCitation(this, 'Entry #34 (Dragon #150 pp. 88-91) - Death Effects on Superheroes: Stabilization & Revival')">
+            📋 Copy Citation
+          </button>
+          <span class="entry-number">#34. Death Effects on Superheroes: Stabilization & Revival</span>
+          <span class="citation-tag">Dragon Magazine #150 pp. 88–91 (Death Effects)</span>
+        </div>
+        <span class="status-badge status-fixed">Authoritative Official Expansion</span>
+      </div>
+      <div class="section-block">
+        <div class="section-label">Problem Passage:</div>
+        <div class="problem-quote">
+          Player's Book p. 29 simply states a hero at 0 Health with shifting Endurance is "dying", but gave vague stabilization thresholds.
+        </div>
+      </div>
+      <div class="section-block">
+        <div class="section-label">Analysis of the Error:</div>
+        <div class="analysis-text">
+          Lack of exact per-round degradation rates led to inconsistent Judge rulings on resuscitation and medical FEATs.
+        </div>
+      </div>
+      <div class="section-block">
+        <div class="section-label">Latest Authoritative Fix:</div>
+        <div class="fix-box">
+          Codified by David Martin in Dragon #150: A character at 0 Health loses 1 point of Endurance rank number per turn. A Green First Aid/Medicine or Endurance FEAT stops degradation. If Endurance reaches 0, the character suffers clinical death, with resuscitation possible for a number of rounds equal to their original Endurance rank number.
+        </div>
+      </div>
+    </div>
+
+    <!-- ========================================================= -->
+    <!-- SECTION 6: UPB & DRAGON ADDENDA INTEGRATION               -->
+    <!-- ========================================================= -->
+
+    <!-- ENTRY 35 -->
+    <div class="entry-card" data-category="upb">
+      <div class="entry-header">
+        <div class="entry-title-area">
+          <button class="copy-btn" onclick="copyCitation(this, 'Entry #35 (UPB MA3 pp. 14-16 & Dragon #122) - Reinstatement of 9 Dropped Powers, Definitions & Tables')">
+            📋 Copy Citation
+          </button>
+          <span class="entry-number">#35. Reinstatement of 9 Dropped Powers, Definitions & Tables</span>
+          <span class="citation-tag">UPB MA3 & Dragon Magazine #122 pp. 82–85</span>
+        </div>
+        <span class="status-badge status-fixed">Historical Manuscript Restoration</span>
+      </div>
+      <div class="section-block">
+        <div class="section-label">Problem Passage:</div>
+        <div class="problem-quote">
+          Original UPB dropped codes S23 through S31, failed to define Nemesis/Bonus/Optional powers, and omitted 13 character type columns on the Random Ranks Table!
+        </div>
+      </div>
+      <div class="section-block">
+        <div class="section-label">Analysis of the Error:</div>
+        <div class="analysis-text">
+          Severe editorial rush at TSR in 1987 resulted in a fragmented first printing of MA3.
+        </div>
+      </div>
+      <div class="section-block">
+        <div class="section-label">Latest Authoritative Fix:</div>
+        <div class="fix-box">
+          Fully integrated into our builder's database:
+          <br>• Restored powers: <strong>S23 Bouncing Ball</strong>, <strong>S24 Elongation</strong>, <strong>S25 Growth</strong>, <strong>S26 Mass Decrease</strong>, <strong>S27 Mass Increase</strong>, <strong>S28 Phasing</strong>, <strong>S29 Plasticity</strong>, <strong>S30 Shrinking</strong>, and <strong>S31 Two-Dimensionality</strong>.
+          <br>• Fully defined: Nemesis, Bonus Power, and Optional Power mechanics.
+          <br>• Fully populated: Table 1 columns for all 13 missing character types.
+        </div>
+      </div>
+    </div>
+
+    <!-- ENTRY 36 -->
+    <div class="entry-card" data-category="upb">
+      <div class="entry-header">
+        <div class="entry-title-area">
+          <button class="copy-btn" onclick="copyCitation(this, 'Entry #36 (Dragon #134 pp. 89-91) - Complete Integration of Addenda\'s Addenda and Exclusion of Rule Powers')">
+            📋 Copy Citation
+          </button>
+          <span class="entry-number">#36. Complete Integration of Addenda's Addenda & Exclusion of Rule Powers</span>
+          <span class="citation-tag">Dragon Magazine #134 pp. 89–91</span>
+        </div>
+        <span class="status-badge status-fixed">User Mandate & Final System Reconcile</span>
+      </div>
+      <div class="section-block">
+        <div class="section-label">Problem Passage:</div>
+        <div class="problem-quote">
+          Dragon #134 introduced the Swarm-based physical form S32 Collective Mass, 7 authentic comic powers, and meta-game "Rule Powers" (R1–R8).
+        </div>
+      </div>
+      <div class="section-block">
+        <div class="section-label">Analysis of the Error:</div>
+        <div class="analysis-text">
+          Rule Powers (Attribute Change, Award Pool, etc.) operated purely on out-of-game mechanics rather than in-world fictional powers, creating loopholes.
+        </div>
+      </div>
+      <div class="section-block">
+        <div class="section-label">Latest Authoritative Fix:</div>
+        <div class="fix-box">
+          Full execution of user specifications:
+          <br>• <strong>Included:</strong> Physical Form <strong>S32 Collective Mass</strong> (with dual-profile tracking for swarm vs individual units and +2CS resistance to physical/energy).
+          <br>• <strong>Included:</strong> <strong>P18 Hyper Intake/Expulsion</strong>, <strong>P19 Hyper-Endurance</strong>, <strong>P20 Hyper-Strength</strong>, <strong>MG14 Probability Control</strong>, <strong>T24 Spinner</strong>, <strong>F6 Unique Weapon</strong>, and <strong>M34 Omni-Knowledge</strong>.
+          <br>• <strong>Strictly Excluded:</strong> Meta-game Rule Powers <strong>R1 through R8</strong>.
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Toast element -->
+<div id="toast">Copied citation to clipboard!</div>
+
+<script>
+  // Copy citation functionality
+  function copyCitation(btn, citationText) {
+    navigator.clipboard.writeText(citationText).then(() => {
+      const originalText = btn.innerHTML;
+      btn.innerHTML = '✅ Copied!';
+      btn.classList.add('copied');
+      
+      const toast = document.getElementById('toast');
+      toast.textContent = 'Copied: ' + citationText;
+      toast.classList.add('show');
+
+      setTimeout(() => {
+        btn.innerHTML = originalText;
+        btn.classList.remove('copied');
+        toast.classList.remove('show');
+      }, 2000);
+    }).catch(err => {
+      alert('Could not copy text: ' + err);
+    });
+  }
+
+  // Filter functionality
+  const filterBtns = document.querySelectorAll('.filter-btn');
+  const cards = document.querySelectorAll('.entry-card');
+  const searchInput = document.getElementById('searchInput');
+
+  document.getElementById('countAll').textContent = cards.length;
+  document.getElementById('totalEntries').textContent = cards.length;
+
+  filterBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      filterBtns.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      applyFilters();
+    });
+  });
+
+  searchInput.addEventListener('input', () => {
+    applyFilters();
+  });
+
+  function applyFilters() {
+    const activeCat = document.querySelector('.filter-btn.active').dataset.cat;
+    const query = searchInput.value.toLowerCase().trim();
+
+    cards.forEach(card => {
+      const catMatch = (activeCat === 'all') || (card.dataset.category === activeCat);
+      const textMatch = !query || card.textContent.toLowerCase().includes(query);
+
+      if (catMatch && textMatch) {
+        card.style.display = 'block';
+      } else {
+        card.style.display = 'none';
+      }
+    });
+  }
+</script>
+
+</body>
+</html>

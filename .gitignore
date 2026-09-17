@@ -1,0 +1,16 @@
+# OS & Explorer files
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# Development & Scratch
+.vscode/
+scratch/
+node_modules/
+*.log
+*.metadata.json
+
+# Backups
+_backups/
+backup_*/
+*.zip

@@ -460,12 +460,12 @@ class InventionCreator {
     }
 
     // Check for Unique & Non-Reproducible Artifacts
-    if (item.isUnique || item.nonReproducible) {
+    if (item.isReproducible === false || item.nonReproducible) {
       return {
         success: false,
         reproducible: false,
         itemName: item.name,
-        isUnique: true,
+        isUnique: !!item.isUnique,
         error: item.reproducibleError || `"${item.name}" is a unique, one-of-a-kind artifact and cannot be manufactured or reverse-engineered by technology.`
       };
     }
@@ -493,6 +493,8 @@ class InventionCreator {
       reproducible: true,
       item,
       project,
+      reverseEngReasonTarget: inventorReasonRank,
+      reverseEngReasonShift: 2, // +2CS bonus for having a working physical model in hand per TSR rules
       resourceCheck: `${project.resourceFeatTarget} (${project.resourceShift >= 0 ? '+' : ''}${project.resourceShift} CS)`,
       blueprintCheck: `${project.blueprintFeatTarget} (${project.blueprintShift >= 0 ? '+' : ''}${project.blueprintShift} CS)`,
       buildDays: project.estimatedBuildDays,

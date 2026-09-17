@@ -611,3 +611,56 @@ Addressed user feedback:
   - `verify_all_catalogs.js`: PASSED
   - `test_contrast_fixes.js`: PASSED
 - Synchronized repository changes to Google Drive mirror (`H:\My Drive\RPG development\Marvel\`) and committed/pushed to GitHub `main` branch (`9105837`).
+
+---
+
+## 16. Canonical Equipment Access Refinements, OHOTMU Reverse-Engineering Prototypes, Multi-Select Store Filters, and Rulebook Reverse-Engineering FEAT Mechanics (September 2026)
+
+### Key Enhancements
+
+1. **Ammunition & Weapon Access Clarifications**:
+   - **Armor-Piercing Ammunition (`ammo_armor_piercing`)**: Reclassified as Military and Black Market (`accessTypes: ['military', 'black_market']`).
+   - **Explosive Ammunition (`ammo_explosive`)**: Reclassified as Military and Black Market (`accessTypes: ['military', 'black_market']`).
+   - **Vibro-Blades (`vibro_blade`)**: Reclassified as Black Market and S.H.I.E.L.D. issue (`accessTypes: ['black_market', 'shield']`). Citations added to Weapons Locker (p. 16) and S.H.I.E.L.D. stealth operative armories.
+
+2. **Fantasticar Prototype Classification & Retail Store Exclusion**:
+   - **Fantasticar (`veh_fantasticar`)**: Marked `isUnique: true`, `notForSale: true`, `isReproducible: true`.
+   - Excluded from the retail Equipment Store table and count (`item.notForSale !== true`), preventing it from appearing as a standard buyable commodity.
+   - Available in the Invention Lab's Reverse-Engineering dropdown (`#select-reverse-engineer-item`) so heroic inventors can study and replicate it in a workshop.
+
+3. **10 Iconic OHOTMU Items for Laboratory Reverse-Engineering**:
+   - Added canonical items from the *Official Handbook of the Marvel Universe (Deluxe Edition)* and TSR modules for reverse-engineering:
+     1. **Shocker's Vibro-Shock Gauntlets (`ohotmu_shocker_gauntlets`)**: Incredible (40) vibration/concussion blasts.
+     2. **Shocker's Vibro-Shock Quilted Suit (`ohotmu_shocker_suit`)**: Remarkable (30) physical & blunt impact absorption, Excellent (20) energy resistance.
+     3. **Green Goblin's Flying Bat-Glider (`ohotmu_goblin_glider`)**: Remarkable (30) airspeed (15 areas/round), Remarkable body, remote autopilot, twin machine guns and smoke ejectors.
+     4. **Green Goblin's Pumpkin Bombs (`ohotmu_pumpkin_bombs`)**: Shift-X cluster containing High Explosive (Incredible damage), Hallucinogenic Gas, and Smoke.
+     5. **The Wizard's Anti-Gravity Discs (`ohotmu_wizard_antigrav`)**: Remarkable (30) levitation and telekinetic trajectory control.
+     6. **Doctor Octopus's Adamantium-Titanium Tentacle Harness (`ohotmu_doc_ock_harness`)**: Monstrous (75) material strength, Incredible (40) striking force, 3 areas/round scaling speed.
+     7. **The Falcon's Titanium-Ribbed Jet Glider Wings (`ohotmu_falcon_wings`)**: Excellent (20) airspeed (8 areas/round), Remarkable material strength.
+     8. **Stilt-Man's Hydraulic Telescopic Armor (`ohotmu_stiltman_armor`)**: 280-foot telescoping hydraulic legs, Remarkable body armor, gas grenades, stun blast.
+     9. **Whiplash's Retractable Cybernetic Whips (`ohotmu_whiplash_whips`)**: Incredible (40) material strength, Excellent (20) slashing/entangling attacks.
+     10. **The Beetle's Powered Exoskeleton Armor (`ohotmu_beetle_armor`)**: Remarkable (30) armor protection, Excellent (20) flight wings, fingertip suction wall-crawling, electro-bite blasts.
+   - All 10 items are marked `isUnique: true, notForSale: true, isReproducible: true`. Total catalog items increased from 126 to 136 (125 store items + 11 prototypes/artifacts).
+
+4. **Multi-Select Store Filters & "Show:" Label**:
+   - In `index.html`, updated the filter label from `Access:` to `Show:`.
+   - In `app.js`:
+     - Toggling any clearance button (`Civilian`, `Military`, `Black Market`, `S.H.I.E.L.D.`) adds or removes it from `this.storeAccessFilter`.
+     - Selecting `All` clears specific filters and shows all items. Selecting all 4 categories or deselecting all items automatically resets to `All`.
+     - Multi-select matching checks `item.accessTypes` against active filters, allowing items with dual access (e.g. AP ammo under Military OR Black Market, Vibro-blades under Black Market OR S.H.I.E.L.D.) to appear when either category is selected.
+     - Store table rows render multiple access badges (`🎖️ Military 🕵️ Black Market`).
+
+5. **Canonical Reverse-Engineering vs Designing Rule Implementation**:
+   - **TSR Canon Answer**: Having a physical working copy of an item does *not* automatically skip the Phase 1 Design phase. In TSR MSH rules, disassembling and analyzing unfamiliar hardware requires a **Reason FEAT with a +2CS Column Shift bonus** (for having a working model to test and probe). Once that Reason FEAT succeeds, complete schematics are drafted, and subsequent manufacturing bypasses Phase 1.
+   - **Software Workflow**:
+     - Selecting an item displays its manufacturing requirements and the Reason FEAT target with the +2CS bonus.
+     - **`🎲 Roll Reverse-Engineering Analysis (+2CS Reason FEAT)`**: Performs a 1d100 roll on the Universal Table at $+2\text{CS}$ to the hero's Reason. On Green/Yellow/Red, schematics are mastered and saved to the Known Blueprints Archive. On White, failure is reported with the option to spend Hero Karma to convert the roll to Green, retry the analysis roll, or use plans in hand.
+     - **`📐 Master Schematic (Plans in Hand)`**: Allows immediate auto-success if the hero already acquired original blueprints or if the GM waives the check.
+
+### Automated Verification
+- Created [`scratch/test_ohotmu_and_filters.js`](file:///C:/Users/admin/.gemini/antigravity/brain/90637841-9270-481f-944c-4ab42ceec14e/scratch/test_ohotmu_and_filters.js) verifying:
+  - 136 total items, 125 store items, 11 unique prototypes and artifacts.
+  - Multi-select access filtering across all combinations.
+  - Reverse-engineering success on Fantasticar, Shocker gauntlets, Goblin glider, and proper blocking on Cap's shield.
+- Ran all regression suites (`verify_all_catalogs.js`, `test_unreadable_combos_fixed.js`, `test_resource_points_rule.js`, `test_tsr_talents_only.js`, `test_cheatsheet_contrast_and_stability.js`): All 100% passing.
+- Synchronized all files to Google Drive mirror at `H:\My Drive\RPG development\Marvel\`.

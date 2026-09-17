@@ -16,7 +16,7 @@ const App = {
   currentTheme: 'four-color',
   storeFilterQuery: '',
   storeFilterCategory: 'all',
-  storeAccessFilter: 'all',
+  storeAccessFilter: ['all'],
   storeMilitaryAccess: false,
   storeBlackMarketAccess: false,
   storeShieldAccess: false,
@@ -1809,10 +1809,15 @@ const App = {
     return c.includes(k) || t.includes(k);
   },
 
-  matchesStoreAccess(item, accessKey) {
-    if (!accessKey || accessKey === 'all') return true;
-    const a = (item.accessType || 'civilian').toLowerCase();
-    return a === accessKey.toLowerCase();
+  matchesStoreAccess(item, accessFilter) {
+    const filters = Array.isArray(accessFilter) ? accessFilter : [accessFilter || 'all'];
+    if (filters.includes('all')) return true;
+
+    const itemAccessList = Array.isArray(item.accessTypes) && item.accessTypes.length > 0
+      ? item.accessTypes.map(t => t.toLowerCase())
+      : [(item.accessType || 'civilian').toLowerCase()];
+
+    return itemAccessList.some(at => filters.includes(at));
   },
 
   matchesStoreSearchQuery(item, query) {
@@ -1986,7 +1991,7 @@ const App = {
 
     const q = (this.storeFilterQuery || '').toLowerCase().trim();
     const cat = this.storeFilterCategory || 'all';
-    const access = this.storeAccessFilter || 'all';
+    const access = this.storeAccessFilter || ['all'];
 
     // 1. Render Rulebook Store in wide modal format (max 2 rows per item)
     const tbody = document.getElementById('store-equipment-tbody');
@@ -1994,8 +1999,9 @@ const App = {
       tbody.innerHTML = '';
       const descTooltip = document.getElementById('store-desc-hover-tooltip');
       if (descTooltip) descTooltip.style.display = 'none';
-      const totalCatalogItems = globalThis.PREBUILT_EQUIPMENT_CATALOG.length;
+      const totalCatalogItems = globalThis.PREBUILT_EQUIPMENT_CATALOG.filter(item => !item.notForSale).length;
       const filtered = globalThis.PREBUILT_EQUIPMENT_CATALOG.filter(item => {
+        if (item.notForSale) return false;
         return this.matchesStoreSearchQuery(item, q) && 
                this.matchesStoreCategory(item, cat) &&
                this.matchesStoreAccess(item, access);
@@ -2004,11 +2010,16 @@ const App = {
       const countTag = document.getElementById('store-item-count-tag');
       if (countTag) {
         let countText = `Showing ${filtered.length} of ${totalCatalogItems} TSR Items`;
-        if (access !== 'all') {
-          const accBtn = (typeof document !== 'undefined' && typeof document.querySelector === 'function') 
-            ? document.querySelector(`#store-access-filter-group .store-access-filter-btn[data-store-access="${access}"]`) 
-            : null;
-          countText += ` • ${accBtn ? accBtn.textContent.trim() : access}`;
+        const isAllAccess = Array.isArray(access) ? access.includes('all') : access === 'all';
+        if (!isAllAccess) {
+          const activeList = Array.isArray(access) ? access : [access];
+          const labels = activeList.map(a => {
+            const accBtn = (typeof document !== 'undefined' && typeof document.querySelector === 'function') 
+              ? document.querySelector(`#store-access-filter-group .store-access-filter-btn[data-store-access="${a}"]`) 
+              : null;
+            return accBtn ? accBtn.textContent.trim() : a;
+          });
+          countText += ` • Show: ${labels.join(', ')}`;
         }
         if (cat !== 'all') {
           const activeBtn = (typeof document !== 'undefined' && typeof document.querySelector === 'function') 
@@ -2054,12 +2065,13 @@ const App = {
       }
 
       if (filtered.length === 0) {
+        const activeAccessStr = Array.isArray(access) ? access.join(', ') : access;
         tbody.innerHTML = `
           <tr>
             <td colspan="7" style="text-align: center; padding: 36px 16px; color: var(--text-muted);">
               <div style="font-size: 1.15rem; color: #f87171; margin-bottom: 6px; font-weight: 700;">🔍 No items found matching criteria</div>
               <div style="font-size: 10pt; color: #94a3b8; margin-bottom: 14px;">
-                No equipment matches search "<strong>${q || '--'}</strong>" in category "<strong>${cat}</strong>" and access "<strong>${access}</strong>".
+                No equipment matches search "<strong>${q || '--'}</strong>" in category "<strong>${cat}</strong>" and show filter "<strong>${activeAccessStr}</strong>".
               </div>
               <button type="button" class="icon-btn primary" id="btn-store-reset-empty" style="font-size: 10pt; padding: 6px 16px;">
                 ✕ Clear Search & Reset Filters
@@ -2077,14 +2089,15 @@ const App = {
           const tr = document.createElement('tr');
           const dmgProt = item.damage || item.type || '--';
 
-          let accessBadge = '<span class="meta-tag access-civilian">Civilian</span>';
-          if (item.accessType === 'military') {
-            accessBadge = '<span class="meta-tag access-military">🎖️ Military</span>';
-          } else if (item.accessType === 'black_market') {
-            accessBadge = '<span class="meta-tag access-blackmarket">🕵️ Black Market</span>';
-          } else if (item.accessType === 'shield') {
-            accessBadge = '<span class="meta-tag access-shield">🦅 S.H.I.E.L.D.</span>';
-          }
+          const accList = Array.isArray(item.accessTypes) && item.accessTypes.length > 0
+            ? item.accessTypes
+            : [item.accessType || 'civilian'];
+          const accessBadge = accList.map(at => {
+            if (at === 'military') return '<span class="meta-tag access-military">🎖️ Military</span>';
+            if (at === 'black_market') return '<span class="meta-tag access-blackmarket">🕵️ Black Market</span>';
+            if (at === 'shield') return '<span class="meta-tag access-shield">🦅 S.H.I.E.L.D.</span>';
+            return '<span class="meta-tag access-civilian">Civilian</span>';
+          }).join(' ');
 
           const costRankObj = (typeof UniversalTableEngine !== 'undefined' && UniversalTableEngine.getRankByName)
             ? UniversalTableEngine.getRankByName(item.costRank)
@@ -2479,11 +2492,36 @@ const App = {
   },
 
   setStoreAccessFilter(accessKey) {
-    this.storeAccessFilter = accessKey || 'all';
+    if (!Array.isArray(this.storeAccessFilter)) {
+      this.storeAccessFilter = [this.storeAccessFilter || 'all'];
+    }
+    const key = (accessKey || 'all').toLowerCase();
+    if (key === 'all') {
+      this.storeAccessFilter = ['all'];
+    } else {
+      let current = this.storeAccessFilter.filter(k => k !== 'all');
+      if (current.includes(key)) {
+        current = current.filter(k => k !== key);
+      } else {
+        current.push(key);
+      }
+      const allCategories = ['civilian', 'military', 'black_market', 'shield'];
+      if (current.length === 0 || allCategories.every(c => current.includes(c))) {
+        this.storeAccessFilter = ['all'];
+      } else {
+        this.storeAccessFilter = current;
+      }
+    }
+
+    const isAll = this.storeAccessFilter.includes('all');
     const storeAccessBtns = document.querySelectorAll('#store-access-filter-group .store-access-filter-btn');
     storeAccessBtns.forEach(b => {
       const bAcc = (b.getAttribute('data-store-access') || 'all').toLowerCase();
-      b.classList.toggle('active', bAcc === this.storeAccessFilter.toLowerCase());
+      if (bAcc === 'all') {
+        b.classList.toggle('active', isAll);
+      } else {
+        b.classList.toggle('active', !isAll && this.storeAccessFilter.includes(bAcc));
+      }
     });
     this.renderEquipment();
   },
@@ -2491,7 +2529,7 @@ const App = {
   clearStoreFilters() {
     this.storeFilterQuery = '';
     this.storeFilterCategory = 'all';
-    this.storeAccessFilter = 'all';
+    this.storeAccessFilter = ['all'];
     const searchInp = document.getElementById('filter-store-search');
     if (searchInp) searchInp.value = '';
     const storeCatBtns = document.querySelectorAll('#store-category-filter-group .store-filter-btn');
@@ -2518,10 +2556,18 @@ const App = {
       const bCat = (b.getAttribute('data-store-cat') || 'all').toLowerCase();
       b.classList.toggle('active', bCat === (this.storeFilterCategory || 'all').toLowerCase());
     });
+    if (!Array.isArray(this.storeAccessFilter)) {
+      this.storeAccessFilter = [this.storeAccessFilter || 'all'];
+    }
+    const isAll = this.storeAccessFilter.includes('all');
     const storeAccessBtns = document.querySelectorAll('#store-access-filter-group .store-access-filter-btn');
     storeAccessBtns.forEach(b => {
       const bAcc = (b.getAttribute('data-store-access') || 'all').toLowerCase();
-      b.classList.toggle('active', bAcc === (this.storeAccessFilter || 'all').toLowerCase());
+      if (bAcc === 'all') {
+        b.classList.toggle('active', isAll);
+      } else {
+        b.classList.toggle('active', !isAll && this.storeAccessFilter.includes(bAcc));
+      }
     });
     this.renderEquipment();
     const modal = document.getElementById('equipment-store-modal');
@@ -3329,111 +3375,278 @@ const App = {
         cancelBtn.addEventListener('click', () => this.cancelReverseEngineer());
       }
     } else {
-      // Automatically record reverse-engineered schematic into Known Blueprints Archive
-      const matRank = (typeof res.item.materialStrength === 'string' && res.item.materialStrength.includes('('))
-        ? res.item.materialStrength.split('(')[0].trim()
-        : (res.item.materialStrength || 'Good');
+      this.renderReverseEngineerOptions(res);
+    }
+  },
 
-      const bpRes = this.character.addKnownBlueprint({
-        name: res.item.name,
-        sourceType: 'tech',
-        origin: 'reverse-engineered',
-        category: res.item.category || res.item.type || 'Equipment',
-        sourceItemId: res.item.id,
-        costRank: res.item.costRank || 'Typical',
-        resourceRank: res.item.costRank || 'Typical',
-        materialRank: matRank,
-        blueprintShift: res.blueprintShift || 0,
-        resourceShift: res.resourceShift || 0,
-        assemblyShift: 0,
-        buildDays: res.buildDays,
-        itemData: {
-          name: res.item.name,
-          type: res.item.type,
-          damage: res.item.damage,
-          damageValue: res.item.damageValue || 0,
-          range: res.item.range,
-          rateOfFire: res.item.rateOfFire,
-          materialStrength: res.item.materialStrength,
-          notes: res.item.description || ''
-        },
-        notes: `Reverse-engineered schematic: ${res.item.name}. ${res.summary}`
-      });
-      this.saveState();
-      this.renderKnownBlueprints();
+  renderReverseEngineerOptions(res) {
+    const box = document.getElementById('reverse-engineer-result-box');
+    if (!box) return;
 
-      box.innerHTML = `
-        <div style="display: flex; flex-direction: column; gap: 8px;">
-          <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap;">
-            <strong style="color: var(--marvel-gold); font-size: 11pt;">📋 Manufacturing Specifications for ${res.item.name}:</strong>
-            <button type="button" class="icon-btn" id="btn-cancel-rev-result-top" style="padding: 2px 10px; font-size: 10pt;" title="Cancel and clear selection">✕ Cancel</button>
-          </div>
-          <div style="background: rgba(16, 185, 129, 0.15); border: 1px solid #10b981; border-radius: 4px; padding: 6px 10px; font-size: 10pt; color: #a7f3d0;">
-            📐 <strong>Schematic Mastered:</strong> Saved to <em>Known Blueprints Archive</em>. Building this item bypasses the Phase 1 Blueprint Design FEAT!
-          </div>
-          <div style="display: flex; justify-content: space-between; font-size: 10pt;">
-            <span style="color: var(--text-muted);">Raw Materials Procurement:</span>
-            <strong>${res.resourceCheck}</strong>
-          </div>
-          <div style="display: flex; justify-content: space-between; font-size: 10pt;">
-            <span style="color: var(--text-muted);">Blueprint Drafting FEAT:</span>
-            <strong class="rev-result-bypassed">${res.blueprintCheck} (Mastered / Bypassed)</strong>
-          </div>
-          <div style="display: flex; justify-content: space-between; font-size: 10pt;">
-            <span style="color: var(--text-muted);">Required Workshop Time:</span>
-            <strong class="rev-result-days">${res.buildDays} Days</strong>
-          </div>
-          <p class="rev-result-summary" style="font-size: 10pt; margin-top: 6px;">${res.summary}</p>
-          <div style="display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap;">
-            <button class="icon-btn primary" id="btn-build-rev-in-lab" style="flex: 1; font-size: 10pt;">
-              🛠️ Build in Lab (Design FEAT Bypassed)
-            </button>
-            <button class="icon-btn" id="btn-replicate-prebuilt" style="font-size: 10pt;">
-              ⚡ Quick Replicate to Gear
-            </button>
-            <button type="button" class="icon-btn" id="btn-cancel-rev-result" style="font-size: 10pt;" title="Cancel and clear selection">
-              ✕ Cancel
-            </button>
-          </div>
+    const reasonRank = this.character.abilities.reason.rankName;
+    const reasonShift = 2; // +2CS for working model in hand per TSR rules
+    const effectiveReasonRank = UniversalTableEngine.applyColumnShift(reasonRank, reasonShift).name;
+    const isUnique = !!res.item.isUnique;
+
+    box.innerHTML = `
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap;">
+          <strong style="color: var(--marvel-gold); font-size: 11pt;">
+            🔬 Reverse-Engineering Analysis: ${res.item.name} ${isUnique ? '<span class="meta-tag tag-unique">Unique Prototype</span>' : ''}
+          </strong>
+          <button type="button" class="icon-btn" id="btn-cancel-rev-result-top" style="padding: 2px 10px; font-size: 10pt;" title="Cancel and clear selection">✕ Cancel</button>
         </div>
-      `;
 
-      const cancelBtn = box.querySelector('#btn-cancel-rev-result');
-      if (cancelBtn) {
-        cancelBtn.addEventListener('click', () => this.cancelReverseEngineer());
-      }
-      const cancelTopBtn = box.querySelector('#btn-cancel-rev-result-top');
-      if (cancelTopBtn) {
-        cancelTopBtn.addEventListener('click', () => this.cancelReverseEngineer());
-      }
+        <div style="background: rgba(56, 189, 248, 0.12); border: 1px solid #38bdf8; border-radius: 4px; padding: 6px 10px; font-size: 10pt; color: #bae6fd;">
+          🔍 <strong>Working Model in Hand:</strong> In TSR rules, analyzing an existing working device requires a Reason FEAT with a <strong>+2CS Column Shift bonus</strong> (Reason: ${reasonRank} → <strong>${effectiveReasonRank}</strong>) to deduce internal circuitry and extract blueprints!
+        </div>
 
-      const buildLabBtn = box.querySelector('#btn-build-rev-in-lab');
-      if (buildLabBtn && bpRes?.blueprint?.id) {
-        buildLabBtn.addEventListener('click', (btnE) => {
-          this.loadKnownBlueprint(bpRes.blueprint.id, btnE);
-        });
-      }
+        <div style="display: flex; justify-content: space-between; font-size: 10pt;">
+          <span style="color: var(--text-muted);">Reverse-Engineering FEAT:</span>
+          <strong>${reasonRank} at +2CS (${effectiveReasonRank})</strong>
+        </div>
+        <div style="display: flex; justify-content: space-between; font-size: 10pt;">
+          <span style="color: var(--text-muted);">Materials Procurement FEAT:</span>
+          <strong>${res.resourceCheck}</strong>
+        </div>
+        <div style="display: flex; justify-content: space-between; font-size: 10pt;">
+          <span style="color: var(--text-muted);">Required Workshop Time:</span>
+          <strong class="rev-result-days">${res.buildDays} Days</strong>
+        </div>
+        <p class="rev-result-summary" style="font-size: 10pt; margin-top: 4px;">${res.summary}</p>
 
-      box.querySelector('#btn-replicate-prebuilt').addEventListener('click', (btnE) => {
-        this.character.equipment.push({
-          id: 'rep_' + Date.now(),
-          name: `Replicated ${res.item.name}`,
-          type: res.item.type,
-          damage: res.item.damage,
-          damageValue: res.item.damageValue || 0,
-          range: res.item.range,
-          rateOfFire: res.item.rateOfFire,
-          materialStrength: res.item.materialStrength,
-          notes: `Reverse-engineered in workshop (${res.buildDays} days). ${res.item.description}`,
-          equipped: true
-        });
+        <div style="display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap;">
+          <button class="icon-btn primary" id="btn-roll-reverse-engineer" style="flex: 1; font-size: 10pt;">
+            🎲 Roll Reverse-Engineering Analysis (+2CS Reason FEAT)
+          </button>
+          <button class="icon-btn" id="btn-auto-master-schematic" style="font-size: 10pt;" title="If schematics/blueprints are already in hand or Judge grants auto-success">
+            📐 Master Schematic (Plans in Hand)
+          </button>
+          <button type="button" class="icon-btn" id="btn-cancel-rev-result" style="font-size: 10pt;" title="Cancel and clear selection">
+            ✕ Cancel
+          </button>
+        </div>
+      </div>
+    `;
+
+    const cancelBtn = box.querySelector('#btn-cancel-rev-result');
+    if (cancelBtn) cancelBtn.addEventListener('click', () => this.cancelReverseEngineer());
+    const cancelTopBtn = box.querySelector('#btn-cancel-rev-result-top');
+    if (cancelTopBtn) cancelTopBtn.addEventListener('click', () => this.cancelReverseEngineer());
+
+    const rollBtn = box.querySelector('#btn-roll-reverse-engineer');
+    if (rollBtn) {
+      rollBtn.addEventListener('click', (e) => this.executeReverseEngineerRoll(res, e));
+    }
+
+    const autoBtn = box.querySelector('#btn-auto-master-schematic');
+    if (autoBtn) {
+      autoBtn.addEventListener('click', () => this.completeReverseEngineering(res, null));
+    }
+  },
+
+  executeReverseEngineerRoll(res, mouseEvent = null) {
+    const roll = Math.floor(Math.random() * 100) + 1;
+    const reasonRank = this.character.abilities.reason.rankName;
+    const featResult = UniversalTableEngine.resolveFEAT(reasonRank, roll, 2);
+
+    if (featResult.isSuccess) {
+      this.completeReverseEngineering(res, featResult);
+    } else {
+      this.renderReverseEngineerFailure(res, featResult);
+    }
+  },
+
+  renderReverseEngineerFailure(res, featResult) {
+    const box = document.getElementById('reverse-engineer-result-box');
+    if (!box) return;
+
+    const karmaNeeded = Math.max(0, featResult.thresholds.green - featResult.roll);
+    const hasEnoughKarma = this.character && (this.character.karma >= karmaNeeded);
+
+    box.innerHTML = `
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap;">
+          <strong style="color: #f87171; font-size: 11pt;">❌ Reverse-Engineering Unsuccessful</strong>
+          <button type="button" class="icon-btn" id="btn-cancel-rev-fail-top" style="padding: 2px 10px; font-size: 10pt;" title="Cancel selection">✕ Cancel</button>
+        </div>
+
+        <div style="background: rgba(239, 68, 68, 0.12); border: 1px solid #ef4444; border-radius: 4px; padding: 8px 10px; font-size: 10pt; color: #fca5a5;">
+          <div><strong>Roll Result:</strong> Rolled <strong>${featResult.roll}</strong> (White on ${featResult.effectiveRank}). Green FEAT requires roll of <strong>${featResult.thresholds.green}+</strong>.</div>
+          <div style="margin-top: 4px;">Could not decipher proprietary circuitry and internal design on this attempt.</div>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; font-size: 10pt;">
+          <span style="color: var(--text-muted);">Hero Karma Available:</span>
+          <strong>${this.character.karma || 0} Karma</strong>
+        </div>
+
+        <div style="display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap;">
+          ${hasEnoughKarma ? `
+            <button class="icon-btn primary" id="btn-spend-karma-rev" style="flex: 1; font-size: 10pt; background: #065f46;">
+              ✨ Spend ${karmaNeeded} Karma to Succeed
+            </button>
+          ` : ''}
+          <button class="icon-btn" id="btn-retry-rev-roll" style="font-size: 10pt;">
+            🎲 Retry FEAT Roll
+          </button>
+          <button class="icon-btn" id="btn-force-master-schematic" style="font-size: 10pt;" title="If plans in hand or GM allows">
+            📐 Master Schematic (Plans in Hand)
+          </button>
+          <button type="button" class="icon-btn" id="btn-cancel-rev-fail" style="font-size: 10pt;" title="Cancel selection">
+            ✕ Cancel
+          </button>
+        </div>
+      </div>
+    `;
+
+    const cancelBtn = box.querySelector('#btn-cancel-rev-fail');
+    if (cancelBtn) cancelBtn.addEventListener('click', () => this.cancelReverseEngineer());
+    const cancelTopBtn = box.querySelector('#btn-cancel-rev-fail-top');
+    if (cancelTopBtn) cancelTopBtn.addEventListener('click', () => this.cancelReverseEngineer());
+
+    const retryBtn = box.querySelector('#btn-retry-rev-roll');
+    if (retryBtn) {
+      retryBtn.addEventListener('click', () => this.executeReverseEngineerRoll(res));
+    }
+
+    const forceBtn = box.querySelector('#btn-force-master-schematic');
+    if (forceBtn) {
+      forceBtn.addEventListener('click', () => this.completeReverseEngineering(res, null));
+    }
+
+    const karmaBtn = box.querySelector('#btn-spend-karma-rev');
+    if (karmaBtn && hasEnoughKarma) {
+      karmaBtn.addEventListener('click', () => {
+        this.character.karma = Math.max(0, (this.character.karma || 0) - karmaNeeded);
         this.saveState();
         this.render();
-        this.showCustomAlert(`Successfully replicated "${res.item.name}" and added to equipment!`, '🔬 Replicated Item', btnE);
-        this.cancelReverseEngineer();
-        this.switchTab('equipment');
+        this.completeReverseEngineering(res, {
+          ...featResult,
+          color: 'Green',
+          isSuccess: true,
+          karmaSpent: karmaNeeded
+        });
       });
     }
+  },
+
+  completeReverseEngineering(res, featResult = null) {
+    const box = document.getElementById('reverse-engineer-result-box');
+    if (!box) return;
+
+    // Record reverse-engineered schematic into Known Blueprints Archive
+    const matRank = (typeof res.item.materialStrength === 'string' && res.item.materialStrength.includes('('))
+      ? res.item.materialStrength.split('(')[0].trim()
+      : (res.item.materialStrength || 'Good');
+
+    const featNote = featResult 
+      ? `Reverse-engineered via ${featResult.color} Reason FEAT (Roll ${featResult.roll} on ${featResult.effectiveRank}${featResult.karmaSpent ? `, spent ${featResult.karmaSpent} Karma` : ''}).`
+      : 'Schematic mastered (Plans in hand).';
+
+    const bpRes = this.character.addKnownBlueprint({
+      name: res.item.name,
+      sourceType: 'tech',
+      origin: 'reverse-engineered',
+      category: res.item.category || res.item.type || 'Equipment',
+      sourceItemId: res.item.id,
+      costRank: res.item.costRank || 'Typical',
+      resourceRank: res.item.costRank || 'Typical',
+      materialRank: matRank,
+      blueprintShift: res.blueprintShift || 0,
+      resourceShift: res.resourceShift || 0,
+      assemblyShift: 0,
+      buildDays: res.buildDays,
+      itemData: {
+        name: res.item.name,
+        type: res.item.type,
+        damage: res.item.damage,
+        damageValue: res.item.damageValue || 0,
+        range: res.item.range,
+        rateOfFire: res.item.rateOfFire,
+        materialStrength: res.item.materialStrength,
+        notes: res.item.description || ''
+      },
+      notes: `${featNote} ${res.summary}`
+    });
+    this.saveState();
+    this.renderKnownBlueprints();
+
+    const bannerHtml = featResult
+      ? `🎉 <strong>Reverse-Engineering Success!</strong> Rolled <strong>${featResult.roll}</strong> (${featResult.color} on ${featResult.effectiveRank}${featResult.karmaSpent ? ` with ${featResult.karmaSpent} Karma` : ''}). Schematic mastered and saved to <em>Known Blueprints Archive</em>!`
+      : `📐 <strong>Schematic Mastered:</strong> Saved to <em>Known Blueprints Archive</em>. Building this item bypasses the Phase 1 Blueprint Design FEAT!`;
+
+    box.innerHTML = `
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap;">
+          <strong style="color: var(--marvel-gold); font-size: 11pt;">📋 Manufacturing Specifications for ${res.item.name}:</strong>
+          <button type="button" class="icon-btn" id="btn-cancel-rev-result-top" style="padding: 2px 10px; font-size: 10pt;" title="Cancel and clear selection">✕ Cancel</button>
+        </div>
+        <div style="background: rgba(16, 185, 129, 0.15); border: 1px solid #10b981; border-radius: 4px; padding: 6px 10px; font-size: 10pt; color: #a7f3d0;">
+          ${bannerHtml}
+        </div>
+        <div style="display: flex; justify-content: space-between; font-size: 10pt;">
+          <span style="color: var(--text-muted);">Raw Materials Procurement:</span>
+          <strong>${res.resourceCheck}</strong>
+        </div>
+        <div style="display: flex; justify-content: space-between; font-size: 10pt;">
+          <span style="color: var(--text-muted);">Blueprint Drafting FEAT:</span>
+          <strong class="rev-result-bypassed">${res.blueprintCheck} (Mastered / Bypassed)</strong>
+        </div>
+        <div style="display: flex; justify-content: space-between; font-size: 10pt;">
+          <span style="color: var(--text-muted);">Required Workshop Time:</span>
+          <strong class="rev-result-days">${res.buildDays} Days</strong>
+        </div>
+        <p class="rev-result-summary" style="font-size: 10pt; margin-top: 6px;">${res.summary}</p>
+        <div style="display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap;">
+          <button class="icon-btn primary" id="btn-build-rev-in-lab" style="flex: 1; font-size: 10pt;">
+            🛠️ Build in Lab (Design FEAT Bypassed)
+          </button>
+          <button class="icon-btn" id="btn-replicate-prebuilt" style="font-size: 10pt;">
+            ⚡ Quick Replicate to Gear
+          </button>
+          <button type="button" class="icon-btn" id="btn-cancel-rev-result" style="font-size: 10pt;" title="Cancel and clear selection">
+            ✕ Cancel
+          </button>
+        </div>
+      </div>
+    `;
+
+    const cancelBtn = box.querySelector('#btn-cancel-rev-result');
+    if (cancelBtn) {
+      cancelBtn.addEventListener('click', () => this.cancelReverseEngineer());
+    }
+    const cancelTopBtn = box.querySelector('#btn-cancel-rev-result-top');
+    if (cancelTopBtn) {
+      cancelTopBtn.addEventListener('click', () => this.cancelReverseEngineer());
+    }
+
+    const buildLabBtn = box.querySelector('#btn-build-rev-in-lab');
+    if (buildLabBtn && bpRes?.blueprint?.id) {
+      buildLabBtn.addEventListener('click', (btnE) => {
+        this.loadKnownBlueprint(bpRes.blueprint.id, btnE);
+      });
+    }
+
+    box.querySelector('#btn-replicate-prebuilt').addEventListener('click', (btnE) => {
+      this.character.equipment.push({
+        id: 'rep_' + Date.now(),
+        name: `Replicated ${res.item.name}`,
+        type: res.item.type,
+        damage: res.item.damage,
+        damageValue: res.item.damageValue || 0,
+        range: res.item.range,
+        rateOfFire: res.item.rateOfFire,
+        materialStrength: res.item.materialStrength,
+        notes: `Reverse-engineered in workshop (${res.buildDays} days). ${res.item.description}`,
+        equipped: true
+      });
+      this.saveState();
+      this.render();
+      this.showCustomAlert(`Successfully replicated "${res.item.name}" and added to equipment!`, '🔬 Replicated Item', btnE);
+      this.cancelReverseEngineer();
+      this.switchTab('equipment');
+    });
   },
 
   renderKnownBlueprints() {

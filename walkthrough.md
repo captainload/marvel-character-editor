@@ -420,3 +420,48 @@ The Rules Cheat Sheet and Universal Action Table pop-up modal (`#cheatsheet-moda
    - Added `cheatsheet-modal-box` class to `<div class="modal-box large cheatsheet-modal-box">`.
 3. **Verification Suite**:
    - Created [`scratch/test_cheatsheet_modal_sizing.js`](file:///C:/Users/admin/.gemini/antigravity/brain/90637841-9270-481f-944c-4ab42ceec14e/scratch/test_cheatsheet_modal_sizing.js) validating all 4 dimension tests passing with 100% success.
+
+---
+
+## 12. Contrast & Readability Remediation (Eliminating Black on Dark Grey & Yellow on Light Beige)
+
+### Overview
+Addressed user feedback: *"Black on dark grey and yellow on light beige text isn't readable."*
+
+All instances across all themes—specifically the light archival Manilla theme—were systematically audited, cataloged, and resolved. Hardcoded dark backgrounds hosting black text were replaced with theme variables and semantic CSS classes, and all yellow/gold FEAT tags and callouts on light beige backgrounds were converted to high-contrast dark bronze/amber (`#78350f` / `#92400e`) with warm pastel backgrounds (`#fef3c7`), providing contrast ratios exceeding 8.5:1.
+
+### Root Cause Analysis & Fixes
+
+1. **Elimination of Black Text on Dark Grey Elements**:
+   - **Inline Container Styles in `index.html`**:
+     - *Resources & Popularity*: Replaced hardcoded `background: #141c2c;` with semantic `.stat-box-alt` class using `var(--bg-card-alt)`.
+     - *Defenses (Body Armor & Force Field)*: Replaced hardcoded `background: #162032;` with `.defense-stat-box` class.
+     - *Invention Multi-Power & Ability Boost Subpanels*: Replaced hardcoded `background: #141c2c;` with `.invention-subpanel`.
+     - *Reverse-Engineering Specs Box*: Replaced hardcoded `background: #090e18;` with `.invention-subpanel`.
+     - *Equipment Store Container*: Replaced hardcoded `background: #0b111e;` with `.store-table-container` using `var(--bg-card)`.
+   - **Table Headers & Backgrounds in `styles.css`**:
+     - In Manilla theme, `.universal-table-view th` was inheriting dark slate `background: #1e293b` with black text. Added explicit Manilla override styling `background: #e2ded6 !important; color: #000000 !important; border-color: #c2bcaf !important;`.
+     - Added Manilla rules setting `background: #f0ede6 !important;` for `.store-table-container`, `.store-wide-table`, `.equipment-table`, and `.cheat-table`.
+   - **Interactive Buttons in `app.js`**:
+     - Removed hardcoded inline `background: #334155` and `#1e293b` on the Replicate and Cancel buttons rendered during reverse-engineering specs output.
+
+2. **Elimination of Yellow Text on Light Beige Elements**:
+   - **Universal Table & FEAT Colors in `styles.css`**:
+     - Standard `.cell-yellow` and `.feat-yellow, .color-yellow` were hardcoded to `#fbbf24` (light golden yellow), causing severe unreadability on `#eae6df` / `#f0ede6`.
+     - In Manilla, configured `.cell-yellow` and `.feat-yellow` with deep dark amber `color: #78350f !important;` and warm pastel `background: #fef3c7 !important; border-color: #d97706 !important; font-weight: 800 !important;`.
+     - Configured `.thresh-box.yellow` (dice roller FEAT threshold) to use `#78350f` text and value on `#fef3c7`.
+     - Configured `.calc-rule-callout` (area calculation rules callout) with `#fef3c7` background and `#78350f` text.
+     - Configured `.meta-tag.access-military` and active Military filter buttons with `#fef3c7` background and `#78350f` text.
+     - Configured `.stunt-badge.learning` and `.tag-starred` with `#78350f` on `#fef3c7`.
+     - Set Manilla root `--marvel-gold: #78350f;` and mapped all inline `color: var(--marvel-gold)`, `color: #f59e0b`, `color: #fbbf24`, `color: #fde68a` to `#78350f !important`.
+   - **Karma Spend Warning in `app.js`**:
+     - Replaced hardcoded `style="color:#f59e0b;"` on Resource FEAT karma warning with `.karma-no-spend-warn` class, resolving to `#78350f` in Manilla and cyan in Aqua.
+
+3. **Theme Parity for Aqua & Four-Color**:
+   - Added semantic mappings for `.stat-box-alt`, `.defense-stat-box`, `.invention-subpanel`, `.store-table-container`, and `.karma-no-spend-warn` in `body[data-theme="aqua"]`.
+   - Preserved all glowing accents in Four-Color and rich cyans in Aqua.
+
+### Automated Verification
+- Created [`scratch/test_contrast_fixes.js`](file:///C:/Users/admin/.gemini/antigravity/brain/90637841-9270-481f-944c-4ab42ceec14e/scratch/test_contrast_fixes.js) asserting 13 automated tests covering inline style elimination, CSS theme variables, FEAT badge contrast, and table readability (100% PASS).
+- All regression suites (`test_cheatsheet_modal_sizing.js`, `test_store_enhancements.js`, `test_tsr_talents_only.js`, `verify_all_catalogs.js`, `test_all_theme_contrast.js`) pass with 100% success.
+

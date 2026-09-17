@@ -3143,7 +3143,7 @@ const App = {
         <div style="border-left: 4px solid #ef4444; padding-left: 10px;">
           <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap;">
             <strong style="color: #f87171; font-size: 11pt;">⚠️ NON-REPRODUCIBLE ARTIFACT</strong>
-            <button type="button" class="icon-btn" id="btn-cancel-rev-result" style="padding: 2px 10px; font-size: 10pt; background: #334155;">✕ Cancel</button>
+            <button type="button" class="icon-btn" id="btn-cancel-rev-result" style="padding: 2px 10px; font-size: 10pt;">✕ Cancel</button>
           </div>
           <p style="color: #fca5a5; margin-top: 6px; font-size: 10pt;">${res.error}</p>
         </div>
@@ -3190,7 +3190,7 @@ const App = {
         <div style="display: flex; flex-direction: column; gap: 8px;">
           <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap;">
             <strong style="color: var(--marvel-gold); font-size: 11pt;">📋 Manufacturing Specifications for ${res.item.name}:</strong>
-            <button type="button" class="icon-btn" id="btn-cancel-rev-result-top" style="padding: 2px 10px; font-size: 10pt; background: #334155;" title="Cancel and clear selection">✕ Cancel</button>
+            <button type="button" class="icon-btn" id="btn-cancel-rev-result-top" style="padding: 2px 10px; font-size: 10pt;" title="Cancel and clear selection">✕ Cancel</button>
           </div>
           <div style="background: rgba(16, 185, 129, 0.15); border: 1px solid #10b981; border-radius: 4px; padding: 6px 10px; font-size: 10pt; color: #a7f3d0;">
             📐 <strong>Schematic Mastered:</strong> Saved to <em>Known Blueprints Archive</em>. Building this item bypasses the Phase 1 Blueprint Design FEAT!
@@ -3212,10 +3212,10 @@ const App = {
             <button class="icon-btn primary" id="btn-build-rev-in-lab" style="flex: 1; font-size: 10pt;">
               🛠️ Build in Lab (Design FEAT Bypassed)
             </button>
-            <button class="icon-btn" id="btn-replicate-prebuilt" style="background: #1e293b; border-color: #475569; font-size: 10pt;">
+            <button class="icon-btn" id="btn-replicate-prebuilt" style="font-size: 10pt;">
               ⚡ Quick Replicate to Gear
             </button>
-            <button type="button" class="icon-btn" id="btn-cancel-rev-result" style="background: #334155; font-size: 10pt;" title="Cancel and clear selection">
+            <button type="button" class="icon-btn" id="btn-cancel-rev-result" style="font-size: 10pt;" title="Cancel and clear selection">
               ✕ Cancel
             </button>
           </div>
@@ -3951,7 +3951,7 @@ const App = {
         karmaSpendRow.style.pointerEvents = 'none';
       }
       if (karmaHintEl) {
-        karmaHintEl.innerHTML = `<span style="color:#f59e0b; font-weight:700;">(No Karma on Resource FEATs - p. 18)</span>`;
+        karmaHintEl.innerHTML = `<span class="karma-no-spend-warn">(No Karma on Resource FEATs - p. 18)</span>`;
       }
     } else {
       if (karmaSpendRow) {

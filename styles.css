@@ -309,6 +309,40 @@ body {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
 }
 
+.stat-box-alt {
+  background: var(--bg-card-alt);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 8px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.defense-stat-box {
+  background: var(--bg-card-alt);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 10px;
+}
+
+.invention-subpanel {
+  background: var(--bg-card-alt);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 12px;
+  min-width: 0;
+}
+
+.inv-section-title-gold {
+  color: var(--marvel-gold);
+}
+
+.karma-no-spend-warn {
+  color: #f59e0b;
+  font-weight: 700;
+}
+
 .card-header {
   display: flex;
   align-items: center;
@@ -2650,13 +2684,43 @@ body[data-theme="manilla"] {
   --border-focus: #b91c1c;
   --marvel-red: #b91c1c;
   --marvel-red-dark: #991b1b;
-  --marvel-gold: #b45309;
+  --marvel-gold: #78350f;
   --marvel-blue: #1d4ed8;
   --text-main: #000000;
-  --text-muted: #555555;
-  --text-dim: #666666;
+  --text-muted: #475569;
+  --text-dim: #64748b;
   background-color: #e8e5de;
   color: #000000;
+}
+
+/* Manilla: Sub-panels & Defenses (Eliminate Black on Dark Grey) */
+body[data-theme="manilla"] .stat-box-alt,
+body[data-theme="manilla"] .defense-stat-box,
+body[data-theme="manilla"] .invention-subpanel,
+body[data-theme="manilla"] #reverse-engineer-result-box {
+  background: #e2ded6 !important;
+  border-color: #c2bcaf !important;
+  color: #000000 !important;
+}
+
+body[data-theme="manilla"] .defense-badge-title {
+  color: #000000 !important;
+  font-weight: 700;
+}
+
+body[data-theme="manilla"] #def-body-armor,
+body[data-theme="manilla"] #def-force-field {
+  color: #1d4ed8 !important;
+}
+
+body[data-theme="manilla"] #def-body-armor-notes,
+body[data-theme="manilla"] #def-force-field-notes {
+  color: #475569 !important;
+}
+
+body[data-theme="manilla"] .inv-section-title-gold {
+  color: #000000 !important;
+  font-weight: 800;
 }
 
 /* Manilla: Header & General Branding */
@@ -3463,6 +3527,220 @@ body[data-theme="manilla"] .eq-item-name {
   font-weight: 700;
 }
 
+/* Manilla: Tables, Store Container & Universal FEAT Colors */
+body[data-theme="manilla"] .store-table-container,
+body[data-theme="manilla"] .store-wide-table,
+body[data-theme="manilla"] .equipment-table,
+body[data-theme="manilla"] .cheat-table {
+  background: #f0ede6 !important;
+}
+
+body[data-theme="manilla"] .universal-table-view th {
+  background: #e2ded6 !important;
+  color: #000000 !important;
+  border-color: #c2bcaf !important;
+}
+
+body[data-theme="manilla"] .universal-table-view td {
+  border-color: #ded7cb !important;
+}
+
+body[data-theme="manilla"] .cell-white {
+  background: #f0ede6 !important;
+  color: #000000 !important;
+}
+
+body[data-theme="manilla"] .cell-green {
+  background: #d1fae5 !important;
+  color: #065f46 !important;
+  font-weight: 800 !important;
+}
+
+body[data-theme="manilla"] .cell-yellow {
+  background: #fef3c7 !important;
+  color: #78350f !important;
+  font-weight: 800 !important;
+}
+
+body[data-theme="manilla"] .cell-red {
+  background: #fee2e2 !important;
+  color: #991b1b !important;
+  font-weight: 800 !important;
+}
+
+body[data-theme="manilla"] .feat-white,
+body[data-theme="manilla"] .color-white {
+  color: #000000 !important;
+  background: #f0ede6 !important;
+  border-color: #c2bcaf !important;
+}
+
+body[data-theme="manilla"] .feat-green,
+body[data-theme="manilla"] .color-green {
+  color: #065f46 !important;
+  background: #d1fae5 !important;
+  border-color: #059669 !important;
+}
+
+body[data-theme="manilla"] .feat-yellow,
+body[data-theme="manilla"] .color-yellow {
+  color: #78350f !important;
+  background: #fef3c7 !important;
+  border-color: #d97706 !important;
+  font-weight: 800 !important;
+}
+
+body[data-theme="manilla"] .feat-red,
+body[data-theme="manilla"] .color-red {
+  color: #991b1b !important;
+  background: #fee2e2 !important;
+  border-color: #dc2626 !important;
+}
+
+body[data-theme="manilla"] .badge-yellow {
+  color: #78350f !important;
+  font-weight: 800 !important;
+}
+
+body[data-theme="manilla"] .badge-green {
+  color: #065f46 !important;
+  font-weight: 800 !important;
+}
+
+body[data-theme="manilla"] .badge-red {
+  color: #991b1b !important;
+  font-weight: 800 !important;
+}
+
+body[data-theme="manilla"] .thresh-box.yellow {
+  background: #fef3c7 !important;
+  border-color: #d97706 !important;
+  color: #78350f !important;
+  font-weight: 800 !important;
+}
+
+body[data-theme="manilla"] .thresh-box.yellow .thresh-name,
+body[data-theme="manilla"] .thresh-box.yellow .thresh-val {
+  color: #78350f !important;
+  font-weight: 800 !important;
+}
+
+body[data-theme="manilla"] .thresh-box.green {
+  background: #d1fae5 !important;
+  border-color: #059669 !important;
+  color: #065f46 !important;
+  font-weight: 800 !important;
+}
+
+body[data-theme="manilla"] .thresh-box.green .thresh-name,
+body[data-theme="manilla"] .thresh-box.green .thresh-val {
+  color: #065f46 !important;
+  font-weight: 800 !important;
+}
+
+body[data-theme="manilla"] .thresh-box.red {
+  background: #fee2e2 !important;
+  border-color: #dc2626 !important;
+  color: #991b1b !important;
+  font-weight: 800 !important;
+}
+
+body[data-theme="manilla"] .thresh-box.red .thresh-name,
+body[data-theme="manilla"] .thresh-box.red .thresh-val {
+  color: #991b1b !important;
+  font-weight: 800 !important;
+}
+
+body[data-theme="manilla"] .stunt-badge.learning {
+  background: #fef3c7 !important;
+  border-color: #d97706 !important;
+  color: #78350f !important;
+  font-weight: 800 !important;
+}
+
+body[data-theme="manilla"] .tag-starred {
+  background: #fef3c7 !important;
+  border-color: #d97706 !important;
+  color: #78350f !important;
+  font-weight: 800 !important;
+}
+
+body[data-theme="manilla"] .meta-tag.access-military {
+  background: #fef3c7 !important;
+  border-color: #d97706 !important;
+  color: #78350f !important;
+  font-weight: 700 !important;
+}
+
+body[data-theme="manilla"] .store-access-toggle[data-access="military"].active {
+  background: #fef3c7 !important;
+  border-color: #d97706 !important;
+  color: #78350f !important;
+  font-weight: 700 !important;
+}
+
+body[data-theme="manilla"] .calc-rule-callout {
+  background: #fef3c7 !important;
+  border-left-color: #d97706 !important;
+  color: #78350f !important;
+}
+
+body[data-theme="manilla"] .karma-no-spend-warn {
+  color: #78350f !important;
+  font-weight: 700 !important;
+}
+
+body[data-theme="manilla"] #cheatsheet-modal h3 {
+  color: #b91c1c !important;
+  border-bottom-color: #c2bcaf !important;
+}
+
+body[data-theme="manilla"] #cheatsheet-modal h4 {
+  color: #1d4ed8 !important;
+}
+
+body[data-theme="manilla"] #cheat-active-area-rule,
+body[data-theme="manilla"] #stunt-parent-power-name,
+body[data-theme="manilla"] #store-item-count-tag,
+body[data-theme="manilla"] #inv-difficulty-rank,
+body[data-theme="manilla"] .procure-vs-indicator,
+body[data-theme="manilla"] .point-numbers {
+  color: #000000 !important;
+}
+
+body[data-theme="manilla"] [style*="color: var(--marvel-gold)"],
+body[data-theme="manilla"] [style*="color:var(--marvel-gold)"],
+body[data-theme="manilla"] [style*="color: #f59e0b"],
+body[data-theme="manilla"] [style*="color:#f59e0b"],
+body[data-theme="manilla"] [style*="color: #fbbf24"],
+body[data-theme="manilla"] [style*="color:#fbbf24"],
+body[data-theme="manilla"] [style*="color: #fde68a"],
+body[data-theme="manilla"] [style*="color:#fde68a"] {
+  color: #78350f !important;
+}
+
+body[data-theme="manilla"] .icon-btn,
+body[data-theme="manilla"] #btn-inv-new,
+body[data-theme="manilla"] #btn-cancel-reverse-engineer,
+body[data-theme="manilla"] #btn-cancel-rev-result,
+body[data-theme="manilla"] #btn-cancel-rev-result-top,
+body[data-theme="manilla"] #btn-replicate-prebuilt {
+  background: #e6e2d8 !important;
+  border-color: #c2bcaf !important;
+  color: #000000 !important;
+}
+
+body[data-theme="manilla"] .icon-btn:hover,
+body[data-theme="manilla"] #btn-inv-new:hover,
+body[data-theme="manilla"] #btn-cancel-reverse-engineer:hover,
+body[data-theme="manilla"] #btn-cancel-rev-result:hover,
+body[data-theme="manilla"] #btn-cancel-rev-result-top:hover,
+body[data-theme="manilla"] #btn-replicate-prebuilt:hover {
+  background: #dcd6ca !important;
+  border-color: #b91c1c !important;
+  color: #b91c1c !important;
+}
+
 /* Manilla: Text Meant to be Greyed Out (Subtle Metadata, Hints, Placeholders, Disabled) */
 body[data-theme="manilla"] .karma-avail-hint,
 body[data-theme="manilla"] .procure-card-sub,
@@ -4057,4 +4335,19 @@ body[data-theme="aqua"] .tag-unique {
 body[data-theme="aqua"] .eq-item-name {
   color: #f0fdfa;
 }
+
+/* Aqua: Subpanels, Tables & Badges */
+body[data-theme="aqua"] .stat-box-alt,
+body[data-theme="aqua"] .defense-stat-box,
+body[data-theme="aqua"] .invention-subpanel,
+body[data-theme="aqua"] .store-table-container {
+  background: #1a4373;
+  border-color: #23588e;
+  color: #e0f2fe;
+}
+
+body[data-theme="aqua"] .karma-no-spend-warn {
+  color: #38bdf8 !important;
+}
+
 

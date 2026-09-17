@@ -9,6 +9,7 @@ scratch/
 node_modules/
 *.log
 *.metadata.json
+.system_generated/
 
 # Backups
 _backups/

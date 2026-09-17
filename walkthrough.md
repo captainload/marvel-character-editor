@@ -401,3 +401,22 @@ All unofficial entries have been purged from the catalog. The database has been 
    - 7 automated verification checks passing 100%: total count (56), valid TSR sources, absence of fan entries, category breakdown, alias resolution, HTML placeholder, and modal source badge.
 5. **`scratch/verify_all_catalogs.js`**:
    - Updated to assert exactly 56 talents. Passed 100%.
+
+---
+
+## 11. Cheat Sheet Modal Widening & Viewport Sizing
+
+### Overview
+The Rules Cheat Sheet and Universal Action Table pop-up modal (`#cheatsheet-modal`) has been expanded to optimize screen real estate for wide rules tables and multi-column combat matrices:
+- **Horizontal Bounds**: Widened to within **2px of the left and right tab sides** (`width: calc(100vw - 4px); max-width: calc(100vw - 4px);` with `padding-left: 2px; padding-right: 2px;`).
+- **Vertical Bounds**: Extended to within **10px of the top and bottom** of the viewport (`height: calc(100vh - 20px); max-height: calc(100vh - 20px);` with `padding-top: 10px; padding-bottom: 10px;`).
+
+### Changes Implemented
+1. **`styles.css`**:
+   - Styled `#cheatsheet-modal.modal-overlay` with `padding: 10px 2px;` to enforce precise 2px horizontal and 10px vertical margins.
+   - Styled `#cheatsheet-modal .modal-box, .modal-box.cheatsheet-modal-box` with `width: calc(100vw - 4px); max-width: calc(100vw - 4px); height: calc(100vh - 20px); max-height: calc(100vh - 20px); margin: 0 auto;`.
+   - Preserved `flex: 1; overflow-y: auto;` in `.modal-body` for smooth scrolling across all sub-tabs.
+2. **`index.html`**:
+   - Added `cheatsheet-modal-box` class to `<div class="modal-box large cheatsheet-modal-box">`.
+3. **Verification Suite**:
+   - Created [`scratch/test_cheatsheet_modal_sizing.js`](file:///C:/Users/admin/.gemini/antigravity/brain/90637841-9270-481f-944c-4ab42ceec14e/scratch/test_cheatsheet_modal_sizing.js) validating all 4 dimension tests passing with 100% success.

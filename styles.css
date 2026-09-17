@@ -1637,12 +1637,21 @@ select.field-input option {
   box-sizing: border-box;
 }
 
-/* Universal Table Grid & Rules Cheat Sheet (+2pp Typography: 12pt base, fixed 85vh height) */
-#cheatsheet-modal .modal-box {
-  width: 95vw;
-  max-width: 1060px;
-  height: 85vh;
-  max-height: 85vh;
+/* Universal Table Grid & Rules Cheat Sheet (+2pp Typography: 12pt base, widened to within 2px of tab sides and 10px of top and bottom) */
+#cheatsheet-modal.modal-overlay {
+  padding-left: 2px;
+  padding-right: 2px;
+  padding-top: 10px;
+  padding-bottom: 10px;
+}
+
+#cheatsheet-modal .modal-box,
+.modal-box.cheatsheet-modal-box {
+  width: calc(100vw - 4px);
+  max-width: calc(100vw - 4px);
+  height: calc(100vh - 20px);
+  max-height: calc(100vh - 20px);
+  margin: 0 auto;
   display: flex;
   flex-direction: column;
 }

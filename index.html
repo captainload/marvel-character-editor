@@ -1874,22 +1874,18 @@
             </div>
           </div>
 
-          <div style="font-weight: 700; color: var(--text-main); font-size: 11pt; border-bottom: 1px solid var(--border-color); padding-bottom: 6px; margin-top: 6px;">Tactical Movement & Area Grids</div>
-          <div>
-            <span class="field-label" style="margin-bottom: 6px; color: var(--text-muted);">Area Division Rule:</span>
-            <select id="option-area-division" class="field-input" style="min-height: 40px;">
-              <option value="standard">Standard Full Areas: 1 Area = 132 Feet (Default TSR Rules)</option>
-              <option value="quarter">Quarter Area Rule: 4 Quadrants of 33 Feet (33 ft / quadrant)</option>
-              <option value="six">Six Subareas Rule: 6 Squares of 22 Feet (22 ft / subarea)</option>
-            </select>
-            <div style="color: var(--text-muted); font-size: 10pt; margin-top: 6px; line-height: 1.5;">
-              Divides standard area squares into smaller tactical units for battle-mats and miniatures:
-              <br>• <strong>Quarter Area:</strong> 4 quadrants of 33 ft each (2&times;2 sub-grid per area).
-              <br>• <strong>Six Subareas:</strong> 6 squares of 22 ft each (2&times;3 sub-grid per area).
-            </div>
-          </div>
+          <div style="font-weight: 700; color: var(--text-main); font-size: 11pt; border-bottom: 1px solid var(--border-color); padding-bottom: 6px; margin-top: 6px;">House Rules</div>
 
-          <div style="font-weight: 700; color: var(--text-main); font-size: 11pt; border-bottom: 1px solid var(--border-color); padding-bottom: 6px; margin-top: 6px;">Resource &amp; Economy Rules</div>
+          <label class="checkbox-label" style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer;">
+            <input type="checkbox" id="option-power-adjustment" style="margin-top: 3px;">
+            <div>
+              <strong style="color: var(--text-main);">Enable "Power Adjustment" House Rule</strong>
+              <div style="color: var(--text-muted); font-size: 10pt; margin-top: 2px; line-height: 1.4;">
+                Allows trading rank-based statistics within a single power (e.g. +1 CS Range for -1 CS Intensity). Free at character creation or for &plusmn;1 CS shifts in active play; shifts of &gt;1 CS cost 100 KP per extra column shifted. Ranks cannot exceed Amazing (AM) or drop below Feeble (FE). Click any power title to adjust.
+              </div>
+            </div>
+          </label>
+
           <label class="checkbox-label" style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer;">
             <input type="checkbox" id="option-resource-points" style="margin-top: 3px;">
             <div>
@@ -1900,9 +1896,8 @@
             </div>
           </label>
 
-          <div style="font-weight: 700; color: var(--text-main); font-size: 11pt; border-bottom: 1px solid var(--border-color); padding-bottom: 6px; margin-top: 6px;">Universal Action Table &amp; Rank System</div>
           <div>
-            <span class="field-label" style="margin-bottom: 6px; color: var(--text-muted);">Action Table Matrix &amp; Ranks:</span>
+            <span class="field-label" style="margin-bottom: 6px; color: var(--text-muted);">Universal Action Table &amp; Rank System:</span>
             <select id="option-universal-table" class="field-input" style="min-height: 40px;">
               <option value="standard">Standard TSR Universal Table (Canonical 18 Ranks)</option>
               <option value="cmf">Modified CMF Universal Table &amp; Ranks (22 Expanded Ranks: +Fantastic, Spectacular, Sensational, Awesome)</option>
@@ -1914,16 +1909,19 @@
             </div>
           </div>
 
-          <div style="font-weight: 700; color: var(--text-main); font-size: 11pt; border-bottom: 1px solid var(--border-color); padding-bottom: 6px; margin-top: 6px;">Power House Rules</div>
-          <label class="checkbox-label" style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer;">
-            <input type="checkbox" id="option-power-adjustment" style="margin-top: 3px;">
-            <div>
-              <strong style="color: var(--text-main);">Enable "Power Adjustment" House Rule</strong>
-              <div style="color: var(--text-muted); font-size: 10pt; margin-top: 2px; line-height: 1.4;">
-                Allows trading rank-based statistics within a single power (e.g. +1 CS Range for -1 CS Intensity). Free at character creation or for &plusmn;1 CS shifts in active play; shifts of &gt;1 CS cost 100 KP per extra column shifted. Ranks cannot exceed Amazing (AM) or drop below Feeble (FE). Click any power title to adjust.
-              </div>
+          <div>
+            <span class="field-label" style="margin-bottom: 6px; color: var(--text-muted);">Tactical Movement Area Division:</span>
+            <select id="option-area-division" class="field-input" style="min-height: 40px;">
+              <option value="standard">Standard Full Areas: 1 Area = 132 Feet (Default TSR Rules)</option>
+              <option value="quarter">Quarter Area Rule: 4 Quadrants of 33 Feet (33 ft / quadrant)</option>
+              <option value="six">Six Subareas Rule: 6 Squares of 22 Feet (22 ft / subarea)</option>
+            </select>
+            <div style="color: var(--text-muted); font-size: 10pt; margin-top: 6px; line-height: 1.5;">
+              Divides standard area squares into smaller tactical units for battle-mats and miniatures:
+              <br>• <strong>Quarter Area:</strong> 4 quadrants of 33 ft each (2&times;2 sub-grid per area).
+              <br>• <strong>Six Subareas:</strong> 6 squares of 22 ft each (2&times;3 sub-grid per area).
             </div>
-          </label>
+          </div>
         </div>
       </div>
       <div class="modal-footer">

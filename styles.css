@@ -885,20 +885,82 @@ select.field-input option {
   font-weight: 700;
 }
 
-/* Equipment Store Large Modal Pop-up (Widened to within 2px of left and right borders) */
+/* Equipment Store Large Modal Pop-up (Reaches within 2px of top, bottom, left and right borders) */
 #equipment-store-modal.modal-overlay {
-  padding-left: 2px;
-  padding-right: 2px;
+  padding: 2px;
 }
 
 .modal-box.store-modal-box {
   width: calc(100vw - 4px);
   max-width: calc(100vw - 4px);
   margin: 0 auto;
-  height: 85vh;
-  max-height: 85vh;
+  height: calc(100vh - 4px);
+  max-height: calc(100vh - 4px);
   display: flex;
   flex-direction: column;
+}
+
+/* Equipment Store Top Resource Status Badge */
+.store-resource-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  font-size: 10.5pt;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.store-resource-badge .res-rank-highlight {
+  color: var(--marvel-gold);
+}
+
+.store-resource-badge .res-points-highlight {
+  color: #38bdf8;
+}
+
+.store-resource-badge .res-spent-highlight {
+  color: #f87171;
+}
+
+/* Background Tab Financial Resources & Points Ledger */
+.financial-card {
+  margin-top: 14px;
+}
+
+.financial-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.financial-stat-box {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.financial-stat-label {
+  font-size: 10pt;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+}
+
+.financial-stat-value {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: var(--text-main);
 }
 
 .store-filter-btn {
@@ -3860,9 +3922,27 @@ body[data-theme="manilla"] ::placeholder {
   color: #475569;
 }
 
-body[data-theme="manilla"] :disabled {
-  color: #475569;
-  border-color: #c2bcaf;
+body[data-theme="manilla"] .store-resource-badge {
+  background: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  color: #0f172a !important;
+}
+
+body[data-theme="manilla"] .store-resource-badge .res-rank-highlight {
+  color: #b91c1c !important;
+}
+
+body[data-theme="manilla"] .store-resource-badge .res-points-highlight {
+  color: #0369a1 !important;
+}
+
+body[data-theme="manilla"] .store-resource-badge .res-spent-highlight {
+  color: #b91c1c !important;
+}
+
+body[data-theme="manilla"] .financial-stat-box {
+  background: #ffffff !important;
+  border-color: #cbd5e1 !important;
 }
 
 /* 3. Aqua Theme (Rich Dark Blues, Sea Greens, Cyans - No Blacks) */
@@ -4189,6 +4269,29 @@ body[data-theme="aqua"] .store-desc-popover {
   color: #e0f2fe;
   border-color: #00f0ff;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.7);
+}
+
+body[data-theme="aqua"] .store-resource-badge {
+  background: #183e6a !important;
+  border-color: #23588e !important;
+  color: #f0fdfa !important;
+}
+
+body[data-theme="aqua"] .store-resource-badge .res-rank-highlight {
+  color: #22d3ee !important;
+}
+
+body[data-theme="aqua"] .store-resource-badge .res-points-highlight {
+  color: #38bdf8 !important;
+}
+
+body[data-theme="aqua"] .store-resource-badge .res-spent-highlight {
+  color: #f87171 !important;
+}
+
+body[data-theme="aqua"] .financial-stat-box {
+  background: #183e6a !important;
+  border-color: #23588e !important;
 }
 
 body[data-theme="aqua"] .filter-pill {

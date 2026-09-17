@@ -66,6 +66,8 @@ class FASERIPCharacter {
     this.resources = this.initAbility(initialData.resources || 'Typical');
     this.basePopularity = parseInt(initialData.basePopularity ?? 10);
     this.currentPopularity = parseInt(initialData.currentPopularity ?? this.basePopularity);
+    this.spentResourcePoints = parseInt(initialData.spentResourcePoints ?? 0);
+    this.useResourcePoints = initialData.useResourcePoints !== undefined ? !!initialData.useResourcePoints : false;
 
     // Health & Karma
     this.manualMaxHealth = initialData.manualMaxHealth || null;
@@ -665,6 +667,33 @@ class FASERIPCharacter {
   }
 
   /**
+   * Resource Points Rule:
+   * Monthly budget = 4 * Resource Number (rank value).
+   * Equipment costs equal rank value.
+   */
+  getResourcePointsBudget() {
+    const rankVal = (this.resources && this.resources.rankValue !== undefined)
+      ? this.resources.rankValue
+      : (UniversalTableEngine.getRankByName(this.resources?.rankName || 'Typical')?.num || 6);
+    return rankVal * 4;
+  }
+
+  getAvailableResourcePoints() {
+    return Math.max(0, this.getResourcePointsBudget() - (this.spentResourcePoints || 0));
+  }
+
+  spendResourcePoints(points) {
+    const p = Math.max(0, parseInt(points) || 0);
+    this.spentResourcePoints = (this.spentResourcePoints || 0) + p;
+    return this.getAvailableResourcePoints();
+  }
+
+  resetMonthlyResourcePoints() {
+    this.spentResourcePoints = 0;
+    return this.getResourcePointsBudget();
+  }
+
+  /**
    * Calculates Advancement Cost and Required Training Time.
    * Standard MSH / CMF: cost = 10 * (New Rank Number - Old Rank Number).
    * USER SPECIFICATION: Training time = ranks added in days.
@@ -1168,6 +1197,8 @@ class FASERIPCharacter {
       abilities: this.abilities,
       individualAbilities: this.individualAbilities,
       resources: this.resources,
+      spentResourcePoints: this.spentResourcePoints || 0,
+      useResourcePoints: !!this.useResourcePoints,
       basePopularity: this.basePopularity,
       currentPopularity: this.currentPopularity,
       manualMaxHealth: this.manualMaxHealth,

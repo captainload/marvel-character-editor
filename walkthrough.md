@@ -518,4 +518,58 @@ Addressed user feedback:
   - Theme-aware dice roller results.
 - All regression suites (`test_contrast_fixes.js`, `test_cheatsheet_modal_sizing.js`, `test_store_enhancements.js`, `test_tsr_talents_only.js`, `verify_all_catalogs.js`) pass with 100% success.
 
+---
+
+## 14. Resource Points Rule Option & Equipment Store Modal Expansion (September 2026)
+
+### Key Enhancements
+
+1. **Equipment Store Modal 2px Border Expansion**:
+   - Expanded `#equipment-store-modal.modal-overlay` from `padding-left: 2px; padding-right: 2px;` to uniform `padding: 2px;`.
+   - Updated `.modal-box.store-modal-box` from `height: 85vh; max-height: 85vh;` to `height: calc(100vh - 4px); max-height: calc(100vh - 4px);`.
+   - The Equipment Store modal now fills the viewport with exact 2px margins on all 4 sides (top, bottom, left, and right).
+
+2. **"Resource Points" Rule Option**:
+   - **Configuration & Persistence**: Added a dedicated checkbox toggle `<input type="checkbox" id="option-resource-points">` in the Options modal under **"Resource & Economy Rules"**, persisted in `localStorage` (`msh_option_resource_points`) and saved directly onto the character model (`character.useResourcePoints`).
+   - **Monthly Budget Calculation**: Under the rule, monthly purchasing power is equal to **4 &times; Resource Number** (`character.getResourcePointsBudget()`):
+     - Feeble (2) $\to$ 8 RP / month
+     - Poor (4) $\to$ 16 RP / month
+     - Typical (6) $\to$ 24 RP / month
+     - Good (10) $\to$ 40 RP / month
+     - Excellent (20) $\to$ 80 RP / month
+     - Remarkable (30) $\to$ 120 RP / month
+     - Incredible (40) $\to$ 160 RP / month
+     - Amazing (50) $\to$ 200 RP / month
+     - Monstrous (75) $\to$ 300 RP / month
+     - Unearthly (100) $\to$ 400 RP / month
+   - **Rank-Based Equipment Costs**: Equipment items cost Resource Points equal to their rank value (e.g., Poor item = 4 RP, Good item = 10 RP, Remarkable item = 30 RP; Black Market items reflect the +1CS marked-up rank value).
+
+3. **Background Tab Tracking & Side-by-Side Resource Rank**:
+   - Added a dedicated card **"💰 Financial Resources & Monthly Resource Points"** to Tab 6 (Background).
+   - Prominently displays the character's **Resource Rank** (`Typical (6)`) directly next to the Resource Points ledger, complete with an interactive selector synchronized with the Main Stats tab.
+   - Real-time ledger tracks:
+     - **Resource Rank** and numerical value
+     - **Monthly RP Budget (4&times;)**
+     - **Spent This Month** (auto-deducted on purchase, with manual override input)
+     - **Available Remaining RP** (color-coded green/red)
+     - **🔄 Reset for New Month** action button to restore points to full budget
+     - Mode badge and explanatory text adapting dynamically based on whether the Resource Points rule is active.
+
+4. **Equipment Store Header Integration**:
+   - Added `#store-resource-status-badge` to the Equipment Store modal header.
+   - When Resource Points rule is enabled: displays `Resources: [Rank] ([Num]) • Available: [Avail] / [Budget] RP (Spent: [Spent] RP)` in real-time.
+   - When Resource Points rule is disabled: displays `Resources: [Rank] ([Num])`.
+   - Store item table dynamically displays the item's RP cost (e.g. `Typ (6) • 6 RP`) alongside the rank badge.
+   - The Procurement Modal provides a 1-click `💳 Spend [Cost] RP & Acquire Item` button when points are sufficient, or displays a deficit warning with GM loan waiver override when points are insufficient.
+
+### Automated Verification
+- Created [`scratch/test_resource_points_rule.js`](file:///C:/Users/admin/.gemini/antigravity/brain/90637841-9270-481f-944c-4ab42ceec14e/scratch/test_resource_points_rule.js):
+  - Validated 2px modal sizing on top, bottom, left, and right in `styles.css`.
+  - Validated $4\times$ budget math across all ranks, spending point deduction, month reset, and JSON serialization in `character_model.js`.
+  - Validated UI elements in `index.html` (Options toggle, Background financial card, Store header badge).
+  - Validated procurement evaluation (`rp_affordable`, `rp_insufficient`) and automatic point deduction in `app.js`.
+- Ran full regression suites (`test_tsr_talents_only.js`, `test_cheatsheet_contrast_and_stability.js`, `verify_all_catalogs.js`, `test_contrast_fixes.js`): All 100% passing.
+- Verified Google Drive mirror synchronization with identical SHA256 hashes across all modified files.
+
+
 

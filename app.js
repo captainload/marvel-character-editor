@@ -384,7 +384,22 @@ const App = {
     // Talents & Contacts Buttons
     const addTalentBtn = document.getElementById('btn-add-talent');
     if (addTalentBtn) {
-      addTalentBtn.addEventListener('click', () => this.handleAddTalent());
+      addTalentBtn.addEventListener('click', (e) => this.handleAddTalent(e));
+    }
+
+    const selectTalentCat = document.getElementById('select-talent-catalog');
+    if (selectTalentCat) {
+      selectTalentCat.addEventListener('change', () => this.updateTalentSpecializationInput());
+    }
+
+    const inputTalentSpec = document.getElementById('input-talent-specialization');
+    if (inputTalentSpec) {
+      inputTalentSpec.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          this.handleAddTalent(e);
+        }
+      });
     }
 
     const addContactBtn = document.getElementById('btn-add-contact');
@@ -1727,6 +1742,7 @@ const App = {
     const tSel = document.getElementById('select-talent-catalog');
     if (!tSel || !globalThis.MSH_TALENTS) return;
 
+    const previousVal = tSel.value;
     const q = (filterText || '').toLowerCase().trim();
     const filtered = q ? globalThis.MSH_TALENTS.filter(t => 
       t.name.toLowerCase().includes(q) || 
@@ -1741,15 +1757,74 @@ const App = {
       groups[g].push(t);
     });
 
+    const learnedTalents = (this.character && Array.isArray(this.character.talents)) ? this.character.talents : [];
+
     let html = '';
+    let firstSelectable = null;
+
     for (const grp in groups) {
       html += `<optgroup label="${grp}">`;
-      html += groups[grp].map(t => 
-        `<option value="${t.id || t.name}">${t.name} (${t.bonus})</option>`
-      ).join('');
+      html += groups[grp].map(t => {
+        const isStarred = !!t.isStarred;
+        const starPrefix = isStarred ? '⭐ ' : '';
+        const starName = `${t.name}${isStarred ? '*' : ''}`;
+        const slotsText = isStarred ? '2 Slots' : '1 Slot';
+        const costText = `${t.costCP || (isStarred ? 20 : 10)} CP`;
+        const allowsSpec = !!t.allowsSpecialization;
+
+        // Count how many times this talent is already learned
+        const matchingLearned = learnedTalents.filter(lt => 
+          (t.id && (lt.talentId === t.id || lt.id === t.id)) ||
+          (lt.name && lt.name.toLowerCase() === t.name.toLowerCase())
+        );
+        const learnedCount = matchingLearned.length;
+
+        if (!allowsSpec && learnedCount > 0) {
+          // Cannot be duplicated
+          return `<option value="${t.id || t.name}" disabled style="opacity: 0.5;">${starPrefix}${starName} (${slotsText}, ${costText}) [Already Learned]</option>`;
+        } else if (allowsSpec && learnedCount > 0) {
+          // Can be learned multiple times with different specializations
+          if (!firstSelectable) firstSelectable = t.id || t.name;
+          return `<option value="${t.id || t.name}">${starPrefix}${starName} (${slotsText}, ${costText}) [${learnedCount} learned - Add Specialty]</option>`;
+        } else {
+          if (!firstSelectable) firstSelectable = t.id || t.name;
+          return `<option value="${t.id || t.name}">${starPrefix}${starName} (${slotsText}, ${costText})</option>`;
+        }
+      }).join('');
       html += `</optgroup>`;
     }
     tSel.innerHTML = html;
+
+    // Preserve previous selection if still available and enabled
+    if (previousVal && tSel.querySelector(`option[value="${previousVal}"]:not([disabled])`)) {
+      tSel.value = previousVal;
+    } else if (firstSelectable) {
+      tSel.value = firstSelectable;
+    }
+
+    this.updateTalentSpecializationInput();
+  },
+
+  updateTalentSpecializationInput() {
+    const tSel = document.getElementById('select-talent-catalog');
+    const specRow = document.getElementById('talent-specialization-row');
+    const specInput = document.getElementById('input-talent-specialization');
+    const specHelp = document.getElementById('talent-specialization-help');
+    if (!tSel || !specRow || !specInput) return;
+
+    const val = tSel.value;
+    const catTalent = (globalThis.MSH_TALENTS || []).find(t => (t.id && t.id === val) || t.name === val);
+
+    if (catTalent && catTalent.allowsSpecialization) {
+      specRow.style.display = 'block';
+      specInput.placeholder = catTalent.specPlaceholder || 'Specify specialization...';
+      if (specHelp) {
+        specHelp.textContent = `Specify the exact specialization (e.g. ${catTalent.specPlaceholder || 'weapon, language, or branch'}) for this talent.`;
+      }
+    } else {
+      specRow.style.display = 'none';
+      specInput.value = '';
+    }
   },
 
   updateStoreClearancesUI() {
@@ -3876,33 +3951,87 @@ const App = {
 
   renderTalents() {
     const container = document.getElementById('talents-container');
+    const slotsBadge = document.getElementById('talents-slots-badge');
+    const cardTitle = document.getElementById('talents-card-title');
+
+    const totalSlots = this.character.getTotalTalentSlots ? this.character.getTotalTalentSlots() : this.character.talents.length;
+    const totalCP = (this.character.talents || []).reduce((sum, t) => sum + (t.costCP !== undefined ? t.costCP : (t.isStarred ? 20 : 10)), 0);
+
+    if (slotsBadge) {
+      slotsBadge.textContent = `${totalSlots} Slot${totalSlots === 1 ? '' : 's'} (${totalCP} CP)`;
+    }
+    if (cardTitle) {
+      cardTitle.textContent = `🥋 Talents & Skills (${this.character.talents.length} Learned · ${totalSlots} Slots)`;
+    }
+
     if (container) {
       container.innerHTML = '';
       this.character.talents.forEach((t, idx) => {
         const card = document.createElement('div');
         card.className = 'attack-card';
+        const isStarred = !!t.isStarred;
+        const slots = t.slots || (isStarred ? 2 : 1);
+        const costCP = t.costCP !== undefined ? t.costCP : (isStarred ? 20 : 10);
+        const allowsSpec = !!t.allowsSpecialization;
+
         card.innerHTML = `
           <div class="attack-header">
-            <div style="display: flex; align-items: center; gap: 6px;">
+            <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
               <button type="button" class="help-circle-btn" data-help-talent="${t.name}" title="View details for ${t.name}">?</button>
-              <strong style="color: #38bdf8; font-size: 11pt;">${t.name}</strong>
+              <strong style="color: #38bdf8; font-size: 11pt;">${t.name}${isStarred ? '*' : ''}</strong>
+              ${isStarred ? `<span class="meta-tag tag-starred">⭐ Starred (2 Slots)</span>` : `<span class="meta-tag" style="font-size: 8pt;">1 Slot</span>`}
             </div>
             <div style="display: flex; gap: 8px; align-items: center;">
-              <span class="meta-tag" style="color: var(--marvel-gold);">15 CP</span>
-              <button class="icon-btn" style="padding: 2px 8px; min-height: 28px; background: #881337;" data-del-talent="${idx}">✕</button>
+              <span class="meta-tag" style="color: var(--marvel-gold); font-weight: 700;">${costCP} CP</span>
+              <button class="icon-btn" style="padding: 2px 8px; min-height: 28px; background: #881337;" data-del-talent="${idx}" title="Remove Talent">✕</button>
             </div>
           </div>
-          <div style="color: var(--text-muted); font-size: 10pt;">${t.description}</div>
+          ${allowsSpec ? `
+            <div style="margin: 6px 0; display: flex; align-items: center; gap: 8px;">
+              <span class="talent-spec-label" style="font-size: 8.5pt;">Specialty:</span>
+              <input type="text" class="field-input inline-spec-input" data-spec-idx="${idx}" value="${t.specialization ? t.specialization.replace(/"/g, '&quot;') : ''}" placeholder="${t.specPlaceholder ? t.specPlaceholder.replace(/"/g, '&quot;') : 'Enter specialization...'}" style="min-height: 28px; font-size: 9pt; padding: 2px 8px; flex: 1;">
+            </div>
+          ` : ''}
+          <div style="color: var(--text-muted); font-size: 10pt; line-height: 1.4;">${t.description}</div>
         `;
 
         card.querySelector('[data-help-talent]').addEventListener('click', () => {
-          this.showHelpModal('talent', t.name);
+          this.showHelpModal('talent', t.talentId || t.name);
         });
 
-        card.querySelector('[data-del-talent]').addEventListener('click', () => {
-          this.character.talents.splice(idx, 1);
+        if (allowsSpec) {
+          const specInput = card.querySelector('.inline-spec-input');
+          if (specInput) {
+            const commitSpec = () => {
+              const res = this.character.updateTalentSpecialization(idx, specInput.value);
+              if (!res.success) {
+                this.showCustomAlert(res.error, 'Invalid Specialization');
+                specInput.value = t.specialization || '';
+              } else {
+                this.saveState();
+                this.renderAttacks();
+                this.renderTalentDropdown();
+              }
+            };
+            specInput.addEventListener('change', commitSpec);
+            specInput.addEventListener('keydown', (e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                commitSpec();
+                specInput.blur();
+              }
+            });
+          }
+        }
+
+        card.querySelector('[data-del-talent]').addEventListener('click', (ev) => {
+          const res = this.character.removeTalent(idx);
           this.saveState();
           this.render();
+          this.renderTalentDropdown();
+          if (res.restoredResources) {
+            this.showCustomAlert(`Heir to Fortune removed. Resources restored to ${res.restoredResources.rankName} (${res.restoredResources.rankValue}).`, 'Resources Restored', ev);
+          }
         });
 
         container.appendChild(card);
@@ -3937,21 +4066,56 @@ const App = {
     }
   },
 
-  handleAddTalent() {
-    const talentQuery = document.getElementById('select-talent-catalog').value;
-    const catTalent = globalThis.MSH_TALENTS.find(t => t.id === talentQuery || t.name === talentQuery);
+  handleAddTalent(mouseEvent = null) {
+    const tSel = document.getElementById('select-talent-catalog');
+    if (!tSel) return;
+    const talentQuery = tSel.value;
+    const catTalent = (globalThis.MSH_TALENTS || []).find(t => t.id === talentQuery || t.name === talentQuery);
     if (!catTalent) return;
 
-    this.character.talents.push({
-      id: 't_' + Date.now(),
+    const specInput = document.getElementById('input-talent-specialization');
+    const specialization = (specInput ? specInput.value : '').trim();
+
+    // If talent allows specialization, user must provide a specialization
+    if (catTalent.allowsSpecialization && !specialization) {
+      this.showCustomAlert(`Please specify a specialization for "${catTalent.name}" (e.g. ${catTalent.specPlaceholder || 'specific weapon, vehicle, or field'}) before adding.`, 'Specialization Required', mouseEvent);
+      if (specInput) specInput.focus();
+      return;
+    }
+
+    const result = this.character.addTalent({
+      talentId: catTalent.id,
       name: catTalent.name,
       category: catTalent.group || catTalent.category,
       description: catTalent.description,
-      csBonus: catTalent.bonus
+      statAffected: catTalent.statAffected,
+      csBonus: catTalent.bonus || catTalent.csBonus,
+      isStarred: catTalent.isStarred,
+      slots: catTalent.slots,
+      costCP: catTalent.costCP,
+      allowsSpecialization: catTalent.allowsSpecialization,
+      specPlaceholder: catTalent.specPlaceholder,
+      minResourcesRank: catTalent.minResourcesRank,
+      minResourcesRankValue: catTalent.minResourcesRankValue,
+      specialization: specialization
     });
+
+    if (!result.success) {
+      this.showCustomAlert(result.error, 'Cannot Add Talent', mouseEvent);
+      return;
+    }
+
+    if (specInput) {
+      specInput.value = '';
+    }
 
     this.saveState();
     this.render();
+    this.renderTalentDropdown();
+
+    if (result.elevatedResources) {
+      this.showCustomAlert(`Heir to Fortune added! Your Resources have been elevated to Remarkable (30) (minimum required by Heir to Fortune).`, 'Resources Elevated', mouseEvent);
+    }
   },
 
   handleAddContact() {
@@ -4868,18 +5032,34 @@ const App = {
                 talents.find(x => x.name && q.includes(x.name.toLowerCase()));
 
       if (t) {
-        title = `🥋 ${t.name}`;
+        const isStarred = !!t.isStarred;
+        title = `🥋 ${t.name}${isStarred ? '*' : ''}`;
         content = `
           <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px;">
             <span class="meta-tag" style="color: var(--marvel-gold); font-weight:700;">Group: ${t.group || t.category || 'General'}</span>
-            <span class="meta-tag">Cost: ${t.costCP || 10} CP</span>
+            <span class="meta-tag">Cost: ${t.costCP || (isStarred ? 20 : 10)} CP</span>
+            ${isStarred ? `<span class="meta-tag tag-starred">⭐ Starred (2 Slots)</span>` : `<span class="meta-tag">1 Slot</span>`}
+            ${t.allowsSpecialization ? `<span class="meta-tag" style="color: #38bdf8; border-color: rgba(56, 189, 248, 0.4);">🎯 Allows Multiple Specialties</span>` : ''}
+            ${t.minResourcesRank ? `<span class="meta-tag" style="color: #4ade80; border-color: rgba(74, 222, 128, 0.4);">💰 Min Resources: ${t.minResourcesRank} (${t.minResourcesRankValue})</span>` : ''}
             ${t.bonus ? `<span class="meta-tag" style="color: #38bdf8;">Bonus: ${t.bonus}</span>` : ''}
             ${t.statAffected ? `<span class="meta-tag">Stat Affected: ${t.statAffected}</span>` : ''}
             <span class="meta-tag">Source: ${t.source || "Player's Book"}</span>
           </div>
+          ${isStarred ? `
+            <div class="calc-rule-callout starred-power-banner" style="margin-bottom: 12px;">
+              <strong class="starred-label-text">⭐ TSR Starred Talent (Player's Book p. 10, Table 8):</strong>
+              Talents marked with an asterisk (*) count as <strong>two talent slots</strong> and cost <strong>20 CP</strong> (instead of 10 CP).
+              ${t.minResourcesRank ? `<br><strong>Heir to Fortune Special Rule:</strong> Guarantees a minimum Resource rank of <strong>Remarkable (30)</strong>.` : ''}
+            </div>
+          ` : ''}
           <div class="rulebook-desc" style="margin: 12px 0; line-height: 1.6; font-size: 10.5pt;">
             ${t.description || 'Provides specialized proficiency and +1CS column shift to relevant FEATs.'}
           </div>
+          ${t.allowsSpecialization ? `
+            <div style="margin-top: 10px; padding: 8px 10px; background: rgba(56, 189, 248, 0.08); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 6px; font-size: 9.5pt;">
+              <strong style="color: #38bdf8;">Specialization Note:</strong> This talent may be acquired multiple times, provided each acquisition designates a unique specialization (e.g., <em>${t.specPlaceholder || 'specific field'}</em>).
+            </div>
+          ` : ''}
         `;
       } else {
         title = `🥋 Talent: ${queryKey}`;

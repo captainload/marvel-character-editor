@@ -144,13 +144,45 @@ class FASERIPCharacter {
     }) : [];
 
     // Talents
-    this.talents = Array.isArray(initialData.talents) ? initialData.talents.map(t => ({
-      id: t.id || 't_' + Date.now() + Math.random().toString(36).substr(2, 4),
-      name: t.name || 'Unnamed Talent',
-      category: t.category || 'General',
-      description: t.description || '',
-      csBonus: t.csBonus || {}
-    })) : [];
+    this.talents = Array.isArray(initialData.talents) ? initialData.talents.map(t => {
+      const talentId = t.talentId || t.id;
+      const catalogTalent = (globalThis.MSH_TALENTS || []).find(ct => 
+        (talentId && ct.id === talentId) ||
+        (t.id && (ct.id === t.id || (globalThis.TALENTS_BY_ID && globalThis.TALENTS_BY_ID[t.id]?.id === ct.id))) ||
+        (t.name && ct.name.toLowerCase() === t.name.toLowerCase())
+      ) || (globalThis.TALENTS_BY_ID && talentId && globalThis.TALENTS_BY_ID[talentId]) || null;
+
+      const isStarred = !!(t.isStarred || (catalogTalent && catalogTalent.isStarred));
+      const slots = t.slots || (catalogTalent && catalogTalent.slots) || (isStarred ? 2 : 1);
+      const costCP = t.costCP !== undefined ? t.costCP : ((catalogTalent && catalogTalent.costCP !== undefined) ? catalogTalent.costCP : (isStarred ? 20 : 10));
+      const allowsSpecialization = !!(t.allowsSpecialization || (catalogTalent && catalogTalent.allowsSpecialization));
+      const specPlaceholder = t.specPlaceholder || (catalogTalent && catalogTalent.specPlaceholder) || '';
+      const minResourcesRank = t.minResourcesRank || (catalogTalent && catalogTalent.minResourcesRank) || null;
+      const minResourcesRankValue = t.minResourcesRankValue !== undefined ? t.minResourcesRankValue : (catalogTalent ? catalogTalent.minResourcesRankValue : null);
+      const specialization = (t.specialization || '').trim();
+      const baseName = t.name || (catalogTalent ? catalogTalent.name : 'Unnamed Talent');
+      const displayName = t.displayName || (specialization ? `${baseName} (${specialization})` : baseName);
+
+      return {
+        id: t.id || 't_' + Date.now() + Math.random().toString(36).substr(2, 4),
+        talentId: t.talentId || (catalogTalent ? catalogTalent.id : null),
+        name: baseName,
+        displayName: displayName,
+        category: t.category || (catalogTalent ? (catalogTalent.group || catalogTalent.category) : 'General'),
+        description: t.description || (catalogTalent ? catalogTalent.description : ''),
+        statAffected: t.statAffected || (catalogTalent ? catalogTalent.statAffected : ''),
+        csBonus: t.csBonus !== undefined ? t.csBonus : (catalogTalent ? (catalogTalent.bonus || catalogTalent.csBonus) : null),
+        isStarred: isStarred,
+        slots: slots,
+        costCP: costCP,
+        allowsSpecialization: allowsSpecialization,
+        specialization: specialization,
+        specPlaceholder: specPlaceholder,
+        minResourcesRank: minResourcesRank,
+        minResourcesRankValue: minResourcesRankValue,
+        priorResources: t.priorResources || null
+      };
+    }) : [];
 
     // Contacts
     this.contacts = Array.isArray(initialData.contacts) ? [...initialData.contacts] : [];
@@ -529,7 +561,7 @@ class FASERIPCharacter {
       powersTotal += baseCost + (p.rankValue * rankMultiplier);
     });
 
-    const talentsTotal = this.talents.length * 15;
+    const talentsTotal = this.talents.reduce((sum, t) => sum + (t.costCP !== undefined ? t.costCP : (t.isStarred ? 20 : 10)), 0);
     const contactsTotal = this.contacts.length * 5;
     const resourcesTotal = this.resources.rankValue || 0;
 
@@ -557,6 +589,14 @@ class FASERIPCharacter {
    */
   getTotalPowerSlots() {
     return this.powers.reduce((sum, p) => sum + (p.powerSlots || (p.isStarred ? 2 : 1)), 0);
+  }
+
+  /**
+   * Calculates total talent slots allocated across all active talents.
+   * Starred talents count as 2 slots each.
+   */
+  getTotalTalentSlots() {
+    return this.talents.reduce((sum, t) => sum + (t.slots || (t.isStarred ? 2 : 1)), 0);
   }
 
   /**
@@ -662,8 +702,170 @@ class FASERIPCharacter {
 
   setResourceRank(rankName) {
     const r = UniversalTableEngine.getRankByName(rankName);
+    const hasHeir = (this.talents || []).some(t => 
+      t.id === 't_other_heir' || t.talentId === 't_other_heir' || (t.name && t.name.toLowerCase().includes('heir to fortune'))
+    );
+    if (hasHeir && r.num < 30) {
+      const remRank = UniversalTableEngine.getRankByName('Remarkable');
+      this.resources.rankName = remRank.name;
+      this.resources.rankValue = remRank.num;
+      return;
+    }
     this.resources.rankName = r.name;
     this.resources.rankValue = r.num;
+  }
+
+  /**
+   * Adds a talent to the character with validation for duplicates and specializations.
+   * Also enforces Heir to Fortune minimum Resources (Remarkable 30).
+   */
+  addTalent(talentData) {
+    if (!talentData) return { success: false, error: 'No talent data provided.' };
+
+    const talentId = talentData.talentId || talentData.id;
+    const catTalent = (globalThis.MSH_TALENTS || []).find(ct => 
+      (talentId && ct.id === talentId) ||
+      (talentData.name && ct.name.toLowerCase() === talentData.name.toLowerCase())
+    ) || (globalThis.TALENTS_BY_ID && talentId && globalThis.TALENTS_BY_ID[talentId]) || null;
+
+    const baseName = talentData.name || (catTalent ? catTalent.name : 'Unnamed Talent');
+    const isStarred = !!(talentData.isStarred || (catTalent && catTalent.isStarred));
+    const slots = talentData.slots || (catTalent && catTalent.slots) || (isStarred ? 2 : 1);
+    const costCP = talentData.costCP !== undefined ? talentData.costCP : ((catTalent && catTalent.costCP !== undefined) ? catTalent.costCP : (isStarred ? 20 : 10));
+    const allowsSpecialization = !!(talentData.allowsSpecialization || (catTalent && catTalent.allowsSpecialization));
+    const specPlaceholder = talentData.specPlaceholder || (catTalent && catTalent.specPlaceholder) || '';
+    const minResourcesRank = talentData.minResourcesRank || (catTalent && catTalent.minResourcesRank) || null;
+    const minResourcesRankValue = talentData.minResourcesRankValue !== undefined ? talentData.minResourcesRankValue : (catTalent ? catTalent.minResourcesRankValue : null);
+    const specialization = (talentData.specialization || '').trim();
+
+    if (allowsSpecialization && !specialization) {
+      return { 
+        success: false, 
+        error: `Please specify a specialization for "${baseName}" (e.g. ${specPlaceholder || 'specific specialty'}).` 
+      };
+    }
+
+    // Check duplicate rules
+    const existing = this.talents.filter(t => 
+      (talentId && (t.talentId === talentId || t.id === talentId)) ||
+      (t.name.toLowerCase() === baseName.toLowerCase())
+    );
+
+    if (existing.length > 0) {
+      if (!allowsSpecialization) {
+        return { 
+          success: false, 
+          error: `Talent "${baseName}" is already learned. Duplicate talents are not permitted unless the talent allows different specializations.` 
+        };
+      }
+      // Allows specialization: check if identical specialization already exists
+      const duplicateSpec = existing.find(t => (t.specialization || '').toLowerCase() === specialization.toLowerCase());
+      if (duplicateSpec) {
+        return { 
+          success: false, 
+          error: specialization 
+            ? `You already have ${baseName} with specialization "${specialization}". Each instance must have a different specialization.` 
+            : `You already have ${baseName} with an unspecified specialization. Please specify a unique specialization.` 
+        };
+      }
+    }
+
+    let priorResources = null;
+    // Heir to Fortune minimum Resources check
+    const isHeir = talentId === 't_other_heir' || baseName.toLowerCase().includes('heir to fortune');
+    if (isHeir) {
+      const currentResVal = this.resources?.rankValue || 0;
+      if (currentResVal < 30) {
+        priorResources = {
+          rankName: this.resources.rankName,
+          rankValue: this.resources.rankValue
+        };
+        const remRank = UniversalTableEngine.getRankByName('Remarkable');
+        this.resources.rankName = remRank.name;
+        this.resources.rankValue = remRank.num;
+      }
+    }
+
+    const newTalent = {
+      id: talentData.id || 't_' + Date.now() + Math.random().toString(36).substr(2, 4),
+      talentId: talentId || (catTalent ? catTalent.id : null),
+      name: baseName,
+      displayName: specialization ? `${baseName} (${specialization})` : baseName,
+      category: talentData.category || (catTalent ? (catTalent.group || catTalent.category) : 'General'),
+      description: talentData.description || (catTalent ? catTalent.description : ''),
+      statAffected: talentData.statAffected || (catTalent ? catTalent.statAffected : ''),
+      csBonus: talentData.csBonus !== undefined ? talentData.csBonus : (catTalent ? (catTalent.bonus || catTalent.csBonus) : null),
+      isStarred: isStarred,
+      slots: slots,
+      costCP: costCP,
+      allowsSpecialization: allowsSpecialization,
+      specialization: specialization,
+      specPlaceholder: specPlaceholder,
+      minResourcesRank: minResourcesRank,
+      minResourcesRankValue: minResourcesRankValue,
+      priorResources: priorResources
+    };
+
+    this.talents.push(newTalent);
+    return { success: true, talent: newTalent, elevatedResources: !!priorResources };
+  }
+
+  /**
+   * Removes a talent by index and restores Resources if Heir to Fortune elevated them.
+   */
+  removeTalent(index) {
+    if (index < 0 || index >= this.talents.length) return { success: false, error: 'Invalid talent index.' };
+    const removed = this.talents[index];
+    this.talents.splice(index, 1);
+
+    let restoredResources = null;
+    if (removed.priorResources) {
+      const hasOtherHeir = this.talents.some(t => 
+        t.talentId === 't_other_heir' || t.id === 't_other_heir' || t.name.toLowerCase().includes('heir to fortune')
+      );
+      if (!hasOtherHeir) {
+        restoredResources = { ...removed.priorResources };
+        this.resources.rankName = removed.priorResources.rankName;
+        this.resources.rankValue = removed.priorResources.rankValue;
+      }
+    }
+
+    return { success: true, removed, restoredResources };
+  }
+
+  /**
+   * Updates specialization for an existing talent at index.
+   */
+  updateTalentSpecialization(index, newSpec) {
+    if (index < 0 || index >= this.talents.length) return { success: false, error: 'Invalid talent index.' };
+    const t = this.talents[index];
+    const cleanSpec = (newSpec || '').trim();
+
+    if (t.allowsSpecialization && !cleanSpec) {
+      return { 
+        success: false, 
+        error: `A specialization is required for "${t.name}" (e.g. ${t.specPlaceholder || 'specific specialty'}).` 
+      };
+    }
+
+    // Check if another instance of same talent already has this specialization
+    const duplicate = this.talents.find((other, oIdx) => 
+      oIdx !== index &&
+      (other.talentId === t.talentId || other.name.toLowerCase() === t.name.toLowerCase()) &&
+      (other.specialization || '').toLowerCase() === cleanSpec.toLowerCase()
+    );
+    if (duplicate) {
+      return { 
+        success: false, 
+        error: cleanSpec 
+          ? `Another "${t.name}" talent already has the specialization "${cleanSpec}".` 
+          : `Another "${t.name}" talent has an empty specialization.`
+      };
+    }
+
+    t.specialization = cleanSpec;
+    t.displayName = cleanSpec ? `${t.name} (${cleanSpec})` : t.name;
+    return { success: true, talent: t };
   }
 
   /**
@@ -812,7 +1014,7 @@ class FASERIPCharacter {
     const hasWrestling = hasTalent('wrestling');
     const hasAcrobatics = hasTalent('acrobatics');
     const hasMarksmanship = hasTalent('marksmanship') || hasTalent('guns');
-    const hasWeaponsSpecialist = this.talents.find(t => t.name.toLowerCase().includes('weapon specialist'));
+    const weaponSpecs = this.talents.filter(t => t.name.toLowerCase().includes('weapon specialist'));
 
     const hasEscapeArtist = hasTalent('escape artist');
     const hasThrownObjects = hasTalent('thrown') || hasTalent('thrown objects') || hasTalent('throwing');
@@ -1052,9 +1254,18 @@ class FASERIPCharacter {
 
       let wpnCS = 0;
       let wpnNotes = [];
-      if (hasWeaponsSpecialist && hasWeaponsSpecialist.description && hasWeaponsSpecialist.description.toLowerCase().includes(eq.name.toLowerCase())) {
+      const specMatch = weaponSpecs.find(ws => {
+        const spec = (ws.specialization || '').toLowerCase().trim();
+        const desc = (ws.description || '').toLowerCase();
+        const eqName = eq.name.toLowerCase();
+        if (spec && (eqName.includes(spec) || spec.includes(eqName))) return true;
+        if (desc && desc.includes(eqName)) return true;
+        return false;
+      });
+
+      if (specMatch) {
         wpnCS += 2;
-        wpnNotes.push('+2CS Weapon Specialist');
+        wpnNotes.push(`+2CS Weapon Specialist (${specMatch.specialization || specMatch.name})`);
       } else if (isRanged && hasMarksmanship) {
         wpnCS += 1;
         wpnNotes.push('+1CS Marksmanship/Guns');

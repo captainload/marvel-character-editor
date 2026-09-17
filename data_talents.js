@@ -71,6 +71,8 @@ const TALENTS_CATALOG = [
   },
   {
     id: "t_wep_marksman",
+    isStarred: true,
+    slots: 2,
     name: "Marksman",
     category: "Weapon Skills",
     costCP: 20,
@@ -81,6 +83,8 @@ const TALENTS_CATALOG = [
   },
   {
     id: "t_wep_master",
+    isStarred: true,
+    slots: 2,
     name: "Weapons Master",
     category: "Weapon Skills",
     costCP: 20,
@@ -91,6 +95,10 @@ const TALENTS_CATALOG = [
   },
   {
     id: "t_wep_spec",
+    isStarred: true,
+    slots: 2,
+    allowsSpecialization: true,
+    specPlaceholder: "Chosen weapon (e.g. Captain America's Shield, Bow, Katana)",
     name: "Weapon Specialist",
     category: "Weapon Skills",
     costCP: 20,
@@ -199,6 +207,8 @@ const TALENTS_CATALOG = [
   // ==========================================
   {
     id: "t_prof_med",
+    isStarred: true,
+    slots: 2,
     name: "Medicine",
     category: "Professional Skills",
     costCP: 20,
@@ -209,6 +219,8 @@ const TALENTS_CATALOG = [
   },
   {
     id: "t_prof_law",
+    allowsSpecialization: true,
+    specPlaceholder: "Legal field (e.g. Criminal, Corporate, Superhuman Rights)",
     name: "Law",
     category: "Professional Skills",
     costCP: 10,
@@ -219,6 +231,8 @@ const TALENTS_CATALOG = [
   },
   {
     id: "t_prof_law_enf",
+    isStarred: true,
+    slots: 2,
     name: "Law Enforcement",
     category: "Professional Skills",
     costCP: 20,
@@ -229,6 +243,8 @@ const TALENTS_CATALOG = [
   },
   {
     id: "t_prof_pilot",
+    allowsSpecialization: true,
+    specPlaceholder: "Aircraft class (e.g. Helicopters, Jet Fighters, Propeller, VTOL)",
     name: "Pilot",
     category: "Professional Skills",
     costCP: 10,
@@ -239,6 +255,8 @@ const TALENTS_CATALOG = [
   },
   {
     id: "t_prof_military",
+    allowsSpecialization: true,
+    specPlaceholder: "Branch or specialty (e.g. Special Forces, Navy SEALs, Intelligence)",
     name: "Military",
     category: "Professional Skills",
     costCP: 10,
@@ -269,6 +287,8 @@ const TALENTS_CATALOG = [
   },
   {
     id: "t_prof_engineering",
+    allowsSpecialization: true,
+    specPlaceholder: "Engineering branch (e.g. Mechanical, Electrical, Civil, Aerospace)",
     name: "Engineering",
     category: "Professional Skills",
     costCP: 10,
@@ -363,6 +383,8 @@ const TALENTS_CATALOG = [
   },
   {
     id: "t_sci_phys",
+    allowsSpecialization: true,
+    specPlaceholder: "Physics field (e.g. Astrophysics, Quantum, Particle, Nuclear)",
     name: "Physics",
     category: "Scientific Skills",
     costCP: 10,
@@ -447,6 +469,8 @@ const TALENTS_CATALOG = [
   },
   {
     id: "t_mystic_background",
+    isStarred: true,
+    slots: 2,
     name: "Mystic Background",
     category: "Mystic and Mental Skills",
     costCP: 20,
@@ -461,6 +485,8 @@ const TALENTS_CATALOG = [
   // ==========================================
   {
     id: "t_other_artist",
+    allowsSpecialization: true,
+    specPlaceholder: "Artistic medium (e.g. Painting, Sculpture, Writing, Illustration)",
     name: "Artist",
     category: "Other Skills",
     costCP: 10,
@@ -471,6 +497,8 @@ const TALENTS_CATALOG = [
   },
   {
     id: "t_other_languages",
+    allowsSpecialization: true,
+    specPlaceholder: "Languages spoken (e.g. French, German, Japanese, Sign Language)",
     name: "Languages",
     category: "Other Skills",
     costCP: 10,
@@ -501,6 +529,8 @@ const TALENTS_CATALOG = [
   },
   {
     id: "t_other_trivia",
+    allowsSpecialization: true,
+    specPlaceholder: "Trivia subject (e.g. 20th Century Pop Culture, Super-Hero Lore)",
     name: "Trivia",
     category: "Other Skills",
     costCP: 10,
@@ -511,6 +541,8 @@ const TALENTS_CATALOG = [
   },
   {
     id: "t_other_performer",
+    allowsSpecialization: true,
+    specPlaceholder: "Performance field (e.g. Acting, Singing, Dance, Stage Magic)",
     name: "Performer",
     category: "Other Skills",
     costCP: 10,
@@ -521,6 +553,10 @@ const TALENTS_CATALOG = [
   },
   {
     id: "t_other_animal",
+    isStarred: true,
+    slots: 2,
+    allowsSpecialization: true,
+    specPlaceholder: "Animal family (e.g. Canines, Birds of Prey, Big Cats)",
     name: "Animal Training",
     category: "Other Skills",
     costCP: 20,
@@ -531,6 +567,10 @@ const TALENTS_CATALOG = [
   },
   {
     id: "t_other_heir",
+    isStarred: true,
+    slots: 2,
+    minResourcesRank: "Remarkable",
+    minResourcesRankValue: 30,
     name: "Heir to Fortune",
     category: "Other Skills",
     costCP: 20,
@@ -541,6 +581,8 @@ const TALENTS_CATALOG = [
   },
   {
     id: "t_other_student",
+    isStarred: true,
+    slots: 2,
     name: "Student",
     category: "Other Skills",
     costCP: 20,
@@ -551,6 +593,8 @@ const TALENTS_CATALOG = [
   },
   {
     id: "t_other_leadership",
+    isStarred: true,
+    slots: 2,
     name: "Leadership",
     category: "Other Skills",
     costCP: 20,
@@ -565,6 +609,8 @@ const TALENTS_CATALOG = [
   // ==========================================
   {
     id: "t_pil_driver",
+    allowsSpecialization: true,
+    specPlaceholder: "Vehicle type (e.g. High-Performance Racing, Motorcycles, Armored Rigs)",
     name: "Driver",
     category: "Piloting Skills",
     costCP: 10,
@@ -575,6 +621,8 @@ const TALENTS_CATALOG = [
   },
   {
     id: "t_pil_spacecraft",
+    allowsSpecialization: true,
+    specPlaceholder: "Spacecraft type (e.g. Orbital Shuttles, Starships, Alien Fighters)",
     name: "Pilot: Spacecraft",
     category: "Piloting Skills",
     costCP: 15,
@@ -585,6 +633,8 @@ const TALENTS_CATALOG = [
   },
   {
     id: "t_pil_boats",
+    allowsSpecialization: true,
+    specPlaceholder: "Vessel type (e.g. Submarines, Speedboats, Hovercraft)",
     name: "Pilot: Boats / Submersibles",
     category: "Piloting Skills",
     costCP: 10,

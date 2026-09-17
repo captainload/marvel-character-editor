@@ -663,18 +663,27 @@
         
         <!-- Talents -->
         <div class="card">
-          <div class="card-header">
-            <span class="card-title">🥋 Talents & Skills (15 CP each)</span>
+          <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+            <span class="card-title" id="talents-card-title">🥋 Talents & Skills (10 CP / 20 CP Starred)</span>
+            <span id="talents-slots-badge" class="meta-tag tag-starred" style="font-size: 8.5pt;">0 Slots</span>
           </div>
 
           <div style="display: flex; gap: 10px; margin-bottom: 8px;">
             <input type="text" id="filter-talent-search" class="field-input" placeholder="🔍 Quick filter talents (56 TSR skills &amp; proficiencies)..." style="min-height: 38px;">
           </div>
 
-          <div style="display: flex; gap: 8px; margin-bottom: 14px; align-items: center;">
+          <div style="display: flex; gap: 8px; margin-bottom: 8px; align-items: center;">
             <select id="select-talent-catalog" class="field-input" style="flex:1; min-height: 44px;"></select>
             <button type="button" class="help-circle-btn" id="btn-preview-talent" title="View details of selected talent">?</button>
             <button class="icon-btn primary" id="btn-add-talent" style="min-height: 44px;">➕ Add Talent</button>
+          </div>
+
+          <div id="talent-specialization-row" class="talent-spec-box" style="display: none;">
+            <div style="display: flex; gap: 8px; align-items: center;">
+              <label for="input-talent-specialization" class="talent-spec-label">Specialty:</label>
+              <input type="text" id="input-talent-specialization" class="field-input" placeholder="e.g. Captain America's Shield, Bow, French..." style="flex: 1; min-height: 34px; font-size: 10pt;">
+            </div>
+            <div id="talent-specialization-help" class="talent-spec-hint">Specify the exact weapon, language, vehicle, or field of study for this talent.</div>
           </div>
 
           <div class="talents-grid" id="talents-container">

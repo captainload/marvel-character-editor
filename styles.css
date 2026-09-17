@@ -2500,6 +2500,28 @@ input[type=number],
   color: #fde68a;
 }
 
+/* Talent Specialization Box */
+.talent-spec-box {
+  background: rgba(56, 189, 248, 0.08);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  border-radius: 6px;
+  padding: 8px 10px;
+  margin-bottom: 12px;
+}
+
+.talent-spec-label {
+  font-size: 9pt;
+  font-weight: 600;
+  color: #38bdf8;
+  white-space: nowrap;
+}
+
+.talent-spec-hint {
+  font-size: 8.5pt;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
 /* Inventions Workflow & Stage Boxes */
 .inv-workflow-container {
   background: #0c1424;
@@ -3592,6 +3614,19 @@ body[data-theme="manilla"] .tag-power-cp {
   color: #000000 !important;
   background: #e2ded6 !important;
   font-weight: 700;
+}
+
+body[data-theme="manilla"] .talent-spec-box {
+  background: #f4ede2 !important;
+  border-color: #c4b9a5 !important;
+}
+
+body[data-theme="manilla"] .talent-spec-label {
+  color: #1e3a8a !important;
+}
+
+body[data-theme="manilla"] .talent-spec-hint {
+  color: #4b5563 !important;
 }
 
 body[data-theme="manilla"] .power-stunts-title {
@@ -4845,6 +4880,19 @@ body[data-theme="aqua"] .tag-power-cp {
   border-color: #23588e;
   color: #7dd3fc;
   background: #183e6a;
+}
+
+body[data-theme="aqua"] .talent-spec-box {
+  background: rgba(6, 182, 212, 0.1) !important;
+  border-color: rgba(6, 182, 212, 0.35) !important;
+}
+
+body[data-theme="aqua"] .talent-spec-label {
+  color: #22d3ee !important;
+}
+
+body[data-theme="aqua"] .talent-spec-hint {
+  color: #94a3b8 !important;
 }
 
 body[data-theme="aqua"] .power-stunts-title {

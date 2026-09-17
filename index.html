@@ -1729,6 +1729,74 @@
               </table>
             </div>
           </div>
+
+          <!-- Equipment Procurement, Clearances & Resource Rules (Relegated from Store Header) -->
+          <div style="margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--border-color);">
+            <h3>🛒 Equipment Procurement &amp; Market Clearances (Player's Book p. 18 &amp; 41)</h3>
+            <p>Rules and mechanics for acquiring items, market clearances, and financial resources:</p>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 8px;">
+              <div>
+                <h4>Standard Resource FEAT Checks (Player's Book p. 18)</h4>
+                <table class="cheat-table" style="margin-top: 6px;">
+                  <thead>
+                    <tr>
+                      <th>Item Cost vs Resources</th>
+                      <th>Procurement Outcome</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>Cost $\le$ Resources - 3 Ranks</td>
+                      <td><span class="feat-green"><strong>Automatic:</strong> No roll needed (Player's Book p. 18)</span></td>
+                    </tr>
+                    <tr>
+                      <td>Cost is 1 or 2 Ranks below Resources</td>
+                      <td><span class="feat-green"><strong>Green FEAT:</strong> Karma cannot be added to Resource rolls</span></td>
+                    </tr>
+                    <tr>
+                      <td>Cost is Equal to Resources</td>
+                      <td><span class="feat-yellow"><strong>Yellow FEAT:</strong> Karma cannot be added to Resource rolls</span></td>
+                    </tr>
+                    <tr>
+                      <td>Cost Exceeds Resources</td>
+                      <td><span class="feat-red"><strong>Unaffordable:</strong> Lone hero cannot roll; requires patron/loan</span></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div>
+                <h4>Market Clearances &amp; Resource Points Option</h4>
+                <table class="cheat-table" style="margin-top: 6px;">
+                  <thead>
+                    <tr>
+                      <th>Clearance / Rule Option</th>
+                      <th>Rulebook Requirement &amp; Effects</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td><strong>🎖️ Military Clearance</strong></td>
+                      <td>Unlocks military firearms, heavy ordnance, and combat suits. Restricted without GM waiver.</td>
+                    </tr>
+                    <tr>
+                      <td><strong>🕵️ Black Market (p. 41)</strong></td>
+                      <td>Acquiring through underworld black market imposes a mandatory <strong>+1CS cost markup</strong>.</td>
+                    </tr>
+                    <tr>
+                      <td><strong>🦅 S.H.I.E.L.D. Tech</strong></td>
+                      <td>Classified agency equipment. Requisition requires S.H.I.E.L.D. clearance and GM approval.</td>
+                    </tr>
+                    <tr>
+                      <td><strong>💰 Resource Points Option</strong></td>
+                      <td>Monthly budget = <strong>4 &times; Resource Number</strong>. Items cost their rank value in RP.</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
       <div class="modal-footer">
@@ -1831,15 +1899,12 @@
             <button type="button" id="toggle-store-military" class="store-access-toggle" data-access="military" title="Toggle Military Access to unlock combat firearms, ordnance, and heavy suits">
               <span class="toggle-icon">🎖️</span> Military Access: <strong class="toggle-status">OFF</strong>
             </button>
-            <button type="button" id="toggle-store-blackmarket" class="store-access-toggle" data-access="black_market" title="Toggle Black Market underworld access (+1CS cost markup per Player's Book p. 41)">
+            <button type="button" id="toggle-store-blackmarket" class="store-access-toggle" data-access="black_market" title="Toggle Black Market underworld access (+1CS cost markup)">
               <span class="toggle-icon">🕵️</span> Black Market (+1CS): <strong class="toggle-status">OFF</strong>
             </button>
             <button type="button" id="toggle-store-shield" class="store-access-toggle" data-access="shield" title="Toggle S.H.I.E.L.D. Tech Clearance (Requisition requires GM approval per purchase)">
               <span class="toggle-icon">🦅</span> S.H.I.E.L.D. Tech: <strong class="toggle-status">OFF</strong>
             </button>
-          </div>
-          <div class="store-access-bar-hint">
-            <span>TSR Rules: <strong style="color: var(--marvel-gold);">Player's Book p. 18 &amp; 41</strong></span>
           </div>
         </div>
 
@@ -1931,7 +1996,7 @@
         <div class="procure-verdict-box" id="procure-verdict-box">
           <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
             <span id="procure-verdict-icon" style="font-size: 1.3rem;">🟢</span>
-            <strong id="procure-verdict-heading" style="font-size: 11pt; color: #34d399;">Automatic Purchase</strong>
+            <strong id="procure-verdict-heading" style="font-size: 11pt;">Automatic Purchase</strong>
           </div>
           <div id="procure-verdict-desc" style="font-size: 10pt; color: var(--text-muted); line-height: 1.45;">
             Item cost is 3 or more ranks below character's Resources. Acquired automatically with no Resource FEAT roll required (Player's Book p. 18).

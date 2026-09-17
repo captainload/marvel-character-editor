@@ -2090,14 +2090,14 @@ const App = {
             ? UniversalTableEngine.getRankByName(item.costRank)
             : null;
           const costAbbr = costRankObj?.abbr || item.costRank;
-          const rpCostTag = isRPActive ? ` <span style="color: #fde047; font-weight:700;">• ${item.costValue} RP</span>` : '';
+          const rpCostTag = isRPActive ? ` <span class="store-rp-tag">• ${item.costValue} RP</span>` : '';
           let costDisplay = `<span class="meta-tag store-cost-tag">${costAbbr} (${item.costValue})${rpCostTag}</span>`;
           if (this.storeBlackMarketAccess && item.blackMarketCostRank) {
             const bmRankObj = (typeof UniversalTableEngine !== 'undefined' && UniversalTableEngine.getRankByName)
               ? UniversalTableEngine.getRankByName(item.blackMarketCostRank)
               : null;
             const bmAbbr = bmRankObj?.abbr || item.blackMarketCostRank;
-            const bmRpTag = isRPActive ? ` <span style="color: #fde047; font-weight:700;">• ${item.blackMarketCostValue} RP</span>` : '';
+            const bmRpTag = isRPActive ? ` <span class="store-rp-tag">• ${item.blackMarketCostValue} RP</span>` : '';
             costDisplay = `
               <div style="display: flex; flex-direction: column; gap: 2px;">
                 <span class="meta-tag store-cost-tag">${costAbbr} (${item.costValue})${rpCostTag}</span>
@@ -2308,10 +2308,10 @@ const App = {
       if (item.source) stats.push(`<strong>Source:</strong> ${item.source}`);
 
       detailsEl.innerHTML = `
-        <div style="display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 8px; font-size: 10pt; color: #93c5fd;">
+        <div class="procure-stat-chips">
           ${stats.map(s => `<span>${s}</span>`).join(' • ')}
         </div>
-        <div style="color: var(--text-muted); font-size: 10pt; line-height: 1.4;">${item.description || '--'}</div>
+        <div class="procure-item-desc">${item.description || '--'}</div>
       `;
     }
 
@@ -2324,8 +2324,7 @@ const App = {
         // Option to grant clearance or GM override
         const unlockBtn = document.createElement('button');
         unlockBtn.type = 'button';
-        unlockBtn.className = 'icon-btn';
-        unlockBtn.style.background = '#1e293b';
+        unlockBtn.className = 'icon-btn btn-unlock-clearance';
         unlockBtn.innerHTML = `🔓 Grant ${item.accessType === 'military' ? 'Military' : item.accessType === 'black_market' ? 'Black Market' : 'S.H.I.E.L.D.'} Clearance`;
         unlockBtn.addEventListener('click', () => {
           if (item.accessType === 'military') {
@@ -2369,10 +2368,7 @@ const App = {
         } else {
           const loanBtn = document.createElement('button');
           loanBtn.type = 'button';
-          loanBtn.className = 'icon-btn';
-          loanBtn.style.background = '#854d0e';
-          loanBtn.style.borderColor = '#eab308';
-          loanBtn.style.color = '#fef08a';
+          loanBtn.className = 'icon-btn btn-sponsor-loan';
           loanBtn.innerHTML = `🤝 Sponsor / GM Loan Waiver (Acquire)`;
           loanBtn.addEventListener('click', (e) => {
             this.finalizeItemAcquisition(item, 'Sponsor / GM Loan Waiver Override', e);
@@ -2425,10 +2421,7 @@ const App = {
       } else if (evalRes.status === 'unaffordable') {
         const loanBtn = document.createElement('button');
         loanBtn.type = 'button';
-        loanBtn.className = 'icon-btn';
-        loanBtn.style.background = '#854d0e';
-        loanBtn.style.borderColor = '#eab308';
-        loanBtn.style.color = '#fef08a';
+        loanBtn.className = 'icon-btn btn-sponsor-loan';
         loanBtn.innerHTML = `🤝 Sponsor / Loan Override (Acquire)`;
         loanBtn.addEventListener('click', (e) => {
           this.finalizeItemAcquisition(item, 'Sponsor / Group Funding Override', e);
@@ -3155,27 +3148,18 @@ const App = {
       if (!badge) return;
 
       if (!status) {
-        badge.className = 'meta-tag';
-        badge.style.background = '#1e293b';
-        badge.style.color = 'var(--text-muted)';
-        badge.style.borderColor = 'var(--border-color)';
+        badge.className = 'meta-tag inv-stage-badge pending';
         badge.textContent = 'Pending';
       } else if (status.passed) {
         passedCount++;
-        badge.className = 'meta-tag';
-        badge.style.background = 'rgba(16, 185, 129, 0.2)';
-        badge.style.color = '#34d399';
-        badge.style.borderColor = '#10b981';
+        badge.className = 'meta-tag inv-stage-badge passed';
         if (st === 'blueprint' && status.roll === 'Known Blueprint') {
           badge.textContent = 'Passed (Mastered Schematic)';
         } else {
           badge.textContent = `Passed (${status.color})`;
         }
       } else {
-        badge.className = 'meta-tag';
-        badge.style.background = 'rgba(239, 68, 68, 0.2)';
-        badge.style.color = '#f87171';
-        badge.style.borderColor = '#ef4444';
+        badge.className = 'meta-tag inv-stage-badge failed';
         badge.textContent = `Failed (${status.color})`;
       }
     });
@@ -3833,14 +3817,10 @@ const App = {
     if (modeBadge) {
       if (isRPActive) {
         modeBadge.textContent = 'Resource Points Active';
-        modeBadge.style.color = '#34d399';
-        modeBadge.style.borderColor = '#10b981';
-        modeBadge.style.background = 'rgba(16, 185, 129, 0.15)';
+        modeBadge.className = 'meta-tag rp-mode-active';
       } else {
         modeBadge.textContent = 'Standard TSR FEAT Rules';
-        modeBadge.style.color = 'var(--text-muted)';
-        modeBadge.style.borderColor = 'var(--border-color)';
-        modeBadge.style.background = 'var(--bg-card)';
+        modeBadge.className = 'meta-tag rp-mode-inactive';
       }
     }
 
@@ -4437,8 +4417,8 @@ const App = {
           if (Array.isArray(stageRes.retryRequirements) && stageRes.retryRequirements.length > 0) {
             retryHtml = `
               <div style="margin-top: 8px; padding-top: 6px; border-top: 1px solid rgba(239, 68, 68, 0.4); text-align: left;">
-                <strong style="color: #fde047; font-size: 10pt;">📋 ${stageRes.retryTitle || 'Requirements to Attempt FEAT Again:'}</strong>
-                <div style="margin-top: 4px; display: flex; flex-direction: column; gap: 4px; color: #fef08a; font-size: 10pt; line-height: 1.35;">
+                <strong class="inv-retry-title">📋 ${stageRes.retryTitle || 'Requirements to Attempt FEAT Again:'}</strong>
+                <div class="inv-retry-details">
                   ${stageRes.retryRequirements.map(req => `<div>${req}</div>`).join('')}
                 </div>
               </div>

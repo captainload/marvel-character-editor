@@ -4422,9 +4422,10 @@ const App = {
         content = `
           <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px;">
             <span class="meta-tag" style="color: var(--marvel-gold); font-weight:700;">Group: ${t.group || t.category || 'General'}</span>
-            <span class="meta-tag">Cost: 15 CP</span>
+            <span class="meta-tag">Cost: ${t.costCP || 10} CP</span>
             ${t.bonus ? `<span class="meta-tag" style="color: #38bdf8;">Bonus: ${t.bonus}</span>` : ''}
             ${t.statAffected ? `<span class="meta-tag">Stat Affected: ${t.statAffected}</span>` : ''}
+            <span class="meta-tag">Source: ${t.source || "Player's Book"}</span>
           </div>
           <div class="rulebook-desc" style="margin: 12px 0; line-height: 1.6; font-size: 10.5pt;">
             ${t.description || 'Provides specialized proficiency and +1CS column shift to relevant FEATs.'}

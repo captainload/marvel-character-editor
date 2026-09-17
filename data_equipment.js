@@ -3042,7 +3042,18 @@ const PREBUILT_EQUIPMENT_CATALOG = [
   }
 ];
 
+const EQUIPMENT_BY_ID = {};
+for (const eq of PREBUILT_EQUIPMENT_CATALOG) {
+  EQUIPMENT_BY_ID[eq.id] = eq;
+}
+
 if (typeof globalThis !== 'undefined') {
   globalThis.MATERIAL_STRENGTHS = MATERIAL_STRENGTHS;
   globalThis.PREBUILT_EQUIPMENT_CATALOG = PREBUILT_EQUIPMENT_CATALOG;
+  globalThis.EQUIPMENT_BY_ID = EQUIPMENT_BY_ID;
 }
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = { MATERIAL_STRENGTHS, PREBUILT_EQUIPMENT_CATALOG, EQUIPMENT_BY_ID };
+}
+

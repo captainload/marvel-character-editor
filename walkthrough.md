@@ -356,3 +356,48 @@ In the Manilla (off-white and light grey) theme:
    - `scratch/test_roller_popout_and_bounds.js`: Passed.
 3. **Google Drive Mirror**:
    - Synchronized `data_equipment.js`, `index.html`, `styles.css`, `app.js` to `H:\My Drive\RPG development\Marvel\`.
+
+---
+
+---
+
+## 10. Purge of Non-TSR Talents & Official Canonical Database
+
+### Background & Investigation
+Investigation of `scratch/talents_extracted.txt` revealed that earlier talent expansions had incorporated entries from *The Ultimate Talents Book* (UTB v1.5 by Major Tom Sawyer / Tammra Goodman), a fan supplement containing unofficial, homebrewed, and OCR-corrupted entries (e.g. `Bungee Jumping`, `Dentistry`, `Martial Arts F-J`, `Seduction`, `Runesmith`, `Sonochemistry`, `This is a Psi`, `Talent in an in`).
+
+### Canonical TSR Sources
+All unofficial entries have been purged from the catalog. The database has been rebuilt from official TSR Marvel Super Heroes (MSH / FASERIP) publications:
+1. **Advanced Set Player's Book (TSR 6876)**:
+   - Appendix B (p. 89–91): Full talent definitions, bonuses, and prerequisites.
+   - Random Generation Tables (p. 10, 15–16): Talent category distributions, slot costs, and stat modifiers.
+2. **Realms of Magic (TSR 6870)**:
+   - Mystic Background talent definition and magical path rules.
+3. **Weapons Locker (TSR 6884, p. 28)**:
+   - Piloting specialties (Driver, Pilot: Spacecraft, Pilot: Boats / Submersibles).
+
+### Exact 56 Official TSR Talents by Category
+| Category | Count | Talents Included |
+| :--- | :---: | :--- |
+| **Weapon Skills** | 9 | Blunt Weapons, Edged / Sharp Weapons, Thrown Weapons, Bows, Firearms (Guns), Oriental Weapons, Marksman, Weapons Master, Weapon Specialist |
+| **Fighting Skills** | 9 | Martial Arts A, B, C, D, E, Wrestling, Thrown Objects, Acrobatics, Tumbling |
+| **Professional Skills** | 11 | Medicine, Law, Law Enforcement, Pilot, Military, Business / Finance, Journalism, Engineering, Criminology, Psychiatry, Detective / Espionage |
+| **Scientific Skills** | 8 | Chemistry, Biology, Geology, Genetics, Archaeology, Physics, Computers, Electronics |
+| **Mystic & Mental Skills** | 6 | Trance, Mesmerism and Hypnosis, Sleight of Hand, Resist Domination, Occult Lore, Mystic Background |
+| **Other Skills** | 10 | Artist, Languages, First Aid, Repair / Tinkering, Trivia, Performer, Animal Training, Heir to Fortune, Student, Leadership |
+| **Piloting Skills** | 3 | Driver, Pilot: Spacecraft, Pilot: Boats / Submersibles |
+| **Total Canonical Talents** | **56** | **Strictly 0 Non-TSR Entries** |
+
+### Implementation Details
+1. **`data_talents.js`**:
+   - Rebuilt `TALENTS_CATALOG` with exactly 56 canonical entries, each citing its precise TSR source publication and page number.
+   - Added `TALENT_ID_ALIASES` providing complete backwards-compatibility for sheet configs and prior test scripts.
+   - Exposed `TALENTS_CATALOG`, `TALENTS_BY_ID`, and `MSH_TALENTS` to both browser `globalThis` and Node.js `module.exports`.
+2. **`index.html`**:
+   - Updated quick-filter search placeholder: `"🔍 Quick filter talents (56 TSR skills & proficiencies)..."`.
+3. **`app.js`**:
+   - Updated `showHelpModal('talent', queryKey)` to display the official TSR publication badge (`Source: ${t.source}`).
+4. **`scratch/test_tsr_talents_only.js`**:
+   - 7 automated verification checks passing 100%: total count (56), valid TSR sources, absence of fan entries, category breakdown, alias resolution, HTML placeholder, and modal source badge.
+5. **`scratch/verify_all_catalogs.js`**:
+   - Updated to assert exactly 56 talents. Passed 100%.

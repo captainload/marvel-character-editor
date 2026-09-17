@@ -465,3 +465,57 @@ All instances across all themesâ€”specifically the light archival Manilla themeâ
 - Created [`scratch/test_contrast_fixes.js`](file:///C:/Users/admin/.gemini/antigravity/brain/90637841-9270-481f-944c-4ab42ceec14e/scratch/test_contrast_fixes.js) asserting 13 automated tests covering inline style elimination, CSS theme variables, FEAT badge contrast, and table readability (100% PASS).
 - All regression suites (`test_cheatsheet_modal_sizing.js`, `test_store_enhancements.js`, `test_tsr_talents_only.js`, `verify_all_catalogs.js`, `test_all_theme_contrast.js`) pass with 100% success.
 
+---
+
+## 13. Cheat Sheet Visual Stability & Complete Light-Grey Elimination
+
+### Overview
+Addressed user feedback:
+1. *"Light grey on off-white isn't readable."*
+2. *"The cheat sheet's colors are changing as I mouse over different sections."*
+
+### Root Causes & Implementation Details
+
+1. **Eliminating Unwanted Hover Color Shifts in the Cheat Sheet**:
+   - **Root Cause**: `.cheat-table tr:hover` in `styles.css` had a hardcoded background of `#172440` (dark slate blue) from default styling. Because Manilla uses a light off-white background (`#f0ede6`), moving the cursor over table rows caused each row to invert to dark blue with black text. Moving the mouse out caused even rows to revert to `#111a2f` (dark navy, un-overridden).
+   - **Fix**:
+     - Disabled background hover shifts on all cheat sheet tables across all themes:
+       ```css
+       #cheatsheet-modal .cheat-table tr:hover,
+       #cheatsheet-modal .cheat-table tr:hover td,
+       #cheatsheet-modal .universal-table-view tr:hover,
+       #cheatsheet-modal .universal-table-view tr:hover td {
+         background: inherit !important;
+       }
+       ```
+     - In Manilla, configured stable, non-flashing zebra striping:
+       - Odd rows: `#f0ede6 !important;`
+       - Even rows: `#eae6df !important;`
+       - Hover: `background: inherit !important;` (zero color shifting on mouse movement).
+     - Styled the active Cheat Sheet subtab button (`#cheatsheet-modal .icon-btn.active`) with Marvel Red (`#b91c1c`) and white text.
+
+2. **Eliminating Light Grey Text on Off-White Backgrounds**:
+   - **Root Causes**:
+     - `#cheatsheet-modal p, li, .cheat-text` had a default CSS color of `#e2e8f0` (very light grey), causing all paragraph explanations and list items to wash out against Manilla's `#f0ede6` background.
+     - Multiple `<ul>` and `<p>` elements in `index.html` (Multiple Attacks, Area Division description, Vertical Climbing, Falling Damage, First Aid, Natural Healing) had inline `style="color: #cbd5e1;"` or `style="color: #94a3b8;"`.
+     - In `app.js`, `renderCheatSheetTable()` applied rank color objects (`r.color`) where Shift 0 (`#64748b`), Feeble (`#94a3b8`), and Poor (`#a1a1aa`) rendered light grey text in the first column.
+     - In `app.js`, battle effect descriptions used inline `style="color:#e2e8f0;"`.
+   - **Fixes**:
+     - Updated base cheat sheet modal CSS to use `color: var(--text-main);` for all paragraphs, list items, and table cells.
+     - In Manilla, explicitly styled all `#cheatsheet-modal` text elements (`p, li, ul, ol, span, td, th, div, strong, em, .cheat-text`) to solid black (`#000000;`).
+     - Added CSS attribute selectors mapping all instances of `#cbd5e1`, `#94a3b8`, `#e2e8f0`, `#a1a1aa`, and `#64748b` to `#000000 !important` in Manilla.
+     - Hardened Manilla root variables `--text-muted: #334155;` and `--text-dim: #475569;` to ensure all secondary and muted text achieves $>7.2:1$ contrast against stationery backgrounds.
+     - Updated `index.html` inline styles to use `var(--text-main)` and `var(--text-muted)`.
+     - In `app.js`, added `.rank-name-cell` class and enforced `color: #000000 !important; font-weight: 800 !important;` in Manilla.
+     - Made `colorMap` in `app.js` die roller theme-aware (White FEAT renders in solid black in Manilla).
+
+### Automated Verification
+- Created [`scratch/test_cheatsheet_contrast_and_stability.js`](file:///C:/Users/admin/.gemini/antigravity/brain/90637841-9270-481f-944c-4ab42ceec14e/scratch/test_cheatsheet_contrast_and_stability.js) validating all 10 checks with 100% success:
+  - Base typography variable usage (`var(--text-main)`).
+  - Hover background inheritance and elimination of hover color shifts.
+  - Manilla zebra striping stability without flashing.
+  - Complete removal of hardcoded `#cbd5e1` / `#94a3b8` from cheat sheet markup.
+  - Theme-aware dice roller results.
+- All regression suites (`test_contrast_fixes.js`, `test_cheatsheet_modal_sizing.js`, `test_store_enhancements.js`, `test_tsr_talents_only.js`, `verify_all_catalogs.js`) pass with 100% success.
+
+

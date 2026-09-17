@@ -2171,7 +2171,7 @@ const App = {
         <div style="display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 8px; font-size: 10pt; color: #93c5fd;">
           ${stats.map(s => `<span>${s}</span>`).join(' • ')}
         </div>
-        <div style="color: #cbd5e1; font-size: 10pt; line-height: 1.4;">${item.description || '--'}</div>
+        <div style="color: var(--text-muted); font-size: 10pt; line-height: 1.4;">${item.description || '--'}</div>
       `;
     }
 
@@ -3503,7 +3503,7 @@ const App = {
               <button class="icon-btn" style="padding: 2px 8px; min-height: 28px; background: #881337;" data-del-talent="${idx}">✕</button>
             </div>
           </div>
-          <div style="color: #cbd5e1; font-size: 10pt;">${t.description}</div>
+          <div style="color: var(--text-muted); font-size: 10pt;">${t.description}</div>
         `;
 
         card.querySelector('[data-help-talent]').addEventListener('click', () => {
@@ -3534,7 +3534,7 @@ const App = {
               <button class="icon-btn" style="padding: 2px 8px; min-height: 28px; background: #881337;" data-del-contact="${idx}">✕</button>
             </div>
           </div>
-          <div style="color: #cbd5e1; font-size: 10pt;">${c.notes}</div>
+          <div style="color: var(--text-muted); font-size: 10pt;">${c.notes}</div>
         `;
 
         card.querySelector('[data-del-contact]').addEventListener('click', () => {
@@ -3606,7 +3606,7 @@ const App = {
       const thresh = UNIVERSAL_TABLE[r.name] || [51, 81, 98];
       const tr = document.createElement('tr');
       tr.innerHTML = `
-        <td style="font-weight: 700; color: ${r.color};">${r.name} (${r.num})</td>
+        <td class="rank-name-cell" style="font-weight: 700; color: ${r.color};">${r.name} (${r.num})</td>
         <td class="cell-white">01 - ${String(thresh[0] - 1).padStart(2, '0')}</td>
         <td class="cell-green">${String(thresh[0]).padStart(2, '0')} - ${String(thresh[1] - 1).padStart(2, '0')}</td>
         <td class="cell-yellow">${String(thresh[1]).padStart(2, '0')} - ${String(thresh[2] - 1).padStart(2, '0')}</td>
@@ -4064,12 +4064,12 @@ const App = {
       this.activeRoller.damageValue
     );
 
-    const diceVisual = document.getElementById('roller-dice-num');
+    const isManilla = document.body.getAttribute('data-theme') === 'manilla';
     const colorMap = {
-      'White': '#cbd5e1',
-      'Green': '#10b981',
-      'Yellow': '#f59e0b',
-      'Red': '#ef4444'
+      'White': isManilla ? '#000000' : '#cbd5e1',
+      'Green': isManilla ? '#065f46' : '#10b981',
+      'Yellow': isManilla ? '#78350f' : '#f59e0b',
+      'Red': isManilla ? '#991b1b' : '#ef4444'
     };
     const c = colorMap[featResult.color] || '#fff';
 
@@ -4098,7 +4098,7 @@ const App = {
 
     const effectEl = document.getElementById('roller-effect-desc');
     if (effectEl) {
-      effectEl.innerHTML = `<span style="color:${c}; font-weight:900; font-size:11pt;">${featResult.color.toUpperCase()} FEAT! (${finalRoll} on ${featResult.effectiveRank})</span><div style="color:#e2e8f0; font-size:10pt; margin-top: 2px;">${battleEffect.desc}</div>`;
+      effectEl.innerHTML = `<span style="color:${c}; font-weight:900; font-size:11pt;">${featResult.color.toUpperCase()} FEAT! (${finalRoll} on ${featResult.effectiveRank})</span><div style="color:var(--text-main); font-size:10pt; margin-top: 2px;">${battleEffect.desc}</div>`;
     }
 
     // Automatic Equipment Procurement Resolution on Resource FEAT rolls (Player's Book p. 18)

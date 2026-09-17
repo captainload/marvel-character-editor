@@ -1119,7 +1119,7 @@
             <!-- Multiple Attacks & Initiative -->
             <div>
               <h4>⚡ Multi-Attacks, Initiative & Surprise</h4>
-              <ul style="padding-left: 20px; line-height: 1.7; color: #cbd5e1; margin-top: 6px;">
+              <ul style="padding-left: 20px; line-height: 1.7; color: var(--text-main); margin-top: 6px;">
                 <li><strong>Multiple Attacks in 1 Round:</strong> A hero may attempt multiple strikes by rolling Fighting (melee) or Agility (ranged) before acting:
                   <br>• 2 attacks: Requires a <span class="feat-yellow">Yellow FEAT</span>.
                   <br>• 3 attacks: Requires a <span class="feat-red">Red FEAT</span>.
@@ -1168,7 +1168,7 @@
 
           <div id="cheat-movement-area-rule-callout" class="calc-rule-callout" style="border-left: 3px solid var(--marvel-gold); margin-top: 8px;">
             <strong>📐 Active Area Division Rule: <span id="cheat-active-area-rule" style="color: var(--marvel-gold);">Standard Full Areas: 1 Area = 132 Feet (Default TSR Rules)</span></strong>
-            <div id="cheat-active-area-rule-desc" style="color: #cbd5e1; font-size: 10pt; margin-top: 4px;">
+            <div id="cheat-active-area-rule-desc" style="color: var(--text-main); font-size: 10pt; margin-top: 4px;">
               <strong>Standard Rule Active:</strong> 1 Area is 132 feet across (approx. 44 yards / 1 city block width). Standard movement and combat ranges apply. To adjust between Quarter Area (33 ft quadrants) or Six Subareas (22 ft squares), open <strong>File/Options &rarr; Application Preferences</strong>.
             </div>
           </div>
@@ -1449,7 +1449,7 @@
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
             <div>
               <h4>Vertical Climbing & Diving</h4>
-              <ul style="padding-left: 20px; line-height: 1.7; color: #cbd5e1;">
+              <ul style="padding-left: 20px; line-height: 1.7; color: var(--text-main);">
                 <li><strong>Climbing Straight Up:</strong> Moving vertically upward costs <strong>double movement</strong> (1/2 normal speed in areas).</li>
                 <li><strong>Diving Straight Down:</strong> Gravity adds a free <strong>+2 areas/turn bonus</strong> (+30 mph) to dive speed.</li>
                 <li><strong>High-Speed Turns:</strong> Turning &gt; 45° at speeds &ge; 6 areas/turn requires an <span class="feat-green">Agility FEAT</span>. Failure (<span class="feat-white">White</span>) causes overshoot or temporary stall!</li>
@@ -1491,7 +1491,7 @@
                   </tr>
                 </tbody>
               </table>
-              <p style="font-size: 11pt; color: #94a3b8;">* An Acrobatics FEAT (<span class="feat-green">Green</span>: -1CS, <span class="feat-yellow">Yellow</span>: -2CS, <span class="feat-red">Red</span>: -3CS) can cushion the fall.</p>
+              <p style="font-size: 11pt; color: var(--text-muted);">* An Acrobatics FEAT (<span class="feat-green">Green</span>: -1CS, <span class="feat-yellow">Yellow</span>: -2CS, <span class="feat-red">Red</span>: -3CS) can cushion the fall.</p>
             </div>
           </div>
         </div>
@@ -1512,7 +1512,7 @@
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 14px;">
             <div>
               <h4>🚑 First Aid & Medical Stabilization</h4>
-              <ul style="padding-left: 20px; line-height: 1.7; color: #cbd5e1;">
+              <ul style="padding-left: 20px; line-height: 1.7; color: var(--text-main);">
                 <li><strong>Administering First Aid:</strong> Any conscious ally can spend 1 entire action administering First Aid to a dying character.
                   <br>• Normal hero: Requires a <span class="feat-green">Reason FEAT</span> (or <span class="feat-green">Intuition FEAT</span>).
                   <br>• First Aid Talent: Automatic success + hero stabilizes instantly.
@@ -1524,7 +1524,7 @@
 
             <div>
               <h4>🛌 Natural Healing & Recovery Rates</h4>
-              <ul style="padding-left: 20px; line-height: 1.7; color: #cbd5e1;">
+              <ul style="padding-left: 20px; line-height: 1.7; color: var(--text-main);">
                 <li><strong>Health Recovery:</strong> A resting character recovers Health equal to their <strong>Endurance Rank Number</strong> for every <strong>24 hours of rest</strong>.
                   <br>• Regeneration Power: Recovers Health every round or minute according to power rank.
                 </li>
@@ -1689,31 +1689,31 @@
       </div>
       <div class="modal-body">
         <div style="display: flex; flex-direction: column; gap: 14px;">
-          <div style="font-weight: 700; color: #fff; font-size: 11pt; border-bottom: 1px solid var(--border-color); padding-bottom: 6px;">Interface Layout & Display</div>
+          <div style="font-weight: 700; color: var(--text-main); font-size: 11pt; border-bottom: 1px solid var(--border-color); padding-bottom: 6px;">Interface Layout & Display</div>
           <label class="checkbox-label" style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer;">
             <input type="checkbox" id="option-sticky-header" style="margin-top: 3px;">
             <div>
-              <strong style="color: var(--text-main, #fff);">Persistent Top Bar & Tabs (Sticky Navigation)</strong>
-              <div style="color: var(--text-muted, #94a3b8); font-size: 10pt; margin-top: 2px;">Keeps character header, CP tracker, and navigation tabs fixed at the top of the window while scrolling.</div>
+              <strong style="color: var(--text-main);">Persistent Top Bar & Tabs (Sticky Navigation)</strong>
+              <div style="color: var(--text-muted); font-size: 10pt; margin-top: 2px;">Keeps character header, CP tracker, and navigation tabs fixed at the top of the window while scrolling.</div>
             </div>
           </label>
           <label class="checkbox-label" style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer;">
             <input type="checkbox" id="option-touch-friendly" style="margin-top: 3px;">
             <div>
-              <strong style="color: var(--text-main, #fff);">Touch-Friendly Sizing (Larger Interactive Controls)</strong>
-              <div style="color: var(--text-muted, #94a3b8); font-size: 10pt; margin-top: 2px;">Slightly increases the hit targets and sizes of interactive controls (steppers, dropdowns, editable fields, and action buttons) to facilitate comfortable touchscreen and tablet usage.</div>
+              <strong style="color: var(--text-main);">Touch-Friendly Sizing (Larger Interactive Controls)</strong>
+              <div style="color: var(--text-muted); font-size: 10pt; margin-top: 2px;">Slightly increases the hit targets and sizes of interactive controls (steppers, dropdowns, editable fields, and action buttons) to facilitate comfortable touchscreen and tablet usage.</div>
             </div>
           </label>
 
-          <div style="font-weight: 700; color: var(--text-main, #fff); font-size: 11pt; border-bottom: 1px solid var(--border-color); padding-bottom: 6px; margin-top: 6px;">Visual Color Theme</div>
+          <div style="font-weight: 700; color: var(--text-main); font-size: 11pt; border-bottom: 1px solid var(--border-color); padding-bottom: 6px; margin-top: 6px;">Visual Color Theme</div>
           <div>
-            <span class="field-label" style="margin-bottom: 6px; color: var(--text-muted, #cbd5e1);">Theme Palette:</span>
+            <span class="field-label" style="margin-bottom: 6px; color: var(--text-muted);">Theme Palette:</span>
             <select id="option-theme" class="field-input" style="min-height: 40px;">
               <option value="four-color">Four-color (Default Marvel Dark)</option>
               <option value="manilla">Manilla</option>
               <option value="aqua">Aqua (Blues, Greens & Cyans)</option>
             </select>
-            <div style="color: var(--text-muted, #94a3b8); font-size: 10pt; margin-top: 6px; line-height: 1.5;">
+            <div style="color: var(--text-muted); font-size: 10pt; margin-top: 6px; line-height: 1.5;">
               Select your preferred display theme:
               <br>• <strong>Four-color:</strong> Classic dark comic aesthetic with high-contrast Marvel Red and Gold accents.
               <br>• <strong>Manilla:</strong> Soft off-white and light grey stationery backgrounds with crisp dark slate typography.
@@ -1721,15 +1721,15 @@
             </div>
           </div>
 
-          <div style="font-weight: 700; color: #fff; font-size: 11pt; border-bottom: 1px solid var(--border-color); padding-bottom: 6px; margin-top: 6px;">Tactical Movement & Area Grids</div>
+          <div style="font-weight: 700; color: var(--text-main); font-size: 11pt; border-bottom: 1px solid var(--border-color); padding-bottom: 6px; margin-top: 6px;">Tactical Movement & Area Grids</div>
           <div>
-            <span class="field-label" style="margin-bottom: 6px; color: #cbd5e1;">Area Division Rule:</span>
+            <span class="field-label" style="margin-bottom: 6px; color: var(--text-muted);">Area Division Rule:</span>
             <select id="option-area-division" class="field-input" style="min-height: 40px;">
               <option value="standard">Standard Full Areas: 1 Area = 132 Feet (Default TSR Rules)</option>
               <option value="quarter">Quarter Area Rule: 4 Quadrants of 33 Feet (33 ft / quadrant)</option>
               <option value="six">Six Subareas Rule: 6 Squares of 22 Feet (22 ft / subarea)</option>
             </select>
-            <div style="color: #94a3b8; font-size: 10pt; margin-top: 6px; line-height: 1.5;">
+            <div style="color: var(--text-muted); font-size: 10pt; margin-top: 6px; line-height: 1.5;">
               Divides standard area squares into smaller tactical units for battle-mats and miniatures:
               <br>• <strong>Quarter Area:</strong> 4 quadrants of 33 ft each (2&times;2 sub-grid per area).
               <br>• <strong>Six Subareas:</strong> 6 squares of 22 ft each (2&times;3 sub-grid per area).
@@ -1782,7 +1782,7 @@
           </div>
           
           <div style="display: flex; gap: 6px; flex-wrap: wrap; align-items: center;" id="store-access-filter-group">
-            <span style="font-size: 10pt; color: #94a3b8; font-weight: 700;">Access:</span>
+            <span style="font-size: 10pt; color: var(--text-muted); font-weight: 700;">Access:</span>
             <button type="button" class="store-access-filter-btn active" data-store-access="all">All</button>
             <button type="button" class="store-access-filter-btn" data-store-access="civilian">Civilian</button>
             <button type="button" class="store-access-filter-btn" data-store-access="military">Military</button>
@@ -1864,7 +1864,7 @@
             <span id="procure-verdict-icon" style="font-size: 1.3rem;">🟢</span>
             <strong id="procure-verdict-heading" style="font-size: 11pt; color: #34d399;">Automatic Purchase</strong>
           </div>
-          <div id="procure-verdict-desc" style="font-size: 10pt; color: #cbd5e1; line-height: 1.45;">
+          <div id="procure-verdict-desc" style="font-size: 10pt; color: var(--text-muted); line-height: 1.45;">
             Item cost is 3 or more ranks below character's Resources. Acquired automatically with no Resource FEAT roll required (Player's Book p. 18).
           </div>
         </div>
@@ -1875,7 +1875,7 @@
             <span style="font-size: 1.2rem;">🦅</span>
             <strong style="color: #38bdf8; font-size: 10.5pt;">S.H.I.E.L.D. Tech Clearance Required</strong>
           </div>
-          <div style="font-size: 10pt; color: #cbd5e1; margin-top: 4px;">
+          <div style="font-size: 10pt; color: var(--text-muted); margin-top: 4px;">
             Classified agency technology. Under game rules, each piece of S.H.I.E.L.D. equipment requires direct Judge/GM approval for requisition.
           </div>
           <label class="checkbox-label" style="margin-top: 10px; color: #7dd3fc; font-weight: 700; cursor: pointer;">
@@ -1889,7 +1889,7 @@
             <span style="font-size: 1.2rem;">⛔</span>
             <strong style="color: #f87171; font-size: 10.5pt;" id="procure-restricted-heading">Restricted Access Hardware</strong>
           </div>
-          <div style="font-size: 10pt; color: #cbd5e1; margin-top: 4px;" id="procure-restricted-desc">
+          <div style="font-size: 10pt; color: var(--text-muted); margin-top: 4px;" id="procure-restricted-desc">
             This hardware requires specific authorization.
           </div>
         </div>

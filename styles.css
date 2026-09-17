@@ -1712,7 +1712,7 @@ select.field-input option {
 #cheatsheet-modal .cheat-text {
   font-size: 12pt;
   line-height: 1.65;
-  color: #e2e8f0;
+  color: var(--text-main);
 }
 
 #cheatsheet-modal h3 {
@@ -1827,7 +1827,7 @@ select.field-input option {
   padding: 8px 12px;
   font-size: 11.5pt;
   border: 1px solid #243048;
-  color: #cbd5e1;
+  color: var(--text-main);
   vertical-align: top;
   line-height: 1.45;
 }
@@ -1836,8 +1836,19 @@ select.field-input option {
   background: #111a2f;
 }
 
-.cheat-table tr:hover {
-  background: #172440;
+/* Stable background: Do NOT shift colors on hover in reference tables */
+.cheat-table tr:hover,
+#cheatsheet-modal .cheat-table tr:hover,
+#cheatsheet-modal .cheat-table tr:hover td,
+#cheatsheet-modal .universal-table-view tr:hover,
+#cheatsheet-modal .universal-table-view tr:hover td {
+  background: inherit !important;
+}
+
+#cheatsheet-modal .icon-btn.active {
+  background: var(--marvel-blue);
+  border-color: #38bdf8;
+  color: #ffffff;
 }
 
 .calc-rule-callout {
@@ -2687,8 +2698,8 @@ body[data-theme="manilla"] {
   --marvel-gold: #78350f;
   --marvel-blue: #1d4ed8;
   --text-main: #000000;
-  --text-muted: #475569;
-  --text-dim: #64748b;
+  --text-muted: #334155;
+  --text-dim: #475569;
   background-color: #e8e5de;
   color: #000000;
 }
@@ -3690,6 +3701,21 @@ body[data-theme="manilla"] .karma-no-spend-warn {
   font-weight: 700 !important;
 }
 
+body[data-theme="manilla"] #cheatsheet-modal,
+body[data-theme="manilla"] #cheatsheet-modal p,
+body[data-theme="manilla"] #cheatsheet-modal li,
+body[data-theme="manilla"] #cheatsheet-modal ul,
+body[data-theme="manilla"] #cheatsheet-modal ol,
+body[data-theme="manilla"] #cheatsheet-modal span,
+body[data-theme="manilla"] #cheatsheet-modal td,
+body[data-theme="manilla"] #cheatsheet-modal th,
+body[data-theme="manilla"] #cheatsheet-modal div,
+body[data-theme="manilla"] #cheatsheet-modal strong,
+body[data-theme="manilla"] #cheatsheet-modal em,
+body[data-theme="manilla"] #cheatsheet-modal .cheat-text {
+  color: #000000;
+}
+
 body[data-theme="manilla"] #cheatsheet-modal h3 {
   color: #b91c1c !important;
   border-bottom-color: #c2bcaf !important;
@@ -3697,6 +3723,71 @@ body[data-theme="manilla"] #cheatsheet-modal h3 {
 
 body[data-theme="manilla"] #cheatsheet-modal h4 {
   color: #1d4ed8 !important;
+}
+
+body[data-theme="manilla"] #cheatsheet-modal .calc-rule-callout {
+  background: #fef3c7 !important;
+  border-left-color: #d97706 !important;
+  color: #78350f !important;
+}
+
+body[data-theme="manilla"] #cheatsheet-modal .calc-rule-callout * {
+  color: #78350f !important;
+}
+
+/* In Manilla: Zero color changing or flashing when hovering over cheat sheet tables */
+body[data-theme="manilla"] .cheat-table {
+  background: #f0ede6 !important;
+  border: 1px solid #c2bcaf !important;
+}
+
+body[data-theme="manilla"] .cheat-table th {
+  background: #e2ded6 !important;
+  color: #000000 !important;
+  border: 1px solid #c2bcaf !important;
+}
+
+body[data-theme="manilla"] .cheat-table td {
+  border: 1px solid #ded7cb !important;
+  color: #000000 !important;
+}
+
+body[data-theme="manilla"] .cheat-table tr:nth-child(odd),
+body[data-theme="manilla"] .cheat-table tr:nth-child(odd) td {
+  background: #f0ede6 !important;
+}
+
+body[data-theme="manilla"] .cheat-table tr:nth-child(even),
+body[data-theme="manilla"] .cheat-table tr:nth-child(even) td {
+  background: #eae6df !important;
+}
+
+body[data-theme="manilla"] .cheat-table tr:hover,
+body[data-theme="manilla"] .cheat-table tr:hover td,
+body[data-theme="manilla"] .cheat-table tr:nth-child(even):hover,
+body[data-theme="manilla"] .cheat-table tr:nth-child(even):hover td,
+body[data-theme="manilla"] .universal-table-view tr:hover,
+body[data-theme="manilla"] .universal-table-view tr:hover td {
+  background: inherit !important;
+}
+
+/* Also ensure Universal Table rank name column in Manilla is solid black */
+body[data-theme="manilla"] .universal-table-view td:first-child,
+body[data-theme="manilla"] .universal-table-view .rank-name-cell {
+  color: #000000 !important;
+  font-weight: 800 !important;
+}
+
+/* In Manilla: Cheat Sheet subtab active button */
+body[data-theme="manilla"] #cheatsheet-modal .icon-btn.active {
+  background: #b91c1c !important;
+  border-color: #b91c1c !important;
+  color: #ffffff !important;
+}
+
+body[data-theme="manilla"] #cheatsheet-modal .icon-btn.active:hover {
+  background: #991b1b !important;
+  color: #ffffff !important;
 }
 
 body[data-theme="manilla"] #cheat-active-area-rule,
@@ -3717,6 +3808,20 @@ body[data-theme="manilla"] [style*="color:#fbbf24"],
 body[data-theme="manilla"] [style*="color: #fde68a"],
 body[data-theme="manilla"] [style*="color:#fde68a"] {
   color: #78350f !important;
+}
+
+/* Eliminate all light greys on off-white in Manilla */
+body[data-theme="manilla"] [style*="color: #cbd5e1"],
+body[data-theme="manilla"] [style*="color:#cbd5e1"],
+body[data-theme="manilla"] [style*="color: #94a3b8"],
+body[data-theme="manilla"] [style*="color:#94a3b8"],
+body[data-theme="manilla"] [style*="color: #e2e8f0"],
+body[data-theme="manilla"] [style*="color:#e2e8f0"],
+body[data-theme="manilla"] [style*="color: #a1a1aa"],
+body[data-theme="manilla"] [style*="color:#a1a1aa"],
+body[data-theme="manilla"] [style*="color: #64748b"],
+body[data-theme="manilla"] [style*="color:#64748b"] {
+  color: #000000 !important;
 }
 
 body[data-theme="manilla"] .icon-btn,
@@ -3748,16 +3853,16 @@ body[data-theme="manilla"] .thresh-box.white .thresh-name,
 body[data-theme="manilla"] .stunt-needed-badge,
 body[data-theme="manilla"] .text-muted,
 body[data-theme="manilla"] .store-access-bar-hint span {
-  color: #555555;
+  color: #334155 !important;
 }
 
 body[data-theme="manilla"] ::placeholder {
-  color: #777777;
+  color: #475569;
 }
 
 body[data-theme="manilla"] :disabled {
-  color: #888888;
-  border-color: #d1cbc0;
+  color: #475569;
+  border-color: #c2bcaf;
 }
 
 /* 3. Aqua Theme (Rich Dark Blues, Sea Greens, Cyans - No Blacks) */

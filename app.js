@@ -470,6 +470,28 @@ const App = {
       });
     }
 
+    // Universal Action Table Preference Init & Listeners
+    const tableOpt = document.getElementById('option-universal-table');
+    const cheatTableOpt = document.getElementById('cheat-table-mode-select');
+    const savedTableMode = typeof localStorage !== 'undefined' ? localStorage.getItem('msh_option_universal_table') : null;
+    this.universalTableMode = (savedTableMode === 'cmf') ? 'cmf' : 'standard';
+    if (typeof UniversalTableEngine !== 'undefined' && UniversalTableEngine.setTableMode) {
+      UniversalTableEngine.setTableMode(this.universalTableMode);
+    }
+    if (tableOpt) tableOpt.value = this.universalTableMode;
+    if (cheatTableOpt) cheatTableOpt.value = this.universalTableMode;
+
+    if (tableOpt) {
+      tableOpt.addEventListener('change', (e) => {
+        this.setUniversalTableMode(e.target.value);
+      });
+    }
+    if (cheatTableOpt) {
+      cheatTableOpt.addEventListener('change', (e) => {
+        this.setUniversalTableMode(e.target.value);
+      });
+    }
+
     // File / Options Dropdown Menu Toggle
     const btnFileOptions = document.getElementById('btn-file-options');
     const fileOptionsMenu = document.getElementById('file-options-menu');
@@ -864,48 +886,73 @@ const App = {
       if (btn) btn.classList.toggle('active', t === tabKey);
       if (sec) sec.style.display = t === tabKey ? 'block' : 'none';
     });
+    if (tabKey === 'table') {
+      this.renderCheatSheetTable();
+    }
   },
 
   populateDropdowns() {
-    const rankOptionsHtml = RANKS.slice(1, 14).map(r => 
+    const activeRanks = (typeof UniversalTableEngine !== 'undefined' && UniversalTableEngine.ranks)
+      ? UniversalTableEngine.ranks.filter(r => r.name !== 'Shift 0' && !r.name.startsWith('Class') && r.name !== 'Beyond')
+      : RANKS.slice(1, 14);
+
+    const rankOptionsHtml = activeRanks.map(r => 
       `<option value="${r.name}">${r.name} (${r.num}) - ${r.num} CP</option>`
+    ).join('');
+    const plainRankOptionsHtml = activeRanks.map(r => 
+      `<option value="${r.name}">${r.name} (${r.num})</option>`
     ).join('');
 
     // Primary Abilities Selectors
     ['fighting', 'agility', 'strength', 'endurance', 'reason', 'intuition', 'psyche'].forEach(k => {
       const sel = document.getElementById(`select-rank-${k}`);
       if (sel) {
+        const prevVal = sel.value;
         sel.innerHTML = rankOptionsHtml;
-        sel.addEventListener('change', (e) => {
-          this.character.setAbilityRank(k, e.target.value);
-          this.saveState();
-          this.render();
-        });
+        if (prevVal) sel.value = prevVal;
+        if (!sel.dataset.bound) {
+          sel.dataset.bound = 'true';
+          sel.addEventListener('change', (e) => {
+            this.character.setAbilityRank(k, e.target.value);
+            this.saveState();
+            this.render();
+          });
+        }
       }
     });
 
     // Resources Selectors (Main Stats)
     const resSel = document.getElementById('select-rank-resources');
     if (resSel) {
+      const prevVal = resSel.value;
       resSel.innerHTML = rankOptionsHtml;
-      resSel.addEventListener('change', (e) => {
-        this.character.setResourceRank(e.target.value);
-        this.saveState();
-        this.renderPointBuy();
-        this.renderBackground();
-        this.renderEquipment();
-      });
+      if (prevVal) resSel.value = prevVal;
+      if (!resSel.dataset.bound) {
+        resSel.dataset.bound = 'true';
+        resSel.addEventListener('change', (e) => {
+          this.character.setResourceRank(e.target.value);
+          this.saveState();
+          this.renderPointBuy();
+          this.renderBackground();
+          this.renderEquipment();
+        });
+      }
     }
 
     // Resources Selectors (Background Tab)
     const bgResSel = document.getElementById('background-resource-select');
     if (bgResSel) {
+      const prevVal = bgResSel.value;
       bgResSel.innerHTML = rankOptionsHtml;
-      bgResSel.addEventListener('change', (e) => {
-        this.character.setResourceRank(e.target.value);
-        this.saveState();
-        this.render();
-      });
+      if (prevVal) bgResSel.value = prevVal;
+      if (!bgResSel.dataset.bound) {
+        bgResSel.dataset.bound = 'true';
+        bgResSel.addEventListener('change', (e) => {
+          this.character.setResourceRank(e.target.value);
+          this.saveState();
+          this.render();
+        });
+      }
     }
 
     // Background Spent Points Input
@@ -951,26 +998,28 @@ const App = {
 
     const pRankSel = document.getElementById('select-new-power-rank');
     if (pRankSel) {
+      const prevVal = pRankSel.value;
       pRankSel.innerHTML = rankOptionsHtml;
+      if (prevVal) pRankSel.value = prevVal;
     }
 
     // Inventions Material & Power Dropdowns
     const invMatSel = document.getElementById('inv-material-rank');
     if (invMatSel && globalThis.MATERIAL_STRENGTHS) {
+      const prevMat = invMatSel.value;
       invMatSel.innerHTML = globalThis.MATERIAL_STRENGTHS.slice(0, 10).map(m => 
         `<option value="${m.rank}">${m.name} (${m.rank} / ${m.num})</option>`
       ).join('');
-      invMatSel.value = 'Remarkable';
+      invMatSel.value = prevMat || 'Remarkable';
     }
 
     this.renderInvPowerDropdown();
 
     const invPwrRankSel = document.getElementById('inv-power-rank');
     if (invPwrRankSel) {
-      invPwrRankSel.innerHTML = RANKS.slice(1, 14).map(r => 
-        `<option value="${r.name}">${r.name} (${r.num})</option>`
-      ).join('');
-      invPwrRankSel.value = 'Remarkable';
+      const prevVal = invPwrRankSel.value;
+      invPwrRankSel.innerHTML = plainRankOptionsHtml;
+      invPwrRankSel.value = prevVal || 'Remarkable';
     }
 
     // Inventions Ability Boost Dropdowns
@@ -978,6 +1027,7 @@ const App = {
     const invBstRank = document.getElementById('inv-boost-rank');
     const updateInvBstRankOptions = () => {
       if (!invBstMode || !invBstRank) return;
+      const prevVal = invBstRank.value;
       if (invBstMode.value === 'bonus') {
         invBstRank.innerHTML = `
           <option value="1">+1 CS</option>
@@ -985,17 +1035,23 @@ const App = {
           <option value="3">+3 CS</option>
           <option value="4">+4 CS</option>
         `;
+        if (prevVal && ['1', '2', '3', '4'].includes(prevVal)) {
+          invBstRank.value = prevVal;
+        }
       } else {
-        invBstRank.innerHTML = RANKS.slice(1, 14).map(r => 
-          `<option value="${r.name}">${r.name} (${r.num})</option>`
-        ).join('');
-        invBstRank.value = 'Incredible';
+        invBstRank.innerHTML = plainRankOptionsHtml;
+        if (prevVal && activeRanks.some(r => r.name === prevVal)) {
+          invBstRank.value = prevVal;
+        } else {
+          invBstRank.value = 'Incredible';
+        }
       }
     };
-    if (invBstMode) {
+    if (invBstMode && !invBstMode.dataset.bound) {
+      invBstMode.dataset.bound = 'true';
       invBstMode.addEventListener('change', updateInvBstRankOptions);
-      updateInvBstRankOptions();
     }
+    updateInvBstRankOptions();
 
     this.syncPowerSelectionUI();
     this.renderInvPowersList();
@@ -2022,16 +2078,19 @@ const App = {
   },
 
   evaluateProcurement(item) {
-    const RANKS = [
-      'Shift 0', 'Feeble', 'Poor', 'Typical', 'Good', 'Excellent',
-      'Remarkable', 'Incredible', 'Amazing', 'Monstrous', 'Unearthly',
-      'Shift X', 'Shift Y', 'Shift Z', 'Class 1000', 'Class 3000', 'Class 5000', 'Beyond'
-    ];
-    const VALUES = {
-      'Shift 0': 0, 'Feeble': 2, 'Poor': 4, 'Typical': 6, 'Good': 10,
-      'Excellent': 20, 'Remarkable': 30, 'Incredible': 40, 'Amazing': 50,
-      'Monstrous': 75, 'Unearthly': 100, 'Shift X': 150, 'Shift Y': 200,
-      'Shift Z': 500, 'Class 1000': 1000
+    const activeRankNames = (typeof UniversalTableEngine !== 'undefined' && UniversalTableEngine.ranks)
+      ? UniversalTableEngine.ranks.map(r => r.name)
+      : [
+        'Shift 0', 'Feeble', 'Poor', 'Typical', 'Good', 'Excellent',
+        'Remarkable', 'Incredible', 'Amazing', 'Monstrous', 'Unearthly',
+        'Shift X', 'Shift Y', 'Shift Z', 'Class 1000', 'Class 3000', 'Class 5000', 'Beyond'
+      ];
+
+    const getVal = (rankName) => {
+      if (typeof UniversalTableEngine !== 'undefined' && UniversalTableEngine.getRankByName) {
+        return UniversalTableEngine.getRankByName(rankName).num || 0;
+      }
+      return 6;
     };
 
     const heroRankName = (this.character && this.character.resources && this.character.resources.rankName) 
@@ -2039,23 +2098,23 @@ const App = {
       : 'Typical';
     const heroRankVal = (this.character && this.character.resources && this.character.resources.rankValue !== undefined)
       ? this.character.resources.rankValue
-      : (VALUES[heroRankName] || 6);
+      : (getVal(heroRankName) || 6);
 
-    const heroIdx = Math.max(0, RANKS.indexOf(heroRankName));
+    const heroIdx = Math.max(0, activeRankNames.indexOf(heroRankName));
 
     // Determine cost rank based on market mode
     const isBlackMarketPurchase = (item.accessType === 'black_market') || (this.storeBlackMarketAccess && item.blackMarketCostRank);
     let effectiveCostRank = item.costRank || 'Typical';
-    let effectiveCostVal = item.costValue !== undefined ? item.costValue : (VALUES[effectiveCostRank] || 6);
+    let effectiveCostVal = item.costValue !== undefined ? item.costValue : (getVal(effectiveCostRank) || 6);
     let costNote = 'Legal Market Price';
 
     if (isBlackMarketPurchase && item.blackMarketCostRank) {
       effectiveCostRank = item.blackMarketCostRank;
-      effectiveCostVal = item.blackMarketCostValue !== undefined ? item.blackMarketCostValue : (VALUES[effectiveCostRank] || effectiveCostVal);
+      effectiveCostVal = item.blackMarketCostValue !== undefined ? item.blackMarketCostValue : (getVal(effectiveCostRank) || effectiveCostVal);
       costNote = 'Black Market (+1CS per p. 41)';
     }
 
-    const costIdx = Math.max(0, RANKS.indexOf(effectiveCostRank));
+    const costIdx = Math.max(0, activeRankNames.indexOf(effectiveCostRank));
     const diff = heroIdx - costIdx;
 
     // Check clearances
@@ -2777,6 +2836,25 @@ const App = {
     this.renderBackground();
     this.renderEquipment();
     this.saveState();
+  },
+
+  setUniversalTableMode(mode, save = true) {
+    this.universalTableMode = (mode === 'cmf') ? 'cmf' : 'standard';
+    if (typeof UniversalTableEngine !== 'undefined' && UniversalTableEngine.setTableMode) {
+      UniversalTableEngine.setTableMode(this.universalTableMode);
+    }
+    if (save && typeof localStorage !== 'undefined') {
+      localStorage.setItem('msh_option_universal_table', this.universalTableMode);
+    }
+    const tableOpt = document.getElementById('option-universal-table');
+    if (tableOpt) tableOpt.value = this.universalTableMode;
+    const cheatTableOpt = document.getElementById('cheat-table-mode-select');
+    if (cheatTableOpt) cheatTableOpt.value = this.universalTableMode;
+
+    this.populateDropdowns();
+    this.renderCheatSheetTable();
+    this.render();
+    this.updateRollerPreview();
   },
 
   updateAreaDivisionDisplay() {
@@ -4342,18 +4420,83 @@ const App = {
     if (!tbody) return;
     tbody.innerHTML = '';
 
-    RANKS.forEach(r => {
-      const thresh = UNIVERSAL_TABLE[r.name] || [51, 81, 98];
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td class="rank-name-cell" style="font-weight: 700; color: ${r.color};">${r.name} (${r.num})</td>
-        <td class="cell-white">01 - ${String(thresh[0] - 1).padStart(2, '0')}</td>
-        <td class="cell-green">${String(thresh[0]).padStart(2, '0')} - ${String(thresh[1] - 1).padStart(2, '0')}</td>
-        <td class="cell-yellow">${String(thresh[1]).padStart(2, '0')} - ${String(thresh[2] - 1).padStart(2, '0')}</td>
-        <td class="cell-red">${String(thresh[2]).padStart(2, '0')} - 100</td>
-      `;
-      tbody.appendChild(tr);
-    });
+    const isCMF = (this.universalTableMode === 'cmf');
+    const headerRow = document.getElementById('cheatsheet-table-header-row');
+    const titleEl = document.getElementById('cheat-table-title');
+    const descEl = document.getElementById('cheat-table-desc');
+
+    if (isCMF) {
+      if (titleEl) titleEl.textContent = '🎲 Universal Action Table Matrix (CMF 22 Ranks)';
+      if (descEl) {
+        descEl.innerHTML = 'CMF modified universal action table with 22 ranks (including intermediate <em>Fantastic, Spectacular, Sensational, Awesome</em>) and <strong>Dark Blue Fumble (01-10 down to 01-01)</strong> blunder results:';
+      }
+      if (headerRow) {
+        headerRow.innerHTML = `
+          <th style="width: 22%;">Rank &amp; Number</th>
+          <th style="width: 15%;"><span class="feat-blue">Dark Blue (Blunder)</span></th>
+          <th style="width: 15%;"><span class="feat-white">White (Failure)</span></th>
+          <th style="width: 16%;"><span class="feat-green">Green (Standard)</span></th>
+          <th style="width: 16%;"><span class="feat-yellow">Yellow (Superior)</span></th>
+          <th style="width: 16%;"><span class="feat-red">Red (Critical)</span></th>
+        `;
+      }
+
+      UniversalTableEngine.ranks.forEach(r => {
+        const thresh = (UniversalTableEngine.table && UniversalTableEngine.table[r.name]) || [0, 52, 82, 96];
+        const [fumbleMax, greenMin, yellowMin, redMin] = thresh;
+        const blueText = fumbleMax > 0 ? (fumbleMax === 1 ? '01' : `01 - ${String(fumbleMax).padStart(2, '0')}`) : 'None';
+        let whiteText = '';
+        if (fumbleMax === 0) {
+          const wMax = greenMin - 1;
+          whiteText = wMax > 0 ? `01 - ${String(wMax).padStart(2, '0')}` : 'None';
+        } else {
+          const wMin = fumbleMax + 1;
+          const wMax = greenMin - 1;
+          whiteText = (wMin <= wMax) ? `${String(wMin).padStart(2, '0')} - ${String(wMax).padStart(2, '0')}` : 'None';
+        }
+        const greenText = `${String(greenMin).padStart(2, '0')} - ${String(yellowMin - 1).padStart(2, '0')}`;
+        const yellowText = `${String(yellowMin).padStart(2, '0')} - ${String(redMin - 1).padStart(2, '0')}`;
+        const redText = `${String(redMin).padStart(2, '0')} - 100`;
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td class="rank-name-cell" style="font-weight: 700; color: ${r.color};">${r.name} (${r.num})</td>
+          <td class="cell-blue">${blueText}</td>
+          <td class="cell-white">${whiteText}</td>
+          <td class="cell-green">${greenText}</td>
+          <td class="cell-yellow">${yellowText}</td>
+          <td class="cell-red">${redText}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    } else {
+      if (titleEl) titleEl.textContent = '🎲 Universal Action Table Matrix (All 18 Ranks)';
+      if (descEl) {
+        descEl.textContent = 'The core engine of the FASERIP system. Roll 1d100 (percentile dice) and cross-reference rank to determine FEAT color result:';
+      }
+      if (headerRow) {
+        headerRow.innerHTML = `
+          <th>Rank &amp; Number</th>
+          <th><span class="feat-white">White (Failure)</span></th>
+          <th><span class="feat-green">Green (Standard)</span></th>
+          <th><span class="feat-yellow">Yellow (Superior)</span></th>
+          <th><span class="feat-red">Red (Critical)</span></th>
+        `;
+      }
+
+      UniversalTableEngine.ranks.forEach(r => {
+        const thresh = (UniversalTableEngine.table && UniversalTableEngine.table[r.name]) || [51, 81, 98];
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td class="rank-name-cell" style="font-weight: 700; color: ${r.color};">${r.name} (${r.num})</td>
+          <td class="cell-white">01 - ${String(thresh[0] - 1).padStart(2, '0')}</td>
+          <td class="cell-green">${String(thresh[0]).padStart(2, '0')} - ${String(thresh[1] - 1).padStart(2, '0')}</td>
+          <td class="cell-yellow">${String(thresh[1]).padStart(2, '0')} - ${String(thresh[2] - 1).padStart(2, '0')}</td>
+          <td class="cell-red">${String(thresh[2]).padStart(2, '0')} - 100</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
   },
 
   /* Roller Window & Dialog Logic */
@@ -4729,6 +4872,12 @@ const App = {
       shiftValEl.textContent = (shift >= 0 ? '+' : '') + shift + ' CS';
     }
 
+    const isCMF = (typeof UniversalTableEngine !== 'undefined' && UniversalTableEngine.tableMode === 'cmf');
+    const blueBox = document.getElementById('roller-thresh-blue-box');
+    if (blueBox) {
+      blueBox.style.display = isCMF ? 'flex' : 'none';
+    }
+
     const effRank = UniversalTableEngine.applyColumnShift(this.activeRoller.initialRank, shift);
 
     const prevEl = document.getElementById('roller-rank-preview');
@@ -4737,18 +4886,45 @@ const App = {
       prevEl.style.color = effRank.color;
     }
 
-    const thresh = UNIVERSAL_TABLE[effRank.name] || [51, 81, 98];
-    const whiteMax = Math.max(0, thresh[0] - 1);
-    const whiteEl = document.getElementById('roller-thresh-white');
-    if (whiteEl) {
-      whiteEl.textContent = whiteMax > 0 ? `01-${String(whiteMax).padStart(2, '0')}` : 'None';
+    if (isCMF) {
+      const thresh = (UniversalTableEngine.table && UniversalTableEngine.table[effRank.name]) || [0, 52, 82, 96];
+      const [fumbleMax, greenMin, yellowMin, redMin] = thresh;
+
+      const blueEl = document.getElementById('roller-thresh-blue');
+      if (blueEl) {
+        blueEl.textContent = fumbleMax > 0 ? (fumbleMax === 1 ? '01' : `01-${String(fumbleMax).padStart(2, '0')}`) : 'None';
+      }
+      const whiteEl = document.getElementById('roller-thresh-white');
+      if (whiteEl) {
+        if (fumbleMax === 0) {
+          const wMax = greenMin - 1;
+          whiteEl.textContent = wMax > 0 ? `01-${String(wMax).padStart(2, '0')}` : 'None';
+        } else {
+          const wMin = fumbleMax + 1;
+          const wMax = greenMin - 1;
+          whiteEl.textContent = (wMin <= wMax) ? `${String(wMin).padStart(2, '0')}-${String(wMax).padStart(2, '0')}` : 'None';
+        }
+      }
+      const greenEl = document.getElementById('roller-thresh-green');
+      if (greenEl) greenEl.textContent = `${greenMin}+`;
+      const yellowEl = document.getElementById('roller-thresh-yellow');
+      if (yellowEl) yellowEl.textContent = `${yellowMin}+`;
+      const redEl = document.getElementById('roller-thresh-red');
+      if (redEl) redEl.textContent = `${redMin}+`;
+    } else {
+      const thresh = (UniversalTableEngine.table && UniversalTableEngine.table[effRank.name]) || [51, 81, 98];
+      const whiteMax = Math.max(0, thresh[0] - 1);
+      const whiteEl = document.getElementById('roller-thresh-white');
+      if (whiteEl) {
+        whiteEl.textContent = whiteMax > 0 ? `01-${String(whiteMax).padStart(2, '0')}` : 'None';
+      }
+      const greenEl = document.getElementById('roller-thresh-green');
+      if (greenEl) greenEl.textContent = `${thresh[0]}+`;
+      const yellowEl = document.getElementById('roller-thresh-yellow');
+      if (yellowEl) yellowEl.textContent = `${thresh[1]}+`;
+      const redEl = document.getElementById('roller-thresh-red');
+      if (redEl) redEl.textContent = `${thresh[2]}+`;
     }
-    const greenEl = document.getElementById('roller-thresh-green');
-    if (greenEl) greenEl.textContent = `${thresh[0]}+`;
-    const yellowEl = document.getElementById('roller-thresh-yellow');
-    if (yellowEl) yellowEl.textContent = `${thresh[1]}+`;
-    const redEl = document.getElementById('roller-thresh-red');
-    if (redEl) redEl.textContent = `${thresh[2]}+`;
 
     // Update CS Details Row below action row
     const csDetailsEl = document.getElementById('roller-cs-details-text');
@@ -4804,8 +4980,9 @@ const App = {
       this.activeRoller.damageValue
     );
 
-    const isManilla = document.body.getAttribute('data-theme') === 'manilla';
+    const isManilla = document.body && document.body.getAttribute('data-theme') === 'manilla';
     const colorMap = {
+      'Blue': isManilla ? '#1e3a8a' : '#38bdf8',
       'White': isManilla ? '#000000' : '#cbd5e1',
       'Green': isManilla ? '#065f46' : '#10b981',
       'Yellow': isManilla ? '#78350f' : '#f59e0b',
@@ -4839,7 +5016,8 @@ const App = {
 
     const effectEl = document.getElementById('roller-effect-desc');
     if (effectEl) {
-      effectEl.innerHTML = `<span style="color:${c}; font-weight:900; font-size:11pt;">${featResult.color.toUpperCase()} FEAT! (${finalRoll} on ${featResult.effectiveRank})</span><div style="color:var(--text-main); font-size:10pt; margin-top: 2px;">${battleEffect.desc}</div>`;
+      const labelText = featResult.color === 'Blue' ? 'DARK BLUE FUMBLE!' : `${featResult.color.toUpperCase()} FEAT!`;
+      effectEl.innerHTML = `<span style="color:${c}; font-weight:900; font-size:11pt;">${labelText} (${finalRoll} on ${featResult.effectiveRank})</span><div style="color:var(--text-main); font-size:10pt; margin-top: 2px;">${battleEffect.desc}</div>`;
     }
 
     // Automatic Equipment Procurement Resolution on Resource FEAT rolls (Player's Book p. 18)

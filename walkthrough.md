@@ -1,6 +1,98 @@
-# Walkthrough: Known Blueprints & Schematics Archive
+# Walkthrough: Modified Universal Action Table & CMF Ranks Preference
 
-This update implements persistent **Known Blueprints & Schematics Archive** functionality for the Marvel Super Heroes Character Sheet and Inventions Lab:
+This update adds a user preference to toggle between the **Standard TSR Universal Action Table** (18 ranks) and the **Modified Classic Marvel Forever (CMF) Universal Action Table** (22 ranks) transcribed from the canonical reference image `alternate_universal_table.jpg`.
+
+---
+
+## 1. Feature Highlights & Architecture
+
+```mermaid
+flowchart TD
+    subgraph Pref ["User Preference Toggle"]
+        O["⚙️ Options Modal (#option-universal-table)"] --> T["App.setUniversalTableMode(mode)"]
+        C["Cheat Sheet Header (#cheat-table-mode-select)"] --> T
+        T --> L["localStorage ('msh_option_universal_table')"]
+    end
+
+    subgraph Engine ["UniversalTableEngine (universal_table.js)"]
+        T --> E["UniversalTableEngine.setTableMode(mode)"]
+        E -->|standard| R18["18 Ranks (Shift 0 to Beyond)<br/>3 Thresholds: [Green, Yellow, Red]"]
+        E -->|cmf| R22["22 Ranks (+Fantastic, Spectacular, Sensational, Awesome)<br/>4 Thresholds: [Fumble, Green, Yellow, Red]"]
+    end
+
+    subgraph Systems ["Application Dynamic Systems"]
+        E --> D["Dropdowns (Abilities, Powers, Inventions)<br/>Preserves Current Rank Selections"]
+        E --> CS["Cheat Sheet Action Matrix<br/>18 Ranks vs 22 Ranks + Blue Column"]
+        E --> RM["Roller Modal Preview & Execution<br/>Blue Threshold Box & Fumble Battle Effects"]
+        E --> PE["Procurement & Column Shift Engine<br/>22-Rank Dynamic Index Step"]
+    end
+```
+
+### 1. The 22 Expanded CMF Ranks & Intermediate Tiers
+In addition to the canonical 18 TSR ranks, CMF introduces four intermediate ranks:
+- **Fantastic** (Num: `35`, Abbr: `Fa`, Color: `#4f46e5`): Situated between Remarkable (30) and Incredible (40).
+- **Spectacular** (Num: `45`, Abbr: `Sp`, Color: `#8b5cf6`): Situated between Incredible (40) and Amazing (50).
+- **Sensational** (Num: `60`, Abbr: `Sn`, Color: `#c026d3`): Situated between Amazing (50) and Monstrous (75).
+- **Awesome** (Num: `90`, Abbr: `Aw`, Color: `#d97706`): Situated between Monstrous (75) and Unearthly (100).
+
+### 2. Dark Blue Fumble ("Uh oh") & Adjusted Percentile Thresholds
+Under CMF mode, rolls $\le$ `fumbleMax` are classified as **Dark Blue Fumbles**:
+- **Shift 0**: `01–10` (Dark Blue), `11–60` (White), `61–90` (Green), `91–99` (Yellow), `100` (Red)
+- **Feeble**: `01–09` (Dark Blue), `10–57` (White), `58–87` (Green), `88–99` (Yellow), `100` (Red)
+- **Poor**: `01–08` (Dark Blue), `09–54` (White), `55–84` (Green), `85–99` (Yellow), `100` (Red)
+- **Typical**: `01–07` (Dark Blue), `08–51` (White), `52–81` (Green), `82–95` (Yellow), `96–100` (Red)
+- **Good**: `01–06` (Dark Blue), `07–48` (White), `49–78` (Green), `79–95` (Yellow), `96–100` (Red)
+- **Excellent**: `01–05` (Dark Blue), `06–45` (White), `46–75` (Green), `76–90` (Yellow), `91–100` (Red)
+- **Remarkable**: `01–05` (Dark Blue), `06–42` (White), `43–72` (Green), `73–90` (Yellow), `91–100` (Red)
+- **Fantastic**: `01–04` (Dark Blue), `05–39` (White), `40–69` (Green), `70–84` (Yellow), `85–100` (Red)
+- **Incredible**: `01–04` (Dark Blue), `05–36` (White), `37–66` (Green), `67–84` (Yellow), `85–100` (Red)
+- **Spectacular**: `01–03` (Dark Blue), `04–33` (White), `34–63` (Green), `64–78` (Yellow), `79–100` (Red)
+- **Amazing**: `01–03` (Dark Blue), `04–30` (White), `31–60` (Green), `61–78` (Yellow), `79–100` (Red)
+- **Sensational**: `01–02` (Dark Blue), `03–27` (White), `28–57` (Green), `58–72` (Yellow), `73–100` (Red)
+- **Monstrous**: `01–02` (Dark Blue), `03–24` (White), `25–54` (Green), `55–72` (Yellow), `73–100` (Red)
+- **Awesome**: `01–01` (Dark Blue), `02–21` (White), `22–51` (Green), `52–66` (Yellow), `67–100` (Red)
+- **Unearthly**: `01–01` (Dark Blue), `02–18` (White), `19–48` (Green), `49–66` (Yellow), `67–100` (Red)
+- **Shift X to Beyond**: `None` (Dark Blue), Fumbles cease at Cosmic and Shift ranks.
+
+---
+
+## 2. Changes Made Across Files
+
+| Component / File | Changes & Enhancements |
+|---|---|
+| [`universal_table.js`](file:///C:/Users/admin/.gemini/antigravity/brain/90637841-9270-481f-944c-4ab42ceec14e/universal_table.js) | • Added `STANDARD_RANKS`, `STANDARD_TABLE`, `CMF_RANKS`, and `CMF_TABLE`.<br/>• Added `UniversalTableEngine.setTableMode(mode)` and dynamic getters `tableMode`, `ranks`, and `table`.<br/>• Enhanced `resolveFEAT()` with Blue fumble support (`isFumble: true, color: 'Blue'`).<br/>• Enhanced `getBattleEffect()` with specific blunder effects across all action types.<br/>• Updated `applyColumnShift()` to gracefully step through 22 CMF ranks. |
+| [`index.html`](file:///C:/Users/admin/.gemini/antigravity/brain/90637841-9270-481f-944c-4ab42ceec14e/index.html) | • Added `#option-universal-table` select dropdown in Options modal.<br/>• Added `#cheat-table-mode-select` synced select dropdown in Cheat Sheet header.<br/>• Added `#cheatsheet-table-header-row` in Cheat Sheet table.<br/>• Added `#roller-thresh-blue-box` (`.thresh-box.blue`) to Universal FEAT roller. |
+| [`styles.css`](file:///C:/Users/admin/.gemini/antigravity/brain/90637841-9270-481f-944c-4ab42ceec14e/styles.css) | • Added `.cell-blue`, `.feat-blue`, and `.thresh-box.blue` styling.<br/>• Full WCAG-compliant contrast support across Four-Color (slate dark), Manilla (sepia parchment), and Aqua (cyan glow) themes.<br/>• Zero sub-10pt font violations. |
+| [`app.js`](file:///C:/Users/admin/.gemini/antigravity/brain/90637841-9270-481f-944c-4ab42ceec14e/app.js) | • Initialized `universalTableMode` preference from `localStorage`.<br/>• Implemented `setUniversalTableMode(mode, save)`.<br/>• Updated `populateDropdowns()` to dynamically populate active ranks and preserve current values.<br/>• Updated `renderCheatSheetTable()` to render 22 ranks with Dark Blue column in CMF mode.<br/>• Updated `updateRollerPreview()` to toggle Blue fumble threshold box.<br/>• Updated `executeRollerFEAT()` to resolve Dark Blue fumbles and render blunder battle descriptions. |
+
+---
+
+## 3. Verification & Testing
+
+1. **Automated Unit Test Suite (`scratch/test_cmf_universal_table.js`)**:
+   - `Test 1: Standard TSR Mode Ranks & Table`: Verified 18 ranks and canonical thresholds.
+   - `Test 2: CMF Mode 22 Ranks & Intermediate Tiers`: Verified all 4 intermediate ranks (Fantastic 35, Spectacular 45, Sensational 60, Awesome 90).
+   - `Test 3: CMF Column Shifts with Intermediate Ranks`: Stepped through Remarkable $\rightarrow$ Fantastic $\rightarrow$ Incredible $\rightarrow$ Spectacular $\rightarrow$ Amazing $\rightarrow$ Sensational $\rightarrow$ Monstrous $\rightarrow$ Awesome $\rightarrow$ Unearthly.
+   - `Test 4: CMF Dark Blue Fumble & Thresholds`: Verified `01–07` fumble on Typical, `hit: false, fumble: true` battle effect, and Shift X fumble immunity.
+   - `Test 5: Full Mock DOM & app.js Integration`: Verified preference switching, dynamic ability dropdown options (13 vs 17), cheat sheet matrix rendering (18 vs 22 rows with Blue header), roller preview visibility, and roll execution.
+   - **Result**: `ALL CMF UNIVERSAL TABLE TESTS PASSED!`
+
+2. **Full Codebase Regression Suite**:
+   - `check_undeclared.js`: All roller scenarios executed cleanly without errors.
+   - `test_power_roll_buttons.js`: Power roll buttons and battle effect translations verified 100%.
+   - `test_dropdown_placeholders.js`: Select placeholders and validation guards verified 100%.
+   - `test_talents_starred_and_specializations.js`: Starred talents, duplicates, and specializations verified 100%.
+   - `test_resource_points_rule.js`: Resource points 2x rule verified 100%.
+   - `test_ohotmu_and_filters.js`: Prebuilt equipment reverse-engineering and access filters verified 100%.
+   - `verify_all_catalogs.js`: All 271 powers, 56 talents, 136 equipment items verified 100%.
+   - `test_unreadable_combos_fixed.js`: Zero contrast violations verified across all themes.
+
+3. **Mirroring to Google Drive**:
+   - Copied `universal_table.js`, `styles.css`, `index.html`, and `app.js` to `H:\My Drive\RPG development\Marvel\`.
+
+---
+
+# Walkthrough: Known Blueprints & Schematics Archive
 1. **Automatic Blueprint Recording**:
    - Any device successfully invented (passing all 3 FEATs and installed to equipment) is automatically recorded as a mastered blueprint in `character.knownBlueprints`.
    - Any rulebook equipment item reverse-engineered in the lab is automatically analyzed and stored in `character.knownBlueprints` with its exact manufacturing specs.

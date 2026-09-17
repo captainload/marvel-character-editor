@@ -1741,6 +1741,13 @@ select.field-input option {
   font-family: var(--font-mono);
 }
 
+.thresh-box.blue {
+  background: rgba(30, 58, 138, 0.25);
+  border: 1px solid #3b82f6;
+  color: #60a5fa;
+}
+.thresh-box.blue .thresh-name { color: #93c5fd; }
+
 .thresh-box.white {
   background: rgba(226, 232, 240, 0.1);
   border: 1px solid #94a3b8;
@@ -1962,6 +1969,8 @@ select.field-input option {
   font-size: 12pt;
 }
 
+.feat-blue { color: #60a5fa !important; font-weight: 700; }
+.cell-blue { background: rgba(30, 58, 138, 0.25); color: #60a5fa; font-weight: 700; }
 .cell-white { background: rgba(148, 163, 184, 0.15); color: #cbd5e1; }
 .cell-green { background: rgba(16, 185, 129, 0.2); color: #34d399; font-weight: 700; }
 .cell-yellow { background: rgba(245, 158, 11, 0.2); color: #fbbf24; font-weight: 700; }
@@ -3942,6 +3951,30 @@ body[data-theme="manilla"] .universal-table-view td {
   border-color: #ded7cb !important;
 }
 
+body[data-theme="manilla"] .feat-blue {
+  color: #1e3a8a !important;
+  font-weight: 800 !important;
+}
+
+body[data-theme="manilla"] .cell-blue {
+  background: #dbeafe !important;
+  color: #1e3a8a !important;
+  font-weight: 800 !important;
+}
+
+body[data-theme="manilla"] .thresh-box.blue {
+  background: #dbeafe !important;
+  border-color: #2563eb !important;
+  color: #1e3a8a !important;
+  font-weight: 800 !important;
+}
+
+body[data-theme="manilla"] .thresh-box.blue .thresh-name,
+body[data-theme="manilla"] .thresh-box.blue .thresh-val {
+  color: #1e3a8a !important;
+  font-weight: 800 !important;
+}
+
 body[data-theme="manilla"] .cell-white {
   background: #f0ede6 !important;
   color: #000000 !important;
@@ -4629,6 +4662,28 @@ body[data-theme="aqua"] .roller-thresh-box {
   background: #0e2848;
   border-color: #23588e;
   color: #f0fdfa;
+}
+
+body[data-theme="aqua"] .thresh-box.blue {
+  background: rgba(2, 132, 199, 0.25) !important;
+  border-color: #0284c7 !important;
+  color: #38bdf8 !important;
+}
+
+body[data-theme="aqua"] .thresh-box.blue .thresh-name,
+body[data-theme="aqua"] .thresh-box.blue .thresh-val {
+  color: #38bdf8 !important;
+}
+
+body[data-theme="aqua"] .cell-blue {
+  background: rgba(2, 132, 199, 0.25) !important;
+  color: #38bdf8 !important;
+  font-weight: 700;
+}
+
+body[data-theme="aqua"] .feat-blue {
+  color: #38bdf8 !important;
+  font-weight: 700;
 }
 
 body[data-theme="aqua"] .battle-effect-box.compact {

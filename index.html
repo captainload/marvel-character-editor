@@ -868,8 +868,12 @@
           </div>
         </div>
 
-        <!-- 4-Color Universal Table Threshold Grid: White, Green, Yellow, Red -->
+        <!-- 4-Color / 5-Color Universal Table Threshold Grid: Blue (CMF), White, Green, Yellow, Red -->
         <div class="roller-thresh-grid">
+          <div class="thresh-box blue" id="roller-thresh-blue-box" style="display: none;">
+            <span class="thresh-name">Blue</span>
+            <span class="thresh-val" id="roller-thresh-blue">01-07</span>
+          </div>
           <div class="thresh-box white">
             <span class="thresh-name">White</span>
             <span class="thresh-val" id="roller-thresh-white">01-35</span>
@@ -1206,11 +1210,20 @@
 
         <!-- Cheat Section: Universal Table -->
         <div id="cheat-section-table" class="cheatsheet-section" style="display: none;">
-          <h3>🎲 Universal Action Table Matrix (All 18 Ranks)</h3>
-          <p>The core engine of the FASERIP system. Roll 1d100 (percentile dice) and cross-reference rank to determine FEAT color result:</p>
+          <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 8px;">
+            <h3 id="cheat-table-title" style="margin: 0;">🎲 Universal Action Table Matrix (All 18 Ranks)</h3>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="font-size: 10pt; color: var(--text-muted); font-weight: 700;">Table Mode:</span>
+              <select id="cheat-table-mode-select" class="field-input" style="min-height: 30px; padding: 2px 8px; font-size: 10pt; width: auto;">
+                <option value="standard">Standard TSR (18 Ranks)</option>
+                <option value="cmf">Modified CMF (22 Ranks)</option>
+              </select>
+            </div>
+          </div>
+          <p id="cheat-table-desc">The core engine of the FASERIP system. Roll 1d100 (percentile dice) and cross-reference rank to determine FEAT color result:</p>
           <table class="universal-table-view">
             <thead>
-              <tr>
+              <tr id="cheatsheet-table-header-row">
                 <th>Rank & Number</th>
                 <th><span class="feat-white">White (Failure)</span></th>
                 <th><span class="feat-green">Green (Standard)</span></th>
@@ -1886,6 +1899,20 @@
               </div>
             </div>
           </label>
+
+          <div style="font-weight: 700; color: var(--text-main); font-size: 11pt; border-bottom: 1px solid var(--border-color); padding-bottom: 6px; margin-top: 6px;">Universal Action Table &amp; Rank System</div>
+          <div>
+            <span class="field-label" style="margin-bottom: 6px; color: var(--text-muted);">Action Table Matrix &amp; Ranks:</span>
+            <select id="option-universal-table" class="field-input" style="min-height: 40px;">
+              <option value="standard">Standard TSR Universal Table (Canonical 18 Ranks)</option>
+              <option value="cmf">Modified CMF Universal Table &amp; Ranks (22 Expanded Ranks: +Fantastic, Spectacular, Sensational, Awesome)</option>
+            </select>
+            <div style="color: var(--text-muted); font-size: 10pt; margin-top: 6px; line-height: 1.5;">
+              Choose between the official TSR rulebook table or the Classic Marvel Forever modified table:
+              <br>• <strong>Standard TSR:</strong> Canonical 18 ranks (Shift 0 to Beyond) from the Advanced Set and 1991 Revised Box.
+              <br>• <strong>Modified CMF:</strong> Expanded 22 ranks with 4 intermediate steps: <em>Fantastic (35)</em>, <em>Spectacular (45)</em>, <em>Sensational (60)</em>, and <em>Awesome (90)</em>, plus adjusted percentile thresholds and dark blue fumble/blunder ranges.
+            </div>
+          </div>
         </div>
       </div>
       <div class="modal-footer">

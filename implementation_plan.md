@@ -1,92 +1,121 @@
-# Implementation Plan: Resource Points Rule Option & Equipment Store Modal Sizing
+# Implementation Plan: CMF Point-Buy, Machines of Doom Inventions & UI Redesign
 
-Implement a rule option for **Resource Points** (monthly budget = $4 \times \text{Resource Number}$, items cost their rank values, spent points tracked on the Background tab, with Resource Rank and Points displayed in the Equipment Store header) and expand the **Equipment Store modal** to reach within 2px of the top and bottom borders.
+Transform the Marvel Super Heroes character builder into a CMF Point-Buy driven system with a clean top-row tabbed interface, expanded Machines of Doom invention engineering, prebuilt equipment reverse-engineering, and touch-accessible 1080px minimum width constraints.
 
 ## User Review Required
 
 > [!IMPORTANT]
-> **Summary of Proposed Mechanics:**
-> 1. **Equipment Store Modal Dimensions**:
->    - Sized to within 2px of all viewport edges (`padding: 2px` on overlay, `height: calc(100vh - 4px)`, `max-height: calc(100vh - 4px)`).
-> 2. **"Resource Points" Rule Option**:
->    - Configurable in the **Options modal (⚙️)** via `<input type="checkbox" id="option-resource-points">`, persisted in `localStorage` (`msh_option_resource_points`) and saved directly on the character model (`character.useResourcePoints`).
->    - **Monthly Budget Calculation**: `Monthly Resource Points = 4 × Resource Number` (e.g., Typical 6 Resources yields 24 RP/month; Good 10 yields 40 RP/month; Remarkable 30 yields 120 RP/month).
->    - **Item Cost**: Equipment and gear cost their rank numbers in RP (e.g., Poor item = 4 RP, Good item = 10 RP, Remarkable item = 30 RP).
->    - **Deduction on Purchase**: When an item is procured, its cost is automatically deducted from remaining points and added to `character.spentResourcePoints`.
->    - **Background Tab Tracking**: A dedicated card on Tab 6 (Background) tracks Resource Rank, Monthly Budget ($4\times$), Spent Points, Available Remaining Points, and includes a "Reset Month" button to start a fresh monthly cycle.
->    - **Side-by-Side Resource Rank**: The character's Resource Rank is prominently displayed directly next to the Resource Points ledger on the Background tab.
->    - **Equipment Store Header**: The top of the Equipment Store modal displays the character's Resource Rank at all times, and also displays real-time available and spent Resource Points when the rule is enabled.
+> **Key Architecture Decisions for Approval:**
+> 1. **Removal of Dual-Pane Layout**: The UI will transition entirely to a single-view, top-row tabbed interface (Main Stats, Powers, Invention, Equipment, Talents & Contacts, Background) with character name and cheat sheet in the top header.
+> 2. **CMF Point-Buy System**: Introducing standard CMF Character Point (CP) tiers (Street Level: 350 CP, Standard Superhero: 550 CP, High Powered: 800 CP, Cosmic: 1200 CP, plus Custom Budget). Ranks for FASERIP abilities, Powers (base + rank), Talents, Contacts, and Resources are purchased directly with real-time point tracking.
+> 3. **No Prebuilt Characters**: Spider-Man, Cap, and Wolverine presets are retired in favor of starting clean in the Point-Buy builder.
+> 4. **1080px Minimum Width & Detection**: The container enforces `min-width: 1080px`. Any viewport `< 1080px` triggers an alert banner: *"Please switch to portrait mode on mobile or use a larger screen."*
+> 5. **Machines of Doom Invention Expansion**: Full support for device types (Weapons, Battlesuits, Robots/Drones, Utility), power boosts (Area Effect, Armor Piercing, Overcharge), and limitations (Limited Charges, Tether, 1-Turn Cooldown, Feedback), plus reverse-engineering costs for rulebook prebuilt equipment (with unique items like Cap's Shield or Mjolnir locked as non-reproducible).
+> 6. **Typography & Touch Target Rules**: Absolute minimum font size of **10pt (13.33px)** across the entire application, with touch targets $\ge 44\text{px}$.
 
 ---
 
 ## Proposed Changes
 
-### Stylesheet & Layout
-#### [MODIFY] [styles.css](file:///C:/Users/admin/.gemini/antigravity/brain/90637841-9270-481f-944c-4ab42ceec14e/styles.css)
-- Change `#equipment-store-modal.modal-overlay` padding from `padding-left: 2px; padding-right: 2px;` to `padding: 2px;`.
-- Change `.modal-box.store-modal-box` height from `height: 85vh; max-height: 85vh;` to `height: calc(100vh - 4px); max-height: calc(100vh - 4px);`.
-- Add styling for the Equipment Store top header Resource Points badge (`#store-resource-status-badge`) ensuring perfect readability across Four-color, Manilla, and Aqua themes with font size $\ge 10\text{pt}$.
-- Add styling for the Background tab Financial Resources card (`#card-financial-resources`) with budget meters, badges, and action buttons.
+### 1. Data Layer & Equipment Database
+#### [MODIFY] [`data_equipment.js`](file:///H:/My%20Drive/RPG%20development/Marvel/data_equipment.js)
+- Expand the equipment catalog with items from the *Player's Book*, *MA8 Weapons Locker*, and *Machines of Doom*.
+- Add explicit metadata to each item:
+  - `costRank`: Resource rank required to purchase directly in the Equipment tab.
+  - `isUnique`: Boolean flag. Items like Captain America's Shield, Mjolnir, and Infinity Gems are marked `isUnique: true` with `nonReproducible: true`.
+  - `inventionSpecs`: Base Power rank, material strength, complexity, and reverse-engineering requirements for the Invention tab.
 
 ---
 
-### Character Data Model
-#### [MODIFY] [character_model.js](file:///C:/Users/admin/.gemini/antigravity/brain/90637841-9270-481f-944c-4ab42ceec14e/character_model.js)
-- Add `this.spentResourcePoints = parseInt(initialData.spentResourcePoints ?? 0);` and `this.useResourcePoints = !!initialData.useResourcePoints;`.
-- Implement `getResourcePointsBudget()`: returns `this.resources.rankValue * 4`.
-- Implement `getAvailableResourcePoints()`: returns `Math.max(0, this.getResourcePointsBudget() - (this.spentResourcePoints || 0))`.
-- Implement `spendResourcePoints(points)`: increments `this.spentResourcePoints` and returns available points.
-- Implement `resetMonthlyResourcePoints()`: resets `this.spentResourcePoints = 0`.
-- Update `toJSON()` and `fromJSON()` to serialize and restore `spentResourcePoints` and `useResourcePoints`.
+### 2. Invention & Engineering Engine
+#### [MODIFY] [`inventions.js`](file:///H:/My%20Drive/RPG%20development/Marvel/inventions.js)
+- Integrate *Machines of Doom* rules from the *Lands of Dr. Doom* boxed set (TSR 6891):
+  - **Device Categories**: Weapons, Battlesuits & Exosuits, Robots & Drones (with AI processor Reason/Intuition/Psyche chips), Utility & Gadgets.
+  - **Power Interface Integration**: Select any superpower from the UPB catalog to embed into the invention.
+  - **Hardware Boosts** (+1CS Difficulty / Build Time):
+    - *Area Effect*
+    - *Armor Piercing*
+    - *Overcharge Capacitor* (+1CS power output for 1 round)
+    - *Extended Range*
+    - *Autonomous AI Target Acquisition*
+  - **Hardware Limitations & Flaws** (-1CS Difficulty / Build Time):
+    - *Limited Charges / Ammo* (e.g., 3-5 shots)
+    - *External Power Tether* (requires heavy backpack generator or vehicle mount)
+    - *Bulky / Two-Handed* (requires high Strength or 2 hands)
+    - *1-Turn Cooldown* (requires a full turn to recycle before firing again)
+    - *Burnout / Feedback Risk* (roll of 01-05 causes temporary component burnout)
+  - **Prebuilt Equipment Reverse-Engineering**:
+    - A dedicated method `reverseEngineerPrebuilt(itemId)` that computes the Resource check, Reason blueprint check, and construction days to manufacture any non-unique catalog item.
+    - Prevents reproduction of unique items with an explicit rules citation.
 
 ---
 
-### Application User Interface
-#### [MODIFY] [index.html](file:///C:/Users/admin/.gemini/antigravity/brain/90637841-9270-481f-944c-4ab42ceec14e/index.html)
-- In `#options-modal`: Add a dedicated section **"Resource & Economy Rules"** containing the checkbox toggle `<input type="checkbox" id="option-resource-points">` with explanatory tooltip and descriptive text.
-- In `#tab-pane-background` (Tab 6: Background): Add the new **"💰 Financial Resources & Monthly Resource Points"** card displaying:
-  - Resource Rank selector / display (e.g., `Typical (6)`)
-  - Monthly Resource Points Budget ($4\times$)
-  - Spent Resource Points this month (with manual adjust field)
-  - Available Remaining Resource Points
-  - "🔄 Reset for New Month" button
-  - Contextual guidance explaining the rule or indicating standard TSR FEAT rules when inactive.
-- In `#equipment-store-modal` header: Add `#store-resource-status-badge` to display character Resource Rank and (if enabled) Available / Spent Resource Points.
+### 3. Character Model & CMF Point-Buy Engine
+#### [MODIFY] [`character_model.js`](file:///H:/My%20Drive/RPG%20development/Marvel/character_model.js)
+- Implement the CMF Character Point (CP) calculation engine:
+  - `pointBudget`: Configurable pool (350, 550, 800, 1200, or Custom).
+  - `calculateSpentPoints()`:
+    - **Abilities**: Rank value point-for-point (e.g., Remarkable 30 = 30 CP).
+    - **Powers**: 10 CP base cost + Rank value (or 2x for starred/exceptional powers).
+    - **Talents**: Flat 15 CP each.
+    - **Contacts**: Flat 5 CP each.
+    - **Resources**: Rank value point-for-point.
+  - Remove hardcoded prebuilt hero presets; initialize with clean custom/point-buy defaults.
+  - Retain S32 Collective Mass (Swarm Form) dual-profile functionality.
 
 ---
 
-### Application Logic & Procurement
-#### [MODIFY] [app.js](file:///C:/Users/admin/.gemini/antigravity/brain/90637841-9270-481f-944c-4ab42ceec14e/app.js)
-- Initialize `this.useResourcePoints` from `localStorage` (`msh_option_resource_points`) and synchronize with character data.
-- Wire `setUseResourcePoints(enabled)` to update the option checkbox, re-render the Background tab and Store header, and persist changes.
-- Update `renderBackground()` to render the Financial Resources card, bind the Resource Rank selector, spent points input, and month reset button.
-- Update `openEquipmentStore()` and `renderEquipment()` to refresh `#store-resource-status-badge` at the top of the store modal with Resource Rank and real-time Resource Points.
-- In `renderEquipment()`, display RP cost in the cost column when Resource Points is enabled.
-- Update `evaluateProcurement()` and `openProcurementModal()`:
-  - If Resource Points rule is active, evaluate available RP against item cost.
-  - Present a direct `💳 Spend [Cost] RP & Acquire` button if affordable, or show deficit warning with GM loan/override option if unaffordable.
-- In `finalizeItemAcquisition()`, deduct item RP cost when Resource Points rule is active.
+### 4. Stylesheet Refactor
+#### [MODIFY] [`styles.css`](file:///H:/My%20Drive/RPG%20development/Marvel/styles.css)
+- **Remove Dual-Pane Rules**: Delete `.layout-double-pane` and `.layout-single-pane` grid/column split.
+- **Top Row Navigation**: Create a single responsive, touch-friendly tab bar across the top:
+  `[Main Stats] [Powers] [Invention] [Equipment] [Talents & Contacts] [Background]`.
+- **1080px Constraint**:
+  - Set `min-width: 1080px` on `.app-container`.
+  - Add styles for the viewport width warning banner (`#screen-width-warning`).
+- **Typography**: Set root font size so that the absolute smallest text across badges, inputs, labels, and notes is **10pt (13.33px)**.
+- **Touch-Friendly Controls**: Minimum 44px touch targets on buttons, rank steppers, tabs, and Roll20 attack chips.
+
+---
+
+### 5. Application UI & Views
+#### [MODIFY] [`index.html`](file:///H:/My%20Drive/RPG%20development/Marvel/index.html)
+- **Header**:
+  - Brand logo ("MSH FASERIP"), editable Character Name input, live Point-Buy counter (`Spent: X / Total: Y`), Cheat Sheet button (`📖`), Save/Open buttons, Fullscreen button.
+- **Screen Width Warning Banner**:
+  - Fixed banner alerting users if screen width is under 1080px: *"⚠️ Screen Width Warning: This application requires a minimum screen width of 1080 pixels. Please switch to portrait mode on mobile or use a larger screen."*
+- **Top-Row Tabs Container**:
+  1. **Tab 1: Main Stats**: Point-Buy tier selector, FASERIP abilities with rank steppers, Health/Karma vitals, Defenses, Conditions, S32 Swarm profile switch, and Roll20-style Combat FEAT attack cards.
+  2. **Tab 2: Powers**: Full power catalog, rank assignment, stunts, point costs, and `?` errata popups.
+  3. **Tab 3: Invention**: Machines of Doom lab, Power Interface modal/selector, boosts and limits toggles, and Prebuilt Equipment reverse-engineering cost calculator.
+  4. **Tab 4: Equipment**: Buyable rulebook equipment store, inventory manager, and equipped gear list.
+  5. **Tab 5: Talents & Contacts**: Talents catalog with reconciled combat skills and contacts ledger.
+  6. **Tab 6: Background**: Physical form, origin, identity, biographical details, and backstory.
+
+#### [MODIFY] [`app.js`](file:///H:/My%20Drive/RPG%20development/Marvel/app.js)
+- Wire top-row tabs switching.
+- Add window resize listener to detect `window.innerWidth < 1080` and toggle the warning overlay.
+- Wire CMF point-buy steppers and live recalculation.
+- Wire the Invention Lab's Power Interface (modal to select power, assign rank, toggle boosts and limits).
+- Wire the Prebuilt Equipment reverse-engineering selector.
+- Remove prebuilt preset selector in favor of Point-Buy tier presets (Street, Standard, High-Powered, Cosmic).
 
 ---
 
 ## Verification Plan
 
-### Automated Tests
-Create and run a comprehensive verification script `scratch/test_resource_points_rule.js`:
-- Verify modal CSS rules enforce 2px margins on top, bottom, left, and right.
-- Verify `getResourcePointsBudget()` computes exactly $4 \times \text{Resource Number}$ for all TSR ranks (Feeble 2 $\to$ 8, Typical 6 $\to$ 24, Good 10 $\to$ 40, Remarkable 30 $\to$ 120, etc.).
-- Verify item acquisition automatically deducts points from `spentResourcePoints`.
-- Verify month reset restores available points to full budget.
-- Verify serialization in `toJSON()` and restoration in `fromJSON()`.
-- Verify UI elements exist in `index.html` (Options checkbox, Background financial card, Store header badge).
-- Run all existing regression test suites (`test_tsr_talents_only.js`, `test_cheatsheet_contrast_and_stability.js`, `verify_all_catalogs.js`).
+### Automated Verification
+- Run simulated DOM tests (`scratch/test_point_buy_and_inventions.js`) using Node.js:
+  - Verify CMF point-buy math (points spent vs remaining for abilities, powers, talents, resources).
+  - Verify viewport width detection triggers warning when `< 1080px`.
+  - Verify Machines of Doom invention calculation with boosts (+1CS) and limitations (-1CS).
+  - Verify prebuilt equipment reverse-engineering calculation and check that unique items (Shield, Mjolnir) throw an error / are blocked from manufacturing.
+  - Verify that no font in `styles.css` is defined below 10pt (13.33px).
 
 ### Manual Verification
-- Launch preview in browser:
-  1. Open Equipment Store modal: verify it fills the screen with 2px margins on all 4 borders (top, bottom, left, right).
-  2. Verify Equipment Store header displays `Resources: Typical (6)`.
-  3. Open Options (⚙️), enable "Use Resource Points Rule".
-  4. Verify Store header updates to show `Resources: Typical (6) • Available: 24 / 24 RP (Spent: 0 RP)`.
-  5. Procure an item costing 10 RP (Good): verify 10 RP is deducted, leaving 14 RP available.
-  6. Switch to Background tab: verify the Financial Resources card shows Resource Rank Typical (6), 24 RP Budget, 10 RP Spent, and 14 RP Available.
-  7. Click "Reset for New Month": verify Spent resets to 0 and Available returns to 24 RP.
+- Test in browser:
+  - Switch through all 6 tabs seamlessly.
+  - Adjust screen size below 1080px to verify the warning banner appears.
+  - Create a character from scratch using Point-Buy points.
+  - Build an invention using the Power Interface, apply boosts and limitations, and verify computed stats.
+  - Purchase equipment and test reverse-engineering costs.

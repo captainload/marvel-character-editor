@@ -2463,6 +2463,47 @@ input[type=number],
   color: var(--text-dim);
 }
 
+.power-details-grid {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+  margin: 6px 0 8px 0;
+  padding: 6px 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  font-size: 10pt;
+  line-height: 1.4;
+}
+
+.power-detail-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+.power-detail-label {
+  font-weight: 700;
+  color: var(--text-muted);
+  font-size: 10pt;
+}
+
+.power-detail-val {
+  font-weight: 600;
+  color: var(--text-main);
+  font-size: 10pt;
+}
+
+.power-custom-notes {
+  font-size: 10pt;
+  margin: 4px 0 8px 0;
+  color: var(--text-muted);
+  font-style: italic;
+  line-height: 1.4;
+}
+
 .tag-starred {
   border-color: #f59e0b;
   color: #fde68a;
@@ -3604,6 +3645,25 @@ body[data-theme="manilla"] .power-notes {
 body[data-theme="manilla"] .power-slots-hint {
   color: #000000 !important;
   font-weight: 600;
+}
+
+body[data-theme="manilla"] .power-details-grid {
+  background: #f4efe4 !important;
+  border-color: #d1c7b7 !important;
+}
+
+body[data-theme="manilla"] .power-detail-label {
+  color: #374151 !important;
+  font-weight: 800 !important;
+}
+
+body[data-theme="manilla"] .power-detail-val {
+  color: #000000 !important;
+  font-weight: 700 !important;
+}
+
+body[data-theme="manilla"] .power-custom-notes {
+  color: #1f2937 !important;
 }
 
 body[data-theme="manilla"] .tag-starred {
@@ -4921,6 +4981,23 @@ body[data-theme="aqua"] .power-notes {
 
 body[data-theme="aqua"] .power-slots-hint {
   color: #7dd3fc;
+}
+
+body[data-theme="aqua"] .power-details-grid {
+  background: rgba(15, 76, 92, 0.25) !important;
+  border-color: rgba(45, 212, 191, 0.2) !important;
+}
+
+body[data-theme="aqua"] .power-detail-label {
+  color: #7dd3fc !important;
+}
+
+body[data-theme="aqua"] .power-detail-val {
+  color: #f0fdfa !important;
+}
+
+body[data-theme="aqua"] .power-custom-notes {
+  color: #a5f3fc !important;
 }
 
 body[data-theme="aqua"] .tag-starred {

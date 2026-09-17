@@ -1435,6 +1435,37 @@ const App = {
         badgeHtml = '<span class="meta-tag tag-exceptional">★ Exceptional (2x CP)</span>';
       }
 
+      // Resolve structured power details
+      const details = (typeof getPowerDetails === 'function') ? getPowerDetails(p, p.rankName) : {};
+      
+      const detailItems = [];
+      if (details.range) {
+        detailItems.push(`<div class="power-detail-item"><span class="power-detail-label">🎯 Range:</span> <span class="power-detail-val">${details.range}</span></div>`);
+      }
+      if (details.duration) {
+        detailItems.push(`<div class="power-detail-item"><span class="power-detail-label">⏱️ Duration:</span> <span class="power-detail-val">${details.duration}</span></div>`);
+      }
+      if (details.areaOfEffect) {
+        detailItems.push(`<div class="power-detail-item"><span class="power-detail-label">📐 Area:</span> <span class="power-detail-val">${details.areaOfEffect}</span></div>`);
+      }
+      if (details.targets) {
+        detailItems.push(`<div class="power-detail-item"><span class="power-detail-label">👥 Targets:</span> <span class="power-detail-val">${details.targets}</span></div>`);
+      }
+      if (details.speed) {
+        detailItems.push(`<div class="power-detail-item"><span class="power-detail-label">⚡ Speed:</span> <span class="power-detail-val">${details.speed}</span></div>`);
+      }
+
+      // Check for custom player notes (filtering out legacy auto-generated 150-char description substrings and default placeholders)
+      const catalogPower = (globalThis.MSH_POWERS || []).find(cp => cp.name === p.name || cp.code === p.code || cp.id === p.code);
+      let customNotesHtml = '';
+      if (p.notes && p.notes.trim()) {
+        const isLegacySnippet = p.notes === 'Standard power function.' || 
+          (catalogPower && catalogPower.description && p.notes.startsWith(catalogPower.description.substring(0, 40)) && p.notes.endsWith('...'));
+        if (!isLegacySnippet) {
+          customNotesHtml = `<div class="power-custom-notes">📝 ${p.notes}</div>`;
+        }
+      }
+
       card.innerHTML = `
         <div class="card-header">
           <div style="display: flex; align-items: center; gap: 8px;">
@@ -1449,10 +1480,11 @@ const App = {
             <button class="icon-btn" style="padding: 2px 8px; min-height: 28px; background: #881337;" data-del-power="${idx}" title="Delete Power">✕</button>
           </div>
         </div>
-        <div class="power-notes" style="font-size: 10.5pt; margin-bottom: 8px;">
-          ${p.notes || 'Standard power function.'}
-          <span class="power-slots-hint" style="font-size: 10pt; margin-left: 8px;">(Slots: ${p.powerSlots || (isStarredPower ? 2 : 1)})</span>
+        <div class="power-details-grid">
+          ${detailItems.join('')}
+          <span class="power-slots-hint" style="font-size: 10pt; margin-left: auto;">(Slots: ${p.powerSlots || (isStarredPower ? 2 : 1)})</span>
         </div>
+        ${customNotesHtml}
       `;
 
       // Render Power Stunts Section inside Power Card
@@ -1755,6 +1787,7 @@ const App = {
 
     this.character.powers.push({
       id: 'p_' + Date.now(),
+      code: catalogPower.code,
       name: catalogPower.name,
       category: catalogPower.category,
       rankName: rObj.name,
@@ -1762,7 +1795,12 @@ const App = {
       powerSlots: isStarred ? 2 : 1,
       isExceptional: isExceptional,
       isStarred: isStarred,
-      notes: catalogPower.description.substring(0, 150) + '...',
+      range: catalogPower.range,
+      duration: catalogPower.duration,
+      areaOfEffect: catalogPower.areaOfEffect,
+      targets: catalogPower.targets,
+      speed: catalogPower.speed,
+      notes: '',
       stunts: catalogPower.powerStunts || []
     });
 

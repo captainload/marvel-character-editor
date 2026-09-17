@@ -187,8 +187,8 @@ const POWERS_CATALOG = [
     "source": "UPB Table p. 16-19 & Entry D15",
     "defaultRank": "Typical",
     "countsAsTwo": false,
-    "description": "The hero has increased resistance to any physical attack. This includes brute force, chemical weapons, biochemicals, disease, hostile environments, and temperature extremes. The hero can ignore any physical attacks with Intensities less than.",
-    "rulesText": "The hero has increased resistance to any physical attack. This includes brute force, chemical weapons, biochemicals, disease, hostile environments, and temperature extremes. The hero can ignore any physical attacks with Intensities less than. the Power rank, and may reduce damage from higher level attacks by the Power rank number. When creating the hero, the player can raise the Power rank +1CS by choosing to specialize in a specific Physical Resistance. For example, the Player's Book contains listings for Resistances to Fire and Heat, Corrosives, and Disease.",
+    "description": "The hero has increased resistance to any physical attack. This includes brute force, chemical weapons, biochemicals, disease, hostile environments, and temperature extremes. The hero can ignore any physical attacks with Intensities less than the Power rank, and reduce damage from higher level attacks by the Power rank number.",
+    "rulesText": "The hero has increased resistance to any physical attack. This includes brute force, chemical weapons, biochemicals, disease, hostile environments, and temperature extremes. The hero can ignore any physical attacks with Intensities less than the Power rank, and may reduce damage from higher level attacks by the Power rank number. When creating the hero, the player can raise the Power rank +1CS by choosing to specialize in a specific Physical Resistance. For example, the Player's Book contains listings for Resistances to Fire and Heat, Corrosives, and Disease.",
     "errataNote": "",
     "powerStunts": []
   },
@@ -3312,17 +3312,407 @@ const POWERS_CATALOG = [
 ];
 
 // Helper map for fast O(1) lookup by power code
+const RANGE_BY_RANK = {
+  'Shift 0': '0 areas',
+  'Feeble': '1 area',
+  'Poor': '1 area',
+  'Typical': '2 areas',
+  'Good': '3 areas',
+  'Excellent': '4 areas',
+  'Remarkable': '5 areas',
+  'Incredible': '6 areas',
+  'Amazing': '8 areas',
+  'Monstrous': '10 areas',
+  'Unearthly': '12 areas',
+  'Shift X': '20 areas',
+  'Shift Y': '40 areas',
+  'Shift Z': '100 areas',
+  'Class 1000': '1,000 areas (10 miles)',
+  'Class 3000': '3,000 areas (30 miles)',
+  'Class 5000': '5,000 areas (50 miles)',
+  'Beyond': 'Dimensional / Interplanetary'
+};
+
+const FLIGHT_SPEED = {
+  'Shift 0': '0 areas/turn',
+  'Feeble': '2 areas/turn (30 mph)',
+  'Poor': '3 areas/turn (45 mph)',
+  'Typical': '4 areas/turn (60 mph)',
+  'Good': '6 areas/turn (90 mph)',
+  'Excellent': '8 areas/turn (120 mph)',
+  'Remarkable': '15 areas/turn (225 mph)',
+  'Incredible': '20 areas/turn (300 mph)',
+  'Amazing': '25 areas/turn (375 mph)',
+  'Monstrous': '30 areas/turn (450 mph)',
+  'Unearthly': '40 areas/turn (600 mph)',
+  'Shift X': 'Mach 1 (750 mph)',
+  'Shift Y': 'Mach 2 (1,500 mph)',
+  'Shift Z': 'Mach 5 (3,750 mph)',
+  'Class 1000': 'Mach 10 (7,500 mph)',
+  'Class 3000': 'Mach 50',
+  'Class 5000': 'Near Light Speed'
+};
+
+const LAND_SPEED = {
+  'Shift 0': '0 areas/turn',
+  'Feeble': '1 area/turn (15 mph)',
+  'Poor': '2 areas/turn (30 mph)',
+  'Typical': '3 areas/turn (45 mph)',
+  'Good': '4 areas/turn (60 mph)',
+  'Excellent': '5 areas/turn (75 mph)',
+  'Remarkable': '6 areas/turn (90 mph)',
+  'Incredible': '7 areas/turn (105 mph)',
+  'Amazing': '8 areas/turn (120 mph)',
+  'Monstrous': '9 areas/turn (135 mph)',
+  'Unearthly': '10 areas/turn (150 mph)',
+  'Shift X': '15 areas/turn (225 mph)',
+  'Shift Y': '20 areas/turn (300 mph)',
+  'Shift Z': '30 areas/turn (450 mph)',
+  'Class 1000': 'Mach 1 (750 mph)',
+  'Class 3000': 'Mach 5',
+  'Class 5000': 'Escape Velocity'
+};
+
+const WATER_SPEED = {
+  'Shift 0': '0 areas/turn',
+  'Feeble': '1 area/turn (15 mph)',
+  'Poor': '2 areas/turn (30 mph)',
+  'Typical': '3 areas/turn (45 mph)',
+  'Good': '4 areas/turn (60 mph)',
+  'Excellent': '5 areas/turn (75 mph)',
+  'Remarkable': '6 areas/turn (90 mph)',
+  'Incredible': '7 areas/turn (105 mph)',
+  'Amazing': '8 areas/turn (120 mph)',
+  'Monstrous': '9 areas/turn (135 mph)',
+  'Unearthly': '10 areas/turn (150 mph)'
+};
+
+const POWER_ATTRIBUTES = {
+  // Defensive (D1-D17, D20)
+  "D1": { range: "Self", duration: "Permanent" },
+  "D2": { range: "Self or 1 area", duration: "Maintained", areaOfEffect: "Self or 10% Rank areas", targets: "Self or allies in area" },
+  "D3": { range: "Self or 1 area", duration: "Maintained", areaOfEffect: "1 area", targets: "Self or allies in area" },
+  "D4": { range: "Self or 1 area", duration: "Maintained", areaOfEffect: "1 area", targets: "Self or allies in area" },
+  "D5": { range: "Self or 1 area", duration: "Maintained", areaOfEffect: "1 area", targets: "Self or allies in area" },
+  "D6": { range: "Self or 1 area", duration: "Maintained", areaOfEffect: "1 area", targets: "Self or allies in area" },
+  "D7": { range: "Self or 1 area", duration: "Maintained", areaOfEffect: "1 area", targets: "Self or allies in area" },
+  "D8": { range: "Self or 1 area", duration: "Maintained", areaOfEffect: "1 area", targets: "Self or allies in area" },
+  "D9": { range: "Self or 1 area", duration: "Maintained", areaOfEffect: "1 area", targets: "Self or allies in area" },
+  "D10": { range: "Self", duration: "Maintained", targets: "Attacker" },
+  "D11": { range: "Self", duration: "Permanent" },
+  "D12": { range: "Self", duration: "Permanent" },
+  "D13": { range: "Self", duration: "Permanent" },
+  "D14": { range: "Self", duration: "Permanent" },
+  "D15": { range: "Self", duration: "Permanent" },
+  "D16": { range: "Self", duration: "Permanent" },
+  "D17": { range: "Self", duration: "Permanent" },
+  "D20": { range: "Line of sight", duration: "Maintained" },
+
+  // Detection (DT1-DT22)
+  "DT1": { range: "Rank", duration: "Maintained" },
+  "DT2": { range: "Line of sight (360°)", duration: "Permanent" },
+  "DT3": { range: "Rank", duration: "Maintained" },
+  "DT4": { range: "Rank", duration: "Maintained" },
+  "DT5": { range: "Rank", duration: "Maintained" },
+  "DT6": { range: "Rank", duration: "Permanent" },
+  "DT7": { range: "Rank", duration: "Permanent" },
+  "DT8": { range: "Touch / Contact", duration: "Permanent" },
+  "DT9": { range: "Rank", duration: "Maintained" },
+  "DT10": { range: "Rank", duration: "Maintained" },
+  "DT11": { range: "Touch / Contact", duration: "Maintained" },
+  "DT12": { range: "1 area", duration: "Maintained" },
+  "DT13": { range: "Rank", duration: "Maintained" },
+  "DT14": { range: "Rank", duration: "Maintained" },
+  "DT15": { range: "Rank", duration: "Permanent" },
+  "DT16": { range: "Rank", duration: "Maintained" },
+  "DT17": { range: "Rank (Visual)", duration: "Maintained" },
+  "DT18": { range: "Line of sight", duration: "Permanent" },
+  "DT19": { range: "Rank", duration: "Maintained", targets: "1 trail" },
+  "DT20": { range: "Line of sight", duration: "Maintained" },
+  "DT21": { range: "Line of sight", duration: "Permanent" },
+  "DT22": { range: "Rank", duration: "Maintained", targets: "1 target" },
+
+  // Energy Control (EC1-EC21)
+  "EC1": { range: "Self or Touch", duration: "Maintained" },
+  "EC2": { range: "Rank", duration: "Maintained", targets: "1 target" },
+  "EC3": { range: "Rank", duration: "Maintained", areaOfEffect: "1 area" },
+  "EC4": { range: "Rank", duration: "Maintained", areaOfEffect: "Rank areas" },
+  "EC5": { range: "Rank", duration: "Maintained", targets: "1 target / source" },
+  "EC6": { range: "Self or Touch", duration: "Maintained" },
+  "EC7": { range: "Rank", duration: "Maintained", targets: "1 construct" },
+  "EC8": { range: "Self", duration: "Permanent" },
+  "EC9": { range: "Touch / Contact", targets: "1 target" },
+  "EC10": { range: "Rank", duration: "Maintained", areaOfEffect: "1 area" },
+  "EC11": { range: "Rank", duration: "Maintained", areaOfEffect: "Rank areas" },
+  "EC12": { range: "Rank", duration: "Maintained", areaOfEffect: "1 area" },
+  "EC13": { range: "Touch / Rank", duration: "Maintained", targets: "1 target / object" },
+  "EC14": { range: "Rank", duration: "Maintained", areaOfEffect: "Rank areas" },
+  "EC15": { range: "Rank", duration: "Maintained", targets: "Ferrous objects" },
+  "EC16": { range: "Rank", duration: "Maintained", areaOfEffect: "1 area" },
+  "EC17": { range: "Rank", duration: "Maintained" },
+  "EC18": { range: "Rank", duration: "Maintained", areaOfEffect: "1 area" },
+  "EC19": { range: "Rank", duration: "Maintained", areaOfEffect: "Rank areas" },
+  "EC20": { range: "Rank", duration: "Maintained", areaOfEffect: "1 area" },
+  "EC21": { range: "Rank", duration: "Maintained", areaOfEffect: "1 area" },
+
+  // Energy Emission (EE1-EE14) - Ranged attacks are instant (no duration) unless sustained
+  "EE1": { range: "Rank", targets: "1 target" },
+  "EE2": { range: "Rank", targets: "1 target" },
+  "EE3": { range: "Rank", duration: "Maintained", targets: "1 duplicate" },
+  "EE4": { range: "Rank", targets: "1 target" },
+  "EE5": { range: "Rank", targets: "1 target" },
+  "EE6": { range: "Rank", targets: "1 target" },
+  "EE7": { range: "Rank", targets: "1 target" },
+  "EE8": { range: "Rank", duration: "Maintained", areaOfEffect: "Rank areas" },
+  "EE9": { range: "Rank", targets: "1 target / object" },
+  "EE10": { range: "Rank", targets: "1 target" },
+  "EE11": { range: "Rank", duration: "Maintained" },
+  "EE12": { range: "Rank", duration: "Maintained", areaOfEffect: "1 area" },
+  "EE13": { range: "Rank", areaOfEffect: "1 area", targets: "All in area" },
+  "EE14": { range: "Rank", targets: "1 target" },
+
+  // Fighting (F1-F6)
+  "F1": { range: "Self", duration: "Maintained" },
+  "F2": { range: "Touch / Close Combat", duration: "Permanent" },
+  "F3": { range: "Touch / Close Combat", duration: "Permanent" },
+  "F4": { range: "Touch / Self", duration: "Maintained", targets: "1 weapon" },
+  "F5": { range: "Touch / Contact", duration: "Permanent", targets: "1 weapon" },
+  "F6": { range: "Touch / Contact", duration: "Permanent", targets: "1 weapon" },
+
+  // Illusory (I1-I4)
+  "I1": { range: "Rank", duration: "Maintained", areaOfEffect: "1 area" },
+  "I2": { range: "Rank", duration: "Maintained", areaOfEffect: "1 area", targets: "All in area" },
+  "I3": { range: "Self or Touch", duration: "Maintained", targets: "Self or 1 target" },
+  "I4": { range: "Same area", duration: "Maintained" },
+
+  // Lifeform Control (L1-L21)
+  "L1": { range: "Touch / Contact", duration: "Rank turns", targets: "1 target" },
+  "L2": { range: "Touch / Contact", targets: "1 target" },
+  "L3": { range: "Touch / Rank", duration: "Rank turns", targets: "1 target" },
+  "L4": { range: "Rank", duration: "Maintained", targets: "1 target" },
+  "L5": { range: "Touch / Same area", targets: "1 possessed target" },
+  "L6": { range: "Self or 1 area", duration: "Maintained", areaOfEffect: "1 area", targets: "Self or allies in area" },
+  "L7": { range: "Touch / Contact", duration: "Permanent", targets: "1 target" },
+  "L8": { range: "Touch / Contact", duration: "Permanent", targets: "1 target" },
+  "L9": { range: "Same area (Line of sight)", duration: "Rank turns", targets: "1 target" },
+  "L10": { range: "Rank", duration: "Maintained", targets: "1 target" },
+  "L11": { range: "Touch / Same area", duration: "Permanent / Maintained", targets: "1 target" },
+  "L12": { range: "Touch / Contact", duration: "Rank turns", targets: "1 target" },
+  "L13": { range: "Touch / 1 area", duration: "Maintained", areaOfEffect: "1 area", targets: "All in area" },
+  "L14": { range: "Rank", duration: "Maintained", areaOfEffect: "Rank areas" },
+  "L15": { range: "Touch / Rank", duration: "Permanent", targets: "Plants in area" },
+  "L16": { range: "Rank", duration: "Rank turns", targets: "1 target" },
+  "L17": { range: "Touch / Contact", duration: "Rank turns", targets: "1 target" },
+  "L18": { range: "Rank", duration: "Rank turns", targets: "1 target" },
+  "L19": { range: "Touch / Contact", duration: "Permanent", targets: "1 spirit" },
+  "L20": { range: "Same area", duration: "Maintained", targets: "Summoned creatures" },
+  "L21": { range: "Rank", duration: "Maintained", targets: "Up to Rank undead" },
+
+  // Mental Enhancement (M1-M34)
+  "M1": { range: "Rank", duration: "Maintained" },
+  "M2": { range: "Rank", duration: "Maintained" },
+  "M3": { range: "Rank", duration: "Maintained", targets: "1 animal" },
+  "M4": { range: "Rank", duration: "Maintained", targets: "1 machine / system" },
+  "M5": { range: "Touch / Same area", duration: "Maintained", targets: "1 object" },
+  "M6": { range: "Rank", duration: "Maintained", targets: "Plants" },
+  "M7": { range: "Universal", duration: "Permanent" },
+  "M8": { range: "Self", duration: "Permanent" },
+  "M9": { range: "Dimensional (Dreams)", duration: "Maintained" },
+  "M10": { range: "Same area", duration: "Maintained", targets: "1 target" },
+  "M11": { range: "Astral / Universal", duration: "Maintained" },
+  "M12": { range: "Rank", duration: "Maintained", targets: "1 target" },
+  "M13": { range: "Self", duration: "Permanent" },
+  "M14": { range: "Self", duration: "Permanent" },
+  "M15": { range: "Self", duration: "Permanent" },
+  "M16": { range: "Self", duration: "Permanent" },
+  "M17": { range: "Self (Conversational)", duration: "Permanent" },
+  "M18": { range: "Touch / Rank", duration: "Permanent", targets: "1 mind" },
+  "M19": { range: "Rank", duration: "Maintained", targets: "Observers in area" },
+  "M20": { range: "Rank", duration: "Maintained", targets: "1 target" },
+  "M21": { range: "Rank", targets: "1 target" },
+  "M22": { range: "Touch / Contact", targets: "1 target" },
+  "M23": { range: "Touch / Same area", duration: "Concentration" },
+  "M24": { range: "Self", duration: "Instant (Vision)" },
+  "M25": { range: "Touch / Contact", targets: "1 target" },
+  "M26": { range: "Rank", duration: "Maintained" },
+  "M27": { range: "Rank", duration: "Maintained", targets: "1 target" },
+  "M28": { range: "Self", duration: "Permanent" },
+  "M29": { range: "Rank", duration: "Maintained" },
+  "M30": { range: "Rank", duration: "Maintained", targets: "1 target / object" },
+  "M31": { range: "Universal", duration: "Maintained", targets: "1 target" },
+  "M32": { range: "Rank", duration: "Maintained", targets: "1 target" },
+  "M33": { range: "Self", duration: "Permanent" },
+  "M34": { range: "Self", duration: "Permanent" },
+
+  // Matter Control (MC1-MC13)
+  "MC1": { range: "Touch / Rank", duration: "Rank turns", targets: "1 target / object" },
+  "MC2": { range: "Rank", duration: "Maintained", areaOfEffect: "Rank areas" },
+  "MC3": { range: "Touch / Rank", duration: "Rank turns", targets: "1 target / object" },
+  "MC4": { range: "Touch / Rank", duration: "Rank turns", targets: "1 target / object" },
+  "MC5": { range: "Touch / Rank", targets: "1 object" },
+  "MC6": { range: "Touch / Rank", duration: "Rank turns", targets: "1 target / object" },
+  "MC7": { range: "Rank", duration: "Maintained", areaOfEffect: "1 area" },
+  "MC8": { range: "Rank", duration: "Maintained", targets: "1 object" },
+  "MC9": { range: "Rank", duration: "Maintained", targets: "1 machine" },
+  "MC10": { range: "Self or 1 area", duration: "Maintained", areaOfEffect: "1 area" },
+  "MC11": { range: "Touch / Contact", duration: "Permanent", targets: "1 object" },
+  "MC12": { range: "Rank", duration: "Maintained", areaOfEffect: "Rank areas" },
+  "MC13": { range: "Touch / Rank", duration: "Maintained", targets: "Corpses" },
+
+  // Matter Conversion (MCo1-MCo6)
+  "MCo1": { range: "Touch / Rank", duration: "Permanent", targets: "1 target / object" },
+  "MCo2": { range: "Rank", targets: "1 flammable object" },
+  "MCo3": { range: "Touch / Rank", targets: "1 target / object" },
+  "MCo4": { range: "Touch / Contact", duration: "Permanent", targets: "1 object" },
+  "MCo5": { range: "Rank", targets: "1 target / object" },
+  "MCo6": { range: "Touch / Contact", duration: "Permanent", targets: "1 object" },
+
+  // Matter Creation (MCr1-MCr8)
+  "MCr1": { range: "Touch / Same area", duration: "Permanent", targets: "1 item" },
+  "MCr2": { range: "Rank", duration: "Rank turns", areaOfEffect: "1 area" },
+  "MCr3": { range: "Touch / Same area", duration: "Permanent", targets: "1 creature" },
+  "MCr4": { range: "Touch / Same area", duration: "Permanent", targets: "1 machine" },
+  "MCr5": { range: "Rank", targets: "1 target" },
+  "MCr6": { range: "Touch / Same area", duration: "Permanent", targets: "1 object" },
+  "MCr7": { range: "Rank", areaOfEffect: "1 area", targets: "All in area" },
+  "MCr8": { range: "Rank", duration: "Rank turns", areaOfEffect: "1 area", targets: "1 target / area" },
+
+  // Magical (MG1-MG14)
+  "MG1": { range: "Astral / Universal", duration: "Maintained" },
+  "MG2": { range: "Self", duration: "Permanent" },
+  "MG3": { range: "Self", duration: "Permanent" },
+  "MG4": { range: "Rank", duration: "Maintained", targets: "1 spell / effect" },
+  "MG5": { range: "Rank", duration: "Maintained", areaOfEffect: "1 area" },
+  "MG6": { range: "Rank", duration: "Maintained", targets: "1 target" },
+  "MG7": { range: "Touch / Contact", duration: "Permanent / Maintained", targets: "1 target" },
+  "MG8": { range: "Touch / Contact", targets: "1 target" },
+  "MG9": { range: "Self", duration: "Maintained" },
+  "MG10": { range: "Rank", duration: "Maintained / Permanent", areaOfEffect: "Rank areas" },
+  "MG11": { range: "Touch / Contact", targets: "1 spirit" },
+  "MG12": { range: "Universal", duration: "Maintained", targets: "1 target" },
+  "MG13": { range: "Touch / Same area", duration: "Permanent / Maintained", areaOfEffect: "1 area" },
+  "MG14": { range: "Touch / Rank", targets: "1 extradimensional entity" },
+
+  // Physical Enhancement (P1-P20)
+  "P1": { range: "Self", duration: "Permanent" },
+  "P2": { range: "Self", duration: "Permanent" },
+  "P3": { range: "Touch / Contact", duration: "Rank turns", targets: "1 target" },
+  "P4": { range: "Self", duration: "Permanent" },
+  "P5": { range: "Self", speed: "Land", duration: "Maintained" },
+  "P6": { range: "Same area (Vocal)", duration: "Rank turns", targets: "All who hear" },
+  "P7": { range: "Self", duration: "Permanent" },
+  "P8": { range: "Same area", duration: "Maintained", areaOfEffect: "1 area", targets: "All in area" },
+  "P9": { range: "Self", duration: "Permanent" },
+  "P10": { range: "Self", duration: "Permanent" },
+  "P11": { range: "Self", duration: "Permanent" },
+  "P12": { range: "Self", duration: "Permanent" },
+  "P13": { range: "Self", duration: "Permanent" },
+  "P14": { range: "Self", duration: "Permanent" },
+  "P15": { range: "Rank", duration: "Maintained" },
+  "P16": { range: "Self", duration: "Permanent" },
+  "P17": { range: "Self", duration: "Permanent" },
+  "P18": { range: "Rank", areaOfEffect: "1 area", targets: "All in area" },
+  "P19": { range: "Self", duration: "Permanent" },
+  "P20": { range: "Self", duration: "Permanent" },
+
+  // Power Control (PC1-PC14)
+  "PC1": { range: "Touch / Rank", duration: "Rank turns", targets: "1 target" },
+  "PC2": { range: "Touch / Contact", duration: "Permanent / Maintained", targets: "1 target" },
+  "PC3": { range: "Touch / Rank", duration: "Maintained", targets: "1 target" },
+  "PC4": { range: "Touch / Rank", duration: "Rank turns / Maintained", targets: "1 target" },
+  "PC5": { range: "Self", duration: "Permanent" },
+  "PC6": { range: "Touch / Same area", duration: "Permanent", targets: "1 source" },
+  "PC7": { range: "Self", duration: "Permanent" },
+  "PC8": { range: "Same area", duration: "Maintained", targets: "Participants" },
+  "PC9": { range: "Rank", duration: "Maintained", targets: "1 opponent" },
+  "PC10": { range: "Touch / Contact", duration: "Permanent / Maintained", targets: "1 target" },
+  "PC11": { range: "Touch / Contact", targets: "1 target" },
+  "PC12": { range: "Same area", duration: "Maintained" },
+  "PC13": { range: "Self", duration: "Permanent" },
+  "PC14": { range: "Touch / Rank", duration: "Rank turns", targets: "1 target" },
+
+  // Self-Alteration (S1-S32)
+  "S1": { range: "Self", duration: "Permanent / Variable" },
+  "S2": { range: "Self", duration: "Maintained" },
+  "S3": { range: "Self", duration: "Maintained" },
+  "S4": { range: "Self", duration: "Maintained" },
+  "S5": { range: "Self", duration: "Maintained" },
+  "S6": { range: "Self", duration: "Maintained" },
+  "S7": { range: "Self", duration: "Permanent / Maintained" },
+  "S8": { range: "Self", duration: "Maintained" },
+  "S9": { range: "Self", duration: "Maintained" },
+  "S10": { range: "Self", duration: "Maintained" },
+  "S11": { range: "Self", duration: "Maintained" },
+  "S12": { range: "Self (Rank areas)", duration: "Maintained" },
+  "S13": { range: "Self", duration: "Maintained" },
+  "S14": { range: "Self", duration: "Maintained" },
+  "S15": { range: "Self", duration: "Permanent" },
+  "S16": { range: "Self", duration: "Maintained" },
+  "S17": { range: "Self", duration: "Maintained" },
+  "S18": { range: "Self", duration: "Maintained" },
+  "S19": { range: "Self", duration: "Maintained" },
+  "S20": { range: "Self", duration: "Maintained" },
+  "S21": { range: "Self", duration: "Maintained" },
+  "S22": { range: "Self", duration: "Maintained" },
+  "S23": { range: "Self / Same area", duration: "Maintained" },
+  "S24": { range: "Self", duration: "Maintained" },
+  "S25": { range: "Self", duration: "Maintained" },
+  "S26": { range: "Self (1 area)", duration: "Maintained" },
+  "S27": { range: "Self", duration: "Maintained" },
+  "S28": { range: "Self", duration: "Maintained" },
+  "S29": { range: "Self", duration: "Maintained" },
+  "S30": { range: "Self", duration: "Maintained" },
+  "S31": { range: "Self / Same area", duration: "Maintained" },
+  "S32": { range: "Self", duration: "Maintained" },
+
+  // Travel (T1-T24)
+  "T1": { range: "Astral / Universal", duration: "Maintained" },
+  "T2": { range: "Rank", speed: "Flight", duration: "Maintained" },
+  "T3": { range: "Self / Touch", targets: "Self or 1 target" },
+  "T4": { range: "Rank", speed: "Flight", duration: "Maintained" },
+  "T5": { range: "Same area", speed: "Flight", duration: "Maintained" },
+  "T6": { range: "Rank", duration: "Maintained", areaOfEffect: "1 portal" },
+  "T7": { range: "Self", speed: "Flight", duration: "Maintained" },
+  "T8": { range: "Self", speed: "Land", duration: "Maintained" },
+  "T9": { range: "Self", duration: "Instant (1 turn)" },
+  "T10": { range: "Self", speed: "Land", duration: "Maintained" },
+  "T11": { range: "Self", speed: "Water", duration: "Maintained" },
+  "T12": { range: "Self", duration: "Maintained" },
+  "T13": { range: "Self", speed: "Flight", duration: "Maintained" },
+  "T14": { range: "Self", speed: "Land", duration: "Maintained" },
+  "T15": { range: "Self", speed: "Land", duration: "Permanent" },
+  "T16": { range: "Rank", duration: "Instant" },
+  "T17": { range: "Touch / Rank", targets: "1 target" },
+  "T18": { range: "Universal", duration: "Instant" },
+  "T19": { range: "Self / Touch", targets: "Self or 1 target" },
+  "T20": { range: "Universal", duration: "Permanent" },
+  "T21": { range: "Self", speed: "Flight", duration: "Maintained" },
+  "T22": { range: "Self", speed: "Land", duration: "Maintained" },
+  "T23": { range: "Self or 1 area", speed: "Flight", duration: "Maintained", areaOfEffect: "1 area" },
+  "T24": { range: "Rank", duration: "Maintained", areaOfEffect: "1 portal" }
+};
+
 const POWERS_BY_CODE = {};
+const POWERS_BY_NAME = {};
 for (const p of POWERS_CATALOG) {
   const isStar = !!(p.countsAsTwo || p.isStarred);
   p.isStarred = isStar;
   p.countsAsTwo = isStar;
   p.powerSlots = isStar ? 2 : (p.powerSlots || 1);
+  const attrs = POWER_ATTRIBUTES[p.code] || {};
+  if (attrs.range !== undefined) p.range = attrs.range;
+  if (attrs.duration !== undefined) p.duration = attrs.duration;
+  if (attrs.areaOfEffect !== undefined) p.areaOfEffect = attrs.areaOfEffect;
+  if (attrs.targets !== undefined) p.targets = attrs.targets;
+  if (attrs.speed !== undefined) p.speed = attrs.speed;
+
   POWERS_BY_CODE[p.code] = p;
+  POWERS_BY_NAME[p.name.toLowerCase()] = p;
 }
 
 const MSH_POWERS = POWERS_CATALOG.map(p => {
   const isStar = !!(p.countsAsTwo || p.isStarred);
+  const attrs = POWER_ATTRIBUTES[p.code] || {};
   return {
     ...p,
     id: p.code,
@@ -3330,16 +3720,100 @@ const MSH_POWERS = POWERS_CATALOG.map(p => {
     isStarred: isStar,
     countsAsTwo: isStar,
     errataNotes: p.errataNote || '',
-    stunts: p.powerStunts || []
+    stunts: p.powerStunts || [],
+    range: attrs.range !== undefined ? attrs.range : p.range,
+    duration: attrs.duration !== undefined ? attrs.duration : p.duration,
+    areaOfEffect: attrs.areaOfEffect !== undefined ? attrs.areaOfEffect : p.areaOfEffect,
+    targets: attrs.targets !== undefined ? attrs.targets : p.targets,
+    speed: attrs.speed !== undefined ? attrs.speed : p.speed
   };
 });
+
+function resolveRankRange(rawRange, rankName) {
+  if (!rawRange) return null;
+  const rankDist = RANGE_BY_RANK[rankName] || RANGE_BY_RANK['Typical'] || '2 areas';
+  if (rawRange === 'Rank') return rankDist;
+  if (rawRange === 'Touch / Rank') return `Touch / ${rankDist}`;
+  if (rawRange === 'Rank (Visual)') return `${rankDist} (Visual)`;
+  if (rawRange === 'Self (Rank areas)') return `Self (${rankDist})`;
+  return rawRange;
+}
+
+function resolveSpeed(rawSpeed, rankName) {
+  if (!rawSpeed) return null;
+  if (rawSpeed === 'Flight') return FLIGHT_SPEED[rankName] || FLIGHT_SPEED['Typical'];
+  if (rawSpeed === 'Land') return LAND_SPEED[rankName] || LAND_SPEED['Typical'];
+  if (rawSpeed === 'Water') return WATER_SPEED[rankName] || WATER_SPEED['Typical'];
+  return rawSpeed;
+}
+
+function getPowerDetails(power, rankName) {
+  if (!power) return {};
+  const pName = typeof power === 'string' ? power : power.name;
+  const pCode = typeof power === 'object' ? (power.code || power.powerCode || power.id) : power;
+  
+  let catalogPower = null;
+  if (pCode && POWERS_BY_CODE[pCode]) {
+    catalogPower = POWERS_BY_CODE[pCode];
+  } else if (pName) {
+    catalogPower = POWERS_BY_NAME[pName.toLowerCase()] || POWERS_CATALOG.find(p => p.name.toLowerCase() === pName.toLowerCase());
+  }
+
+  const code = catalogPower ? catalogPower.code : pCode;
+  const baseAttrs = (code && POWER_ATTRIBUTES[code]) ? POWER_ATTRIBUTES[code] : {};
+
+  const effectiveRank = rankName || (typeof power === 'object' ? power.rankName : null) || (catalogPower ? catalogPower.defaultRank : 'Typical');
+
+  const rawRange = (typeof power === 'object' && power.range !== undefined) ? power.range : baseAttrs.range;
+  const rawDuration = (typeof power === 'object' && power.duration !== undefined) ? power.duration : baseAttrs.duration;
+  const rawArea = (typeof power === 'object' && power.areaOfEffect !== undefined) ? power.areaOfEffect : baseAttrs.areaOfEffect;
+  const rawTargets = (typeof power === 'object' && power.targets !== undefined) ? power.targets : baseAttrs.targets;
+  const rawSpeed = (typeof power === 'object' && power.speed !== undefined) ? power.speed : baseAttrs.speed;
+
+  const details = {};
+  if (rawRange) {
+    details.range = resolveRankRange(rawRange, effectiveRank);
+  }
+  if (rawDuration) {
+    details.duration = rawDuration;
+  }
+  if (rawArea) {
+    details.areaOfEffect = rawArea;
+  }
+  if (rawTargets) {
+    details.targets = rawTargets;
+  }
+  if (rawSpeed) {
+    details.speed = resolveSpeed(rawSpeed, effectiveRank);
+  }
+
+  return details;
+}
 
 if (typeof globalThis !== 'undefined') {
   globalThis.POWERS_CATALOG = POWERS_CATALOG;
   globalThis.POWERS_BY_CODE = POWERS_BY_CODE;
+  globalThis.POWERS_BY_NAME = POWERS_BY_NAME;
   globalThis.MSH_POWERS = MSH_POWERS;
+  globalThis.POWER_ATTRIBUTES = POWER_ATTRIBUTES;
+  globalThis.RANGE_BY_RANK = RANGE_BY_RANK;
+  globalThis.FLIGHT_SPEED = FLIGHT_SPEED;
+  globalThis.LAND_SPEED = LAND_SPEED;
+  globalThis.WATER_SPEED = WATER_SPEED;
+  globalThis.getPowerDetails = getPowerDetails;
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { POWERS_CATALOG, POWERS_BY_CODE, MSH_POWERS };
+  module.exports = {
+    POWERS_CATALOG,
+    POWERS_BY_CODE,
+    POWERS_BY_NAME,
+    MSH_POWERS,
+    POWER_ATTRIBUTES,
+    RANGE_BY_RANK,
+    FLIGHT_SPEED,
+    LAND_SPEED,
+    WATER_SPEED,
+    getPowerDetails
+  };
 }

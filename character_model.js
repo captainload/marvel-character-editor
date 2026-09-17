@@ -109,6 +109,7 @@ class FASERIPCharacter {
 
       return {
         id: p.id || 'p_' + Date.now() + Math.random().toString(36).substr(2, 4),
+        code: p.code || (catalogPower ? catalogPower.code : null),
         name: p.name || 'Unnamed Power',
         category: p.category || (catalogPower ? catalogPower.category : 'Special'),
         rankName: p.rankName || 'Good',
@@ -117,6 +118,11 @@ class FASERIPCharacter {
         isStarred: isStarred,
         isExceptional: isExceptional,
         source: p.source || (catalogPower ? catalogPower.source : 'UPB'),
+        range: p.range !== undefined ? p.range : (catalogPower ? catalogPower.range : null),
+        duration: p.duration !== undefined ? p.duration : (catalogPower ? catalogPower.duration : null),
+        areaOfEffect: p.areaOfEffect !== undefined ? p.areaOfEffect : (catalogPower ? catalogPower.areaOfEffect : null),
+        targets: p.targets !== undefined ? p.targets : (catalogPower ? catalogPower.targets : null),
+        speed: p.speed !== undefined ? p.speed : (catalogPower ? catalogPower.speed : null),
         notes: p.notes || '',
         stunts: Array.isArray(p.stunts) ? p.stunts.map(s => {
           if (typeof s === 'string') {
@@ -398,6 +404,7 @@ class FASERIPCharacter {
 
     const newPower = {
       id: powerData.id || 'p_' + Date.now() + Math.random().toString(36).substr(2, 4),
+      code: powerData.code || (catalogPower ? catalogPower.code : null),
       name: powerData.name || (catalogPower ? catalogPower.name : 'Unnamed Power'),
       category: powerData.category || (catalogPower ? catalogPower.category : 'Special'),
       rankName: rankName,
@@ -406,6 +413,11 @@ class FASERIPCharacter {
       isStarred: isStarred,
       isExceptional: isExceptional,
       source: powerData.source || (catalogPower ? catalogPower.source : 'UPB'),
+      range: powerData.range !== undefined ? powerData.range : (catalogPower ? catalogPower.range : null),
+      duration: powerData.duration !== undefined ? powerData.duration : (catalogPower ? catalogPower.duration : null),
+      areaOfEffect: powerData.areaOfEffect !== undefined ? powerData.areaOfEffect : (catalogPower ? catalogPower.areaOfEffect : null),
+      targets: powerData.targets !== undefined ? powerData.targets : (catalogPower ? catalogPower.targets : null),
+      speed: powerData.speed !== undefined ? powerData.speed : (catalogPower ? catalogPower.speed : null),
       notes: powerData.notes || '',
       stunts: Array.isArray(powerData.stunts) ? [...powerData.stunts] : []
     };

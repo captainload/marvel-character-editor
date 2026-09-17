@@ -571,5 +571,43 @@ Addressed user feedback:
 - Ran full regression suites (`test_tsr_talents_only.js`, `test_cheatsheet_contrast_and_stability.js`, `verify_all_catalogs.js`, `test_contrast_fixes.js`): All 100% passing.
 - Verified Google Drive mirror synchronization with identical SHA256 hashes across all modified files.
 
+---
 
+## 15. Relegate Equipment Clearance References to Cheat Sheet & Total Remediation of Unreadable Black-on-Dark-Grey & Yellow-on-Off-White Combinations (September 2026)
 
+### Key Enhancements
+
+1. **Relegate Clearance References from Store Header to Cheat Sheet**:
+   - **Store Header Streamlining**: Removed `.store-access-bar-hint` (`Player's Book p. 18 & 41`) from `.store-access-bar` in `index.html`. The Equipment Store clearance bar now presents clean, uncluttered toggle buttons for Military, Black Market, and S.H.I.E.L.D. access without verbose rulebook citations.
+   - **Dedicated Cheat Sheet Procurement & Market Clearances Reference**: Relegated the full canonical procurement table and citation guide to `#cheatsheet-modal` under a dedicated subsection:
+     - **Standard Resource FEAT Checks (Player's Book p. 18)**: Complete FEAT table for automatic purchases (Cost $\le$ Resources $-3$ ranks), Green FEATs (1-2 ranks below), Yellow FEATs (equal cost), and unaffordable purchases (cost exceeds Resources; Karma spend prohibition noted).
+     - **Market Clearances & Resource Points Option**: Clear documentation of Military clearance (Player's Book p. 18), Black Market underworld access (+1CS cost markup per Player's Book p. 41), S.H.I.E.L.D. Tech requisition protocols, and the optional Resource Points rule ($4\times$ Resource Number budget).
+
+2. **Total Elimination of "Black on Dark Grey" Combinations**:
+   - **Store & Clearance Filter Buttons**: In Manilla theme, `.store-filter-btn` and `.store-access-filter-btn` previously had `color: #000000;` applied without overriding `background: #162032;`, resulting in black text on dark slate grey buttons. Fully remediated with crisp `#ffffff` white background, `#0f172a` dark slate text, `#f1f5f9` hover, and `#b91c1c` / `#0369a1` active states.
+   - **Help Circle `?` Buttons**: In base CSS, `.help-circle-btn` used `background: #1e293b; color: var(--marvel-gold);`. In Manilla (where `--marvel-gold` is `#78350f` dark brown), this resulted in dark brown/black text on dark slate grey, and black on dark brown on hover (`color: #000; background: var(--marvel-gold)`). Remediated with `#ffffff` background, `#0f172a` text, and `#b91c1c` active/hover state with `#ffffff` text.
+   - **Interactive Action Buttons on Hover**: Overrode `.roll-action-btn:hover` and `.stepper-btn:hover` in Manilla to use Marvel Red `#b91c1c` with solid white text `#ffffff`, eliminating the base black-on-gold rule that turned into black on dark brown in Manilla.
+   - **Equipment Procurement Modal Cards**: In Manilla, `.procure-card` and `.procure-stats-box` previously had dark slate backgrounds (`#162032` and `rgba(0,0,0,0.25)`) while child elements were forced to black text. Remediated with clean `#ffffff` card backgrounds, `#0f172a` high-contrast text, `#475569` titles, and `#0369a1` stat chips.
+   - **Unlock Clearance & Sponsor Loan Buttons**: Replaced inline styles in `app.js` with semantic classes `.btn-unlock-clearance` and `.btn-sponsor-loan`. In Manilla, `.btn-sponsor-loan` uses light amber `#fef3c7` with deep brown `#78350f` text ($>7.5:1$ contrast ratio), eliminating black text on `#854d0e` dark brown.
+   - **Roller Components in Manilla**: Remediated `.roller-dice-visual` (now white `#ffffff` background with dark border) and `.roller-cs-breakdown-row` (now `#f0ede6` background with dark text), eliminating dark slate backgrounds with black text.
+   - **Top Navigation Bar & Swarm Banners**: Enforced `#e2ded6` background on `.topbar` in Manilla to avoid black text on dark gradients.
+
+3. **Total Elimination of "Yellow on Off-White" Combinations**:
+   - **Equipment Store Table RP Cost Tags**: Replaced inline `#fde047` neon yellow text with semantic `.store-rp-tag`. In Manilla, `.store-rp-tag` is styled with deep dark amber `#78350f` ($>8:1$ contrast ratio against off-white rows).
+   - **Invention Failure Retry Box**: Replaced inline `#fde047` and `#fef08a` in `app.js` with semantic classes `.inv-retry-title` and `.inv-retry-details`, styled in Manilla with high-contrast `#991b1b` and `#7f1d1d` on light red alert backgrounds.
+   - **Military & Yellow Badges**: Overrode `.meta-tag.access-military`, `.stunt-badge.learning`, `.badge-yellow`, `.thresh-box.yellow`, `.cell-yellow`, `.feat-yellow`, and `.color-yellow` in Manilla with deep amber `#78350f` on light amber `#fef3c7`.
+   - **Universal Inline Yellow Wildcard**: Expanded CSS attribute selector wildcard in Manilla to map all yellow variations (`#fde047`, `#facc15`, `#eab308`, `#fbbf24`, `#f59e0b`, `#fef08a`, `yellow`, `gold`) directly to `#78350f !important;`.
+
+### Automated Verification
+- Created [`scratch/test_unreadable_combos_fixed.js`](file:///C:/Users/admin/.gemini/antigravity/brain/90637841-9270-481f-944c-4ab42ceec14e/scratch/test_unreadable_combos_fixed.js) verifying:
+  - Equipment store header contains zero rulebook page references.
+  - Cheat sheet modal contains complete procurement table and clearance references.
+  - Zero instances of black text on dark grey/brown backgrounds in Manilla or Four-color.
+  - Zero instances of yellow text on off-white/beige backgrounds in Manilla.
+- Ran all existing test suites with 100% pass rate:
+  - `test_resource_points_rule.js`: PASSED
+  - `test_tsr_talents_only.js`: PASSED
+  - `test_cheatsheet_contrast_and_stability.js`: PASSED
+  - `verify_all_catalogs.js`: PASSED
+  - `test_contrast_fixes.js`: PASSED
+- Synchronized repository changes to Google Drive mirror (`H:\My Drive\RPG development\Marvel\`) and committed/pushed to GitHub `main` branch (`9105837`).

@@ -567,6 +567,14 @@ const App = {
       }
     }
 
+    const menuItemNew = document.getElementById('menu-item-new');
+    if (menuItemNew) {
+      menuItemNew.addEventListener('click', (e) => {
+        if (fileOptionsMenu) fileOptionsMenu.classList.remove('open');
+        this.newCharacter(e);
+      });
+    }
+
     const menuItemSave = document.getElementById('menu-item-save');
     if (menuItemSave) {
       menuItemSave.addEventListener('click', () => {
@@ -5989,6 +5997,30 @@ const App = {
     titleEl.innerHTML = title;
     bodyEl.innerHTML = content;
     modal.classList.add('open');
+  },
+
+  async newCharacter(mouseEvent = null) {
+    const confirmed = await this.showCustomConfirm(
+      'Are you sure you want to create a new character?\n\nAny unsaved changes to your current character will be replaced with a fresh CMF point-buy sheet.',
+      '📄 New Character',
+      mouseEvent,
+      'Create New',
+      'Cancel'
+    );
+    if (!confirmed) return;
+
+    const currentTier = (this.character && this.character.pointTier) ? this.character.pointTier : '400';
+    this.character = FASERIPCharacter.createBlankCharacter(currentTier);
+    if (this.useResourcePoints !== undefined) {
+      this.character.useResourcePoints = this.useResourcePoints;
+    }
+    if (this.powerAdjustment !== undefined) {
+      this.character.powerAdjustment = this.powerAdjustment;
+    }
+    this.saveState();
+    this.switchTab('main-stats');
+    this.render();
+    await this.showCustomAlert('Fresh character initialized and ready for character creation!', '✨ New Character Created', mouseEvent);
   },
 
   exportCharacter() {

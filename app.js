@@ -1180,7 +1180,9 @@ const App = {
         eqCats[c].push(i);
       });
       let revHtml = '<option value="">-- Select Rulebook Equipment to Analyze --</option>';
-      for (const c in eqCats) {
+      const sortedCatNames = Object.keys(eqCats).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
+      for (const c of sortedCatNames) {
+        eqCats[c].sort((a, b) => (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base' }));
         revHtml += `<optgroup label="${c}">`;
         revHtml += eqCats[c].map(i => 
           `<option value="${i.id}">${i.isUnique ? '🔒 [UNIQUE] ' : ''}${i.name} (${i.costRank})</option>`
@@ -2701,6 +2703,9 @@ const App = {
     if (k === 'weapons' || k === 'weapon') {
       return c.includes('weapon') || c.includes('firearm') || c.includes('ammunition') || t.includes('weapon') || t.includes('firearm') || t.includes('shooting') || t.includes('slugthrower') || t.includes('energy');
     }
+    if (k === 'ammo' || k === 'ammunition') {
+      return c.includes('ammunition') || t.includes('ammunition') || t.includes('cartridge') || t.includes('magazine') || t.includes('clip') || t.includes('rounds') || n.includes('ammunition') || n.includes('shot');
+    }
     if (k === 'firearms' || k === 'firearm') {
       return c.includes('firearm') || c.includes('heavy weapon') || c.includes('ammunition') || t.includes('shooting') || t.includes('slugthrower') || t.includes('energy');
     }
@@ -2714,10 +2719,16 @@ const App = {
       return c.includes('robot') || c.includes('android') || c.includes('drone') || n.includes('bot') || n.includes('servo-guard') || n.includes('doombot') || n.includes('mandroid') || n.includes('secbot');
     }
     if (k === 'vehicles' || k === 'vehicle') {
-      return c.includes('vehicle') || t.includes('vehicle') || n.includes('skycraft') || n.includes('jet') || n.includes('car');
+      return c.includes('vehicle') || t.includes('vehicle') || n.includes('skycraft') || n.includes('jet') || n.includes('car') || t.includes('watercraft') || t.includes('spacecraft') || t.includes('submersible') || t.includes('gev');
     }
     if (k === 'electronics' || k === 'surveillance' || k === 'communications' || k === 'gear' || k === 'tools') {
       return c.includes('electronics') || c.includes('surveillance') || c.includes('gear') || c.includes('tools') || c.includes('field') || t.includes('electronic') || t.includes('surveillance') || t.includes('sensor') || t.includes('comm');
+    }
+    if (k === 'hq' || k === 'headquarters' || k === 'real estate') {
+      return c.includes('headquarters') || c.includes('hq') || t.includes('real estate') || t.includes('package') || t.includes('facility') || n.includes('headquarters') || n.includes('hq package');
+    }
+    if (k === 'sundries' || k === 'services' || k === 'salary' || k === 'salaries') {
+      return c.includes('sundr') || c.includes('service') || t.includes('payroll') || t.includes('entertainment') || t.includes('apparel') || n.includes('salary') || n.includes('night on the town') || n.includes('respectable clothing');
     }
     if (k === 'artifacts' || k === 'artifact' || k === 'unique') {
       return c.includes('artifact') || !!item.isUnique;
@@ -2925,6 +2936,9 @@ const App = {
                this.matchesStoreCategory(item, cat) &&
                this.matchesStoreAccess(item, access);
       });
+
+      // Ensure equipment is listed alphabetically by name (case-insensitive)
+      filtered.sort((a, b) => (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base' }));
 
       const countTag = document.getElementById('store-item-count-tag');
       if (countTag) {

@@ -214,8 +214,20 @@ flowchart TD
 
 ---
 
-## 10. Git Deployment
+## 10. Touch Mode Sizing Refinements
+- **Tab Buttons**: Preserved standard compact size in touch mode (`min-height: 34px; padding: 5px 8px; font-size: 10pt;`) instead of enlarging them. History navigation buttons also align cleanly at `min-height: 34px`.
+- **Dropdown Menu Elements**: Slightly increased vertical hit targets in touch mode:
+  - `.dropdown-item`, `.theme-option-btn`, `.dropdown-submenu-toggle`, and `.power-menu-item` increased to `min-height: 48px; padding: 13px 18px;`.
+  - `.dropdown-menu` and `.power-dropdown-menu` vertical padding increased to `8px 0;`.
+  - `.dropdown-divider` vertical margin increased to `8px 0;`.
+  - `.dropdown-toggle` buttons increased to `min-height: 42px; padding: 8px 14px;`.
+
+---
+
+## 11. Git Deployment
 - Changes mirrored to repository at `H:\My Drive\RPG development\Marvel\`.
-- Clean commit created and pushed to GitHub `origin/main` (`commit b54bced`):
+- Clean commit created and pushed to GitHub `origin/main` (`commit b54bced` & `commit b94d8f2`):
   `feat: condense tab bar whitespace, add character edit log with undo/redo navigation, and power menu with CP refund`
+  `style(touch): preserve standard tab button size in touch mode and enlarge dropdown items vertically`
+
 

@@ -2985,16 +2985,25 @@ body.touch-friendly #select-quick-load-blueprint {
 }
 
 body.touch-friendly .dropdown-toggle {
-  min-height: 38px;
-  padding: 6px 12px;
+  min-height: 42px;
+  padding: 8px 14px;
   font-size: 10.5pt;
 }
 
+body.touch-friendly .dropdown-menu {
+  padding: 8px 0;
+}
+
 body.touch-friendly .dropdown-item,
-body.touch-friendly .theme-option-btn {
-  min-height: 42px;
-  padding: 10px 16px;
+body.touch-friendly .theme-option-btn,
+body.touch-friendly .dropdown-submenu-toggle {
+  min-height: 48px;
+  padding: 13px 18px;
   font-size: 10.5pt;
+}
+
+body.touch-friendly .dropdown-divider {
+  margin: 8px 0;
 }
 
 body.touch-friendly .dropdown-submenu {
@@ -3034,10 +3043,11 @@ body.touch-friendly .top-controls .icon-btn {
   font-size: 10pt;
 }
 
+/* Tab buttons are big enough in standard mode - preserve standard compact size in touch mode */
 body.touch-friendly .nav-tab-btn {
-  min-height: 40px;
-  padding: 7px 12px;
-  font-size: 10.5pt;
+  min-height: 34px;
+  padding: 5px 8px;
+  font-size: 10pt;
 }
 
 body.touch-friendly .roll-action-btn {
@@ -5698,18 +5708,23 @@ body[data-theme="aqua"] .karma-no-spend-warn {
    Touch-Friendly Sizing Overrides
    ========================================================================== */
 body.touch-friendly .history-nav-btn {
-  min-width: 44px;
-  min-height: 40px;
-  font-size: 15pt;
+  min-width: 38px;
+  min-height: 34px;
+  font-size: 13pt;
 }
 
 body.touch-friendly .power-title-btn {
-  min-height: 36px;
-  padding: 4px 8px;
+  min-height: 34px;
+  padding: 3px 6px;
+}
+
+body.touch-friendly .power-dropdown-menu {
+  padding: 8px 0;
 }
 
 body.touch-friendly .power-menu-item {
-  padding: 10px 14px;
+  min-height: 48px;
+  padding: 13px 18px;
   font-size: 10.5pt;
 }
 

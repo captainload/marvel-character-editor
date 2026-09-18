@@ -140,9 +140,82 @@ flowchart TD
 
 ---
 
-## 6. Git Deployment
+---
+
+## 6. Tab Bar Whitespace Condensation & Touch Navigation
+- **Whitespace Reduction**:
+  - Replaced expansive `flex: 1 1 calc(16.666% - 6px)` on `.nav-tab-btn` with `flex: 0 0 auto`, `min-width: auto`, and compact padding (`padding: 5px 8px; gap: 4px;`).
+  - Wrapped tabs inside `.tabs-group` so buttons hug their labels cleanly without wide empty horizontal space across all viewports.
+- **Back/Forward History Navigation Buttons**:
+  - Positioned `.tab-history-nav` on the far right end of `.top-tabs-bar` with right-alignment (`margin-left: auto;`).
+  - Added `#btn-history-back` (`⮜`) and `#btn-history-forward` (`⮞`).
+  - Hit targets styled for reliable touch use: 36×34px in desktop mode, scaling to 44×40px with 15pt bold arrows in `body.touch-friendly` mode.
+  - Buttons automatically enable/disable according to history state (`canUndo()`, `canRedo()`) with descriptive hover tooltips indicating the action and edit description.
+
+---
+
+## 7. Character Edit Log & Undo/Redo Timeline
+- **Edit Recording**:
+  - `character.editLog` records every saved edit across the character lifetime (ability changes, power additions/removals/adjustments, talent/contact updates, bio edits, and initial creation/import).
+  - Each edit stores `{ id, timestamp, description, category, snapshot }` with history indexing (`editHistoryIndex`).
+  - Capped at 50 recent revisions to keep memory/storage footprint lightweight.
+- **Timeline Navigation**:
+  - Tapping **Back** (`⮜`) reverts the character state to the previous revision snapshot and flashes a status toast (e.g., `⮜ Restored: Updated Strength to Remarkable (2/3)`).
+  - Tapping **Forward** (`⮞`) re-applies subsequent revisions.
+  - Making a new edit while on an earlier revision truncates future redo branches (standard undo/redo history branching).
+- **Edit Log Viewer**:
+  - Added `#card-character-edit-log` to the **Background & Form** tab displaying a chronological log of edits, revision timestamp, category badge (`cat-power`, `cat-ability`, `cat-talent`, etc.), and a highlight indicator for the active revision.
+  - Includes a `📋 Copy Log` button that exports the entire formatted log to the clipboard.
+
+---
+
+## 8. Power Menu & Power Removal with CP Refund
+- **Contextual Power Menu**:
+  - Clicking any power's name in its card header toggles a dropdown menu (`.power-dropdown-menu` with `.power-title-btn` caret `▾`).
+  - Features two primary actions:
+    1. **⚡ Adjust Power**: Automatically enables the Power Adjustment house rule if needed and opens `#modal-power-adjustment`.
+    2. **🗑️ Remove power**: Initiates the confirmed removal and refund flow.
+- **CP Refund & Audit Logging**:
+  - Power removal calculates the exact CP cost to refund:
+    - **Standard Power**: $10 + \text{rankValue}$ CP.
+    - **Exceptional / Starred Power**: $20 + 2 \times \text{rankValue}$ CP.
+  - Displays a confirmation modal alerting the user: *"Removing [Power Name] ([Rank]) will refund [X] Character Points (CP) to your budget, and this removal will be noted in your Character Log."*
+  - Upon confirmation:
+    - Removes the power from `character.powers`.
+    - Automatically adds an entry to `character.editLog`: `Removed power: [Name] (+[X] CP refunded)`.
+    - Updates character points spent and remaining budget.
+    - Displays an alert confirming the removal and refunded CP amount.
+  - The card header's ✕ delete button also routes through this exact same refund and logging workflow for unified consistency.
+
+---
+
+## 9. Verification & Test Results
+- `scratch/test_tab_condensation_and_history.js`:
+  - Verified `.tabs-group`, `.tab-history-nav`, and `#btn-history-back`, `#btn-history-forward` markup.
+  - Verified CSS classes and touch-friendly rules.
+  - Verified `recordEdit`, `undoEdit`, `redoEdit`, `canUndo`, `canRedo`, and history branching.
+  - Verified JSON serialization and deserialization preserves edit history.
+  - **Result**: `ALL TAB CONDENSATION & HISTORY TESTS PASSED! ✅`
+- `scratch/test_power_menu_and_removal.js`:
+  - Verified power removal for standard powers (refunds $10 + \text{rankValue}$).
+  - Verified power removal for exceptional/starred powers (refunds $20 + 2 \times \text{rankValue}$).
+  - Verified confirmation modal mentions CP refund amount and character log.
+  - Verified character log entry formatted as `Removed power: [Name] (+[X] CP refunded)`.
+  - Verified CP remaining budget updates in lockstep.
+  - Verified Undo restores removed powers and previous CP budget.
+  - Verified Redo re-applies removal and CP budget update.
+  - **Result**: `ALL POWER MENU & REMOVAL TESTS PASSED! ✅`
+- Full regression suite passed:
+  - `node -c app.js`: 0 syntax errors.
+  - `node -c character_model.js`: 0 syntax errors.
+  - `scratch/test_power_adjustment.js`: 6/6 tests passed.
+  - `scratch/test_new_character.js`: 3/3 tests passed.
+  - `scratch/test_easter_egg.js`: 7/7 tests passed.
+
+---
+
+## 10. Git Deployment
 - Changes mirrored to repository at `H:\My Drive\RPG development\Marvel\`.
-- All features pushed to GitHub `origin/main`:
-  - `feat(powers): implement Power Adjustment house rule with Amazing rank limit`
-  - `feat(menu): add New Character menu option to File dropdown`
-  - `feat(easter-egg): add MSH A-BOM Easter egg with hover morph, roar audio, and GIF modal` (`commit ea0b3d0`)
+- Clean commit created and pushed to GitHub `origin/main` (`commit b54bced`):
+  `feat: condense tab bar whitespace, add character edit log with undo/redo navigation, and power menu with CP refund`
+

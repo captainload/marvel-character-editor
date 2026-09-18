@@ -86,12 +86,18 @@
 
     <!-- Top-Row Tab Navigation Bar -->
     <nav class="top-tabs-bar">
-      <button class="nav-tab-btn active" data-tab="main-stats">📊 Main Stats & Actions</button>
-      <button class="nav-tab-btn" data-tab="powers">⚡ Powers (<span id="tab-power-count">0</span>)</button>
-      <button class="nav-tab-btn" data-tab="invention">🔬 Invention Lab</button>
-      <button class="nav-tab-btn" data-tab="equipment">🎒 Equipment (<span id="tab-equipment-count">0</span>)</button>
-      <button class="nav-tab-btn" data-tab="talents">🥋 Talents & Contacts</button>
-      <button class="nav-tab-btn" data-tab="background">📜 Background & Form</button>
+      <div class="tabs-group">
+        <button class="nav-tab-btn active" data-tab="main-stats">📊 Main Stats & Actions</button>
+        <button class="nav-tab-btn" data-tab="powers">⚡ Powers (<span id="tab-power-count">0</span>)</button>
+        <button class="nav-tab-btn" data-tab="invention">🔬 Invention Lab</button>
+        <button class="nav-tab-btn" data-tab="equipment">🎒 Equipment (<span id="tab-equipment-count">0</span>)</button>
+        <button class="nav-tab-btn" data-tab="talents">🥋 Talents & Contacts</button>
+        <button class="nav-tab-btn" data-tab="background">📜 Background & Form</button>
+      </div>
+      <div class="tab-history-nav" title="Undo / Redo character edits">
+        <button type="button" class="history-nav-btn" id="btn-history-back" title="Undo: Step back to previous edit" disabled aria-label="Undo edit">⮜</button>
+        <button type="button" class="history-nav-btn" id="btn-history-forward" title="Redo: Step forward to next edit" disabled aria-label="Redo edit">⮞</button>
+      </div>
     </nav>
   </div>
 
@@ -838,6 +844,24 @@
               🔄 Reset for New Month
             </button>
           </div>
+        </div>
+      </div>
+
+      <!-- Character Edit Log Card -->
+      <div class="card" id="card-character-edit-log" style="margin-top: 14px;">
+        <div class="card-header">
+          <div style="display: flex; align-items: center; justify-content: space-between; width: 100%; flex-wrap: wrap; gap: 8px;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span class="card-title">📜 Character Edit Log</span>
+              <span class="meta-tag" id="edit-log-count-badge">0 Edits</span>
+            </div>
+            <div style="display: flex; gap: 8px; align-items: center;">
+              <button type="button" class="icon-btn" id="btn-copy-edit-log" style="font-size: 9.5pt; padding: 4px 10px; min-height: 28px;" title="Copy complete edit log to clipboard">📋 Copy Log</button>
+            </div>
+          </div>
+        </div>
+        <div id="character-edit-log-container" class="edit-log-container" style="max-height: 280px; overflow-y: auto; padding: 6px 0;">
+          <p style="color: var(--text-muted); font-size: 10pt; padding: 8px 12px; margin: 0;">No edits recorded yet.</p>
         </div>
       </div>
 

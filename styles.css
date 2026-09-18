@@ -297,14 +297,15 @@ body {
   background: #be123c;
 }
 
-/* Top-Row Tab Navigation Bar (Portrait Wrapping, Zero Horizontal Scroll) */
+/* Top-Row Tab Navigation Bar (Condensed Whitespace & Back/Forward History Nav) */
 .top-tabs-bar {
   background: #0d131f;
   border-bottom: 2px solid var(--border-color);
-  padding: 4px 10px;
+  padding: 4px 8px;
   display: flex;
-  flex-wrap: wrap; /* Allows tabs to wrap in portrait mode without horizontal scroll */
-  gap: 4px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
   overflow-x: visible; /* Strictly no horizontal scrolling */
   position: sticky;
   top: 0;
@@ -312,24 +313,32 @@ body {
   width: 100%;
 }
 
+.tabs-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+  flex: 1 1 auto;
+}
+
 .nav-tab-btn {
   background: #151d2c;
   color: var(--text-muted);
   border: 1px solid var(--border-color);
   border-radius: 5px;
-  padding: 5px 10px;
+  padding: 5px 8px; /* Condensed horizontal padding */
   font-size: 10pt;
   font-weight: 700;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 5px;
+  gap: 4px;
   transition: all 0.15s ease;
   min-height: 34px; /* Touch-accessible */
-  flex: 1 1 calc(16.666% - 6px); /* Fits 6 across on wide/1080px screens */
-  min-width: 120px; /* Wraps cleanly into 2x3 or 3x2 on portrait screens */
+  flex: 0 0 auto; /* Compact: eliminates bloated whitespace */
   text-align: center;
+  white-space: nowrap;
 }
 
 .nav-tab-btn:hover {
@@ -343,6 +352,52 @@ body {
   color: #ffffff;
   border-color: #ff3b60;
   box-shadow: 0 2px 8px rgba(225, 29, 72, 0.4);
+}
+
+/* Tab History Navigation (Back / Forward Undo-Redo) */
+.tab-history-nav {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.history-nav-btn {
+  background: #151d2c;
+  color: var(--text-main);
+  border: 1px solid var(--border-color);
+  border-radius: 5px;
+  min-width: 36px;
+  min-height: 34px;
+  padding: 4px 8px;
+  font-size: 13pt;
+  line-height: 1;
+  font-weight: 800;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.history-nav-btn:hover:not(:disabled) {
+  background: #1f2b3e;
+  border-color: #38bdf8;
+  color: #38bdf8;
+  box-shadow: 0 1px 6px rgba(56, 189, 248, 0.35);
+}
+
+.history-nav-btn:active:not(:disabled) {
+  transform: scale(0.95);
+}
+
+.history-nav-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  border-color: rgba(255, 255, 255, 0.08);
+  color: var(--text-dim);
 }
 
 /* Main Content Area */
@@ -2143,13 +2198,12 @@ select.field-input option {
     min-width: 100%;
   }
   .top-tabs-bar {
-    padding: 4px 8px;
+    padding: 4px 6px;
   }
   .nav-tab-btn {
-    flex: 1 1 calc(33.333% - 6px); /* 2 rows of 3 in portrait */
-    min-width: 120px;
-    font-size: 10pt;
-    padding: 6px 8px;
+    flex: 0 0 auto;
+    font-size: 9.5pt;
+    padding: 5px 7px;
   }
   .dense-grid-2 {
     grid-template-columns: 1fr; /* Stack into 1 column in portrait */
@@ -2169,7 +2223,9 @@ select.field-input option {
 
 @media (max-width: 600px) {
   .nav-tab-btn {
-    flex: 1 1 calc(50% - 6px); /* 3 rows of 2 on narrow phone portrait */
+    flex: 0 0 auto;
+    font-size: 9pt;
+    padding: 4px 6px;
   }
   .equipment-table th:nth-child(2), .equipment-table td:nth-child(2),
   .equipment-table th:nth-child(4), .equipment-table td:nth-child(4) {
@@ -5458,5 +5514,311 @@ body[data-theme="aqua"] .store-table-container {
 body[data-theme="aqua"] .karma-no-spend-warn {
   color: #38bdf8 !important;
 }
+
+/* ==========================================================================
+   Power Title & Contextual Dropdown Menu
+   ========================================================================== */
+.power-title-container {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.power-title-btn {
+  background: transparent;
+  color: #f1f5f9;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-family: inherit;
+  font-size: 1.15rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  transition: all 0.15s ease;
+  text-decoration: none;
+}
+
+.power-title-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: var(--border-color);
+  color: #38bdf8;
+}
+
+.power-menu-caret {
+  font-size: 0.8em;
+  color: var(--text-muted);
+  transition: transform 0.15s ease;
+}
+
+.power-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 1050;
+  min-width: 210px;
+  background: #1e2536;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 4px 0;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.65);
+  display: none;
+}
+
+.power-dropdown-menu.show {
+  display: block;
+}
+
+.power-menu-item {
+  width: 100%;
+  padding: 8px 12px;
+  text-align: left;
+  background: transparent;
+  border: none;
+  color: var(--text-main);
+  font-size: 10pt;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: background 0.12s ease;
+  white-space: nowrap;
+}
+
+.power-menu-item:hover {
+  background: #2b354c;
+  color: #38bdf8;
+}
+
+.power-menu-item.danger-item {
+  color: #f87171;
+}
+
+.power-menu-item.danger-item:hover {
+  background: rgba(239, 68, 68, 0.18);
+  color: #fca5a5;
+}
+
+/* ==========================================================================
+   Character Edit Log UI
+   ========================================================================== */
+.edit-log-container {
+  background: #11151e;
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+}
+
+.edit-log-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  font-size: 10pt;
+  gap: 10px;
+  transition: background 0.12s ease;
+}
+
+.edit-log-item:last-child {
+  border-bottom: none;
+}
+
+.edit-log-item:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.edit-log-item.active-step {
+  background: rgba(56, 189, 248, 0.1);
+  border-left: 3px solid #38bdf8;
+}
+
+.edit-log-desc {
+  flex: 1;
+  color: var(--text-main);
+  font-weight: 600;
+}
+
+.edit-log-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.edit-log-time {
+  color: var(--text-dim);
+  font-size: 9pt;
+  font-family: var(--font-mono);
+}
+
+.edit-log-badge {
+  font-size: 8.5pt;
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.edit-log-badge.cat-power {
+  background: rgba(168, 85, 247, 0.2);
+  color: #c084fc;
+  border: 1px solid rgba(168, 85, 247, 0.4);
+}
+
+.edit-log-badge.cat-ability {
+  background: rgba(56, 189, 248, 0.2);
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.4);
+}
+
+.edit-log-badge.cat-talent {
+  background: rgba(234, 179, 8, 0.2);
+  color: #facc15;
+  border: 1px solid rgba(234, 179, 8, 0.4);
+}
+
+.edit-log-badge.cat-equipment {
+  background: rgba(34, 197, 94, 0.2);
+  color: #4ade80;
+  border: 1px solid rgba(34, 197, 94, 0.4);
+}
+
+.edit-log-badge.cat-general,
+.edit-log-badge.cat-creation,
+.edit-log-badge.cat-initial {
+  background: rgba(148, 163, 184, 0.2);
+  color: #94a3b8;
+  border: 1px solid rgba(148, 163, 184, 0.4);
+}
+
+/* ==========================================================================
+   Touch-Friendly Sizing Overrides
+   ========================================================================== */
+body.touch-friendly .history-nav-btn {
+  min-width: 44px;
+  min-height: 40px;
+  font-size: 15pt;
+}
+
+body.touch-friendly .power-title-btn {
+  min-height: 36px;
+  padding: 4px 8px;
+}
+
+body.touch-friendly .power-menu-item {
+  padding: 10px 14px;
+  font-size: 10.5pt;
+}
+
+/* ==========================================================================
+   Theme Overrides (Manilla & Aqua)
+   ========================================================================== */
+/* Manilla */
+body[data-theme="manilla"] .history-nav-btn {
+  background: #e2ded6;
+  border-color: #c2bcaf;
+  color: #000000;
+}
+body[data-theme="manilla"] .history-nav-btn:hover:not(:disabled) {
+  background: #d5d0c7;
+  border-color: #000000;
+  color: #000000;
+}
+body[data-theme="manilla"] .power-title-btn {
+  color: #000000;
+}
+body[data-theme="manilla"] .power-title-btn:hover {
+  background: #e2ded6;
+  color: #1e3a8a;
+}
+body[data-theme="manilla"] .power-dropdown-menu {
+  background: #eae6df;
+  border-color: #c2bcaf;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+body[data-theme="manilla"] .power-menu-item {
+  color: #000000;
+}
+body[data-theme="manilla"] .power-menu-item:hover {
+  background: #d5d0c7;
+  color: #1e3a8a;
+}
+body[data-theme="manilla"] .power-menu-item.danger-item {
+  color: #b91c1c;
+}
+body[data-theme="manilla"] .power-menu-item.danger-item:hover {
+  background: rgba(185, 28, 28, 0.15);
+  color: #991b1b;
+}
+body[data-theme="manilla"] .edit-log-container {
+  background: #eae6df;
+  border-color: #c2bcaf;
+}
+body[data-theme="manilla"] .edit-log-desc {
+  color: #000000;
+}
+body[data-theme="manilla"] .edit-log-item {
+  border-bottom-color: #d5d0c7;
+}
+body[data-theme="manilla"] .edit-log-item.active-step {
+  background: #dcd7ce;
+  border-left-color: #b91c1c;
+}
+
+/* Aqua */
+body[data-theme="aqua"] .history-nav-btn {
+  background: #102d52;
+  border-color: #23588e;
+  color: #f0fdfa;
+}
+body[data-theme="aqua"] .history-nav-btn:hover:not(:disabled) {
+  background: #174276;
+  border-color: #22d3ee;
+  color: #22d3ee;
+}
+body[data-theme="aqua"] .power-title-btn {
+  color: #f0fdfa;
+}
+body[data-theme="aqua"] .power-title-btn:hover {
+  background: #102d52;
+  color: #22d3ee;
+}
+body[data-theme="aqua"] .power-dropdown-menu {
+  background: #0c2340;
+  border-color: #23588e;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.7);
+}
+body[data-theme="aqua"] .power-menu-item {
+  color: #f0fdfa;
+}
+body[data-theme="aqua"] .power-menu-item:hover {
+  background: #174276;
+  color: #22d3ee;
+}
+body[data-theme="aqua"] .power-menu-item.danger-item {
+  color: #f87171;
+}
+body[data-theme="aqua"] .power-menu-item.danger-item:hover {
+  background: rgba(239, 68, 68, 0.2);
+  color: #fca5a5;
+}
+body[data-theme="aqua"] .edit-log-container {
+  background: #0c2340;
+  border-color: #23588e;
+}
+body[data-theme="aqua"] .edit-log-desc {
+  color: #f0fdfa;
+}
+body[data-theme="aqua"] .edit-log-item {
+  border-bottom-color: #1a4373;
+}
+body[data-theme="aqua"] .edit-log-item.active-step {
+  background: #13355d;
+  border-left-color: #22d3ee;
+}
+
 
 

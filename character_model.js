@@ -245,6 +245,10 @@ class FASERIPCharacter {
     // Karma Ledger & Advancement History
     this.advancementLog = Array.isArray(initialData.advancementLog) ? [...initialData.advancementLog] : [];
     this.notes = initialData.notes || '';
+
+    // Character Edit Log & Timeline Navigation
+    this.editLog = Array.isArray(initialData.editLog) ? [...initialData.editLog] : [];
+    this.editHistoryIndex = typeof initialData.editHistoryIndex === 'number' ? initialData.editHistoryIndex : (this.editLog.length - 1);
   }
 
   addKnownBlueprint(bpData) {
@@ -1464,8 +1468,79 @@ class FASERIPCharacter {
       equipment: this.equipment,
       knownBlueprints: this.knownBlueprints || [],
       advancementLog: this.advancementLog,
+      editLog: this.editLog,
+      editHistoryIndex: this.editHistoryIndex,
       notes: this.notes
     };
+  }
+
+  getCleanSnapshot() {
+    const data = this.toJSON();
+    delete data.editLog;
+    delete data.editHistoryIndex;
+    return JSON.parse(JSON.stringify(data));
+  }
+
+  recordEdit(description, category = 'general') {
+    if (!description) return null;
+    const snapshot = this.getCleanSnapshot();
+
+    // If we've navigated backward in history, truncate forward history
+    if (this.editHistoryIndex >= 0 && this.editHistoryIndex < this.editLog.length - 1) {
+      this.editLog = this.editLog.slice(0, this.editHistoryIndex + 1);
+    }
+
+    const entry = {
+      id: 'edit_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+      timestamp: new Date().toISOString(),
+      description: description.trim(),
+      category: category,
+      snapshot: snapshot
+    };
+
+    this.editLog.push(entry);
+
+    // Keep up to 50 edits
+    if (this.editLog.length > 50) {
+      this.editLog.shift();
+    }
+
+    this.editHistoryIndex = this.editLog.length - 1;
+    return entry;
+  }
+
+  canUndo() {
+    return this.editHistoryIndex > 0 && this.editLog.length > 1;
+  }
+
+  canRedo() {
+    return this.editHistoryIndex >= 0 && this.editHistoryIndex < this.editLog.length - 1;
+  }
+
+  getPreviousEdit() {
+    if (!this.canUndo()) return null;
+    return this.editLog[this.editHistoryIndex - 1] || null;
+  }
+
+  getNextEdit() {
+    if (!this.canRedo()) return null;
+    return this.editLog[this.editHistoryIndex + 1] || null;
+  }
+
+  undoEdit() {
+    if (!this.canUndo()) return null;
+    this.editHistoryIndex--;
+    const targetEntry = this.editLog[this.editHistoryIndex];
+    if (!targetEntry || !targetEntry.snapshot) return null;
+    return targetEntry;
+  }
+
+  redoEdit() {
+    if (!this.canRedo()) return null;
+    this.editHistoryIndex++;
+    const targetEntry = this.editLog[this.editHistoryIndex];
+    if (!targetEntry || !targetEntry.snapshot) return null;
+    return targetEntry;
   }
 
   static fromJSON(data) {
@@ -1495,6 +1570,7 @@ class FASERIPCharacter {
     char.setPointTier(tier);
     char.currentHealth = char.calculateMaxHealth();
     char.currentKarma = char.calculateBaseKarma();
+    char.recordEdit(`Character created: ${char.name} (CMF ${tier} CP)`, 'creation');
     return char;
   }
 }

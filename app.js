@@ -61,12 +61,19 @@ const App = {
       this.character = FASERIPCharacter.createBlankCharacter('400');
     }
 
+    // Ensure baseline editLog entry exists
+    if (!this.character.editLog || this.character.editLog.length === 0) {
+      this.character.recordEdit(`Character loaded: ${this.character.name}`, 'initial');
+    }
+
     // 4. Setup UI listeners and populate static selectors
     this.setupEventListeners();
     this.initRollerWindow();
     this.populateDropdowns();
     this.updateStoreClearancesUI();
     this.render();
+    this.updateHistoryNavButtons();
+    this.renderEditLog();
     this.initEasterEgg();
   },
 
@@ -83,7 +90,16 @@ const App = {
   saveState() {
     if (this.character) {
       localStorage.setItem('msh_current_character_v2', JSON.stringify(this.character.toJSON()));
+      this.updateHistoryNavButtons();
     }
+  },
+
+  recordCharacterEdit(description, category = 'general') {
+    if (!this.character) return;
+    this.character.recordEdit(description, category);
+    this.saveState();
+    this.updateHistoryNavButtons();
+    this.renderEditLog();
   },
 
   setupEventListeners() {
@@ -103,6 +119,36 @@ const App = {
         const tab = btn.getAttribute('data-tab');
         this.switchTab(tab);
       });
+    });
+
+    // Character Edit History Navigation (Back / Forward Undo-Redo)
+    const btnHistoryBack = document.getElementById('btn-history-back');
+    if (btnHistoryBack) {
+      btnHistoryBack.addEventListener('click', () => {
+        this.handleHistoryUndo();
+      });
+    }
+
+    const btnHistoryForward = document.getElementById('btn-history-forward');
+    if (btnHistoryForward) {
+      btnHistoryForward.addEventListener('click', () => {
+        this.handleHistoryRedo();
+      });
+    }
+
+    // Copy Edit Log Button
+    const btnCopyLog = document.getElementById('btn-copy-edit-log');
+    if (btnCopyLog) {
+      btnCopyLog.addEventListener('click', () => {
+        this.copyEditLogToClipboard();
+      });
+    }
+
+    // Global click listener to dismiss any open power menus when clicking outside
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.power-menu-container')) {
+        document.querySelectorAll('.power-dropdown-menu.show').forEach(m => m.classList.remove('show'));
+      }
     });
 
     // Character Name Header Input
@@ -978,8 +1024,9 @@ const App = {
         if (!sel.dataset.bound) {
           sel.dataset.bound = 'true';
           sel.addEventListener('change', (e) => {
+            const capKey = k.charAt(0).toUpperCase() + k.slice(1);
             this.character.setAbilityRank(k, e.target.value);
-            this.saveState();
+            this.recordCharacterEdit(`Updated ${capKey} to ${e.target.value}`, 'ability');
             this.render();
           });
         }
@@ -996,7 +1043,7 @@ const App = {
         resSel.dataset.bound = 'true';
         resSel.addEventListener('change', (e) => {
           this.character.setResourceRank(e.target.value);
-          this.saveState();
+          this.recordCharacterEdit(`Updated Resources to ${e.target.value}`, 'ability');
           this.renderPointBuy();
           this.renderBackground();
           this.renderEquipment();
@@ -1014,7 +1061,7 @@ const App = {
         bgResSel.dataset.bound = 'true';
         bgResSel.addEventListener('change', (e) => {
           this.character.setResourceRank(e.target.value);
-          this.saveState();
+          this.recordCharacterEdit(`Updated Resources to ${e.target.value}`, 'ability');
           this.render();
         });
       }
@@ -1538,9 +1585,21 @@ const App = {
         adjustedBadgeHtml = `<span class="meta-tag tag-power-adjusted" title="Power Adjusted: +${p.adjustments.shift} CS ${incAspect}, -${p.adjustments.shift} CS ${decAspect}">⚡ Adjusted</span>`;
       }
 
-      const powerTitleHtml = this.powerAdjustment
-        ? `<button type="button" class="power-title-btn" data-adjust-power="${idx}" title="Click to adjust power statistics (House Rule)">${p.name}</button>`
-        : `<strong class="power-title" style="font-size: 1.15rem;">${p.name}</strong>`;
+      const powerTitleHtml = `
+        <div class="power-title-container dropdown-container">
+          <button type="button" class="power-title-btn dropdown-toggle" data-power-menu-toggle="${idx}" title="Click for Power Menu (Adjust, Remove)">
+            ${p.name} <span class="power-menu-caret">▾</span>
+          </button>
+          <div class="dropdown-menu power-dropdown-menu" id="power-menu-${idx}">
+            <button type="button" class="dropdown-item power-menu-item" data-action="adjust-power" data-power-idx="${idx}">
+              ⚡ Adjust Power
+            </button>
+            <button type="button" class="dropdown-item power-menu-item danger-item" data-action="remove-power" data-power-idx="${idx}">
+              🗑️ Remove power
+            </button>
+          </div>
+        </div>
+      `;
 
       card.innerHTML = `
         <div class="card-header">
@@ -1709,11 +1768,42 @@ const App = {
         this.showHelpModal('power', p.name);
       });
 
-      const adjustPowerBtn = card.querySelector(`[data-adjust-power="${idx}"]`);
+      // Power Menu Toggle
+      const menuToggleBtn = card.querySelector(`[data-power-menu-toggle="${idx}"]`);
+      const menuEl = card.querySelector(`#power-menu-${idx}`);
+      if (menuToggleBtn && menuEl) {
+        menuToggleBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          document.querySelectorAll('.power-dropdown-menu.show').forEach(m => {
+            if (m !== menuEl) m.classList.remove('show');
+          });
+          menuEl.classList.toggle('show');
+        });
+      }
+
+      // Adjust Power action from Menu
+      const adjustPowerBtn = card.querySelector(`[data-action="adjust-power"][data-power-idx="${idx}"]`);
       if (adjustPowerBtn) {
         adjustPowerBtn.addEventListener('click', (e) => {
           e.stopPropagation();
+          if (menuEl) menuEl.classList.remove('show');
+          if (!this.powerAdjustment) {
+            this.powerAdjustment = true;
+            if (typeof localStorage !== 'undefined') {
+              localStorage.setItem('msh_rule_power_adjustment', 'true');
+            }
+          }
           this.openPowerAdjustmentModal(idx);
+        });
+      }
+
+      // Remove Power action from Menu
+      const removePowerBtn = card.querySelector(`[data-action="remove-power"][data-power-idx="${idx}"]`);
+      if (removePowerBtn) {
+        removePowerBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          if (menuEl) menuEl.classList.remove('show');
+          this.handleRemovePower(idx, e);
         });
       }
 
@@ -1725,11 +1815,14 @@ const App = {
         });
       }
 
-      card.querySelector('[data-del-power]').addEventListener('click', () => {
-        this.character.powers.splice(idx, 1);
-        this.saveState();
-        this.render();
-      });
+      // Delete button (✕) on card header also uses handleRemovePower
+      const delPowerBtn = card.querySelector('[data-del-power]');
+      if (delPowerBtn) {
+        delPowerBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          this.handleRemovePower(idx, e);
+        });
+      }
 
       container.appendChild(card);
     });
@@ -2222,7 +2315,7 @@ const App = {
 
     delete power.adjustmentHistory;
 
-    this.saveState();
+    this.recordCharacterEdit(`Adjusted power: ${power.name} (+${shift}CS ${aspA.label} / -${shift}CS ${aspB.label})`, 'power');
     this.renderPowers();
     this.renderAttacks();
     this.renderVitals();
@@ -2271,7 +2364,7 @@ const App = {
       power.adjustmentHistory = existingHistory;
     }
 
-    this.saveState();
+    this.recordCharacterEdit(`Reset adjustments for power: ${power.name}`, 'power');
     this.renderPowers();
     this.renderAttacks();
     this.renderVitals();
@@ -2325,13 +2418,41 @@ const App = {
       stunts: catalogPower.powerStunts || []
     });
 
-    this.saveState();
+    this.recordCharacterEdit(`Added power: ${catalogPower.name} (${rObj.name})`, 'power');
     this.render();
 
     const pCatSel = document.getElementById('select-power-catalog');
     if (pCatSel) {
       pCatSel.value = '';
       this.syncPowerSelectionUI();
+    }
+  },
+
+  async handleRemovePower(idx, mouseEvent = null) {
+    const p = this.character.powers[idx];
+    if (!p) return;
+    const isStarredPower = !!p.isStarred;
+    const isExp = isStarredPower || !!p.isExceptional;
+    const cpRefund = (isExp ? 20 : 10) + (p.rankValue * (isExp ? 2 : 1));
+
+    const confirmed = await this.showCustomConfirm(
+      `Remove power "${p.name}" (${p.rankName})?\n\nRemoving this power will refund ${cpRefund} Character Points (CP) to your budget, and this removal will be noted in your Character Log.`,
+      '🗑️ Remove Power',
+      mouseEvent,
+      `Remove & Refund ${cpRefund} CP`,
+      'Cancel'
+    );
+
+    if (confirmed) {
+      const powerName = p.name;
+      this.character.powers.splice(idx, 1);
+      this.recordCharacterEdit(`Removed power: ${powerName} (+${cpRefund} CP refunded)`, 'power');
+      this.render();
+      await this.showCustomAlert(
+        `"${powerName}" was removed.\n\n${cpRefund} CP has been refunded to your Character Point budget.`,
+        '✅ Power Removed & CP Refunded',
+        mouseEvent
+      );
     }
   },
 
@@ -4791,8 +4912,9 @@ const App = {
         }
 
         card.querySelector('[data-del-talent]').addEventListener('click', (ev) => {
+          const talentName = this.character.talents[idx]?.name || 'Talent';
           const res = this.character.removeTalent(idx);
-          this.saveState();
+          this.recordCharacterEdit(`Removed talent: ${talentName}`, 'talent');
           this.render();
           this.renderTalentDropdown();
           if (res.restoredResources) {
@@ -4822,8 +4944,9 @@ const App = {
         `;
 
         card.querySelector('[data-del-contact]').addEventListener('click', () => {
+          const cName = this.character.contacts[idx]?.name || 'Contact';
           this.character.contacts.splice(idx, 1);
-          this.saveState();
+          this.recordCharacterEdit(`Removed contact: ${cName}`, 'talent');
           this.render();
         });
 
@@ -4882,7 +5005,7 @@ const App = {
       specInput.value = '';
     }
 
-    this.saveState();
+    this.recordCharacterEdit(`Added talent: ${catTalent.name}`, 'talent');
     this.render();
     this.renderTalentDropdown();
     if (tSel) {
@@ -4910,7 +5033,7 @@ const App = {
     document.getElementById('input-contact-name').value = '';
     document.getElementById('input-contact-role').value = '';
 
-    this.saveState();
+    this.recordCharacterEdit(`Added contact: ${name} (${role})`, 'talent');
     this.render();
   },
 
@@ -6045,14 +6168,177 @@ const App = {
       try {
         const data = JSON.parse(e.target.result);
         this.character = FASERIPCharacter.fromJSON(data);
+        if (!this.character.editLog || this.character.editLog.length === 0) {
+          this.character.recordEdit(`Imported character: ${this.character.name}`, 'initial');
+        }
         this.saveState();
         this.render();
+        this.updateHistoryNavButtons();
+        this.renderEditLog();
         this.showCustomAlert(`Successfully imported "${this.character.name}"!`, '📁 Character Loaded');
       } catch (err) {
         this.showCustomAlert('Failed to load .msh character file: ' + err.message, '⚠️ Load Error');
       }
     };
     reader.readAsText(file);
+  },
+
+  handleHistoryUndo() {
+    if (!this.character || !this.character.canUndo()) return;
+    const targetEntry = this.character.undoEdit();
+    if (!targetEntry || !targetEntry.snapshot) return;
+
+    const preservedLog = this.character.editLog;
+    const preservedIndex = this.character.editHistoryIndex;
+
+    this.character = FASERIPCharacter.fromJSON(targetEntry.snapshot);
+    this.character.editLog = preservedLog;
+    this.character.editHistoryIndex = preservedIndex;
+
+    this.saveState();
+    this.render();
+    this.updateHistoryNavButtons();
+    this.renderEditLog();
+
+    const stepNum = preservedIndex + 1;
+    const totalSteps = preservedLog.length;
+    this.showStatusToast(`⮜ Restored: ${targetEntry.description} (${stepNum}/${totalSteps})`);
+  },
+
+  handleHistoryRedo() {
+    if (!this.character || !this.character.canRedo()) return;
+    const targetEntry = this.character.redoEdit();
+    if (!targetEntry || !targetEntry.snapshot) return;
+
+    const preservedLog = this.character.editLog;
+    const preservedIndex = this.character.editHistoryIndex;
+
+    this.character = FASERIPCharacter.fromJSON(targetEntry.snapshot);
+    this.character.editLog = preservedLog;
+    this.character.editHistoryIndex = preservedIndex;
+
+    this.saveState();
+    this.render();
+    this.updateHistoryNavButtons();
+    this.renderEditLog();
+
+    const stepNum = preservedIndex + 1;
+    const totalSteps = preservedLog.length;
+    this.showStatusToast(`⮞ Restored: ${targetEntry.description} (${stepNum}/${totalSteps})`);
+  },
+
+  updateHistoryNavButtons() {
+    if (typeof document === 'undefined' || !this.character) return;
+    const btnBack = document.getElementById('btn-history-back');
+    const btnForward = document.getElementById('btn-history-forward');
+
+    const canUndo = this.character.canUndo();
+    const canRedo = this.character.canRedo();
+
+    if (btnBack) {
+      btnBack.disabled = !canUndo;
+      const prev = this.character.getPreviousEdit();
+      btnBack.title = canUndo && prev ? `Undo: ${prev.description}` : 'Undo / Step back (No previous edits)';
+    }
+
+    if (btnForward) {
+      btnForward.disabled = !canRedo;
+      const next = this.character.getNextEdit();
+      btnForward.title = canRedo && next ? `Redo: ${next.description}` : 'Redo / Step forward (At latest edit)';
+    }
+  },
+
+  renderEditLog() {
+    if (typeof document === 'undefined' || !this.character) return;
+    const container = document.getElementById('character-edit-log-container');
+    const badge = document.getElementById('edit-log-count-badge');
+    if (!container) return;
+
+    const log = this.character.editLog || [];
+    const activeIdx = this.character.editHistoryIndex;
+
+    if (badge) {
+      badge.textContent = `${log.length} Edit${log.length === 1 ? '' : 's'}`;
+    }
+
+    if (log.length === 0) {
+      container.innerHTML = '<p style="color: var(--text-muted); font-size: 10pt; padding: 8px 12px; margin: 0;">No edits recorded yet.</p>';
+      return;
+    }
+
+    // Display newest first, with active step highlighted
+    const html = [...log].reverse().map((entry, revIdx) => {
+      const origIdx = log.length - 1 - revIdx;
+      const isActive = origIdx === activeIdx;
+      const d = new Date(entry.timestamp);
+      const timeStr = isNaN(d.getTime()) ? '' : d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      const catClass = `cat-${entry.category || 'general'}`;
+      const activeClass = isActive ? ' active-step' : '';
+      const activeIndicator = isActive ? '<span style="color: #38bdf8; font-weight: 800; margin-right: 4px;">▶</span>' : '';
+
+      return `
+        <div class="edit-log-item${activeClass}" title="${isActive ? 'Current Revision' : 'Recorded Edit'}">
+          <div class="edit-log-desc">${activeIndicator}${entry.description}</div>
+          <div class="edit-log-meta">
+            <span class="edit-log-badge ${catClass}">${entry.category || 'edit'}</span>
+            <span class="edit-log-time">${timeStr}</span>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    container.innerHTML = html;
+  },
+
+  copyEditLogToClipboard() {
+    if (!this.character || !this.character.editLog) return;
+    const lines = this.character.editLog.map((e, idx) => {
+      const d = new Date(e.timestamp).toLocaleString();
+      return `[${idx + 1}] ${d} - [${e.category || 'edit'}] ${e.description}`;
+    });
+    const text = `Character Edit Log: ${this.character.name}\n${'='.repeat(40)}\n` + lines.join('\n');
+    if (typeof navigator !== 'undefined' && navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(() => {
+        this.showCustomAlert('Character edit log copied to clipboard!', '📋 Log Copied');
+      }).catch(() => {
+        this.showCustomAlert(text, '📋 Character Edit Log');
+      });
+    } else {
+      this.showCustomAlert(text, '📋 Character Edit Log');
+    }
+  },
+
+  showStatusToast(message) {
+    if (typeof document === 'undefined') return;
+    let toast = document.getElementById('app-status-toast');
+    if (!toast) {
+      toast = document.createElement('div');
+      toast.id = 'app-status-toast';
+      toast.style.position = 'fixed';
+      toast.style.bottom = '20px';
+      toast.style.right = '20px';
+      toast.style.background = '#0f172a';
+      toast.style.color = '#38bdf8';
+      toast.style.border = '1px solid #38bdf8';
+      toast.style.borderRadius = '6px';
+      toast.style.padding = '8px 14px';
+      toast.style.fontSize = '10pt';
+      toast.style.fontWeight = '700';
+      toast.style.zIndex = '999999';
+      toast.style.boxShadow = '0 4px 16px rgba(0,0,0,0.8)';
+      toast.style.transition = 'opacity 0.25s ease, transform 0.25s ease';
+      toast.style.opacity = '0';
+      toast.style.transform = 'translateY(10px)';
+      document.body.appendChild(toast);
+    }
+    toast.textContent = message;
+    toast.style.opacity = '1';
+    toast.style.transform = 'translateY(0)';
+    if (this._toastTimer) clearTimeout(this._toastTimer);
+    this._toastTimer = setTimeout(() => {
+      toast.style.opacity = '0';
+      toast.style.transform = 'translateY(10px)';
+    }, 2400);
   },
 
   initEasterEgg() {

@@ -50,6 +50,7 @@
               📂 Open Character (.msh)
               <input type="file" id="import-file-input" accept=".msh,.json" style="display: none;">
             </label>
+            <button type="button" class="dropdown-item" id="menu-item-print-preview">🖨️ Print Preview &amp; PDF Export...</button>
             <div class="dropdown-divider"></div>
             <button type="button" class="dropdown-item" id="menu-item-touch-toggle">📱 Touch Controls: <strong id="menu-item-touch-status">OFF</strong></button>
             
@@ -2329,6 +2330,70 @@
       <img id="easter-egg-img" src="Abom.jpg" alt="A-BOM Unleashed!" class="easter-egg-image" onerror="if (this.src.indexOf('Abom.gif') === -1) { this.src = 'Abom.gif'; }">
       <div class="easter-egg-caption">
         ⚡ A-BOM UNLEASHED! ⚡
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: PRINT PREVIEW & PDF EXPORT -->
+  <div id="print-preview-modal" class="modal-overlay">
+    <div class="modal-box print-preview-modal-box">
+      <div class="modal-header">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span class="modal-title">🖨️ Character Sheet - Print Preview &amp; PDF Export</span>
+          <span class="meta-tag" id="print-preview-hero-tag" style="background: rgba(255, 215, 0, 0.15); color: var(--marvel-gold); font-weight: 700;">Hero</span>
+        </div>
+        <button type="button" class="modal-close" id="btn-close-print-preview" title="Close preview">&times;</button>
+      </div>
+
+      <!-- Preview Control Toolbar -->
+      <div class="print-preview-toolbar">
+        <div class="print-toolbar-group">
+          <button type="button" id="btn-print-preview-print" class="icon-btn primary" title="Send directly to printer or system dialog">
+            🖨️ Print Sheet...
+          </button>
+          <button type="button" id="btn-print-preview-pdf" class="icon-btn" title="Export character sheet to PDF (via browser print-to-PDF)">
+            📄 Export to PDF
+          </button>
+        </div>
+
+        <div class="print-toolbar-divider"></div>
+
+        <div class="print-toolbar-group print-toolbar-options">
+          <label class="print-opt-check" title="Dense 2-column card flow to eliminate wasted space">
+            <input type="checkbox" id="print-opt-compact" checked>
+            <span>Compact Columns</span>
+          </label>
+          <label class="print-opt-check" title="Include Invention Lab and known blueprints">
+            <input type="checkbox" id="print-opt-inventions" checked>
+            <span>Invention Lab</span>
+          </label>
+          <label class="print-opt-check" title="Include Character History and Edit Log">
+            <input type="checkbox" id="print-opt-history">
+            <span>Edit History</span>
+          </label>
+        </div>
+
+        <div class="print-toolbar-divider"></div>
+
+        <div class="print-toolbar-group print-toolbar-hints">
+          <span class="print-hint-text">💡 Continuous flow • Clean dividers • Ink optimized</span>
+        </div>
+      </div>
+
+      <!-- Modal Body / Scrollable Preview Canvas -->
+      <div class="modal-body print-preview-body">
+        <div id="print-sheet-wrapper" class="print-sheet-wrapper">
+          <div id="print-sheet-content" class="print-sheet-content">
+            <!-- Dynamically populated by App.renderPrintSheet() -->
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center; padding: 10px 18px;">
+        <div style="font-size: 9pt; color: var(--text-muted);">
+          Tip: In the print dialog, select <strong>"Save as PDF"</strong> as your Destination printer for a clean digital document.
+        </div>
+        <button type="button" class="icon-btn modal-close-btn" id="btn-close-print-preview-footer">Close</button>
       </div>
     </div>
   </div>

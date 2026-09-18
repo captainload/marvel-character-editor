@@ -630,12 +630,77 @@ const App = {
       });
     }
 
+    const menuItemPrint = document.getElementById('menu-item-print-preview');
+    if (menuItemPrint) {
+      menuItemPrint.addEventListener('click', () => {
+        if (fileOptionsMenu) fileOptionsMenu.classList.remove('open');
+        this.openPrintPreview();
+      });
+    }
+
     const menuItemOptions = document.getElementById('menu-item-options');
     if (menuItemOptions) {
       menuItemOptions.addEventListener('click', () => {
         if (fileOptionsMenu) fileOptionsMenu.classList.remove('open');
         const optModal = document.getElementById('options-modal');
         if (optModal) optModal.classList.add('open');
+      });
+    }
+
+    // Print Preview Modal Controls
+    const btnClosePrint = document.getElementById('btn-close-print-preview');
+    if (btnClosePrint) {
+      btnClosePrint.addEventListener('click', () => this.closePrintPreview());
+    }
+    const btnClosePrintFooter = document.getElementById('btn-close-print-preview-footer');
+    if (btnClosePrintFooter) {
+      btnClosePrintFooter.addEventListener('click', () => this.closePrintPreview());
+    }
+
+    const btnPrintSheet = document.getElementById('btn-print-preview-print');
+    if (btnPrintSheet) {
+      btnPrintSheet.addEventListener('click', () => this.printCharacterSheet());
+    }
+
+    const btnExportPdf = document.getElementById('btn-print-preview-pdf');
+    if (btnExportPdf) {
+      btnExportPdf.addEventListener('click', () => this.exportCharacterPDF());
+    }
+
+    const optCompact = document.getElementById('print-opt-compact');
+    if (optCompact) {
+      optCompact.addEventListener('change', () => this.renderPrintSheet());
+    }
+    const optInventions = document.getElementById('print-opt-inventions');
+    if (optInventions) {
+      optInventions.addEventListener('change', () => this.renderPrintSheet());
+    }
+    const optHistory = document.getElementById('print-opt-history');
+    if (optHistory) {
+      optHistory.addEventListener('change', () => this.renderPrintSheet());
+    }
+
+    const printModal = document.getElementById('print-preview-modal');
+    if (printModal) {
+      printModal.addEventListener('click', (e) => {
+        if (e.target === printModal) {
+          this.closePrintPreview();
+        }
+      });
+    }
+
+    if (typeof document !== 'undefined' && document.addEventListener) {
+      document.addEventListener('keydown', (e) => {
+        if ((e.ctrlKey || e.metaKey) && (e.key === 'p' || e.key === 'P')) {
+          e.preventDefault();
+          this.openPrintPreview();
+        }
+        if (e.key === 'Escape') {
+          const ppm = document.getElementById('print-preview-modal');
+          if (ppm && ppm.classList.contains('open')) {
+            this.closePrintPreview();
+          }
+        }
       });
     }
 
@@ -6195,6 +6260,503 @@ const App = {
       }
     };
     reader.readAsText(file);
+  },
+
+  openPrintPreview() {
+    const modal = document.getElementById('print-preview-modal');
+    if (!modal) return;
+    modal.classList.add('open');
+    this.renderPrintSheet();
+  },
+
+  closePrintPreview() {
+    const modal = document.getElementById('print-preview-modal');
+    if (modal) modal.classList.remove('open');
+  },
+
+  renderPrintSheet() {
+    const sheet = document.getElementById('print-sheet-content');
+    if (!sheet || !this.character) return;
+
+    const heroTag = document.getElementById('print-preview-hero-tag');
+    if (heroTag) heroTag.textContent = this.character.name || 'Hero';
+
+    const isCompact = document.getElementById('print-opt-compact')?.checked ?? true;
+    const incInventions = document.getElementById('print-opt-inventions')?.checked ?? true;
+    const incHistory = document.getElementById('print-opt-history')?.checked ?? false;
+
+    const hero = this.character;
+    const abs = hero.getActiveAbilities();
+
+    // Secondary stats
+    const maxHealth = hero.calculateMaxHealth ? hero.calculateMaxHealth() : (hero.abilities.fighting.rankValue + hero.abilities.agility.rankValue + hero.abilities.strength.rankValue + hero.abilities.endurance.rankValue);
+    const curHealth = hero.currentHealth ?? maxHealth;
+    const baseKarma = hero.calculateBaseKarma ? hero.calculateBaseKarma() : (hero.abilities.reason.rankValue + hero.abilities.intuition.rankValue + hero.abilities.psyche.rankValue);
+    const curKarma = hero.currentKarma ?? baseKarma;
+    const resRank = hero.resources?.rankName || 'Typical';
+    const resNum = hero.resources?.rankValue || 6;
+    const pop = hero.currentPopularity ?? 10;
+
+    const isRPMode = !!(this.useResourcePoints || hero.useResourcePoints);
+    const rpBudget = hero.getResourcePointsBudget ? hero.getResourcePointsBudget() : (resNum * 4);
+    const rpSpent = hero.spentResourcePoints || 0;
+    const rpAvail = hero.getAvailableResourcePoints ? hero.getAvailableResourcePoints() : Math.max(0, rpBudget - rpSpent);
+
+    // Defenses
+    const ba = hero.defenses?.bodyArmor || {};
+    const ff = hero.defenses?.forceField || {};
+    const resList = (hero.defenses?.resistances || []).map(r => `${r.name || r.type} (${r.rank || r.rankName})`).join(', ') || 'None';
+
+    // Compiled Attacks
+    const attacks = (hero.compileAttacks ? hero.compileAttacks() : []).filter(a => a);
+
+    // Powers
+    const powers = (hero.powers || []);
+
+    // Talents & Contacts
+    const talents = (hero.talents || []);
+    const contacts = (hero.contacts || []);
+
+    // Equipment
+    const equipment = (hero.equipment || []);
+
+    // Inventions
+    const blueprints = (hero.knownBlueprints || []);
+
+    // Escape helper
+    const esc = (s) => (s == null ? '' : String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'));
+
+    let html = `
+      <!-- Header / Identity Card -->
+      <div class="print-header">
+        <div style="flex: 1;">
+          <div class="print-hero-name">${esc(hero.name || 'Unnamed Hero')}</div>
+          <div class="print-hero-sub">${esc(hero.realName ? `Real Name: ${hero.realName}` : 'Identity: Secret')} • ${esc(hero.formName || 'Normal Human')}</div>
+          
+          <div class="print-meta-grid">
+            <div class="print-meta-item"><span class="print-meta-label">Identity:</span> <span class="print-meta-val">${esc(hero.identity || 'Secret')}</span></div>
+            <div class="print-meta-item"><span class="print-meta-label">Affiliation:</span> <span class="print-meta-val">${esc(hero.groupAffiliation || 'None / Solo')}</span></div>
+            <div class="print-meta-item"><span class="print-meta-label">Base:</span> <span class="print-meta-val">${esc(hero.baseOfOperations || 'Unknown')}</span></div>
+            <div class="print-meta-item"><span class="print-meta-label">Gender:</span> <span class="print-meta-val">${esc(hero.gender || 'Unknown')}</span></div>
+            <div class="print-meta-item"><span class="print-meta-label">Age:</span> <span class="print-meta-val">${esc(hero.age || 'Adult')}</span></div>
+            <div class="print-meta-item"><span class="print-meta-label">Height:</span> <span class="print-meta-val">${esc(hero.height || "5'10\"")}</span></div>
+            <div class="print-meta-item"><span class="print-meta-label">Weight:</span> <span class="print-meta-val">${esc(hero.weight || '175 lbs')}</span></div>
+            <div class="print-meta-item"><span class="print-meta-label">Eyes:</span> <span class="print-meta-val">${esc(hero.eyes || 'Brown')}</span></div>
+            <div class="print-meta-item"><span class="print-meta-label">Hair:</span> <span class="print-meta-val">${esc(hero.hair || 'Brown')}</span></div>
+          </div>
+        </div>
+        <div style="text-align: right; min-width: 140px;">
+          <div style="font-family: var(--font-display), Impact, sans-serif; font-size: 13pt; font-weight: 800; color: #0f172a; text-transform: uppercase;">MARVEL SUPER HEROES</div>
+          <div style="font-size: 7pt; font-weight: 700; color: #64748b;">OFFICIAL FASERIP CHARACTER RECORD</div>
+          ${hero.pointTier ? `<div style="font-size: 7.5pt; font-weight: 700; color: #1e3a8a; margin-top: 3px;">CMF Tier: ${esc(hero.pointTier)} CP</div>` : ''}
+          ${hero.isSwarmForm ? `<div style="font-size: 7.5pt; font-weight: 700; color: #d97706; margin-top: 2px;">⚡ S32 Swarm Collective Profile</div>` : ''}
+        </div>
+      </div>
+
+      <!-- SECTION: MAIN STATS & ACTIONS -->
+      <section class="print-section">
+        <div class="print-section-divider">
+          <span>Primary &amp; Secondary Statistics</span>
+          <span class="print-divider-tag">Main Stats &amp; Vitals</span>
+        </div>
+
+        <!-- FASERIP Abilities Grid -->
+        <div class="print-faserip-grid">
+          <div class="print-faserip-col">
+            <div class="print-ability-abbr">F</div>
+            <div class="print-ability-name">Fighting</div>
+            <div class="print-ability-rank">${esc(abs.fighting.rankName)}</div>
+            <div class="print-ability-num">${abs.fighting.rankValue}</div>
+          </div>
+          <div class="print-faserip-col">
+            <div class="print-ability-abbr">A</div>
+            <div class="print-ability-name">Agility</div>
+            <div class="print-ability-rank">${esc(abs.agility.rankName)}</div>
+            <div class="print-ability-num">${abs.agility.rankValue}</div>
+          </div>
+          <div class="print-faserip-col">
+            <div class="print-ability-abbr">S</div>
+            <div class="print-ability-name">Strength</div>
+            <div class="print-ability-rank">${esc(abs.strength.rankName)}</div>
+            <div class="print-ability-num">${abs.strength.rankValue}</div>
+          </div>
+          <div class="print-faserip-col">
+            <div class="print-ability-abbr">E</div>
+            <div class="print-ability-name">Endurance</div>
+            <div class="print-ability-rank">${esc(abs.endurance.rankName)}</div>
+            <div class="print-ability-num">${abs.endurance.rankValue}</div>
+          </div>
+          <div class="print-faserip-col">
+            <div class="print-ability-abbr">R</div>
+            <div class="print-ability-name">Reason</div>
+            <div class="print-ability-rank">${esc(abs.reason.rankName)}</div>
+            <div class="print-ability-num">${abs.reason.rankValue}</div>
+          </div>
+          <div class="print-faserip-col">
+            <div class="print-ability-abbr">I</div>
+            <div class="print-ability-name">Intuition</div>
+            <div class="print-ability-rank">${esc(abs.intuition.rankName)}</div>
+            <div class="print-ability-num">${abs.intuition.rankValue}</div>
+          </div>
+          <div class="print-faserip-col">
+            <div class="print-ability-abbr">P</div>
+            <div class="print-ability-name">Psyche</div>
+            <div class="print-ability-rank">${esc(abs.psyche.rankName)}</div>
+            <div class="print-ability-num">${abs.psyche.rankValue}</div>
+          </div>
+        </div>
+
+        <!-- Vitals Row -->
+        <div class="print-vitals-row">
+          <div class="print-vital-box">
+            <div class="print-vital-label">Health</div>
+            <div class="print-vital-val" style="color: #b91c1c;">${curHealth} / ${maxHealth}</div>
+            <div class="print-vital-sub">F + A + S + E</div>
+          </div>
+          <div class="print-vital-box">
+            <div class="print-vital-label">Karma</div>
+            <div class="print-vital-val" style="color: #15803d;">${curKarma}</div>
+            <div class="print-vital-sub">Base: ${baseKarma} (R + I + P)</div>
+          </div>
+          <div class="print-vital-box">
+            <div class="print-vital-label">Resources</div>
+            <div class="print-vital-val" style="color: #0369a1;">${esc(resRank)} (${resNum})</div>
+            <div class="print-vital-sub">${isRPMode ? `${rpAvail} / ${rpBudget} RP Avail` : 'Standard FEAT'}</div>
+          </div>
+          <div class="print-vital-box">
+            <div class="print-vital-label">Popularity</div>
+            <div class="print-vital-val" style="color: #7c3aed;">${pop}</div>
+            <div class="print-vital-sub">Base: ${hero.basePopularity ?? 10}</div>
+          </div>
+        </div>
+
+        <!-- Defenses & Movement Row -->
+        <div class="print-defenses-movement">
+          <div class="print-def-box">
+            <div class="print-def-title">🛡️ Armor &amp; Defenses</div>
+            <div><strong>Body Armor:</strong> ${ba.rankName && ba.rankName !== 'None' ? `${esc(ba.rankName)} (${ba.physical || 0} Phys / ${ba.energy || 0} Energy)` : 'None'}</div>
+            <div><strong>Force Field:</strong> ${ff.rankName && ff.rankName !== 'None' ? `${esc(ff.rankName)} (${ff.protection || 0} Prot)` : 'None'}</div>
+            <div><strong>Resistances:</strong> ${esc(resList)}</div>
+          </div>
+          <div class="print-def-box">
+            <div class="print-def-title">🏃 Movement &amp; Tactics</div>
+            <div><strong>Standard Ground Movement:</strong> 3 areas/turn (approx. 45 mph sprint)</div>
+            ${hero.powers?.some(p => /flight/i.test(p.name)) ? `<div><strong>Flight:</strong> ${hero.powers.find(p => /flight/i.test(p.name)).rankName} Speed</div>` : ''}
+            <div><strong>Tactical Shift:</strong> 1 Area = 132 feet (approx. 44 yards)</div>
+          </div>
+        </div>
+
+        <!-- Compiled Combat Actions Table -->
+        <div style="font-weight: 800; font-size: 7.5pt; text-transform: uppercase; color: #1e293b; margin: 4px 0 2px 0;">⚔️ Compiled Combat Actions &amp; Attacks</div>
+        <table class="print-table">
+          <thead>
+            <tr>
+              <th style="width: 22%;">Attack / Action</th>
+              <th style="width: 14%;">Type</th>
+              <th style="width: 16%;">To-Hit Rank</th>
+              <th style="width: 18%;">Damage / Effect</th>
+              <th style="width: 12%;">Range</th>
+              <th style="width: 18%;">Special Notes</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${attacks.length > 0 ? attacks.map(a => `
+              <tr>
+                <td><strong>${esc(a.name)}</strong></td>
+                <td>${esc(a.category || a.actionType || 'Action')}</td>
+                <td><strong>${esc(a.abilityName || 'Fighting')}</strong> ${a.columnShift ? `(${a.columnShift > 0 ? '+' : ''}${a.columnShift}CS)` : ''}</td>
+                <td><strong>${esc(a.damage || '--')}</strong></td>
+                <td>${esc(a.range || 'Touch')}</td>
+                <td>${esc(a.notes || '--')}</td>
+              </tr>
+            `).join('') : `
+              <tr>
+                <td colspan="6" class="print-empty-note" style="text-align:center;">No specific combat actions compiled. Standard Slugfest applies.</td>
+              </tr>
+            `}
+          </tbody>
+        </table>
+      </section>
+
+      <!-- SECTION: SUPERPOWERS -->
+      <section class="print-section">
+        <div class="print-section-divider">
+          <span>Superpowers &amp; Power Stunts (${powers.length})</span>
+          <span class="print-divider-tag">Powers Tab</span>
+        </div>
+
+        ${powers.length > 0 ? `
+          <div class="print-powers-grid ${!isCompact ? 'single-column' : ''}">
+            ${powers.map(p => {
+              const adj = p.adjustments;
+              const hasAdj = adj && adj.shifts;
+              return `
+                <div class="print-power-card">
+                  <div class="print-power-header">
+                    <span class="print-power-name">${p.isStarred ? '★ ' : ''}${esc(p.name)}</span>
+                    <span class="print-power-rank">${esc(p.rankName)} (${p.rankValue})</span>
+                  </div>
+                  <div style="margin-bottom: 2px;">
+                    <span class="print-power-tag">${esc(p.category || 'Special')}</span>
+                    ${p.powerSlots > 1 ? `<span class="print-power-tag" style="background: #fef08a; color: #854d0e;">★ ${p.powerSlots} Slots</span>` : ''}
+                    ${hasAdj ? `<span class="print-power-tag" style="background:#fed7aa; color:#9a3412;">⚡ +${adj.shifts}CS ${esc(adj.aspectIncreased)} / -${adj.shifts}CS ${esc(adj.aspectDecreased)}</span>` : ''}
+                  </div>
+                  <div style="font-size: 7pt; color: #475569; display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 2px;">
+                    ${p.range ? `<span><strong>Range:</strong> ${esc(p.range)}</span>` : ''}
+                    ${p.duration ? `<span><strong>Duration:</strong> ${esc(p.duration)}</span>` : ''}
+                    ${p.areaOfEffect ? `<span><strong>Area:</strong> ${esc(p.areaOfEffect)}</span>` : ''}
+                    ${p.targets ? `<span><strong>Targets:</strong> ${esc(p.targets)}</span>` : ''}
+                  </div>
+                  ${p.notes ? `<div style="color: #334155; margin-top: 2px;">${esc(p.notes)}</div>` : ''}
+                  ${p.stunts && p.stunts.length > 0 ? `
+                    <div style="font-weight: 700; font-size: 7pt; color: #1e3a8a; margin-top: 3px;">Power Stunts:</div>
+                    <ul class="print-stunts-list">
+                      ${p.stunts.map(s => `<li><strong>${esc(s.name)}</strong>: ${esc(s.description || '')} (${s.isLearned ? '✓ Learned' : `${s.attemptsCount || 0}/3 attempts`})</li>`).join('')}
+                    </ul>
+                  ` : ''}
+                </div>
+              `;
+            }).join('')}
+          </div>
+        ` : `
+          <div class="print-empty-note">No superhuman powers recorded. Character relies on natural abilities, talents, and equipment.</div>
+        `}
+      </section>
+
+      <!-- SECTION: TALENTS & CONTACTS -->
+      <section class="print-section">
+        <div class="print-section-divider">
+          <span>Talents &amp; Contacts</span>
+          <span class="print-divider-tag">Talents &amp; Contacts Tab</span>
+        </div>
+
+        <div class="print-two-col ${!isCompact ? 'single-column' : ''}">
+          <!-- Talents Column -->
+          <div>
+            <div class="print-col-subheading">🥋 Talents (${talents.length})</div>
+            ${talents.length > 0 ? talents.map(t => `
+              <div class="print-item-box">
+                <div style="display: flex; justify-content: space-between;">
+                  <span class="print-item-title">${t.isStarred ? '★ ' : ''}${esc(t.displayName || t.name)}</span>
+                  ${t.csBonus ? `<span style="font-weight: 800; color: #15803d;">+${t.csBonus}CS ${esc(t.statAffected || '')}</span>` : ''}
+                </div>
+                <div style="font-size: 6.5pt; color: #64748b; text-transform: uppercase;">${esc(t.category || 'General')}</div>
+                ${t.description ? `<div style="font-size: 7pt; color: #334155; margin-top: 1px;">${esc(t.description)}</div>` : ''}
+              </div>
+            `).join('') : `<div class="print-empty-note">No talents recorded.</div>`}
+          </div>
+
+          <!-- Contacts Column -->
+          <div>
+            <div class="print-col-subheading">🤝 Contacts (${contacts.length})</div>
+            ${contacts.length > 0 ? contacts.map(c => `
+              <div class="print-item-box">
+                <div style="display: flex; justify-content: space-between;">
+                  <span class="print-item-title">${esc(c.name || 'Unnamed')}</span>
+                  <span style="font-size: 6.5pt; font-weight: 700; color: #0369a1; text-transform: uppercase;">${esc(c.type || c.category || 'Contact')}</span>
+                </div>
+                ${(c.description || c.notes) ? `<div style="font-size: 7pt; color: #334155; margin-top: 1px;">${esc(c.description || c.notes)}</div>` : ''}
+              </div>
+            `).join('') : `<div class="print-empty-note">No contacts recorded.</div>`}
+          </div>
+        </div>
+      </section>
+
+      <!-- SECTION: EQUIPMENT & GEAR -->
+      <section class="print-section">
+        <div class="print-section-divider">
+          <span>Equipment &amp; Inventory (${equipment.length})</span>
+          <span class="print-divider-tag">Equipment Tab</span>
+        </div>
+
+        ${isRPMode ? `
+          <div style="border: 1px solid #cbd5e1; background: #f0f9ff; border-radius: 3px; padding: 4px 8px; margin-bottom: 6px; font-size: 7.5pt; display: flex; justify-content: space-between; align-items: center;">
+            <span><strong>💰 Resource Points Option Active:</strong> Monthly Budget = <strong>4 &times; Resource Number</strong> (${rpBudget} RP)</span>
+            <span>Spent: <strong>${rpSpent} RP</strong> | Available: <strong style="color: #15803d;">${rpAvail} RP</strong></span>
+          </div>
+        ` : ''}
+
+        ${equipment.length > 0 ? `
+          <table class="print-table">
+            <thead>
+              <tr>
+                <th style="width: 25%;">Item Name</th>
+                <th style="width: 15%;">Type</th>
+                <th style="width: 15%;">Damage / Effect</th>
+                <th style="width: 12%;">Range</th>
+                <th style="width: 13%;">Material</th>
+                <th style="width: 20%;">Notes &amp; Packaging</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${equipment.map(eq => `
+                <tr>
+                  <td><strong>${esc(eq.name)}</strong>${eq.equipped ? ' <span style="font-size: 6.5pt; color: #15803d; font-weight:700;">[Equipped]</span>' : ''}</td>
+                  <td>${esc(eq.type || eq.category || 'Gear')}</td>
+                  <td>${esc(eq.damage || '--')}</td>
+                  <td>${esc(eq.range || '--')}</td>
+                  <td>${esc(eq.materialStrength || '--')}</td>
+                  <td>${esc(eq.shots ? `Shots: ${eq.shots}. ` : '')}${esc(eq.notes || '--')}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        ` : `
+          <div class="print-empty-note">No personal equipment or carried weapons recorded.</div>
+        `}
+      </section>
+
+      <!-- SECTION: INVENTION LAB (OPTIONAL) -->
+      ${incInventions ? `
+        <section class="print-section">
+          <div class="print-section-divider">
+            <span>Invention Lab &amp; Known Blueprints (${blueprints.length})</span>
+            <span class="print-divider-tag">Invention Lab Tab</span>
+          </div>
+
+          <div style="font-size: 7.5pt; color: #334155; margin-bottom: 4px;">
+            <strong>Lab Rank:</strong> ${esc(hero.inventionLabRank || 'Typical')} &bull; 
+            <strong>Research &amp; Tech Modifier:</strong> ${esc(hero.inventionTechModifier || '+0CS')} &bull;
+            <strong>Active Projects:</strong> ${esc(hero.activeInventions?.length || 0)}
+          </div>
+
+          ${blueprints.length > 0 ? `
+            <table class="print-table">
+              <thead>
+                <tr>
+                  <th style="width: 30%;">Blueprint / Schematic</th>
+                  <th style="width: 18%;">Category</th>
+                  <th style="width: 20%;">Target Effect / Rank</th>
+                  <th style="width: 14%;">Difficulty</th>
+                  <th style="width: 18%;">Build Days / Source</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${blueprints.map(bp => `
+                  <tr>
+                    <td><strong>${esc(bp.name)}</strong></td>
+                    <td>${esc(bp.category || 'Hardware')}</td>
+                    <td>${esc(bp.targetPowerName || 'Boost')} (${esc(bp.targetPowerRank || 'Gd')})</td>
+                    <td><strong>${esc(bp.effectiveDifficultyRank || bp.resourceRank || 'Typical')}</strong></td>
+                    <td>${esc(bp.buildDays || bp.estimatedBuildDays || 3)} days (${esc(bp.powerSource || 'Tech')})</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          ` : `
+            <div class="print-empty-note">No known blueprints or schematics recorded in laboratory archive.</div>
+          `}
+        </section>
+      ` : ''}
+
+      <!-- SECTION: BACKGROUND, FORM & BIO -->
+      <section class="print-section">
+        <div class="print-section-divider">
+          <span>Background, Form &amp; Roleplaying Notes</span>
+          <span class="print-divider-tag">Background &amp; Form Tab</span>
+        </div>
+
+        <div style="font-size: 7.5pt; line-height: 1.4; color: #1e293b; background: #fafafa; border: 1px solid #e2e8f0; border-radius: 3px; padding: 6px 10px;">
+          ${hero.notes ? `<div style="white-space: pre-wrap;">${esc(hero.notes)}</div>` : `<div class="print-empty-note">No detailed biographical or origin notes recorded.</div>`}
+        </div>
+      </section>
+
+      <!-- SECTION: ADVANCEMENT & EDIT HISTORY (OPTIONAL) -->
+      ${incHistory ? `
+        <section class="print-section">
+          <div class="print-section-divider">
+            <span>Advancement Ledger &amp; Edit History</span>
+            <span class="print-divider-tag">Edit Log</span>
+          </div>
+
+          <div style="font-size: 7.5pt; margin-bottom: 4px;"><strong>Advancement Karma Ledger:</strong></div>
+          ${hero.advancementLog && hero.advancementLog.length > 0 ? `
+            <table class="print-table">
+              <thead>
+                <tr>
+                  <th style="width: 25%;">Date / Timestamp</th>
+                  <th style="width: 50%;">Reason / Award / Expense</th>
+                  <th style="width: 25%;">Karma Change</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${hero.advancementLog.slice(-10).map(entry => `
+                  <tr>
+                    <td>${esc(entry.date || entry.timestamp || '--')}</td>
+                    <td>${esc(entry.reason || entry.description || '--')}</td>
+                    <td style="font-weight: 700; color: ${(entry.points || 0) >= 0 ? '#15803d' : '#b91c1c'};">${(entry.points || 0) >= 0 ? '+' : ''}${entry.points || 0} KP</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          ` : `<div class="print-empty-note">No advancement karma ledger entries recorded.</div>`}
+
+          <div style="font-weight: 800; font-size: 7.5pt; text-transform: uppercase; color: #1e293b; margin: 6px 0 2px 0;">Recent Modification History:</div>
+          ${hero.editLog && hero.editLog.length > 0 ? `
+            <table class="print-table">
+              <thead>
+                <tr>
+                  <th style="width: 30%;">Time</th>
+                  <th style="width: 70%;">Action Description</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${hero.editLog.slice(-8).reverse().map(log => `
+                  <tr>
+                    <td>${esc(new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }))}</td>
+                    <td>${esc(log.description || '--')}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          ` : `<div class="print-empty-note">No edit history recorded.</div>`}
+        </section>
+      ` : ''}
+
+      <!-- Continuous Sheet Footer -->
+      <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #cbd5e1; padding-top: 4px; margin-top: 8px; font-size: 6.5pt; color: #64748b;">
+        <span>Marvel Super Heroes (FASERIP) Character Record &bull; Generated via Marvel Character Editor</span>
+        <span>Date: ${new Date().toLocaleDateString()}</span>
+      </div>
+    `;
+
+    sheet.innerHTML = html;
+  },
+
+  printCharacterSheet() {
+    const heroName = (this.character?.name || 'Hero').replace(/[^a-zA-Z0-9_-]/g, '_');
+    const oldTitle = (typeof document !== 'undefined') ? document.title : '';
+    if (typeof document !== 'undefined') {
+      document.title = `${heroName}_Character_Sheet`;
+    }
+
+    const restoreTitle = () => {
+      if (typeof document !== 'undefined') {
+        document.title = oldTitle;
+      }
+      if (typeof window !== 'undefined' && window.removeEventListener) {
+        window.removeEventListener('afterprint', restoreTitle);
+      }
+    };
+    if (typeof window !== 'undefined' && window.addEventListener) {
+      window.addEventListener('afterprint', restoreTitle);
+    }
+
+    if (typeof window !== 'undefined' && window.print) {
+      window.print();
+    }
+
+    setTimeout(() => {
+      restoreTitle();
+    }, 2000);
+  },
+
+  async exportCharacterPDF() {
+    await this.showCustomAlert(
+      'To export to PDF, select <strong>"Save as PDF"</strong> (or Microsoft Print to PDF) as your Destination in the print dialog.',
+      '📄 Export to PDF'
+    );
+    this.printCharacterSheet();
   },
 
   handleHistoryUndo() {

@@ -22,7 +22,7 @@
     <!-- Top Bar & Header Navigation -->
     <header class="topbar">
       <div class="brand-section">
-        <div class="msh-logo">MSH FASERIP</div>
+        <div class="msh-logo" id="msh-brand-logo" title="Marvel Super Heroes (FASERIP)">MSH FASERIP</div>
         <div class="header-name-box">
           <input type="text" id="header-char-name" class="header-name-input" value="The Vanguard" title="Click to edit Character Name">
         </div>
@@ -2295,6 +2295,16 @@
       <div class="modal-body" id="help-body"></div>
       <div class="modal-footer">
         <button class="icon-btn modal-close-btn">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: EASTER EGG (A-BOM UNLEASHED) -->
+  <div id="easter-egg-modal" class="modal-overlay easter-egg-modal-overlay">
+    <div class="easter-egg-container">
+      <img id="easter-egg-img" src="Abom.gif" alt="A-BOM Unleashed!" class="easter-egg-image" onerror="if (this.src.indexOf('Abom.jpg') === -1) { this.src = 'Abom.jpg'; }">
+      <div class="easter-egg-caption">
+        ⚡ A-BOM UNLEASHED! ⚡
       </div>
     </div>
   </div>

@@ -67,6 +67,7 @@ const App = {
     this.populateDropdowns();
     this.updateStoreClearancesUI();
     this.render();
+    this.initEasterEgg();
   },
 
   checkViewportWidth() {
@@ -6052,6 +6053,116 @@ const App = {
       }
     };
     reader.readAsText(file);
+  },
+
+  initEasterEgg() {
+    const logoEl = document.getElementById('msh-brand-logo');
+    const modalEl = document.getElementById('easter-egg-modal');
+    if (!logoEl || !modalEl) return;
+
+    let hoverTimer = null;
+    let isUnlocked = false;
+    let currentAudio = null;
+
+    const audioCandidates = [
+      'abomination-english-abomination-emotes-bank02-18-emotes-abomination-abm-45-wav-roar.mp3',
+      'abom.mp3',
+      'Abom.mp3'
+    ];
+
+    const closeEasterEgg = () => {
+      modalEl.classList.remove('open');
+      if (currentAudio) {
+        try {
+          currentAudio.pause();
+          currentAudio.currentTime = 0;
+        } catch (e) {}
+      }
+      logoEl.textContent = 'MSH FASERIP';
+      logoEl.classList.remove('easter-egg-unlocked');
+      logoEl.setAttribute('title', 'Marvel Super Heroes (FASERIP)');
+      isUnlocked = false;
+    };
+
+    logoEl.addEventListener('mouseenter', () => {
+      if (modalEl.classList.contains('open')) return;
+      hoverTimer = setTimeout(() => {
+        isUnlocked = true;
+        logoEl.textContent = 'MSH A-BOM';
+        logoEl.classList.add('easter-egg-unlocked');
+        logoEl.setAttribute('title', 'Click to unleash A-BOM!');
+      }, 1000);
+    });
+
+    logoEl.addEventListener('mouseleave', () => {
+      if (hoverTimer) {
+        clearTimeout(hoverTimer);
+        hoverTimer = null;
+      }
+      if (isUnlocked && !modalEl.classList.contains('open')) {
+        setTimeout(() => {
+          if (!modalEl.classList.contains('open')) {
+            try {
+              if (logoEl.matches && logoEl.matches(':hover')) return;
+            } catch (e) {}
+            logoEl.textContent = 'MSH FASERIP';
+            logoEl.classList.remove('easter-egg-unlocked');
+            logoEl.setAttribute('title', 'Marvel Super Heroes (FASERIP)');
+            isUnlocked = false;
+          }
+        }, 2000);
+      }
+    });
+
+    logoEl.addEventListener('click', (e) => {
+      if (!isUnlocked) return;
+      e.stopPropagation();
+
+      modalEl.classList.add('open');
+
+      try {
+        if (!currentAudio) {
+          currentAudio = new Audio(audioCandidates[0]);
+        } else {
+          currentAudio.currentTime = 0;
+        }
+
+        currentAudio.onended = () => {
+          closeEasterEgg();
+        };
+
+        currentAudio.onerror = () => {
+          if (audioCandidates[1] && currentAudio.src.indexOf(audioCandidates[1]) === -1) {
+            currentAudio.src = audioCandidates[1];
+            currentAudio.play().catch(() => {});
+          }
+        };
+
+        const playPromise = currentAudio.play();
+        if (playPromise !== undefined) {
+          playPromise.catch(err => {
+            console.warn('Audio play was prevented or failed:', err);
+          });
+        }
+      } catch (err) {
+        console.warn('Audio initialization error:', err);
+      }
+    });
+
+    modalEl.addEventListener('click', (e) => {
+      const imgEl = document.getElementById('easter-egg-img');
+      if (e.target !== imgEl) {
+        closeEasterEgg();
+      }
+    });
+
+    if (typeof document.addEventListener === 'function') {
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && modalEl.classList.contains('open')) {
+          closeEasterEgg();
+        }
+      });
+    }
   }
 };
 

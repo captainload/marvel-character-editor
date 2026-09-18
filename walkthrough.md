@@ -224,10 +224,21 @@ flowchart TD
 
 ---
 
-## 11. Git Deployment
+## 11. Options Modal Refinements
+- **Removed "Done" Button**: Eliminated the redundant `.modal-footer` and "Done" button from `#options-modal`. The modal is closed cleanly via the header's `&times;` close button, clicking the backdrop overlay, or pressing <kbd>Escape</kbd>.
+- **Scrollable Display Guarantee**:
+  - Configured `#options-modal.modal-overlay` with `overflow-y: auto;` and padding.
+  - Constrained `#options-modal .modal-box` with `max-height: calc(100vh - 24px); max-height: calc(100dvh - 24px); min-height: 0;` to ensure flex child shrinking.
+  - Enabled smooth vertical scrolling on `#options-modal .modal-body` with `-webkit-overflow-scrolling: touch; overscroll-behavior: contain;` and custom-styled gold/slate scrollbars.
+  - Verified via automated test `scratch/test_options_modal.js` (`ALL OPTIONS MODAL TESTS PASSED! ✅`).
+
+---
+
+## 12. Git Deployment
 - Changes mirrored to repository at `H:\My Drive\RPG development\Marvel\`.
-- Clean commit created and pushed to GitHub `origin/main` (`commit b54bced` & `commit b94d8f2`):
+- Clean commit created and pushed to GitHub `origin/main` (`commit b54bced`, `commit b94d8f2`, `commit 891dc51`):
   `feat: condense tab bar whitespace, add character edit log with undo/redo navigation, and power menu with CP refund`
   `style(touch): preserve standard tab button size in touch mode and enlarge dropdown items vertically`
+  `refactor(options): remove Done button and ensure options modal scrolls smoothly when exceeding display area`
 
 

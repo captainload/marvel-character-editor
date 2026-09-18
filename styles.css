@@ -1646,6 +1646,55 @@ select.field-input option {
   gap: 12px;
 }
 
+/* Preferences & Options Modal (Ensures scrollability when content exceeds display area) */
+#options-modal.modal-overlay {
+  overflow-y: auto;
+  padding: 12px;
+}
+
+#options-modal .modal-box {
+  max-width: 680px;
+  width: 100%;
+  max-height: calc(100vh - 24px);
+  max-height: calc(100dvh - 24px);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+#options-modal .modal-header {
+  flex-shrink: 0;
+}
+
+#options-modal .modal-body {
+  overflow-y: auto;
+  overflow-x: hidden;
+  flex: 1 1 auto;
+  min-height: 0;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  padding: 18px 20px;
+}
+
+#options-modal .modal-body::-webkit-scrollbar {
+  width: 8px;
+}
+
+#options-modal .modal-body::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+}
+
+#options-modal .modal-body::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 4px;
+}
+
+#options-modal .modal-body::-webkit-scrollbar-thumb:hover {
+  background: var(--marvel-gold);
+}
+
 /* Compact Roller Modal (Sized generously to prevent layout jumps on stepper changes) */
 .modal-box.roller-compact {
   width: 450px;

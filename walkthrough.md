@@ -122,7 +122,7 @@ flowchart TD
   - If the user moves the mouse away without clicking, after 2 seconds the button gracefully reverts back to `MSH FASERIP`.
 - **Activation**:
   - Clicking the unlocked `MSH A-BOM` button opens the modal popup (`#easter-egg-modal`).
-  - Displays the Abomination image (`Abom.gif`, with seamless fallback to `Abom.jpg`) framed in a gamma-bordered modal container with comic caption `⚡ A-BOM UNLEASHED! ⚡`.
+  - Displays the updated high-resolution Abomination image (`Abom.jpg`, with seamless fallback to `Abom.gif`) framed in a gamma-bordered modal container with comic caption `⚡ A-BOM UNLEASHED! ⚡`.
   - Concurrently plays the Abomination roar audio sample (`abom.mp3` / `abomination-english-abomination-emotes-bank02-18-emotes-abomination-abm-45-wav-roar.mp3`).
 - **Dismissal**:
   - The popup closes automatically when the MP3 audio finishes playing (`onended`).
@@ -241,4 +241,57 @@ flowchart TD
   `style(touch): preserve standard tab button size in touch mode and enlarge dropdown items vertically`
   `refactor(options): remove Done button and ensure options modal scrolls smoothly when exceeding display area`
 
+---
 
+## 13. Canonical Player's Book Equipment & Alphabetical Sorting
+
+Comprehensive expansion integrating all canonical priced equipment from the official Marvel Super Heroes *Player's Book* (PB) into the Equipment Store, expanding the catalog to 408 total items (397 for-sale rulebook items), with strict alphabetical ordering across all interfaces.
+
+### Features & Additions
+
+1. **Strict Alphabetical Sorting**:
+   - The entire equipment catalog (`PREBUILT_EQUIPMENT_CATALOG`) is sorted alphabetically from A to Z.
+   - Filtered store results (`renderEquipment` in `app.js`) are strictly alphabetized regardless of category, clearance access level, or search query.
+   - The reverse-engineering dropdown (`select-reverse-engineer-item`) sorts both category optgroups and items within each group alphabetically.
+
+2. **Player's Book Ammunition (Page 44)**:
+   - Formatted strictly as `"[weapon] - [ammo type]"` per instructions:
+     - Examples: `All Handguns - Standard Ammunition`, `All Rifles - Standard Ammunition`, `Assault Rifle - Standard Ammunition`, `Automatic Rifle - Standard Ammunition`, `Sub-Machine Gun - Standard Ammunition`, `Machine Gun - Standard Ammunition`, `Shotgun - Standard Ammunition`, `Bazooka - Standard Ammunition`, `LAW - Standard Ammunition`, `Pistol - Power Pack`, `Rifle - Power Pack`, `Cannon - Power Pack`, `Handgun - Mercy Shot`, `Handgun - AP Shot`, `Handgun - Rubber Shot`, `Handgun - Explosive Shot`, `Gyro-Jet Pistol - Standard Ammunition`, `Gyro-Jet Pistol - Heat-Seeker Ammunition`, etc.
+   - Round packaging (e.g. `50 rounds box`, `20 rounds clip`, `1 round`, `1 power pack`) is displayed directly under Description & Stats (`shots` and `description`).
+
+3. **Missiles & Other Weapons (Page 46)**:
+   - **Modular Missile Components**: Airframes (`Standard Missile`, `High-Tech Missile`, `High-Speed Missile`), Guidance Controls (`Wire-Guided`, `Tele-Guided`, `Computer-Guided`, `Radio-Linked Homing`, `Heat-Seeker`), and Warhead Payloads (`Standard`, `Concentrated Explosive`, `High Explosive`, `Incendiary`, `Chemical Gas`) added as individual component parts rather than functioning standalone weapons.
+   - **Non-Superseded Ordnance**: Added `Knock-Out Gas Grenade (Good, Excellent, Remarkable)`, `Concussive Shockwave Grenade` (40 Blunt Attack), `Sonic Pulse Grenade` (20 Energy + Ex Stun), and Area Canister supplies (`Smoke`, `Tear Gas`, `Knock-Out Gas`).
+
+4. **Canonical Vehicles (Pages 48–49)**:
+   - Added 79 canonical vehicles covering Road (`Sedan`, `Security Limousine`, `SWAT Van`, `Ambulance`, `Rocket Car`), Off-Road (`Jeep`, `ATV`, `Snowmobile`, `Main Battle Tank`, `Combat Walker`, `Subterranean Borer`), Railed/GEV (`Bullet Train`, `Monorail`, `Hovercraft`), Air (`Fighter Jet`, `Quinjet (TSR)`, `Concorde SST`, `Blackbird SRC`, `Fantastic Four Pogo Plane`), Space (`Space Shuttle`, `Lunar Shuttle`, `Interplanetary Starship`), and Water/Sub (`Patrol Boat`, `Ocean Liner`, `Battleship`, `Aircraft Carrier`, `Fleet Submarine`, `Tactical Mini-Sub`).
+
+5. **Headquarters Real Estate & Interior Packages (Pages 56–58)**:
+   - **Real Estate Structures**: Apartments, Houses, Manors, Mansions, Brownstones, Corporate Office Towers (up to 30+ floors), Warehouses, and Factories priced at their Purchase / Condo Cost with monthly rental rates and room sizes documented in Description & Stats.
+   - **Interior Packages**: Workshop packages (Basic to Automated Factory), Laboratory packages (Basic to Serum Dispenser), Crime Files Computer Room, Superhuman Training Gym (100-ton weights & robotic opponents), Danger Rooms, Intensive Care / Cryogenics, Solar Power Arrays, Aircraft Hangars, Drydocks, Security scanners, and Superhuman Imprisonment Cells.
+
+6. **Miscellaneous Gear, Materials & Sundries (Pages 58–59)**:
+   - **Gear & Tools**: Silencers, Sniper Sights, Night-Vision Goggles, Asbestos & Radiation Suits, Beta-Cloth Uniform, Power Inhibitor & Nullifier Bands, Stasis Ray, Pym Particles Reduction Formula, Mutant Analyzers & Neutralizers, Sentry and Talent Robots.
+   - **Exotic Materials**: Unstable Molecules fabric, Wakandan Vibranium, Antarctic Vibranium (Anti-Metal), True Adamantium, Secondary Adamantium.
+   - **Sundries & Staff Payroll**: Monthly staff retainers (Butler, Pilot, Lawyer, Scientist, etc.), Night on the Town tickets, and Formal/Designer apparel.
+
+7. **Store Category Filter Updates**:
+   - Added category filter buttons for `Ammunition` (`ammo`), `Headquarters` (`hq`), and `Sundries & Services` (`sundries`) in `index.html`.
+   - Updated store counter tags to reflect **397 for-sale rulebook items**.
+
+### Verification Results
+- `scratch/test_equipment_catalog.js`:
+  - 408 total items verified with unique IDs and required fields.
+  - Catalog strictly sorted alphabetically by name.
+  - PB p. 44 ammunition format `"[weapon] - [ammo type]"` verified.
+  - PB p. 46 missile components and ordnance verified.
+  - PB p. 48-49 vehicles verified.
+  - PB p. 56-58 Headquarters and packages verified.
+  - PB p. 58-59 miscellaneous gear, exotic materials, and sundries verified.
+  - Result: `ALL EQUIPMENT CATALOG TESTS PASSED! ✅`
+- `scratch/test_store_sorting_and_filtering.js`:
+  - Verified category filters (`all`, `ammo`, `weapons`, `vehicles`, `hq`, `sundries`, `robotics`) return items strictly in alphabetical order.
+  - Verified search queries return items strictly in alphabetical order.
+  - Result: `ALL STORE SORTING & FILTERING TESTS PASSED! ✅`
+- Full regression suite passed (Easter egg, tab condensation, history undo/redo, power removal, options modal).
+- Git commit `d6dfc99` pushed to `origin/main`.

@@ -4088,8 +4088,8 @@ const POWER_OPTIONS_DEFINITIONS = {
       {
         key: "specialized",
         label: "Specific Energy Specialization (+2CS Rank)",
-        description: "Protects against a single specified energy attack form with +2CS rank and protection.",
-        isSuperior: true,
+        description: "Protects against a single specified energy attack form with +2CS rank and protection, but provides no defense against other energy types.",
+        isSuperior: false,
         rankShift: 2,
         subChoiceList: ["Fire & Heat", "Cold", "Electricity", "Radiation", "Light", "Sonics / Vibration", "Kinetic Bolts / Force", "Plasma"]
       }
@@ -4318,6 +4318,87 @@ const POWER_OPTIONS_DEFINITIONS = {
         description: "Draws extra-dimensional mass (Kosmos/Pym dimension), setting Strength to match Power Rank & increasing Health.",
         isSuperior: true,
         effects: { setsStrengthToRank: true }
+      }
+    ]
+  },
+  "EC1": {
+    powerCode: "EC1",
+    powerName: "Absorption Power",
+    id: "absorption_energy_type",
+    label: "Absorbable Energy Type",
+    canRoll: true,
+    rollTable: [
+      [1, 10, "light"],
+      [11, 20, "electricity"],
+      [21, 30, "fire_heat"],
+      [31, 40, "cold"],
+      [41, 50, "radiation"],
+      [51, 60, "magnetism"],
+      [61, 70, "sonics"],
+      [71, 80, "kinetic"],
+      [81, 90, "plasma"],
+      [91, 100, "darkforce"]
+    ],
+    choices: [
+      {
+        key: "light",
+        label: "Light / Laser",
+        description: "Absorbs light, laser, and coherent photonic energy, converting damage directly into Self-Healing / Health buffer.",
+        isSuperior: false
+      },
+      {
+        key: "electricity",
+        label: "Electricity / Lightning",
+        description: "Absorbs electrical energy and lightning bolts, converting damage directly into Self-Healing / Health buffer.",
+        isSuperior: false
+      },
+      {
+        key: "fire_heat",
+        label: "Fire & Heat",
+        description: "Absorbs fire, flame, and intense thermal energy, converting damage directly into Self-Healing / Health buffer.",
+        isSuperior: false
+      },
+      {
+        key: "cold",
+        label: "Cold / Thermal Drop",
+        description: "Absorbs cold and rapid heat-drain effects, converting temperature decreases directly into Self-Healing / Health buffer.",
+        isSuperior: false
+      },
+      {
+        key: "radiation",
+        label: "Radiation (Hard / Particle)",
+        description: "Absorbs hard radiation (gamma, cosmic, particle), converting harmful isotopes directly into Self-Healing / Health buffer.",
+        isSuperior: false
+      },
+      {
+        key: "magnetism",
+        label: "Magnetism",
+        description: "Absorbs magnetic force fields and electromagnetic pulses, converting them into Self-Healing / Health buffer.",
+        isSuperior: false
+      },
+      {
+        key: "sonics",
+        label: "Sonics / Sound",
+        description: "Absorbs sonic blasts and high-frequency sound waves, converting acoustic energy into Self-Healing / Health buffer.",
+        isSuperior: false
+      },
+      {
+        key: "kinetic",
+        label: "Kinetic / Vibration",
+        description: "Absorbs concussive force bolts and vibrational energy, converting kinetic impact into Self-Healing / Health buffer.",
+        isSuperior: false
+      },
+      {
+        key: "plasma",
+        label: "Plasma",
+        description: "Absorbs superheated ionized plasma energy, converting blast damage into Self-Healing / Health buffer.",
+        isSuperior: false
+      },
+      {
+        key: "darkforce",
+        label: "Darkforce / Exotic",
+        description: "Absorbs Darkforce emanations and exotic extra-dimensional energies into Self-Healing / Health buffer.",
+        isSuperior: false
       }
     ]
   },

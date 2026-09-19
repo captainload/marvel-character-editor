@@ -570,6 +570,22 @@ class FASERIPCharacter {
             rankValue: finalVal
           });
         }
+
+        // 4. Absorption Power (EC1)
+        if (code === 'EC1' || nameLower === 'absorption power' || nameLower.includes('absorption power')) {
+          const opt = p.selectedOption || 'electricity';
+          const def = (typeof globalThis.getPowerOptionsDefinition === 'function') ? globalThis.getPowerOptionsDefinition(p) : null;
+          const choiceObj = def?.choices?.find(c => c.key === opt);
+          const energyLabel = choiceObj ? choiceObj.label : (p.optionSubChoice || 'Energy');
+          defenses.resistances.push({
+            name: `Absorption: ${energyLabel}`,
+            type: energyLabel,
+            rank: baseRank,
+            rankName: baseRank,
+            rankValue: baseVal,
+            notes: `Converts incoming ${energyLabel} damage directly into Self-Healing / Health buffer (up to ${baseVal} per hit).`
+          });
+        }
       });
     }
 

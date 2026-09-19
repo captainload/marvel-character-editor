@@ -1580,6 +1580,35 @@ select.field-input option {
   max-width: 1020px;
 }
 
+/* Rules Reference / Help Modal Box - Enlarged to within 1 row of top and bottom */
+#help-modal .modal-box,
+.modal-box.help-modal-box {
+  max-width: 920px;
+  width: 95%;
+  max-height: calc(100vh - 48px);
+  margin: 24px auto;
+  display: flex;
+  flex-direction: column;
+}
+
+#help-modal .modal-body,
+.modal-box.help-modal-box .modal-body {
+  padding: 20px 24px;
+  overflow-y: auto;
+  flex: 1 1 auto;
+}
+
+#help-modal .rulebook-desc p,
+.modal-box.help-modal-box .rulebook-desc p {
+  margin-bottom: 12px;
+  line-height: 1.68;
+}
+
+#help-modal .rulebook-desc p:last-child,
+.modal-box.help-modal-box .rulebook-desc p:last-child {
+  margin-bottom: 0;
+}
+
 .modal-header {
   background: #172133;
   padding: 14px 20px;

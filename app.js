@@ -6431,20 +6431,125 @@ const App = {
     const q = String(queryKey || '').toLowerCase().trim();
 
     if (type === 'power') {
-      const powers = globalThis.MSH_POWERS || [];
-      const p = powers.find(x => x.id && x.id.toLowerCase() === q) ||
+      const powers = (typeof globalThis.MSH_POWERS !== 'undefined' && globalThis.MSH_POWERS.length)
+        ? globalThis.MSH_POWERS
+        : (globalThis.POWERS_CATALOG || []);
+      const p = powers.find(x => (x.id && x.id.toLowerCase() === q) || (x.code && x.code.toLowerCase() === q)) ||
                 powers.find(x => x.name && x.name.toLowerCase() === q) ||
                 powers.find(x => x.name && x.name.toLowerCase().includes(q)) ||
                 powers.find(x => x.name && q.includes(x.name.toLowerCase()));
 
       if (p) {
         const isStarred = !!(p.isStarred || p.countsAsTwo || p.powerSlots === 2);
-        title = `${isStarred ? '★ ' : '⚡ '}[${p.id}] ${p.name}`;
+        const codeBadge = p.code || p.id || '';
+        title = `${isStarred ? '★ ' : '⚡ '}${codeBadge ? '[' + codeBadge + '] ' : ''}${p.name}`;
+
+        const fullText = (p.rulesText || p.description || 'Standard superhuman power effect.').trim();
+        const paragraphs = fullText.split(/\n\s*\n|\r\n\r\n/).map(s => s.trim()).filter(Boolean);
+        const formattedDesc = paragraphs.length > 1
+          ? paragraphs.map(para => `<p style="margin-bottom: 12px; line-height: 1.68;">${para.replace(/\n/g, '<br/>')}</p>`).join('')
+          : `<p style="line-height: 1.68;">${fullText.replace(/\n/g, '<br/>')}</p>`;
+
+        const powerDetails = (typeof globalThis.getPowerDetails === 'function') ? globalThis.getPowerDetails(p, p.defaultRank || 'Typical') : {};
+        const detailBadges = [];
+        if (powerDetails.range) detailBadges.push(`<span>🎯 <strong>Range:</strong> ${powerDetails.range}</span>`);
+        if (powerDetails.duration) detailBadges.push(`<span>⏳ <strong>Duration:</strong> ${powerDetails.duration}</span>`);
+        if (powerDetails.areaOfEffect) detailBadges.push(`<span>🌐 <strong>Area:</strong> ${powerDetails.areaOfEffect}</span>`);
+        if (powerDetails.targets) detailBadges.push(`<span>👥 <strong>Targets:</strong> ${powerDetails.targets}</span>`);
+        if (powerDetails.speed) detailBadges.push(`<span>⚡ <strong>Speed:</strong> ${powerDetails.speed}</span>`);
+
+        const detailsBar = detailBadges.length > 0 ? `
+          <div class="power-stats-badges" style="display: flex; gap: 8px 14px; flex-wrap: wrap; margin: 10px 0 14px 0; padding: 8px 12px; background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 6px; font-size: 9.5pt;">
+            ${detailBadges.join('<span style="opacity: 0.35;">|</span>')}
+          </div>
+        ` : '';
+
+        const optDef = (typeof globalThis.getPowerOptionsDefinition === 'function') ? globalThis.getPowerOptionsDefinition(p) : (p.optionsDefinition || null);
+        let optionsSection = '';
+        if (optDef && optDef.choices && optDef.choices.length > 0) {
+          const hasRoll = !!(optDef.canRoll && optDef.rollTable && optDef.rollTable.length > 0);
+          const rows = optDef.choices.map(c => {
+            let rollRange = '-';
+            if (hasRoll) {
+              const match = optDef.rollTable.find(([min, max, key]) => key === c.key);
+              if (match) rollRange = match[0] === match[1] ? `${match[0]}` : `${match[0]}–${match[1]}`;
+            }
+            const surchargeBadge = c.isSuperior
+              ? `<span style="background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.4); padding: 1px 6px; border-radius: 4px; font-size: 8.5pt; font-weight: 600;">+100% (2× Base)</span>`
+              : `<span style="color: var(--rank-green, #10b981); font-size: 8.5pt; font-weight: 600;">0 CP (Standard)</span>`;
+            
+            const subChoices = (c.subChoiceList && c.subChoiceList.length)
+              ? `<div style="font-size: 8.5pt; color: var(--text-dim, #94a3b8); margin-top: 4px;"><strong>Choices:</strong> ${c.subChoiceList.join(', ')}</div>`
+              : '';
+
+            return `
+              <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.07);">
+                ${hasRoll ? `<td style="padding: 6px 8px; font-family: var(--font-mono); font-size: 9pt; color: var(--marvel-gold); white-space: nowrap;">${rollRange}</td>` : ''}
+                <td style="padding: 6px 8px; font-weight: 600; font-size: 9.5pt; vertical-align: top;">
+                  ${c.label}
+                  ${c.rankShift ? ` <span style="color: var(--marvel-gold); font-size: 8.5pt;">(+${c.rankShift}CS)</span>` : ''}
+                </td>
+                <td style="padding: 6px 8px; font-size: 9pt; color: var(--text-muted); vertical-align: top;">
+                  ${c.description || ''}
+                  ${subChoices}
+                </td>
+                <td style="padding: 6px 8px; text-align: right; vertical-align: top; white-space: nowrap;">
+                  ${surchargeBadge}
+                </td>
+              </tr>
+            `;
+          }).join('');
+
+          optionsSection = `
+            <div class="calc-rule-callout" style="margin-top: 14px; border-left: 4px solid var(--marvel-gold); background: rgba(245, 158, 11, 0.07); padding: 12px 14px; border-radius: 6px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px; margin-bottom: 8px;">
+                <strong style="color: var(--marvel-gold); font-size: 10.5pt; display: flex; align-items: center; gap: 6px;">
+                  🎲 Manifestation Options: ${optDef.label || 'Power Configuration'}
+                </strong>
+                ${hasRoll ? `<span style="font-size: 8.5pt; color: var(--text-dim, #94a3b8);">(Random d100 roll or player choice)</span>` : ''}
+              </div>
+              <div style="overflow-x: auto;">
+                <table style="width: 100%; border-collapse: collapse; text-align: left;">
+                  <thead>
+                    <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.15); font-size: 8.5pt; color: var(--text-dim, #94a3b8); text-transform: uppercase; letter-spacing: 0.5px;">
+                      ${hasRoll ? `<th style="padding: 4px 8px; width: 65px;">d100</th>` : ''}
+                      <th style="padding: 4px 8px; width: 28%;">Manifestation</th>
+                      <th style="padding: 4px 8px;">Rules Effect</th>
+                      <th style="padding: 4px 8px; width: 110px; text-align: right;">CP Surcharge</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${rows}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          `;
+        }
+
+        const stunts = p.powerStunts || p.stunts || [];
+        const stuntsSection = stunts.length ? `
+          <div style="margin-top: 14px;">
+            <strong class="rulebook-stunts-title" style="font-size: 11pt; color: var(--marvel-gold);">Documented Power Stunts:</strong>
+            <ul class="rulebook-stunts-list" style="padding-left: 20px; line-height: 1.7; margin-top: 6px; font-size: 10pt;">
+              ${stunts.map(s => `<li>${s}</li>`).join('')}
+            </ul>
+          </div>
+        ` : '';
+
+        const errata = p.errataNote || p.errataNotes || '';
+        const errataSection = errata ? `
+          <div class="calc-rule-callout" style="margin-top: 14px;">
+            <strong>⚖️ Errata / Rules Note:</strong> ${errata}
+          </div>
+        ` : '';
+
         content = `
-          <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px;">
+          <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px;">
             <span class="meta-tag" style="color: var(--marvel-gold); font-weight:700;">Category: ${p.category || 'General'}</span>
             <span class="meta-tag">${isStarred ? '<span class="starred-label-text">★ 2 Power Slots (Starred)</span>' : `Slots: ${p.powerSlots || 1}`}</span>
             <span class="meta-tag">Source: ${p.source || 'Player Book / UPB'}</span>
+            ${p.defaultRank ? `<span class="meta-tag">Default Rank: ${p.defaultRank}</span>` : ''}
           </div>
           ${isStarred ? `
             <div class="calc-rule-callout starred-power-banner" style="margin-bottom: 12px;">
@@ -6452,22 +6557,13 @@ const App = {
               This power is exceptionally potent and inherently counts as <strong>2 Power Slots</strong> against character limits. In CMF Point-Buy, it costs <strong>20 CP Base</strong> (instead of 10 CP) and <strong>2× Rank CP</strong>.
             </div>
           ` : ''}
-          <div class="rulebook-desc" style="margin: 12px 0; line-height: 1.6; font-size: 10.5pt;">
-            ${p.description || 'Standard superhuman power effect.'}
+          ${detailsBar}
+          <div class="rulebook-desc" style="margin: 12px 0; font-size: 10.5pt;">
+            ${formattedDesc}
           </div>
-          ${p.powerStunts && p.powerStunts.length ? `
-            <div style="margin-top: 14px;">
-              <strong class="rulebook-stunts-title" style="font-size: 11pt;">Documented Power Stunts:</strong>
-              <ul class="rulebook-stunts-list" style="padding-left: 20px; line-height: 1.7; margin-top: 6px; font-size: 10pt;">
-                ${p.powerStunts.map(s => `<li>${s}</li>`).join('')}
-              </ul>
-            </div>
-          ` : ''}
-          ${p.errataNote ? `
-            <div class="calc-rule-callout" style="margin-top: 14px;">
-              <strong>⚖️ Errata / Rules Note:</strong> ${p.errataNote}
-            </div>
-          ` : ''}
+          ${optionsSection}
+          ${stuntsSection}
+          ${errataSection}
         `;
       } else {
         title = `⚡ Superpower: ${queryKey}`;

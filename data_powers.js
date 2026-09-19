@@ -4420,8 +4420,8 @@ const POWER_OPTIONS_DEFINITIONS = {
       {
         key: "specialized",
         label: "Specific Radiation Type (+1CS Rank)",
-        description: "Specializes in a specific radiation type with +1CS rank, damage, and range.",
-        isSuperior: true,
+        description: "Specializes in a specific radiation type with +1CS rank, damage, and range, but loses the ability to project other radiation spectrums.",
+        isSuperior: false,
         rankShift: 1,
         subChoiceList: ["Cosmic Rays", "Gamma Rays", "X-Rays", "Ultraviolet", "Alpha / Beta Particles"]
       }

@@ -502,23 +502,6 @@ const App = {
       });
     }
 
-    // Resource Points Rule Preference Init & Listener
-    const resPtsOpt = document.getElementById('option-resource-points');
-    const savedResPts = typeof localStorage !== 'undefined' ? localStorage.getItem('msh_option_resource_points') : null;
-    this.useResourcePoints = savedResPts === 'true';
-    if (this.character && this.character.useResourcePoints !== undefined && savedResPts === null) {
-      this.useResourcePoints = !!this.character.useResourcePoints;
-    }
-    if (this.character) {
-      this.character.useResourcePoints = this.useResourcePoints;
-    }
-    if (resPtsOpt) {
-      resPtsOpt.checked = this.useResourcePoints;
-      resPtsOpt.addEventListener('change', (e) => {
-        this.setUseResourcePoints(e.target.checked);
-      });
-    }
-
     // Universal Action Table Preference Init & Listeners
     const tableOpt = document.getElementById('option-universal-table');
     const cheatTableOpt = document.getElementById('cheat-table-mode-select');
@@ -1132,34 +1115,6 @@ const App = {
       }
     }
 
-    // Background Spent Points Input
-    const bgSpentInp = document.getElementById('background-rp-spent-input');
-    if (bgSpentInp) {
-      bgSpentInp.addEventListener('change', (e) => {
-        const val = Math.max(0, parseInt(e.target.value) || 0);
-        this.character.spentResourcePoints = val;
-        this.saveState();
-        this.renderBackground();
-        this.renderEquipment();
-      });
-    }
-
-    // Background Reset Month Button
-    const btnResetRp = document.getElementById('btn-background-reset-rp');
-    if (btnResetRp) {
-      btnResetRp.addEventListener('click', async (e) => {
-        const prevSpent = this.character.spentResourcePoints || 0;
-        this.character.resetMonthlyResourcePoints();
-        this.saveState();
-        this.renderBackground();
-        this.renderEquipment();
-        await this.showCustomAlert(
-          `Monthly Resource Points have been reset for a new month!\n\nCleared ${prevSpent} spent RP. Full monthly budget of ${this.character.getResourcePointsBudget()} RP is now available.`,
-          '🔄 New Month Reset',
-          e
-        );
-      });
-    }
 
     // Popularity input
     const popInp = document.getElementById('input-popularity');
@@ -2858,11 +2813,6 @@ const App = {
 
     const heroIdx = Math.max(0, activeRankNames.indexOf(heroRankName));
 
-    const isRPMode = !!(this.useResourcePoints || (this.character && this.character.useResourcePoints));
-    const rpBudget = this.character ? this.character.getResourcePointsBudget() : (heroRankVal * 4);
-    const rpSpent = this.character ? (this.character.spentResourcePoints || 0) : 0;
-    const rpAvailable = this.character ? this.character.getAvailableResourcePoints() : Math.max(0, rpBudget - rpSpent);
-
     // Block commercial procurement for unique artifacts / items
     if (item.isUnique || item.notForSale) {
       return {
@@ -2879,11 +2829,6 @@ const App = {
         verdictIcon: '🔒',
         verdictHeading: 'Unique Item — Not Available for Purchase',
         verdictDesc: `${item.name} is a unique, one-of-a-kind artifact. Under TSR rules, unique items are not available to buy on the commercial or black market; they may only be awarded as a special storyline or campaign grant.`,
-        isRPMode,
-        rpBudget,
-        rpSpent,
-        rpAvailable,
-        rpCost: 0,
         requiresShieldApproval: false
       };
     }
@@ -2920,8 +2865,6 @@ const App = {
     }
 
     const requiresShieldApproval = (accessType === 'shield');
-    const rpCost = effectiveCostVal;
-    const rpAffordable = (rpAvailable >= rpCost);
 
     let status = 'automatic';
     let targetColor = null;
@@ -2930,53 +2873,37 @@ const App = {
     let verdictHeading = 'Automatic Purchase (No Roll Needed)';
     let verdictDesc = '';
 
-    if (isRPMode) {
-      if (rpAffordable) {
-        status = 'rp_affordable';
-        verdictClass = 'verdict-automatic';
-        verdictIcon = '💳';
-        verdictHeading = 'Sufficient Resource Points';
-        verdictDesc = `Item costs ${rpCost} Resource Points (Rank Value). Hero has ${rpAvailable} / ${rpBudget} RP available this month. Purchasing will leave ${rpAvailable - rpCost} RP remaining.`;
-      } else {
-        status = 'rp_insufficient';
-        verdictClass = 'verdict-unaffordable';
-        verdictIcon = '🔴';
-        verdictHeading = 'Insufficient Resource Points';
-        verdictDesc = `Item costs ${rpCost} Resource Points, but hero only has ${rpAvailable} / ${rpBudget} RP remaining this month (Deficit: ${rpCost - rpAvailable} RP). Acquisition requires GM loan, sponsor funding, or waiting for next month's reset.`;
-      }
+    // Evaluate TSR Player's Book p. 18 outcome:
+    // Cost <= Resources - 3 ranks -> Automatic
+    // Cost is 1-2 ranks below Resources -> Green FEAT
+    // Cost == Resources -> Yellow FEAT
+    // Cost > Resources -> Unaffordable (cannot roll alone)
+    if (diff >= 3) {
+      status = 'automatic';
+      verdictClass = 'verdict-automatic';
+      verdictIcon = '🟢';
+      verdictHeading = 'Automatic Purchase (No Roll Needed)';
+      verdictDesc = `Item cost (${effectiveCostRank}) is 3+ ranks below your Resources (${heroRankName}). Under TSR Player's Book p. 18 rules, this item is obtained automatically without requiring a Resource FEAT roll.`;
+    } else if (diff === 1 || diff === 2) {
+      status = 'green';
+      targetColor = 'Green';
+      verdictClass = 'verdict-green';
+      verdictIcon = '🟡';
+      verdictHeading = 'Green Resource FEAT Required';
+      verdictDesc = `Item cost (${effectiveCostRank}) is ${diff} rank${diff > 1 ? 's' : ''} below your Resources (${heroRankName}). Requires a successful Green Resource FEAT. (TSR Rule: Karma cannot be added to Resource FEATs).`;
+    } else if (diff === 0) {
+      status = 'yellow';
+      targetColor = 'Yellow';
+      verdictClass = 'verdict-yellow';
+      verdictIcon = '🟠';
+      verdictHeading = 'Yellow Resource FEAT Required';
+      verdictDesc = `Item cost (${effectiveCostRank}) matches your Resources (${heroRankName}). Requires a successful Yellow Resource FEAT. (TSR Rule: Karma cannot be added to Resource FEATs).`;
     } else {
-      // Evaluate TSR Player's Book p. 18 outcome:
-      // Cost <= Resources - 3 ranks -> Automatic
-      // Cost is 1-2 ranks below Resources -> Green FEAT
-      // Cost == Resources -> Yellow FEAT
-      // Cost > Resources -> Unaffordable (cannot roll alone)
-      if (diff >= 3) {
-        status = 'automatic';
-        verdictClass = 'verdict-automatic';
-        verdictIcon = '🟢';
-        verdictHeading = 'Automatic Purchase (No Roll Needed)';
-        verdictDesc = `Item cost (${effectiveCostRank}) is 3+ ranks below your Resources (${heroRankName}). Under TSR Player's Book p. 18 rules, this item is obtained automatically without requiring a Resource FEAT roll.`;
-      } else if (diff === 1 || diff === 2) {
-        status = 'green';
-        targetColor = 'Green';
-        verdictClass = 'verdict-green';
-        verdictIcon = '🟡';
-        verdictHeading = 'Green Resource FEAT Required';
-        verdictDesc = `Item cost (${effectiveCostRank}) is ${diff} rank${diff > 1 ? 's' : ''} below your Resources (${heroRankName}). Requires a successful Green Resource FEAT. (TSR Rule: Karma cannot be added to Resource FEATs).`;
-      } else if (diff === 0) {
-        status = 'yellow';
-        targetColor = 'Yellow';
-        verdictClass = 'verdict-yellow';
-        verdictIcon = '🟠';
-        verdictHeading = 'Yellow Resource FEAT Required';
-        verdictDesc = `Item cost (${effectiveCostRank}) matches your Resources (${heroRankName}). Requires a successful Yellow Resource FEAT. (TSR Rule: Karma cannot be added to Resource FEATs).`;
-      } else {
-        status = 'unaffordable';
-        verdictClass = 'verdict-unaffordable';
-        verdictIcon = '🔴';
-        verdictHeading = 'Exceeds Resources (Unaffordable)';
-        verdictDesc = `Item cost (${effectiveCostRank}) exceeds your Resources (${heroRankName}). Under Advanced Player's Book p. 18 rules, a lone hero cannot purchase items above their Resources rank without a patron, backer, group fund, or loan.`;
-      }
+      status = 'unaffordable';
+      verdictClass = 'verdict-unaffordable';
+      verdictIcon = '🔴';
+      verdictHeading = 'Exceeds Resources (Unaffordable)';
+      verdictDesc = `Item cost (${effectiveCostRank}) exceeds your Resources (${heroRankName}). Under Advanced Player's Book p. 18 rules, a lone hero cannot purchase items above their Resources rank without a patron, backer, group fund, or loan.`;
     }
 
     return {
@@ -2995,13 +2922,7 @@ const App = {
       isLocked,
       lockReason,
       accessType,
-      requiresShieldApproval,
-      isRPMode,
-      rpBudget,
-      rpSpent,
-      rpAvailable,
-      rpCost,
-      rpAffordable
+      requiresShieldApproval
     };
   },
 
@@ -3067,24 +2988,10 @@ const App = {
       if (storeResBadge && this.character) {
         const resRank = this.character.resources.rankName;
         const resNum = this.character.resources.rankValue;
-        const isRP = !!(this.useResourcePoints || this.character.useResourcePoints);
-        if (isRP) {
-          const budget = this.character.getResourcePointsBudget();
-          const spent = this.character.spentResourcePoints || 0;
-          const avail = this.character.getAvailableResourcePoints();
-          storeResBadge.innerHTML = `
-            <span class="res-rank-highlight">Resources: ${resRank} (${resNum})</span>
-            <span style="opacity: 0.6;">•</span>
-            <span class="res-points-highlight">Available: ${avail} / ${budget} RP</span>
-            <span class="res-spent-highlight">(Spent: ${spent} RP)</span>
-          `;
-          storeResBadge.title = `Resource Points Rule Active: Budget = 4 × Resource Number (${budget} RP). Spent: ${spent} RP. Available: ${avail} RP.`;
-        } else {
-          storeResBadge.innerHTML = `
-            <span class="res-rank-highlight">Resources: ${resRank} (${resNum})</span>
-          `;
-          storeResBadge.title = `Standard TSR FEAT Rules: Purchases evaluated via Resource FEAT rolls.`;
-        }
+        storeResBadge.innerHTML = `
+          <span class="res-rank-highlight">Resources: ${resRank} (${resNum})</span>
+        `;
+        storeResBadge.title = `Standard TSR FEAT Rules: Purchases evaluated via Resource FEAT rolls.`;
       }
 
       if (filtered.length === 0) {
@@ -3107,7 +3014,6 @@ const App = {
           resetBtn.addEventListener('click', () => this.clearStoreFilters());
         }
       } else {
-        const isRPActive = !!(this.useResourcePoints || (this.character && this.character.useResourcePoints));
         filtered.forEach(item => {
           const tr = document.createElement('tr');
           const dmgProt = item.damage || item.type || '--';
@@ -3126,18 +3032,16 @@ const App = {
             ? UniversalTableEngine.getRankByName(item.costRank)
             : null;
           const costAbbr = costRankObj?.abbr || item.costRank;
-          const rpCostTag = isRPActive ? ` <span class="store-rp-tag">• ${item.costValue} RP</span>` : '';
-          let costDisplay = `<span class="meta-tag store-cost-tag">${costAbbr} (${item.costValue})${rpCostTag}</span>`;
+          let costDisplay = `<span class="meta-tag store-cost-tag">${costAbbr} (${item.costValue})</span>`;
           if (this.storeBlackMarketAccess && item.blackMarketCostRank) {
             const bmRankObj = (typeof UniversalTableEngine !== 'undefined' && UniversalTableEngine.getRankByName)
               ? UniversalTableEngine.getRankByName(item.blackMarketCostRank)
               : null;
             const bmAbbr = bmRankObj?.abbr || item.blackMarketCostRank;
-            const bmRpTag = isRPActive ? ` <span class="store-rp-tag">• ${item.blackMarketCostValue} RP</span>` : '';
             costDisplay = `
               <div style="display: flex; flex-direction: column; gap: 2px;">
-                <span class="meta-tag store-cost-tag">${costAbbr} (${item.costValue})${rpCostTag}</span>
-                <span class="store-bm-cost">BM: ${bmAbbr} (${item.blackMarketCostValue})${bmRpTag}</span>
+                <span class="meta-tag store-cost-tag">${costAbbr} (${item.costValue})</span>
+                <span class="store-bm-cost">BM: ${bmAbbr} (${item.blackMarketCostValue})</span>
               </div>
             `;
           }
@@ -3266,36 +3170,20 @@ const App = {
     // Comparison cards
     const heroResEl = document.getElementById('procure-hero-resources');
     if (heroResEl) {
-      if (evalRes.isRPMode) {
-        heroResEl.textContent = `${evalRes.heroRankName} (${evalRes.heroRankVal}) • ${evalRes.rpAvailable} / ${evalRes.rpBudget} RP`;
-      } else {
-        heroResEl.textContent = `${evalRes.heroRankName} (${evalRes.heroRankVal})`;
-      }
+      heroResEl.textContent = `${evalRes.heroRankName} (${evalRes.heroRankVal})`;
     }
     const heroResSub = document.getElementById('procure-hero-res-sub');
     if (heroResSub) {
-      if (evalRes.isRPMode) {
-        heroResSub.textContent = `Resources & Available RP (Spent: ${evalRes.rpSpent} RP)`;
-      } else {
-        heroResSub.textContent = `Personal Resource Rank`;
-      }
+      heroResSub.textContent = `Personal Resource Rank`;
     }
 
     const itemCostEl = document.getElementById('procure-item-cost');
     if (itemCostEl) {
-      if (evalRes.isRPMode) {
-        itemCostEl.textContent = `${evalRes.effectiveCostRank} (${evalRes.effectiveCostVal}) • Cost: ${evalRes.rpCost} RP`;
-      } else {
-        itemCostEl.textContent = `${evalRes.effectiveCostRank} (${evalRes.effectiveCostVal})`;
-      }
+      itemCostEl.textContent = `${evalRes.effectiveCostRank} (${evalRes.effectiveCostVal})`;
     }
     const itemCostSub = document.getElementById('procure-item-cost-sub');
     if (itemCostSub) {
-      if (evalRes.isRPMode) {
-        itemCostSub.textContent = `${evalRes.costNote} (Deducts ${evalRes.rpCost} RP)`;
-      } else {
-        itemCostSub.textContent = evalRes.costNote;
-      }
+      itemCostSub.textContent = evalRes.costNote;
     }
 
     // Verdict box
@@ -3400,30 +3288,6 @@ const App = {
         overrideBtn.innerHTML = `⚡ GM Waiver (Procure)`;
         overrideBtn.addEventListener('click', (e) => this.finalizeItemAcquisition(item, 'GM Clearance Waiver', e));
         actionsContainer.appendChild(overrideBtn);
-      } else if (evalRes.isRPMode) {
-        if (evalRes.status === 'rp_affordable') {
-          const spendBtn = document.createElement('button');
-          spendBtn.type = 'button';
-          spendBtn.className = 'icon-btn primary';
-          spendBtn.innerHTML = `💳 Spend ${evalRes.rpCost} RP & Acquire Item`;
-          spendBtn.addEventListener('click', (e) => {
-            if (evalRes.requiresShieldApproval && shieldApprovalCheck && !shieldApprovalCheck.checked) {
-              this.showCustomAlert('S.H.I.E.L.D. equipment requisition requires GM Approval checkbox to be confirmed.', '🦅 Clearance Required', e);
-              return;
-            }
-            this.finalizeItemAcquisition(item, `Purchased for ${evalRes.rpCost} Resource Points`, e);
-          });
-          actionsContainer.appendChild(spendBtn);
-        } else {
-          const loanBtn = document.createElement('button');
-          loanBtn.type = 'button';
-          loanBtn.className = 'icon-btn btn-sponsor-loan';
-          loanBtn.innerHTML = `🤝 Sponsor / GM Loan Waiver (Acquire)`;
-          loanBtn.addEventListener('click', (e) => {
-            this.finalizeItemAcquisition(item, 'Sponsor / GM Loan Waiver Override', e);
-          });
-          actionsContainer.appendChild(loanBtn);
-        }
       } else if (evalRes.status === 'automatic') {
         const autoBtn = document.createElement('button');
         autoBtn.type = 'button';
@@ -3489,15 +3353,6 @@ const App = {
   },
 
   finalizeItemAcquisition(item, reasonText = 'Purchased', mouseEvent = null) {
-    const isRPMode = !!(this.useResourcePoints || (this.character && this.character.useResourcePoints));
-    let deductedRP = 0;
-    if (isRPMode) {
-      const isBM = (item.accessType === 'black_market') || (this.storeBlackMarketAccess && item.blackMarketCostRank);
-      const costVal = isBM && item.blackMarketCostValue ? item.blackMarketCostValue : (item.costValue || 6);
-      this.character.spendResourcePoints(costVal);
-      deductedRP = costVal;
-    }
-
     this.character.equipment.push({
       id: 'eq_' + Date.now(),
       name: item.name,
@@ -3513,8 +3368,7 @@ const App = {
     this.saveState();
     this.render();
     this.closeProcurementModal();
-    const rpMsg = (isRPMode && deductedRP > 0) ? `\nDeducted ${deductedRP} RP (Remaining: ${this.character.getAvailableResourcePoints()} RP)` : '';
-    this.showCustomAlert(`Added "${item.name}" to character equipment!\nReason: ${reasonText}${rpMsg}`, '🛍️ Equipment Acquired', mouseEvent);
+    this.showCustomAlert(`Added "${item.name}" to character equipment!\nReason: ${reasonText}`, '🛍️ Equipment Acquired', mouseEvent);
   },
 
   setStoreCategory(catKey) {
@@ -3618,21 +3472,6 @@ const App = {
     const areaOpt = document.getElementById('option-area-division');
     if (areaOpt) areaOpt.value = this.areaDivisionRule;
     this.updateAreaDivisionDisplay();
-  },
-
-  setUseResourcePoints(enabled) {
-    this.useResourcePoints = !!enabled;
-    if (this.character) {
-      this.character.useResourcePoints = this.useResourcePoints;
-    }
-    if (typeof localStorage !== 'undefined') {
-      localStorage.setItem('msh_option_resource_points', this.useResourcePoints ? 'true' : 'false');
-    }
-    const opt = document.getElementById('option-resource-points');
-    if (opt) opt.checked = this.useResourcePoints;
-    this.renderBackground();
-    this.renderEquipment();
-    this.saveState();
   },
 
   setPowerAdjustment(enabled) {
@@ -5176,7 +5015,7 @@ const App = {
     const backInp = document.getElementById('bio-backstory');
     if (backInp) backInp.value = this.character.notes || '';
 
-    // Render Financial Resources & Monthly Resource Points Card
+    // Render Financial Resources Card
     const bgResSel = document.getElementById('background-resource-select');
     if (bgResSel && this.character.resources) {
       bgResSel.value = this.character.resources.rankName;
@@ -5185,46 +5024,6 @@ const App = {
     const bgResVal = document.getElementById('background-resource-val');
     if (bgResVal && this.character.resources) {
       bgResVal.textContent = this.character.resources.rankValue;
-    }
-
-    const budget = this.character.getResourcePointsBudget();
-    const spent = this.character.spentResourcePoints || 0;
-    const avail = this.character.getAvailableResourcePoints();
-
-    const bgBudget = document.getElementById('background-rp-budget');
-    if (bgBudget) bgBudget.textContent = `${budget} RP`;
-
-    const bgCalcHint = document.getElementById('background-rp-calc-hint');
-    if (bgCalcHint) bgCalcHint.textContent = `4 × ${this.character.resources?.rankValue || 6}`;
-
-    const bgSpent = document.getElementById('background-rp-spent-input');
-    if (bgSpent) bgSpent.value = spent;
-
-    const bgAvail = document.getElementById('background-rp-available');
-    if (bgAvail) {
-      bgAvail.textContent = `${avail} RP`;
-      bgAvail.style.color = avail <= 0 ? '#ef4444' : '#4ade80';
-    }
-
-    const isRPActive = !!(this.useResourcePoints || (this.character && this.character.useResourcePoints));
-    const modeBadge = document.getElementById('background-rp-mode-badge');
-    if (modeBadge) {
-      if (isRPActive) {
-        modeBadge.textContent = 'Resource Points Active';
-        modeBadge.className = 'meta-tag rp-mode-active';
-      } else {
-        modeBadge.textContent = 'Standard TSR FEAT Rules';
-        modeBadge.className = 'meta-tag rp-mode-inactive';
-      }
-    }
-
-    const ruleNotice = document.getElementById('background-rp-rule-notice');
-    if (ruleNotice) {
-      if (isRPActive) {
-        ruleNotice.innerHTML = `<strong>Resource Points Rule Active:</strong> Monthly budget is <strong>4 &times; Resource Number</strong> (${budget} RP). Equipment purchases automatically deduct their rank number in RP.`;
-      } else {
-        ruleNotice.innerHTML = `<strong>Standard TSR FEAT Rules Active:</strong> Equipment purchases resolve via Resource FEAT rolls (Player's Book p. 18). You can enable the Resource Points Rule in <strong>⚙️ Options</strong>.`;
-      }
     }
   },
 
@@ -6252,9 +6051,6 @@ const App = {
 
     const currentTier = (this.character && this.character.pointTier) ? this.character.pointTier : '400';
     this.character = FASERIPCharacter.createBlankCharacter(currentTier);
-    if (this.useResourcePoints !== undefined) {
-      this.character.useResourcePoints = this.useResourcePoints;
-    }
     if (this.powerAdjustment !== undefined) {
       this.character.powerAdjustment = this.powerAdjustment;
     }
@@ -6334,11 +6130,6 @@ const App = {
     const resRank = hero.resources?.rankName || 'Typical';
     const resNum = hero.resources?.rankValue || 6;
     const pop = hero.currentPopularity ?? 10;
-
-    const isRPMode = !!(this.useResourcePoints || hero.useResourcePoints);
-    const rpBudget = hero.getResourcePointsBudget ? hero.getResourcePointsBudget() : (resNum * 4);
-    const rpSpent = hero.spentResourcePoints || 0;
-    const rpAvail = hero.getAvailableResourcePoints ? hero.getAvailableResourcePoints() : Math.max(0, rpBudget - rpSpent);
 
     // Defenses
     const ba = hero.defenses?.bodyArmor || {};
@@ -6459,7 +6250,7 @@ const App = {
           <div class="print-vital-box">
             <div class="print-vital-label">Resources</div>
             <div class="print-vital-val" style="color: #0369a1;">${esc(resRank)} (${resNum})</div>
-            <div class="print-vital-sub">${isRPMode ? `${rpAvail} / ${rpBudget} RP Avail` : 'Standard FEAT'}</div>
+            <div class="print-vital-sub">Standard FEAT</div>
           </div>
           <div class="print-vital-box">
             <div class="print-vital-label">Popularity</div>
@@ -6606,13 +6397,6 @@ const App = {
           <span>Equipment &amp; Inventory (${equipment.length})</span>
           <span class="print-divider-tag">Equipment Tab</span>
         </div>
-
-        ${isRPMode ? `
-          <div style="border: 1px solid #cbd5e1; background: #f0f9ff; border-radius: 3px; padding: 4px 8px; margin-bottom: 6px; font-size: 7.5pt; display: flex; justify-content: space-between; align-items: center;">
-            <span><strong>💰 Resource Points Option Active:</strong> Monthly Budget = <strong>4 &times; Resource Number</strong> (${rpBudget} RP)</span>
-            <span>Spent: <strong>${rpSpent} RP</strong> | Available: <strong style="color: #15803d;">${rpAvail} RP</strong></span>
-          </div>
-        ` : ''}
 
         ${equipment.length > 0 ? `
           <table class="print-table">

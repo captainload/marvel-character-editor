@@ -791,12 +791,12 @@
         </div>
       </div>
 
-      <!-- Financial Resources & Monthly Resource Points Card -->
+      <!-- Financial Resources Card -->
       <div class="card financial-card" id="card-financial-resources">
         <div class="card-header">
           <div style="display: flex; align-items: center; justify-content: space-between; width: 100%; flex-wrap: wrap; gap: 8px;">
-            <span class="card-title">💰 Financial Resources &amp; Monthly Resource Points</span>
-            <span class="meta-tag" id="background-rp-mode-badge" style="font-size: 10pt;">Resource Points Active</span>
+            <span class="card-title">💰 Financial Resources</span>
+            <span class="meta-tag" style="font-size: 10pt;">TSR Canonical Wealth</span>
           </div>
         </div>
 
@@ -808,42 +808,18 @@
               <select id="background-resource-select" class="field-input" style="min-height: 36px; font-weight: 700; flex: 1;"></select>
               <span class="meta-tag" id="background-resource-val" style="font-size: 11pt; font-weight: 800; color: var(--marvel-gold); min-width: 32px; text-align: center;">6</span>
             </div>
-            <div style="font-size: 9.5pt; color: var(--text-muted); margin-top: 4px;">Rank number defines buying power &amp; budget</div>
+            <div style="font-size: 9.5pt; color: var(--text-muted); margin-top: 4px;">Standard FASERIP attribute reflecting personal wealth &amp; purchasing power.</div>
           </div>
 
-          <!-- Monthly Budget (4x) -->
+          <!-- Purchasing Rules Overview -->
           <div class="financial-stat-box">
-            <span class="financial-stat-label">Monthly RP Budget (4&times;)</span>
-            <div class="financial-stat-value" id="background-rp-budget" style="color: #38bdf8;">24 RP</div>
-            <div style="font-size: 9.5pt; color: var(--text-muted); margin-top: 4px;">4 &times; Resource Number (<span id="background-rp-calc-hint">4 &times; 6</span>)</div>
-          </div>
-
-          <!-- Spent This Month -->
-          <div class="financial-stat-box">
-            <span class="financial-stat-label">Spent This Month</span>
-            <div style="display: flex; align-items: center; gap: 8px; margin-top: 4px;">
-              <input type="number" id="background-rp-spent-input" class="field-input" min="0" value="0" style="width: 80px; min-height: 36px; text-align: center; font-weight: 800; font-size: 1.1rem; color: #f87171;">
-              <span style="font-size: 10.5pt; font-weight: 700; color: var(--text-muted);">RP</span>
+            <span class="financial-stat-label">Purchasing Rules (Player's Book p. 24)</span>
+            <div style="font-size: 9.5pt; color: var(--text-muted); margin-top: 4px; line-height: 1.5;">
+              • Items at or below rank: <strong>Automatic purchase</strong> (within reason).<br>
+              • Items 1 rank higher: <strong>Yellow Resource FEAT roll</strong>.<br>
+              • Items 2 ranks higher: <strong>Red Resource FEAT roll</strong>.<br>
+              • Items 3+ ranks higher: Cannot afford without sponsors, loans, or pooling.
             </div>
-            <div style="font-size: 9.5pt; color: var(--text-muted); margin-top: 4px;">Auto-deducted on store purchases</div>
-          </div>
-
-          <!-- Available Remaining -->
-          <div class="financial-stat-box">
-            <span class="financial-stat-label">Available Remaining</span>
-            <div class="financial-stat-value" id="background-rp-available" style="color: #4ade80;">24 RP</div>
-            <div style="font-size: 9.5pt; color: var(--text-muted); margin-top: 4px;">Ready for equipment &amp; purchases</div>
-          </div>
-        </div>
-
-        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; padding-top: 8px; border-top: 1px solid var(--border-color);">
-          <div id="background-rp-rule-notice" style="font-size: 10pt; color: var(--text-muted); line-height: 1.4; flex: 1; min-width: 280px;">
-            <strong>Resource Points Rule Active:</strong> Your monthly budget equals 4&times; your Resource Number. Equipment purchases automatically deduct their rank number in RP.
-          </div>
-          <div style="display: flex; gap: 8px; align-items: center;">
-            <button type="button" id="btn-background-reset-rp" class="icon-btn primary" style="font-size: 10pt; padding: 6px 14px; min-height: 36px;" title="Reset spent resource points to 0 for a new in-game month">
-              🔄 Reset for New Month
-            </button>
           </div>
         </div>
       </div>
@@ -1821,11 +1797,11 @@
               </div>
 
               <div>
-                <h4>Market Clearances &amp; Resource Points Option</h4>
+                <h4>Market Clearances &amp; Restrictions</h4>
                 <table class="cheat-table" style="margin-top: 6px;">
                   <thead>
                     <tr>
-                      <th>Clearance / Rule Option</th>
+                      <th>Clearance / Classification</th>
                       <th>Rulebook Requirement &amp; Effects</th>
                     </tr>
                   </thead>
@@ -1841,10 +1817,6 @@
                     <tr>
                       <td><strong>🦅 S.H.I.E.L.D. Tech</strong></td>
                       <td>Classified agency equipment. Requisition requires S.H.I.E.L.D. clearance and GM approval.</td>
-                    </tr>
-                    <tr>
-                      <td><strong>💰 Resource Points Option</strong></td>
-                      <td>Monthly budget = <strong>4 &times; Resource Number</strong>. Items cost their rank value in RP.</td>
                     </tr>
                   </tbody>
                 </table>
@@ -1908,16 +1880,6 @@
               <strong style="color: var(--text-main);">Enable "Power Adjustment" House Rule</strong>
               <div style="color: var(--text-muted); font-size: 10pt; margin-top: 2px; line-height: 1.4;">
                 Allows trading rank-based statistics within a single power (e.g. +1 CS Range for -1 CS Intensity). Free at character creation or for &plusmn;1 CS shifts in active play; shifts of &gt;1 CS cost 100 KP per extra column shifted. Ranks cannot exceed Amazing (AM) or drop below Feeble (FE). Click any power title to adjust.
-              </div>
-            </div>
-          </label>
-
-          <label class="checkbox-label" style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer;">
-            <input type="checkbox" id="option-resource-points" style="margin-top: 3px;">
-            <div>
-              <strong style="color: var(--text-main);">Use "Resource Points" Rule</strong>
-              <div style="color: var(--text-muted); font-size: 10pt; margin-top: 2px; line-height: 1.4;">
-                Replaces standard TSR Resource FEAT rolls with a monthly purchasing budget equal to <strong>4 &times; Resource Number</strong> (e.g. Typical 6 = 24 RP/month). Equipment costs equal their rank value. Spent points are deducted upon purchase and tracked on the Background tab.
               </div>
             </div>
           </label>

@@ -1054,24 +1054,15 @@ select.field-input option {
   color: var(--marvel-gold);
 }
 
-.store-resource-badge .res-points-highlight {
-  color: #38bdf8;
-}
-
-.store-resource-badge .res-spent-highlight {
-  color: #f87171;
-}
-
-/* Background Tab Financial Resources & Points Ledger */
+/* Background Tab Financial Resources Card */
 .financial-card {
   margin-top: 14px;
 }
 
 .financial-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 12px;
-  margin-bottom: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 14px;
 }
 
 .financial-stat-box {
@@ -1491,11 +1482,6 @@ select.field-input option {
   color: #ffffff;
 }
 
-.store-rp-tag {
-  color: #fde047;
-  font-weight: 700;
-}
-
 .inv-stage-badge.pending {
   background: #1e293b;
   color: var(--text-muted);
@@ -1510,17 +1496,6 @@ select.field-input option {
   background: rgba(239, 68, 68, 0.2);
   color: #f87171;
   border-color: #ef4444;
-}
-
-.rp-mode-active {
-  color: #34d399;
-  border-color: #10b981;
-  background: rgba(16, 185, 129, 0.15);
-}
-.rp-mode-inactive {
-  color: var(--text-muted);
-  border-color: var(--border-color);
-  background: var(--bg-card);
 }
 
 .inv-retry-title {
@@ -4652,15 +4627,6 @@ body[data-theme="manilla"] .store-resource-badge .res-rank-highlight {
   color: #b91c1c !important;
 }
 
-body[data-theme="manilla"] .store-resource-badge .res-points-highlight {
-  color: #0369a1 !important;
-}
-
-body[data-theme="manilla"] .store-rp-tag {
-  color: #78350f !important;
-  font-weight: 800 !important;
-}
-
 body[data-theme="manilla"] .inv-retry-title {
   color: #991b1b !important;
   font-weight: 800 !important;
@@ -4686,18 +4652,6 @@ body[data-theme="manilla"] .inv-stage-badge.failed {
   background: #fee2e2 !important;
   color: #991b1b !important;
   border-color: #ef4444 !important;
-}
-
-body[data-theme="manilla"] .rp-mode-active {
-  color: #065f46 !important;
-  border-color: #10b981 !important;
-  background: #d1fae5 !important;
-}
-
-body[data-theme="manilla"] .rp-mode-inactive {
-  color: #334155 !important;
-  border-color: #cbd5e1 !important;
-  background: #f1f5f9 !important;
 }
 
 body[data-theme="manilla"] .modal-box.ui-dialog-box {
@@ -4744,9 +4698,6 @@ body[data-theme="manilla"] .attack-roll-chip:hover {
   color: #ffffff !important;
 }
 
-body[data-theme="manilla"] .store-resource-badge .res-spent-highlight {
-  color: #b91c1c !important;
-}
 
 body[data-theme="manilla"] .financial-stat-box {
   background: #ffffff !important;
@@ -5129,10 +5080,6 @@ body[data-theme="aqua"] .procure-stat-chips {
   color: #7dd3fc !important;
 }
 
-body[data-theme="aqua"] .store-rp-tag {
-  color: #38bdf8 !important;
-  font-weight: 700 !important;
-}
 
 body[data-theme="aqua"] .btn-unlock-clearance {
   background: #183e6a;
@@ -5170,16 +5117,6 @@ body[data-theme="aqua"] .inv-stage-badge.failed {
   border-color: #ef4444;
 }
 
-body[data-theme="aqua"] .rp-mode-active {
-  color: #34d399;
-  border-color: #10b981;
-  background: #0e3838;
-}
-body[data-theme="aqua"] .rp-mode-inactive {
-  color: #7dd3fc;
-  border-color: #23588e;
-  background: #133358;
-}
 
 body[data-theme="aqua"] .help-circle-btn {
   background: #183e6a;
@@ -5221,13 +5158,6 @@ body[data-theme="aqua"] .store-resource-badge .res-rank-highlight {
   color: #22d3ee !important;
 }
 
-body[data-theme="aqua"] .store-resource-badge .res-points-highlight {
-  color: #38bdf8 !important;
-}
-
-body[data-theme="aqua"] .store-resource-badge .res-spent-highlight {
-  color: #f87171 !important;
-}
 
 body[data-theme="aqua"] .financial-stat-box {
   background: #183e6a !important;

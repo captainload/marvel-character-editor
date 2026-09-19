@@ -4106,15 +4106,15 @@ const POWER_OPTIONS_DEFINITIONS = {
       {
         key: "broad",
         label: "Broad Physical Field (All Physical Attacks)",
-        description: "Protects against all physical attacks at standard power rank.",
-        isSuperior: false,
+        description: "Protects against all physical attacks at standard power rank. Significantly superior in versatility to narrow single-attack physical fields.",
+        isSuperior: true,
         rankShift: 0
       },
       {
         key: "specialized",
         label: "Specific Physical Specialization (+1CS Rank)",
-        description: "Protects against a single specified physical attack with +1CS rank and protection.",
-        isSuperior: true,
+        description: "Protects against a single specified physical attack form with +1CS rank, but provides 0 protection against all other physical damage types.",
+        isSuperior: false,
         rankShift: 1,
         subChoiceList: ["Blunt / Brute Force", "Edged / Slashing", "Piercing / Ballistics", "Corrosives / Acids"]
       }

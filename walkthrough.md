@@ -114,15 +114,15 @@ flowchart TD
 
 ---
 
-## 5. "MSH A-BOM" Easter Egg
+## 5. "MSH A-BOMB" Easter Egg
 - **Trigger**: Hovering over the header brand title (`MSH FASERIP`, `#msh-brand-logo`) continuously for $\ge 1.0\text{s}$ (1,000ms).
 - **Morph**:
-  - The title morphs into a glowing green gamma button with label **`MSH A-BOM`**.
+  - The title morphs into a glowing green gamma button with label **`MSH A-BOMB`**.
   - Adds class `.easter-egg-unlocked` with a pulsating gamma-green neon glow and hover scale effect.
   - If the user moves the mouse away without clicking, after 2 seconds the button gracefully reverts back to `MSH FASERIP`.
 - **Activation**:
-  - Clicking the unlocked `MSH A-BOM` button opens the modal popup (`#easter-egg-modal`).
-  - Displays the updated high-resolution Abomination image (`Abom.jpg`, with seamless fallback to `Abom.gif`) framed in a gamma-bordered modal container with comic caption `⚡ A-BOM UNLEASHED! ⚡`.
+  - Clicking the unlocked `MSH A-BOMB` button opens the modal popup (`#easter-egg-modal`).
+  - Displays the updated high-resolution Abomination image (`Abom.jpg`, with seamless fallback to `Abom.gif`) framed in a gamma-bordered modal container with comic caption `⚡ A-BOMB UNLEASHED! ⚡`.
   - Concurrently plays the Abomination roar audio sample (`abom.mp3` / `abomination-english-abomination-emotes-bank02-18-emotes-abomination-abm-45-wav-roar.mp3`).
 - **Dismissal**:
   - The popup closes automatically when the MP3 audio finishes playing (`onended`).

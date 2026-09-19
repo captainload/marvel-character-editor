@@ -6950,9 +6950,9 @@ const App = {
       if (modalEl.classList.contains('open')) return;
       hoverTimer = setTimeout(() => {
         isUnlocked = true;
-        logoEl.textContent = 'MSH A-BOM';
+        logoEl.textContent = 'MSH A-BOMB';
         logoEl.classList.add('easter-egg-unlocked');
-        logoEl.setAttribute('title', 'Click to unleash A-BOM!');
+        logoEl.setAttribute('title', 'Click to unleash A-BOMB!');
       }, 1000);
     });
 

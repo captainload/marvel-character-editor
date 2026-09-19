@@ -4035,6 +4035,497 @@ function getMaxAdjustmentShift(aspectA_baseRank, aspectB_baseRank) {
   return Math.min(maxIncreaseA, maxDecreaseB);
 }
 
+const POWER_OPTIONS_DEFINITIONS = {
+  "D1": {
+    powerCode: "D1",
+    powerName: "Body Armor",
+    id: "body_armor_type",
+    label: "Armor Protection Configuration",
+    canRoll: true,
+    rollTable: [[1, 50, "balanced"], [51, 75, "physical_only"], [76, 100, "energy_only"]],
+    choices: [
+      {
+        key: "balanced",
+        label: "Balanced Protection (Physical & Energy)",
+        description: "Equal protection against physical and energy attacks at power rank.",
+        isSuperior: false,
+        rankShift: 0,
+        effects: { type: "body_armor", physicalCS: 0, energyCS: 0 }
+      },
+      {
+        key: "physical_only",
+        label: "Physical-Only Specialization (+1CS Physical, 0 Energy)",
+        description: "Provides +1CS protection against physical attacks, but 0 protection against energy attacks.",
+        isSuperior: false,
+        rankShift: 1,
+        effects: { type: "body_armor", physicalCS: 1, energyNone: true }
+      },
+      {
+        key: "energy_only",
+        label: "Energy-Only Specialization (+1CS Energy, 0 Physical)",
+        description: "Provides +1CS protection against energy attacks, but 0 protection against physical attacks.",
+        isSuperior: false,
+        rankShift: 1,
+        effects: { type: "body_armor", energyCS: 1, physicalNone: true }
+      }
+    ]
+  },
+  "D4": {
+    powerCode: "D4",
+    powerName: "Force Field vs. Energy",
+    id: "ff_energy_spec",
+    label: "Force Field Energy Specialization",
+    canRoll: true,
+    rollTable: [[1, 50, "broad"], [51, 100, "specialized"]],
+    choices: [
+      {
+        key: "broad",
+        label: "Broad Energy Field (All Energy Forms)",
+        description: "Protects against all emitted energy forms at standard power rank.",
+        isSuperior: false,
+        rankShift: 0
+      },
+      {
+        key: "specialized",
+        label: "Specific Energy Specialization (+2CS Rank)",
+        description: "Protects against a single specified energy attack form with +2CS rank and protection.",
+        isSuperior: true,
+        rankShift: 2,
+        subChoiceList: ["Fire & Heat", "Cold", "Electricity", "Radiation", "Light", "Sonics / Vibration", "Kinetic Bolts / Force", "Plasma"]
+      }
+    ]
+  },
+  "D7": {
+    powerCode: "D7",
+    powerName: "Force Field vs. Physical",
+    id: "ff_physical_spec",
+    label: "Force Field Physical Specialization",
+    canRoll: true,
+    rollTable: [[1, 50, "broad"], [51, 100, "specialized"]],
+    choices: [
+      {
+        key: "broad",
+        label: "Broad Physical Field (All Physical Attacks)",
+        description: "Protects against all physical attacks at standard power rank.",
+        isSuperior: false,
+        rankShift: 0
+      },
+      {
+        key: "specialized",
+        label: "Specific Physical Specialization (+1CS Rank)",
+        description: "Protects against a single specified physical attack with +1CS rank and protection.",
+        isSuperior: true,
+        rankShift: 1,
+        subChoiceList: ["Blunt / Brute Force", "Edged / Slashing", "Piercing / Ballistics", "Corrosives / Acids"]
+      }
+    ]
+  },
+  "D9": {
+    powerCode: "D9",
+    powerName: "Force Field vs. Vampirism",
+    id: "ff_vamp_spec",
+    label: "Force Field Vampirism Specialization",
+    canRoll: true,
+    rollTable: [[1, 50, "broad"], [51, 100, "specialized"]],
+    choices: [
+      {
+        key: "broad",
+        label: "Broad Vampiric Field (All Vampiric Forms)",
+        description: "Protects against all forms of vampirism at standard power rank.",
+        isSuperior: false,
+        rankShift: 0
+      },
+      {
+        key: "specialized",
+        label: "Specific Vampirism Specialization (+1CS Rank)",
+        description: "Specializes against a specific form of vampirism with +1CS protection.",
+        isSuperior: true,
+        rankShift: 1,
+        subChoiceList: ["Psi-Vampirism", "Bio-Vampirism", "Energy Vampirism", "Magic Vampirism", "Power Vampirism"]
+      }
+    ]
+  },
+  "D12": {
+    powerCode: "D12",
+    powerName: "Resist: Energy",
+    id: "resist_energy_spec",
+    label: "Energy Resistance Specialization",
+    canRoll: true,
+    rollTable: [[1, 50, "broad"], [51, 100, "specialized"]],
+    choices: [
+      {
+        key: "broad",
+        label: "Broad Energy Resistance (All Emitted Energy)",
+        description: "Reduces damage from all emitted energy attacks at standard power rank.",
+        isSuperior: false,
+        rankShift: 0
+      },
+      {
+        key: "specialized",
+        label: "Specific Energy Resistance (+1CS Rank)",
+        description: "Specializes in a specific energy type with +1CS rank and damage reduction.",
+        isSuperior: true,
+        rankShift: 1,
+        subChoiceList: ["Fire & Heat", "Cold", "Electricity", "Radiation", "Light", "Sonics / Vibration"]
+      }
+    ]
+  },
+  "D15": {
+    powerCode: "D15",
+    powerName: "Resist: Physical",
+    id: "resist_phys_spec",
+    label: "Physical Resistance Specialization",
+    canRoll: true,
+    rollTable: [[1, 50, "broad"], [51, 100, "specialized"]],
+    choices: [
+      {
+        key: "broad",
+        label: "Broad Physical Resistance (All Physical Attacks)",
+        description: "Reduces damage from all physical attacks at standard power rank.",
+        isSuperior: false,
+        rankShift: 0
+      },
+      {
+        key: "specialized",
+        label: "Specific Physical Resistance (+1CS Rank)",
+        description: "Specializes in a specific physical hazard with +1CS rank and damage reduction.",
+        isSuperior: true,
+        rankShift: 1,
+        subChoiceList: ["Toxins & Poisons", "Corrosives & Acids", "Disease", "Brute Force / Blunt"]
+      }
+    ]
+  },
+  "D17": {
+    powerCode: "D17",
+    powerName: "Resist: Vampirism",
+    id: "resist_vamp_spec",
+    label: "Vampirism Resistance Specialization",
+    canRoll: true,
+    rollTable: [[1, 50, "broad"], [51, 100, "specialized"]],
+    choices: [
+      {
+        key: "broad",
+        label: "Broad Vampiric Resistance (All Vampiric Forms)",
+        description: "Reduces effectiveness of all vampiric attacks at standard power rank.",
+        isSuperior: false,
+        rankShift: 0
+      },
+      {
+        key: "specialized",
+        label: "Specific Vampirism Specialization (+2CS Rank)",
+        description: "Specializes in a specific form of vampirism with +2CS resistance.",
+        isSuperior: true,
+        rankShift: 2,
+        subChoiceList: ["Psi-Vampirism", "Bio-Vampirism", "Energy Vampirism", "Magic Vampirism", "Power Vampirism"]
+      }
+    ]
+  },
+  "F3": {
+    powerCode: "F3",
+    powerName: "Natural Weaponry",
+    id: "natural_weapon_type",
+    label: "Natural Weapon Form",
+    canRoll: true,
+    rollTable: [[1, 20, "claws"], [21, 40, "fangs"], [41, 60, "horns"], [61, 80, "tail"], [81, 100, "spines"]],
+    choices: [
+      {
+        key: "claws",
+        label: "Claws / Retractable Blades",
+        description: "Edged melee attack (Fighting to-hit, Touch range, deals Edged damage with Stun/Kill potential).",
+        isSuperior: false,
+        effects: { actionType: "edged", abilityName: "Fighting", range: "Touch", damageType: "Edged" }
+      },
+      {
+        key: "fangs",
+        label: "Fangs / Bite",
+        description: "Piercing melee attack (Fighting to-hit, Touch range, deals Piercing damage).",
+        isSuperior: false,
+        effects: { actionType: "edged", abilityName: "Fighting", range: "Touch", damageType: "Piercing" }
+      },
+      {
+        key: "horns",
+        label: "Horns / Bony Crest",
+        description: "Blunt / Charging melee attack (Fighting to-hit, Touch range, deals Blunt damage).",
+        isSuperior: false,
+        effects: { actionType: "slugfest", abilityName: "Fighting", range: "Touch", damageType: "Blunt" }
+      },
+      {
+        key: "tail",
+        label: "Tail / Mace-Fist",
+        description: "Blunt melee attack (Fighting to-hit, Touch range, deals Blunt damage).",
+        isSuperior: false,
+        effects: { actionType: "slugfest", abilityName: "Fighting", range: "Touch", damageType: "Blunt" }
+      },
+      {
+        key: "spines",
+        label: "Spines / Quills (Ejectable)",
+        description: "Shooting ranged attack (Agility to-hit, Area range, deals Shooting damage).",
+        isSuperior: false,
+        effects: { actionType: "shooting", abilityName: "Agility", range: "rank", damageType: "Shooting" }
+      }
+    ]
+  },
+  "P20": {
+    powerCode: "P20",
+    powerName: "Hyper-Strength",
+    id: "hyper_strength_type",
+    label: "Strength Enhancement Mode",
+    canRoll: true,
+    rollTable: [[1, 50, "surge"], [51, 100, "permanent"]],
+    choices: [
+      {
+        key: "surge",
+        label: "Temporary Daily Surge (+1CS)",
+        description: "Baseline Strength is normal; can activate a +1CS Strength surge for turns equal to Power Rank number once per day.",
+        isSuperior: false,
+        effects: { isSurge: true }
+      },
+      {
+        key: "permanent",
+        label: "Permanent Baseline Addition",
+        description: "Permanently adds the Power Rank number directly to baseline Strength, recalculating Health and Slugfest damage.",
+        isSuperior: true,
+        effects: { addsStrengthToBaseline: true }
+      }
+    ]
+  },
+  "S16": {
+    powerCode: "S16",
+    powerName: "Growth",
+    id: "growth_method",
+    label: "Growth Manifestation Method",
+    canRoll: true,
+    rollTable: [[1, 33, "dispersal"], [34, 66, "growth"], [67, 100, "gain"]],
+    choices: [
+      {
+        key: "dispersal",
+        label: "Atomic Dispersal",
+        description: "Low density; atoms spread out while mass remains unchanged. No Strength or Health gain.",
+        isSuperior: false,
+        effects: { strengthBoost: 0 }
+      },
+      {
+        key: "growth",
+        label: "Atomic Growth (+1CS Strength)",
+        description: "Atoms expand proportionally, granting a +1CS Strength boost while grown.",
+        isSuperior: false,
+        rankShift: 1,
+        effects: { strengthBoostCS: 1 }
+      },
+      {
+        key: "gain",
+        label: "Atomic Gain (Full Strength & Health)",
+        description: "Draws extra-dimensional mass (Kosmos/Pym dimension), setting Strength to match Power Rank & increasing Health.",
+        isSuperior: true,
+        effects: { setsStrengthToRank: true }
+      }
+    ]
+  },
+  "EE5": {
+    powerCode: "EE5",
+    powerName: "Hard Radiation",
+    id: "hard_rad_spec",
+    label: "Radiation Scope",
+    canRoll: true,
+    rollTable: [[1, 50, "broad"], [51, 100, "specialized"]],
+    choices: [
+      {
+        key: "broad",
+        label: "Full Radiation Spectrum",
+        description: "Can project any type of hard radiation at standard power rank.",
+        isSuperior: false,
+        rankShift: 0
+      },
+      {
+        key: "specialized",
+        label: "Specific Radiation Type (+1CS Rank)",
+        description: "Specializes in a specific radiation type with +1CS rank, damage, and range.",
+        isSuperior: true,
+        rankShift: 1,
+        subChoiceList: ["Cosmic Rays", "Gamma Rays", "X-Rays", "Ultraviolet", "Alpha / Beta Particles"]
+      }
+    ]
+  },
+  "L4": {
+    powerCode: "L4",
+    powerName: "Emotion Control",
+    id: "emotion_control_spec",
+    label: "Emotion Control Scope",
+    canRoll: true,
+    rollTable: [[1, 50, "versatile"], [51, 100, "specialized"]],
+    choices: [
+      {
+        key: "versatile",
+        label: "Versatile (Any Emotion)",
+        description: "Can broadcast any emotion at standard power rank.",
+        isSuperior: false,
+        rankShift: 0
+      },
+      {
+        key: "specialized",
+        label: "Single Emotion Limitation (+2CS Rank)",
+        description: "Limited to broadcasting a single emotion (e.g. Loyalty, Fear, Rage, Love, Despair, Calm) with +2CS rank.",
+        isSuperior: true,
+        rankShift: 2,
+        subChoiceList: ["Loyalty", "Fear / Terror", "Rage / Hate", "Love / Adoration", "Despair", "Calm / Pacifism"]
+      }
+    ]
+  },
+  "MC8": {
+    powerCode: "MC8",
+    powerName: "Matter Animation",
+    id: "matter_anim_type",
+    label: "Domain of Matter State",
+    canRoll: true,
+    rollTable: [[1, 33, "solid"], [34, 66, "liquid"], [67, 100, "gas"]],
+    choices: [
+      {
+        key: "solid",
+        label: "Solid Matter",
+        description: "Commands solid rock, earth, metals, and minerals.",
+        isSuperior: false
+      },
+      {
+        key: "liquid",
+        label: "Liquid Matter",
+        description: "Commands liquids, water, and fluids.",
+        isSuperior: false
+      },
+      {
+        key: "gas",
+        label: "Gaseous Matter",
+        description: "Commands gases, vapors, and air.",
+        isSuperior: false
+      }
+    ]
+  },
+  "P3": {
+    powerCode: "P3",
+    powerName: "Chemical Touch",
+    id: "chemical_touch_type",
+    label: "Chemical Secretion Control",
+    canRoll: true,
+    rollTable: [[1, 50, "automatic"], [51, 100, "conscious"]],
+    choices: [
+      {
+        key: "automatic",
+        label: "Automatic Secretion",
+        description: "Chemicals secrete involuntarily upon any physical contact.",
+        isSuperior: false
+      },
+      {
+        key: "conscious",
+        label: "Conscious Secretion",
+        description: "Chemicals secrete voluntarily at will, preventing accidental contamination.",
+        isSuperior: true
+      }
+    ]
+  },
+  "MG10": {
+    powerCode: "MG10",
+    powerName: "Reality Alteration",
+    id: "reality_alter_type",
+    label: "Reality Alteration Form",
+    canRoll: true,
+    rollTable: [[1, 40, "future"], [41, 65, "present"], [66, 75, "past"], [76, 100, "temporal_flow"]],
+    choices: [
+      {
+        key: "future",
+        label: "Alter Future",
+        description: "Controls the probability of future events coming to pass.",
+        isSuperior: false
+      },
+      {
+        key: "present",
+        label: "Alter Present",
+        description: "Alters current circumstances and physical configurations in the moment.",
+        isSuperior: false
+      },
+      {
+        key: "past",
+        label: "Alter Past",
+        description: "Alters conditions resulting from past events.",
+        isSuperior: false
+      },
+      {
+        key: "temporal_flow",
+        label: "Temporal Flow",
+        description: "Directly controls the actual speed and passage of time.",
+        isSuperior: true
+      }
+    ]
+  },
+  "S29": {
+    powerCode: "S29",
+    powerName: "Shapeshifting",
+    id: "shapeshifting_spec",
+    label: "Shapeshifting Scope",
+    canRoll: true,
+    rollTable: [[1, 50, "universal"], [51, 100, "limited"]],
+    choices: [
+      {
+        key: "universal",
+        label: "Universal Shapeshifting",
+        description: "Can change into any shape at standard power rank.",
+        isSuperior: false,
+        rankShift: 0
+      },
+      {
+        key: "limited",
+        label: "Limited Form Variety (+1CS Rank)",
+        description: "Limits variety of forms (e.g. Animals Only, Inanimate Objects Only, Humanoids Only) for +1CS rank.",
+        isSuperior: true,
+        rankShift: 1,
+        subChoiceList: ["Animals Only", "Inanimate Objects Only", "Humanoids Only"]
+      }
+    ]
+  }
+};
+
+// Attach optionsDefinition to catalog powers
+POWERS_CATALOG.forEach(p => {
+  if (POWER_OPTIONS_DEFINITIONS[p.code]) {
+    p.optionsDefinition = POWER_OPTIONS_DEFINITIONS[p.code];
+  }
+});
+if (typeof MSH_POWERS !== 'undefined' && Array.isArray(MSH_POWERS)) {
+  MSH_POWERS.forEach(p => {
+    if (POWER_OPTIONS_DEFINITIONS[p.id] || POWER_OPTIONS_DEFINITIONS[p.code]) {
+      p.optionsDefinition = POWER_OPTIONS_DEFINITIONS[p.id] || POWER_OPTIONS_DEFINITIONS[p.code];
+    }
+  });
+}
+
+function getPowerOptionsDefinition(power) {
+  if (!power) return null;
+  const pCode = typeof power === 'object' ? (power.code || power.id || power.catalogId) : power;
+  const pName = typeof power === 'object' ? power.name : power;
+  if (pCode && POWER_OPTIONS_DEFINITIONS[pCode]) {
+    return POWER_OPTIONS_DEFINITIONS[pCode];
+  }
+  if (pName) {
+    const key = Object.keys(POWER_OPTIONS_DEFINITIONS).find(k => {
+      const opt = POWER_OPTIONS_DEFINITIONS[k];
+      return opt.powerName && opt.powerName.toLowerCase() === pName.toLowerCase();
+    });
+    if (key) return POWER_OPTIONS_DEFINITIONS[key];
+  }
+  return null;
+}
+
+function rollPowerManifestation(def) {
+  if (!def || !def.rollTable || !Array.isArray(def.rollTable)) return null;
+  const d100 = Math.floor(Math.random() * 100) + 1;
+  const bucket = def.rollTable.find(([min, max]) => d100 >= min && d100 <= max);
+  const choiceKey = bucket ? bucket[2] : (def.choices[0] ? def.choices[0].key : null);
+  const choiceObj = def.choices ? def.choices.find(c => c.key === choiceKey) : null;
+  return {
+    d100,
+    choiceKey,
+    choiceObj
+  };
+}
+
 if (typeof globalThis !== 'undefined') {
   globalThis.POWERS_CATALOG = POWERS_CATALOG;
   globalThis.POWERS_BY_CODE = POWERS_BY_CODE;
@@ -4050,6 +4541,9 @@ if (typeof globalThis !== 'undefined') {
   globalThis.getPowerRankAspects = getPowerRankAspects;
   globalThis.calculatePowerAdjustmentCost = calculatePowerAdjustmentCost;
   globalThis.getMaxAdjustmentShift = getMaxAdjustmentShift;
+  globalThis.POWER_OPTIONS_DEFINITIONS = POWER_OPTIONS_DEFINITIONS;
+  globalThis.getPowerOptionsDefinition = getPowerOptionsDefinition;
+  globalThis.rollPowerManifestation = rollPowerManifestation;
 }
 
 if (typeof module !== 'undefined' && module.exports) {
@@ -4067,6 +4561,9 @@ if (typeof module !== 'undefined' && module.exports) {
     getPowerDetails,
     getPowerRankAspects,
     calculatePowerAdjustmentCost,
-    getMaxAdjustmentShift
+    getMaxAdjustmentShift,
+    POWER_OPTIONS_DEFINITIONS,
+    getPowerOptionsDefinition,
+    rollPowerManifestation
   };
 }

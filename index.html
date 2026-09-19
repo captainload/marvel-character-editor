@@ -368,6 +368,10 @@
         <div id="power-starred-banner" class="starred-power-banner" style="display: none; margin-top: 10px; padding: 8px 12px; border-radius: 4px; font-size: 10pt;">
           ★ <strong>Official Starred Power:</strong> Per TSR rules (Player's Book p. 19 & UPB p. 16-19), this heavyweight power automatically allocates <strong>2 power slots</strong> and uses CMF Exceptional point-buy pricing (<strong>20 CP Base + 2× Rank CP</strong>).
         </div>
+        <!-- Dynamic Power Options & Random Manifestation Box -->
+        <div id="power-options-container" class="power-options-box" style="display: none; margin-top: 12px; padding: 14px 16px; border: 1.5px solid var(--border-color); border-radius: 8px; background: rgba(0, 0, 0, 0.25);">
+          <!-- Dynamically populated by syncPowerSelectionUI() -->
+        </div>
       </div>
 
       <!-- Active Powers List -->
@@ -2249,6 +2253,39 @@
         <div style="display: flex; gap: 8px;">
           <button type="button" class="icon-btn modal-close-btn" id="btn-cancel-adj">Cancel</button>
           <button type="button" class="icon-btn primary" id="btn-apply-adj">⚡ Apply Adjustment</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: POWER OPTIONS / MANIFESTATION CONFIGURATION -->
+  <div id="modal-power-options" class="modal-overlay">
+    <div class="modal-box" style="max-width: 580px; width: 95%;">
+      <div class="modal-header">
+        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+          <span class="modal-title">⚙️ Power Options &amp; Manifestation</span>
+          <span class="meta-tag" id="modal-opt-rank-badge" style="color: var(--marvel-gold); font-size: 10.5pt; font-weight: 700;"></span>
+        </div>
+        <button type="button" class="modal-close" id="btn-close-opt-modal">&times;</button>
+      </div>
+      <div class="modal-body" style="padding: 14px 18px; display: flex; flex-direction: column; gap: 12px; max-height: 75vh; overflow-y: auto;">
+        <div id="modal-opt-header-card" class="power-adj-card">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <strong id="modal-opt-power-name" style="font-size: 12pt; color: var(--text-main);"></strong>
+            <span id="modal-opt-current-status" style="font-size: 10pt; font-weight: 600;"></span>
+          </div>
+          <div id="modal-opt-power-meta" style="font-size: 10pt; color: var(--text-muted); margin-top: 4px;"></div>
+        </div>
+
+        <div id="modal-opt-content-area" style="display: flex; flex-direction: column; gap: 12px;">
+          <!-- Dynamically populated options list & random roller -->
+        </div>
+      </div>
+      <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 18px; border-top: 1px solid var(--border-color);">
+        <span id="modal-opt-surcharge-summary" style="font-size: 9.5pt; color: var(--text-muted);"></span>
+        <div style="display: flex; gap: 8px;">
+          <button type="button" class="icon-btn" id="btn-cancel-opt-modal">Cancel</button>
+          <button type="button" class="icon-btn primary" id="btn-save-opt-modal">💾 Save Option</button>
         </div>
       </div>
     </div>

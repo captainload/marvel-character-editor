@@ -122,6 +122,11 @@ class FASERIPCharacter {
         targets: p.targets !== undefined ? p.targets : (catalogPower ? catalogPower.targets : null),
         speed: p.speed !== undefined ? p.speed : (catalogPower ? catalogPower.speed : null),
         adjustments: p.adjustments || null,
+        selectedOption: p.selectedOption || null,
+        optionSubChoice: p.optionSubChoice || null,
+        optionAcquisitionMethod: p.optionAcquisitionMethod || 'chosen',
+        optionSurcharge: p.optionSurcharge !== undefined ? parseInt(p.optionSurcharge) : 0,
+        isSuperiorOption: !!p.isSuperiorOption,
         notes: p.notes || '',
         stunts: Array.isArray(p.stunts) ? p.stunts.map(s => {
           if (typeof s === 'string') {
@@ -330,10 +335,56 @@ class FASERIPCharacter {
   }
 
   getActiveAbilities() {
+    let baseAbs = this.abilities;
     if (this.isSwarmForm && this.activeSwarmProfile === 'individual' && this.individualAbilities) {
-      return this.individualAbilities;
+      baseAbs = this.individualAbilities;
     }
-    return this.abilities;
+
+    // Check for power modifications (e.g. Hyper-Strength Permanent Addition, Growth Atomic Gain/Growth)
+    if (Array.isArray(this.powers)) {
+      let strBonus = 0;
+      let overrideStrRank = null;
+      let overrideStrVal = null;
+
+      const hyperStr = this.powers.find(p => (p.code === 'P20' || (p.name && p.name.toLowerCase() === 'hyper-strength')) && p.selectedOption === 'permanent');
+      if (hyperStr) {
+        strBonus += (hyperStr.rankValue || 0);
+      }
+
+      const growthPower = this.powers.find(p => (p.code === 'S16' || (p.name && p.name.toLowerCase().includes('growth'))));
+      if (growthPower && baseAbs.strength) {
+        if (growthPower.selectedOption === 'gain') {
+          // Atomic Gain sets Strength equal to power rank if higher
+          if ((growthPower.rankValue || 0) > (baseAbs.strength.rankValue || 0)) {
+            overrideStrRank = growthPower.rankName;
+            overrideStrVal = growthPower.rankValue;
+          }
+        } else if (growthPower.selectedOption === 'growth' && typeof UniversalTableEngine !== 'undefined') {
+          // Atomic Growth grants +1CS Strength
+          const shifted = UniversalTableEngine.applyColumnShift(baseAbs.strength.rankName, 1);
+          const shiftedNum = (typeof shifted === 'object' && shifted.num !== undefined) ? shifted.num : UniversalTableEngine.getRankByName(shifted).num;
+          strBonus += Math.max(0, shiftedNum - (baseAbs.strength.rankValue || 0));
+        }
+      }
+
+      if ((strBonus > 0 || overrideStrVal !== null) && baseAbs.strength) {
+        const totalVal = (overrideStrVal !== null ? overrideStrVal : (baseAbs.strength.rankValue || 0)) + strBonus;
+        const rankObj = (typeof UniversalTableEngine !== 'undefined') 
+          ? UniversalTableEngine.getRankByNum(totalVal) 
+          : { name: overrideStrRank || baseAbs.strength.rankName, num: totalVal };
+        return {
+          ...baseAbs,
+          strength: {
+            ...baseAbs.strength,
+            rankName: rankObj.name,
+            rankValue: totalVal,
+            bonusFromPower: strBonus + (overrideStrVal !== null ? (overrideStrVal - (baseAbs.strength.rankValue || 0)) : 0)
+          }
+        };
+      }
+    }
+
+    return baseAbs;
   }
 
   calculateMaxHealth() {
@@ -355,6 +406,188 @@ class FASERIPCharacter {
       (abs.intuition.rankValue || 0) +
       (abs.psyche.rankValue || 0)
     );
+  }
+
+  calculateDefenses() {
+    const defenses = {
+      bodyArmor: {
+        rankName: 'None',
+        physical: 0,
+        energy: 0,
+        notes: ''
+      },
+      forceField: {
+        rankName: 'None',
+        protection: 0,
+        notes: ''
+      },
+      resistances: []
+    };
+
+    const getRank = (name) => {
+      if (typeof UniversalTableEngine !== 'undefined') {
+        return UniversalTableEngine.getRankByName(name);
+      }
+      return { name, num: 0 };
+    };
+
+    const shift = (rankName, cs) => {
+      if (typeof UniversalTableEngine !== 'undefined') {
+        const res = UniversalTableEngine.applyColumnShift(rankName, cs);
+        return typeof res === 'object' ? res.name : res;
+      }
+      return rankName;
+    };
+
+    if (Array.isArray(this.powers)) {
+      this.powers.forEach(p => {
+        const code = p.code || '';
+        const nameLower = (p.name || '').toLowerCase();
+        const baseRank = p.rankName || 'Typical';
+        const baseVal = p.rankValue !== undefined ? p.rankValue : (getRank(baseRank).num || 6);
+
+        // 1. Body Armor (D1 or by name)
+        if (code === 'D1' || nameLower === 'body armor') {
+          const opt = p.selectedOption || 'balanced';
+          if (opt === 'physical_only') {
+            const shiftedRank = shift(baseRank, 1);
+            const shiftedVal = getRank(shiftedRank).num;
+            if (shiftedVal > defenses.bodyArmor.physical) {
+              defenses.bodyArmor.physical = shiftedVal;
+              defenses.bodyArmor.rankName = shiftedRank;
+              defenses.bodyArmor.notes = 'Physical Protection Only (+1CS Specialization)';
+            }
+          } else if (opt === 'energy_only') {
+            const shiftedRank = shift(baseRank, 1);
+            const shiftedVal = getRank(shiftedRank).num;
+            if (shiftedVal > defenses.bodyArmor.energy) {
+              defenses.bodyArmor.energy = shiftedVal;
+              defenses.bodyArmor.rankName = shiftedRank;
+              defenses.bodyArmor.notes = 'Energy Protection Only (+1CS Specialization)';
+            }
+          } else {
+            // Balanced
+            if (baseVal > defenses.bodyArmor.physical) {
+              defenses.bodyArmor.physical = baseVal;
+              defenses.bodyArmor.energy = baseVal;
+              defenses.bodyArmor.rankName = baseRank;
+              defenses.bodyArmor.notes = 'Standard Physical & Energy Protection';
+            }
+          }
+        }
+
+        // True Invulnerability (P14)
+        if (code === 'P14' || nameLower === 'true invulnerability') {
+          if (baseVal > defenses.bodyArmor.physical) {
+            defenses.bodyArmor.physical = baseVal;
+            defenses.bodyArmor.energy = baseVal;
+            defenses.bodyArmor.rankName = baseRank;
+            defenses.bodyArmor.notes = 'True Invulnerability (Universal Protection)';
+          }
+          defenses.resistances.push({
+            name: 'True Invulnerability (All Physical & Energy)',
+            type: 'All Physical/Energy',
+            rank: baseRank,
+            rankName: baseRank,
+            rankValue: baseVal
+          });
+        }
+
+        // 2. Force Field (D2, D4, D7, D9)
+        if (code === 'D2' || (nameLower.includes('force field') && !code.startsWith('D'))) {
+          if (baseVal > defenses.forceField.protection) {
+            defenses.forceField.protection = baseVal;
+            defenses.forceField.rankName = baseRank;
+            defenses.forceField.notes = 'Universal Force Field';
+          }
+        } else if (code === 'D4' || nameLower.includes('force field vs. energy')) {
+          const isSpec = p.selectedOption === 'specialized';
+          const finalRank = isSpec ? shift(baseRank, 2) : baseRank;
+          const finalVal = getRank(finalRank).num;
+          const sub = p.optionSubChoice || 'All Energy';
+          if (finalVal > defenses.forceField.protection) {
+            defenses.forceField.protection = finalVal;
+            defenses.forceField.rankName = finalRank;
+            defenses.forceField.notes = isSpec ? `Energy Field: Specialized vs ${sub} (+2CS)` : 'Broad Force Field vs. Energy';
+          }
+        } else if (code === 'D7' || nameLower.includes('force field vs. physical')) {
+          const isSpec = p.selectedOption === 'specialized';
+          const finalRank = isSpec ? shift(baseRank, 1) : baseRank;
+          const finalVal = getRank(finalRank).num;
+          const sub = p.optionSubChoice || 'All Physical';
+          if (finalVal > defenses.forceField.protection) {
+            defenses.forceField.protection = finalVal;
+            defenses.forceField.rankName = finalRank;
+            defenses.forceField.notes = isSpec ? `Physical Field: Specialized vs ${sub} (+1CS)` : 'Broad Force Field vs. Physical';
+          }
+        } else if (code === 'D9' || nameLower.includes('force field vs. vampirism')) {
+          const isSpec = p.selectedOption === 'specialized';
+          const finalRank = isSpec ? shift(baseRank, 1) : baseRank;
+          const finalVal = getRank(finalRank).num;
+          const sub = p.optionSubChoice || 'All Vampirism';
+          if (finalVal > defenses.forceField.protection) {
+            defenses.forceField.protection = finalVal;
+            defenses.forceField.rankName = finalRank;
+            defenses.forceField.notes = isSpec ? `Vampirism Field: Specialized vs ${sub} (+1CS)` : 'Broad Force Field vs. Vampirism';
+          }
+        }
+
+        // 3. Resistances (D12, D15, D17)
+        if (code === 'D12' || nameLower.includes('resist: energy') || nameLower.includes('resistance to energy')) {
+          const isSpec = p.selectedOption === 'specialized';
+          const finalRank = isSpec ? shift(baseRank, 1) : baseRank;
+          const finalVal = getRank(finalRank).num;
+          const sub = p.optionSubChoice ? ` (${p.optionSubChoice})` : '';
+          defenses.resistances.push({
+            name: `Energy Resistance${sub}${isSpec ? ' [+1CS]' : ''}`,
+            type: 'Energy',
+            rank: finalRank,
+            rankName: finalRank,
+            rankValue: finalVal
+          });
+        } else if (code === 'D15' || nameLower.includes('resist: physical') || nameLower.includes('resistance to physical')) {
+          const isSpec = p.selectedOption === 'specialized';
+          const finalRank = isSpec ? shift(baseRank, 1) : baseRank;
+          const finalVal = getRank(finalRank).num;
+          const sub = p.optionSubChoice ? ` (${p.optionSubChoice})` : '';
+          defenses.resistances.push({
+            name: `Physical Resistance${sub}${isSpec ? ' [+1CS]' : ''}`,
+            type: 'Physical',
+            rank: finalRank,
+            rankName: finalRank,
+            rankValue: finalVal
+          });
+        } else if (code === 'D17' || nameLower.includes('resist: vampirism')) {
+          const isSpec = p.selectedOption === 'specialized';
+          const finalRank = isSpec ? shift(baseRank, 2) : baseRank;
+          const finalVal = getRank(finalRank).num;
+          const sub = p.optionSubChoice ? ` (${p.optionSubChoice})` : '';
+          defenses.resistances.push({
+            name: `Vampirism Resistance${sub}${isSpec ? ' [+2CS]' : ''}`,
+            type: 'Vampirism',
+            rank: finalRank,
+            rankName: finalRank,
+            rankValue: finalVal
+          });
+        }
+      });
+    }
+
+    // Equipment defenses check (e.g. Kevlar vest or Armor)
+    if (Array.isArray(this.equipment)) {
+      this.equipment.forEach(eq => {
+        if (eq.equipped && (eq.type === 'Armor' || (eq.category && eq.category.toLowerCase().includes('armor')))) {
+          const eqVal = eq.materialValue || 10;
+          if (eqVal > defenses.bodyArmor.physical) {
+            defenses.bodyArmor.physical = eqVal;
+            defenses.bodyArmor.notes = `${eq.name} Armor`;
+          }
+        }
+      });
+    }
+
+    this.defenses = defenses;
+    return defenses;
   }
 
   updateHealth(delta) {
@@ -426,6 +659,11 @@ class FASERIPCharacter {
       targets: powerData.targets !== undefined ? powerData.targets : (catalogPower ? catalogPower.targets : null),
       speed: powerData.speed !== undefined ? powerData.speed : (catalogPower ? catalogPower.speed : null),
       adjustments: powerData.adjustments || null,
+      selectedOption: powerData.selectedOption || null,
+      optionSubChoice: powerData.optionSubChoice || null,
+      optionAcquisitionMethod: powerData.optionAcquisitionMethod || 'chosen',
+      optionSurcharge: powerData.optionSurcharge !== undefined ? parseInt(powerData.optionSurcharge) : 0,
+      isSuperiorOption: !!powerData.isSuperiorOption,
       notes: powerData.notes || '',
       stunts: Array.isArray(powerData.stunts) ? [...powerData.stunts] : []
     };
@@ -578,7 +816,8 @@ class FASERIPCharacter {
       const isExp = !!(p.isExceptional || p.isStarred);
       const baseCost = isExp ? 20 : 10;
       const rankMultiplier = isExp ? 2 : 1;
-      powersTotal += baseCost + (p.rankValue * rankMultiplier);
+      const surcharge = (p.optionSurcharge !== undefined) ? parseInt(p.optionSurcharge || 0) : 0;
+      powersTotal += baseCost + (p.rankValue * rankMultiplier) + surcharge;
     });
 
     const talentsTotal = this.talents.reduce((sum, t) => sum + (t.costCP !== undefined ? t.costCP : (t.isStarred ? 20 : 10)), 0);
@@ -1312,6 +1551,96 @@ class FASERIPCharacter {
         }
       }
 
+      // Natural Weaponry (F3) Option Handling
+      if (p.code === 'F3' || pName.includes('natural weaponry')) {
+        const opt = p.selectedOption || 'claws';
+        let actType = 'edged';
+        let ablName = 'Fighting';
+        let rng = 'Touch';
+        let dmgType = 'Edged';
+        let atkName = `${p.name} - Claws/Blades`;
+        let optNotes = 'Edged melee strike. Yellow = Stun, Red = Kill.';
+
+        if (opt === 'fangs') {
+          actType = 'edged';
+          ablName = 'Fighting';
+          rng = 'Touch';
+          dmgType = 'Piercing';
+          atkName = `${p.name} - Fangs/Bite`;
+          optNotes = 'Piercing bite strike.';
+        } else if (opt === 'horns') {
+          actType = 'slugfest';
+          ablName = 'Fighting';
+          rng = 'Touch';
+          dmgType = 'Blunt';
+          atkName = `${p.name} - Horns/Bony Crest`;
+          optNotes = 'Blunt strike / Horn charge.';
+        } else if (opt === 'tail') {
+          actType = 'slugfest';
+          ablName = 'Fighting';
+          rng = 'Touch';
+          dmgType = 'Blunt';
+          atkName = `${p.name} - Tail/Mace-Fist`;
+          optNotes = 'Blunt melee strike.';
+        } else if (opt === 'spines') {
+          actType = 'shooting';
+          ablName = 'Agility';
+          rng = `${Math.max(1, Math.round(pRankValue / 10))} areas`;
+          dmgType = 'Shooting';
+          atkName = `${p.name} - Spines/Quills`;
+          optNotes = 'Ejectable ranged spines. To-hit rolled with Agility.';
+        }
+
+        attacks.push({
+          id: 'atk_p_' + p.id,
+          name: `${atkName} (${pRankName})`,
+          category: 'Power',
+          actionType: actType,
+          abilityName: ablName,
+          baseRank: pRankName,
+          columnShift: 0,
+          damage: `${pRankValue} ${dmgType} (${pRankName})`,
+          damageValue: pRankValue,
+          range: rng,
+          notes: optNotes + (p.notes ? ` • ${p.notes}` : '')
+        });
+        return;
+      }
+
+      // Hyper-Strength Tactical Surge Action (Option: Surge)
+      if ((p.code === 'P20' || pName.includes('hyper-strength')) && p.selectedOption === 'surge') {
+        attacks.push({
+          id: 'atk_p_' + p.id + '_surge',
+          name: 'Hyper-Strength Tactical Surge (+1CS)',
+          category: 'Power',
+          actionType: 'power',
+          abilityName: 'Strength',
+          baseRank: abs.strength.rankName,
+          columnShift: 1,
+          damage: '+1CS Lifting & Damage',
+          damageValue: abs.strength.rankValue,
+          range: 'Self',
+          notes: `Temporary surge: grants +1CS Strength for ${pRankValue} turns once per day. Requires Endurance FEAT afterward to prevent 1-turn exhaustion.`
+        });
+      }
+
+      // Check for specialization rank shift (e.g. Hard Radiation +1CS, Emotion Control +2CS)
+      let effectiveAtkRank = pRankName;
+      let effectiveAtkVal = pRankValue;
+      let specLabel = '';
+      if (p.selectedOption === 'specialized' && typeof UniversalTableEngine !== 'undefined') {
+        const def = (typeof globalThis.getPowerOptionsDefinition === 'function') ? globalThis.getPowerOptionsDefinition(p) : null;
+        const choice = def?.choices?.find(c => c.key === 'specialized');
+        if (choice && choice.rankShift) {
+          const shiftedObj = UniversalTableEngine.applyColumnShift(pRankName, choice.rankShift);
+          effectiveAtkRank = typeof shiftedObj === 'object' ? shiftedObj.name : shiftedObj;
+          effectiveAtkVal = typeof shiftedObj === 'object' ? shiftedObj.num : UniversalTableEngine.getRankByName(effectiveAtkRank).num;
+          specLabel = ` [Specialized: ${p.optionSubChoice || 'Focused'} +${choice.rankShift}CS]`;
+          dmgVal = effectiveAtkVal;
+          range = `${Math.max(1, Math.round(effectiveAtkVal / 10))} areas`;
+        }
+      }
+
       if (pName.includes('blast') || pName.includes('bolt') || pName.includes('ray') || pName.includes('beam') || pName.includes('generation') || pName.includes('emission')) {
         isOffensive = true;
         actionType = pName.includes('force') ? 'force' : 'energy';
@@ -1327,7 +1656,7 @@ class FASERIPCharacter {
         isOffensive = true;
         actionType = 'energy';
         abilityName = 'Psyche';
-        range = `${Math.max(1, Math.round(pRankValue / 10))} areas`;
+        range = `${Math.max(1, Math.round(effectiveAtkVal / 10))} areas`;
       }
 
       if (pName.includes('force field') || pName.includes('shield') || pName.includes('reflection') || pName.includes('absorption') || pName.includes('armor') || pName.includes('resistance') || pName.includes('invisibility') || pName.includes('phasing')) {
@@ -1339,16 +1668,16 @@ class FASERIPCharacter {
         const adjNote = p.adjustments ? ` [Adjusted: +${p.adjustments.shift} ${p.adjustments.aspectA.label} / -${p.adjustments.shift} ${p.adjustments.aspectB.label}]` : '';
         attacks.push({
           id: 'atk_p_' + p.id,
-          name: `${p.name} (${pRankName})${adjSuffix}`,
+          name: `${p.name} (${effectiveAtkRank})${specLabel}${adjSuffix}`,
           category: 'Power',
           actionType: actionType,
           abilityName: abilityName,
-          baseRank: pRankName,
+          baseRank: effectiveAtkRank,
           columnShift: 0,
-          damage: `${pRankValue} (${pRankName})`,
+          damage: `${effectiveAtkVal} (${effectiveAtkRank})`,
           damageValue: dmgVal,
           range: range,
-          notes: (p.notes || `Power Rank: ${pRankName} (${pRankValue}). Stunts: ${p.stunts?.length || 0}`) + adjNote
+          notes: (p.notes || `Power Rank: ${effectiveAtkRank} (${effectiveAtkVal}). Stunts: ${p.stunts?.length || 0}`) + adjNote
         });
       }
 

@@ -276,6 +276,16 @@ const App = {
       pCatSelect.addEventListener('change', () => this.syncPowerSelectionUI());
     }
 
+    const pRankSelect = document.getElementById('select-new-power-rank');
+    if (pRankSelect) {
+      pRankSelect.addEventListener('change', () => this.updatePowerOptionsPreview());
+    }
+
+    const pCheckExp = document.getElementById('check-power-exceptional');
+    if (pCheckExp) {
+      pCheckExp.addEventListener('change', () => this.updatePowerOptionsPreview());
+    }
+
     // Add Power Button (Powers Tab)
     const addPowerBtn = document.getElementById('btn-add-power');
     if (addPowerBtn) {
@@ -576,6 +586,20 @@ const App = {
     }
     if (btnResetAdj) {
       btnResetAdj.addEventListener('click', (e) => this.handleResetPowerAdjustment(e));
+    }
+
+    // Power Options Modal Listeners
+    const btnCloseOptModal = document.getElementById('btn-close-opt-modal');
+    const btnCancelOptModal = document.getElementById('btn-cancel-opt-modal');
+    const btnSaveOptModal = document.getElementById('btn-save-opt-modal');
+    if (btnCloseOptModal) {
+      btnCloseOptModal.addEventListener('click', () => this.closePowerOptionsModal());
+    }
+    if (btnCancelOptModal) {
+      btnCancelOptModal.addEventListener('click', () => this.closePowerOptionsModal());
+    }
+    if (btnSaveOptModal) {
+      btnSaveOptModal.addEventListener('click', () => this.savePowerOptionsModal());
     }
 
     // File / Options Dropdown Menu Toggle
@@ -1394,8 +1418,17 @@ const App = {
   },
 
   renderDefenses() {
+    if (this.character.calculateDefenses) {
+      this.character.calculateDefenses();
+    }
     const ba = this.character.defenses.bodyArmor;
-    document.getElementById('def-body-armor').textContent = ba.physical > 0 ? `${ba.rankName} (${ba.physical})` : 'None';
+    if (ba.physical > 0 || ba.energy > 0) {
+      document.getElementById('def-body-armor').textContent = (ba.physical === ba.energy)
+        ? `${ba.rankName} (${ba.physical})`
+        : `${ba.physical} Phys / ${ba.energy} Energy`;
+    } else {
+      document.getElementById('def-body-armor').textContent = 'None';
+    }
     document.getElementById('def-body-armor-notes').textContent = ba.notes || (ba.physical > 0 ? `${ba.physical} Physical Protection` : 'Standard clothing');
 
     const ff = this.character.defenses.forceField;
@@ -1560,13 +1593,29 @@ const App = {
 
       const isStarredPower = !!p.isStarred;
       const isExp = isStarredPower || !!p.isExceptional;
-      const cpCost = (isExp ? 20 : 10) + (p.rankValue * (isExp ? 2 : 1));
+      const cpCost = (isExp ? 20 : 10) + (p.rankValue * (isExp ? 2 : 1)) + (p.optionSurcharge || 0);
 
       let badgeHtml = '';
       if (isStarredPower) {
         badgeHtml = '<span class="meta-tag tag-starred">★ Starred (2 Slots)</span>';
       } else if (p.isExceptional) {
         badgeHtml = '<span class="meta-tag tag-exceptional">★ Exceptional (2x CP)</span>';
+      }
+
+      // Resolve power options / manifestation badge
+      let optionBadgeHtml = '';
+      const optDef = (typeof globalThis.getPowerOptionsDefinition === 'function') ? globalThis.getPowerOptionsDefinition(p) : null;
+      if (optDef && p.selectedOption) {
+        const curChoice = optDef.choices?.find(c => c.key === p.selectedOption);
+        const choiceName = curChoice ? curChoice.label : p.selectedOption;
+        const subText = p.optionSubChoice ? ` (${p.optionSubChoice})` : '';
+        if (p.optionAcquisitionMethod === 'rolled') {
+          optionBadgeHtml = `<span class="meta-tag tag-power-option" title="Rolled Manifestation (0 CP Surcharge) - Click to configure">🎲 ${choiceName}${subText}</span>`;
+        } else if (p.optionSurcharge > 0) {
+          optionBadgeHtml = `<span class="meta-tag tag-power-option tag-option-superior" title="Superior Option (+${p.optionSurcharge} CP Surcharge) - Click to configure">⚡ ${choiceName}${subText}</span>`;
+        } else {
+          optionBadgeHtml = `<span class="meta-tag tag-power-option" title="Configured Option - Click to configure">⚙️ ${choiceName}${subText}</span>`;
+        }
       }
 
       // Resolve structured power details
@@ -1613,6 +1662,11 @@ const App = {
             ${p.name} <span class="power-menu-caret">▾</span>
           </button>
           <div class="dropdown-menu power-dropdown-menu" id="power-menu-${idx}">
+            ${optDef ? `
+            <button type="button" class="dropdown-item power-menu-item" data-action="configure-power-option" data-power-idx="${idx}">
+              ⚙️ Configure Option / Manifestation
+            </button>
+            ` : ''}
             <button type="button" class="dropdown-item power-menu-item" data-action="adjust-power" data-power-idx="${idx}">
               ⚡ Adjust Power
             </button>
@@ -1630,6 +1684,7 @@ const App = {
             <button type="button" class="help-circle-btn" title="View details and rules for ${p.name}" data-power-name="${p.name}">?</button>
             ${badgeHtml}
             ${adjustedBadgeHtml}
+            ${optionBadgeHtml}
           </div>
           <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
             <span class="meta-tag tag-power-cp" style="font-weight: 700;">${cpCost} CP</span>
@@ -1800,6 +1855,26 @@ const App = {
             if (m !== menuEl) m.classList.remove('show');
           });
           menuEl.classList.toggle('show');
+        });
+      }
+
+      // Configure Option action from Menu
+      const configOptBtn = card.querySelector(`[data-action="configure-power-option"][data-power-idx="${idx}"]`);
+      if (configOptBtn) {
+        configOptBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          if (menuEl) menuEl.classList.remove('show');
+          this.openPowerOptionsModal(idx);
+        });
+      }
+
+      // Option Badge Click to Configure
+      const optBadgeEl = card.querySelector('.tag-power-option');
+      if (optBadgeEl) {
+        optBadgeEl.style.cursor = 'pointer';
+        optBadgeEl.addEventListener('click', (e) => {
+          e.stopPropagation();
+          this.openPowerOptionsModal(idx);
         });
       }
 
@@ -2421,7 +2496,37 @@ const App = {
 
     const rObj = UniversalTableEngine.getRankByName(rankName);
 
-    this.character.powers.push({
+    // Power Options Handling
+    const optDef = (typeof globalThis.getPowerOptionsDefinition === 'function') ? globalThis.getPowerOptionsDefinition(catalogPower) : null;
+    let selectedOption = null;
+    let optionSubChoice = null;
+    let optionAcquisitionMethod = 'chosen';
+    let optionSurcharge = 0;
+    let isSuperiorOption = false;
+
+    if (optDef) {
+      selectedOption = this.newPowerOptionSelectedKey || (optDef.choices[0] ? optDef.choices[0].key : null);
+      const choiceObj = optDef.choices?.find(c => c.key === selectedOption);
+      isSuperiorOption = !!choiceObj?.isSuperior;
+      optionAcquisitionMethod = this.newPowerOptionMethod || 'chosen';
+
+      if (choiceObj?.subChoiceList) {
+        const subSel = document.querySelector(`#new-power-subchoice-box-${selectedOption} .new-power-subchoice-select`);
+        if (subSel) {
+          optionSubChoice = subSel.value;
+        } else if (choiceObj.subChoiceList[0]) {
+          optionSubChoice = choiceObj.subChoiceList[0];
+        }
+      }
+
+      if (optionAcquisitionMethod === 'chosen' && isSuperiorOption) {
+        optionSurcharge = isExceptional ? 20 : 10;
+      } else {
+        optionSurcharge = 0;
+      }
+    }
+
+    this.character.addPower({
       id: 'p_' + Date.now(),
       code: catalogPower.code,
       name: catalogPower.name,
@@ -2436,9 +2541,23 @@ const App = {
       areaOfEffect: catalogPower.areaOfEffect,
       targets: catalogPower.targets,
       speed: catalogPower.speed,
+      selectedOption: selectedOption,
+      optionSubChoice: optionSubChoice,
+      optionAcquisitionMethod: optionAcquisitionMethod,
+      optionSurcharge: optionSurcharge,
+      isSuperiorOption: isSuperiorOption,
       notes: '',
       stunts: catalogPower.powerStunts || []
     });
+
+    if (this.character.calculateDefenses) {
+      this.character.calculateDefenses();
+    }
+
+    this.newPowerOptionSelectedKey = null;
+    this.newPowerOptionSubChoice = null;
+    this.newPowerOptionMethod = 'chosen';
+    this.newPowerRolledD100 = null;
 
     this.recordCharacterEdit(`Added power: ${catalogPower.name} (${rObj.name})`, 'power');
     this.render();
@@ -2455,7 +2574,7 @@ const App = {
     if (!p) return;
     const isStarredPower = !!p.isStarred;
     const isExp = isStarredPower || !!p.isExceptional;
-    const cpRefund = (isExp ? 20 : 10) + (p.rankValue * (isExp ? 2 : 1));
+    const cpRefund = (isExp ? 20 : 10) + (p.rankValue * (isExp ? 2 : 1)) + (p.optionSurcharge || 0);
 
     const confirmed = await this.showCustomConfirm(
       `Remove power "${p.name}" (${p.rankName})?\n\nRemoving this power will refund ${cpRefund} Character Points (CP) to your budget, and this removal will be noted in your Character Log.`,
@@ -2468,6 +2587,9 @@ const App = {
     if (confirmed) {
       const powerName = p.name;
       this.character.powers.splice(idx, 1);
+      if (this.character.calculateDefenses) {
+        this.character.calculateDefenses();
+      }
       this.recordCharacterEdit(`Removed power: ${powerName} (+${cpRefund} CP refunded)`, 'power');
       this.render();
       await this.showCustomAlert(
@@ -2526,6 +2648,7 @@ const App = {
     const checkExp = document.getElementById('check-power-exceptional');
     const labelExpText = document.getElementById('label-power-exceptional-text');
     const bannerEl = document.getElementById('power-starred-banner');
+    const optionsContainer = document.getElementById('power-options-container');
 
     if (!selectedP) {
       if (checkExp) {
@@ -2538,6 +2661,14 @@ const App = {
       if (bannerEl) {
         bannerEl.style.display = 'none';
       }
+      if (optionsContainer) {
+        optionsContainer.style.display = 'none';
+        optionsContainer.innerHTML = '';
+      }
+      this.newPowerOptionSelectedKey = null;
+      this.newPowerOptionSubChoice = null;
+      this.newPowerOptionMethod = 'chosen';
+      this.newPowerRolledD100 = null;
       return;
     }
 
@@ -2565,6 +2696,407 @@ const App = {
         bannerEl.style.display = 'none';
       }
     }
+
+    const optDef = (typeof globalThis.getPowerOptionsDefinition === 'function') ? globalThis.getPowerOptionsDefinition(selectedP) : null;
+    if (optDef && optionsContainer) {
+      optionsContainer.style.display = 'block';
+      this.renderPowerOptionsSelector(optDef, selectedP);
+    } else if (optionsContainer) {
+      optionsContainer.style.display = 'none';
+      optionsContainer.innerHTML = '';
+      this.newPowerOptionSelectedKey = null;
+      this.newPowerOptionSubChoice = null;
+      this.newPowerOptionMethod = 'chosen';
+      this.newPowerRolledD100 = null;
+    }
+  },
+
+  renderPowerOptionsSelector(optDef, selectedP) {
+    const container = document.getElementById('power-options-container');
+    if (!container || !optDef) return;
+
+    this.newPowerOptionSelectedKey = optDef.choices[0] ? optDef.choices[0].key : null;
+    this.newPowerOptionMethod = 'chosen';
+    this.newPowerRolledD100 = null;
+
+    const checkExp = document.getElementById('check-power-exceptional');
+    const isStarred = !!(selectedP.isStarred || selectedP.countsAsTwo || selectedP.powerSlots > 1);
+    const isExp = isStarred || (checkExp ? checkExp.checked : false);
+    const surchargeAmount = isExp ? 20 : 10;
+
+    let choicesHtml = '';
+    optDef.choices.forEach((c, idx) => {
+      const isChecked = idx === 0 ? 'checked' : '';
+      const subChoiceHtml = c.subChoiceList ? `
+        <div class="power-option-subchoice-box" id="new-power-subchoice-box-${c.key}" style="display: ${idx === 0 ? 'block' : 'none'}; margin-top: 6px;">
+          <label style="font-size: 9pt; color: var(--text-main); font-weight: 600;">Specialization / Focus:
+            <select class="field-input new-power-subchoice-select" style="font-size: 9.5pt; padding: 2px 8px; margin-left: 6px; display: inline-block; width: auto; max-width: 260px;">
+              ${c.subChoiceList.map(sc => `<option value="${sc}">${sc}</option>`).join('')}
+            </select>
+          </label>
+        </div>
+      ` : '';
+
+      choicesHtml += `
+        <label class="power-option-choice-card" style="display: flex; align-items: flex-start; gap: 10px; padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 6px; cursor: pointer; background: rgba(0,0,0,0.2);">
+          <input type="radio" name="new-power-option-radio" value="${c.key}" style="margin-top: 3px;" ${isChecked}>
+          <div style="flex: 1;">
+            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+              <strong style="color: var(--text-main); font-size: 10pt;">${c.label}</strong>
+              ${c.isSuperior ? `<span class="meta-tag tag-option-superior" style="font-size: 8.5pt;">★ Superior Option (+${surchargeAmount} CP if chosen manually)</span>` : '<span class="meta-tag" style="font-size: 8.5pt;">Standard (0 CP Surcharge)</span>'}
+            </div>
+            <div style="font-size: 9pt; color: var(--text-muted); margin-top: 2px;">${c.description}</div>
+            ${subChoiceHtml}
+          </div>
+        </label>
+      `;
+    });
+
+    container.innerHTML = `
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 8px;">
+        <div>
+          <strong style="font-size: 10.5pt; color: var(--marvel-gold);">⚙️ Power Manifestation &amp; Option: ${optDef.label}</strong>
+          <div style="font-size: 9pt; color: var(--text-muted); margin-top: 1px;">Canonical choice required when obtaining this power. Choose manually or roll random manifestation on the canonical subtable.</div>
+        </div>
+        ${optDef.canRoll ? `
+          <button type="button" class="icon-btn" id="btn-roll-new-power-manifestation" style="font-size: 9pt; padding: 4px 10px; background: #1e3a8a; border-color: #3b82f6;" title="Roll d100 on subtable. Accepting roll incurs 0 CP surcharge even for superior options.">
+            🎲 Roll Random Manifestation (0 CP Surcharge)
+          </button>
+        ` : ''}
+      </div>
+
+      <div id="new-power-option-roll-result" style="display: none; margin-bottom: 10px; padding: 8px 12px; border-radius: 6px; background: rgba(30, 58, 138, 0.4); border: 1px solid #3b82f6; font-size: 9.5pt;"></div>
+
+      <div class="power-options-list" style="display: flex; flex-direction: column; gap: 8px;">
+        ${choicesHtml}
+      </div>
+
+      <div id="new-power-option-summary" style="margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--border-color); font-size: 9.5pt; color: var(--text-muted);">
+        <span id="new-power-cost-breakdown"></span>
+      </div>
+    `;
+
+    // Bind Radio listeners
+    const radios = container.querySelectorAll('input[name="new-power-option-radio"]');
+    radios.forEach(r => {
+      r.addEventListener('change', (e) => {
+        if (e.target.checked) {
+          this.newPowerOptionSelectedKey = e.target.value;
+          this.newPowerOptionMethod = 'chosen';
+          this.newPowerRolledD100 = null;
+
+          optDef.choices.forEach(c => {
+            const scBox = document.getElementById(`new-power-subchoice-box-${c.key}`);
+            if (scBox) scBox.style.display = (c.key === e.target.value) ? 'block' : 'none';
+          });
+
+          const rollBanner = document.getElementById('new-power-option-roll-result');
+          if (rollBanner) rollBanner.style.display = 'none';
+
+          this.updatePowerOptionsPreview();
+        }
+      });
+    });
+
+    // Bind Roll button listener
+    const rollBtn = document.getElementById('btn-roll-new-power-manifestation');
+    if (rollBtn) {
+      rollBtn.addEventListener('click', () => {
+        const rolled = globalThis.rollPowerManifestation(optDef);
+        if (!rolled) return;
+        this.newPowerOptionSelectedKey = rolled.choiceKey;
+        this.newPowerOptionMethod = 'rolled';
+        this.newPowerRolledD100 = rolled.d100;
+
+        const targetRadio = container.querySelector(`input[name="new-power-option-radio"][value="${rolled.choiceKey}"]`);
+        if (targetRadio) targetRadio.checked = true;
+
+        optDef.choices.forEach(c => {
+          const scBox = document.getElementById(`new-power-subchoice-box-${c.key}`);
+          if (scBox) scBox.style.display = (c.key === rolled.choiceKey) ? 'block' : 'none';
+        });
+
+        const rollBanner = document.getElementById('new-power-option-roll-result');
+        if (rollBanner) {
+          rollBanner.style.display = 'block';
+          rollBanner.innerHTML = `🎲 Rolled d100: <strong>${rolled.d100}</strong> ➔ <strong>${rolled.choiceObj.label}</strong> (Dice Accepted: <strong>0 CP Surcharge</strong> applied even if superior!)`;
+        }
+
+        this.updatePowerOptionsPreview();
+      });
+    }
+
+    this.updatePowerOptionsPreview();
+  },
+
+  updatePowerOptionsPreview() {
+    const pCatSel = document.getElementById('select-power-catalog');
+    if (!pCatSel || !globalThis.MSH_POWERS) return;
+    const selectedP = globalThis.MSH_POWERS.find(p => p.id === pCatSel.value);
+    if (!selectedP) return;
+    const optDef = (typeof globalThis.getPowerOptionsDefinition === 'function') ? globalThis.getPowerOptionsDefinition(selectedP) : null;
+    if (!optDef) return;
+
+    const rankSel = document.getElementById('select-new-power-rank');
+    const rankName = rankSel ? rankSel.value : 'Good';
+    const rankObj = (typeof UniversalTableEngine !== 'undefined') ? UniversalTableEngine.getRankByName(rankName) : { name: 'Good', num: 10 };
+    const rankVal = rankObj ? rankObj.num : 10;
+
+    const checkExp = document.getElementById('check-power-exceptional');
+    const isStarred = !!(selectedP.isStarred || selectedP.countsAsTwo || selectedP.powerSlots > 1);
+    const isExp = isStarred || (checkExp ? checkExp.checked : false);
+
+    const curKey = this.newPowerOptionSelectedKey || (optDef.choices[0] ? optDef.choices[0].key : null);
+    const curChoice = optDef.choices.find(c => c.key === curKey);
+
+    const baseUnlock = isExp ? 20 : 10;
+    const rankCP = rankVal * (isExp ? 2 : 1);
+    let surcharge = 0;
+
+    if (this.newPowerOptionMethod === 'chosen' && curChoice?.isSuperior) {
+      surcharge = isExp ? 20 : 10;
+    }
+
+    const totalCP = baseUnlock + surcharge + rankCP;
+
+    const breakdownEl = document.getElementById('new-power-cost-breakdown');
+    if (breakdownEl) {
+      const surchargeText = surcharge > 0 
+        ? `<strong style="color: var(--marvel-gold); font-weight: 700;">+${surcharge} CP (2× Unlock Surcharge)</strong>` 
+        : '<strong style="color: #22c55e;">+0 CP</strong>';
+      const methodBadge = this.newPowerOptionMethod === 'rolled' 
+        ? '<span class="badge-yellow" style="margin-left: 6px;">🎲 Rolled Manifestation (No Surcharge)</span>' 
+        : '';
+
+      breakdownEl.innerHTML = `
+        Base Unlock: <strong>${baseUnlock} CP</strong> | 
+        Superior Option Surcharge: ${surchargeText}${methodBadge} | 
+        Rank (${rankName}): <strong>${rankCP} CP</strong> ➔ 
+        <strong style="color: var(--text-main); font-size: 10pt;">Total Cost: ${totalCP} CP</strong>
+      `;
+    }
+  },
+
+  openPowerOptionsModal(powerIndex) {
+    const power = this.character.powers[powerIndex];
+    if (!power) return;
+    this.activeOptionPowerIndex = powerIndex;
+
+    const optDef = (typeof globalThis.getPowerOptionsDefinition === 'function') ? globalThis.getPowerOptionsDefinition(power) : null;
+    if (!optDef) {
+      this.showCustomAlert(`"${power.name}" does not have variable manifestation options.`, 'Power Options');
+      return;
+    }
+
+    const modal = document.getElementById('modal-power-options');
+    if (!modal) return;
+
+    this.modalOptionSelectedKey = power.selectedOption || (optDef.choices[0] ? optDef.choices[0].key : null);
+    this.modalOptionSubChoice = power.optionSubChoice || (optDef.choices[0]?.subChoiceList ? optDef.choices[0].subChoiceList[0] : null);
+    this.modalOptionMethod = power.optionAcquisitionMethod || 'chosen';
+    this.modalOptionRolledD100 = null;
+
+    const pRank = UniversalTableEngine.getRankByName(power.rankName);
+    const powerNameEl = document.getElementById('modal-opt-power-name');
+    const rankBadgeEl = document.getElementById('modal-opt-rank-badge');
+    const statusEl = document.getElementById('modal-opt-current-status');
+    const metaEl = document.getElementById('modal-opt-power-meta');
+
+    if (powerNameEl) powerNameEl.textContent = power.name;
+    if (rankBadgeEl) rankBadgeEl.textContent = `${pRank.name} (${power.rankValue})`;
+    if (metaEl) metaEl.textContent = `Category: ${power.category || 'Superhuman Power'} | ${power.isExceptional ? '★ Exceptional Power' : 'Standard Power'} | Code: ${power.code || 'N/A'}`;
+
+    const curChoice = optDef.choices.find(c => c.key === power.selectedOption);
+    const curLabel = curChoice ? curChoice.label : (power.selectedOption || 'Standard');
+    const curSub = power.optionSubChoice ? ` (${power.optionSubChoice})` : '';
+    if (statusEl) {
+      statusEl.innerHTML = `<span style="color: var(--marvel-gold);">Active: ${curLabel}${curSub} [${power.optionAcquisitionMethod || 'chosen'}, +${power.optionSurcharge || 0} CP]</span>`;
+    }
+
+    this.renderModalPowerOptionsContent(optDef, power);
+    this.updateModalPowerOptionsSummary(optDef, power);
+
+    modal.classList.add('open');
+  },
+
+  renderModalPowerOptionsContent(optDef, power) {
+    const contentArea = document.getElementById('modal-opt-content-area');
+    if (!contentArea || !optDef) return;
+
+    const isExp = !!(power.isExceptional || power.isStarred);
+    const surchargeAmount = isExp ? 20 : 10;
+
+    let choicesHtml = '';
+    optDef.choices.forEach(c => {
+      const isChecked = c.key === this.modalOptionSelectedKey ? 'checked' : '';
+      const subChoiceHtml = c.subChoiceList ? `
+        <div class="power-option-subchoice-box" id="modal-subchoice-box-${c.key}" style="display: ${c.key === this.modalOptionSelectedKey ? 'block' : 'none'}; margin-top: 6px;">
+          <label style="font-size: 9pt; color: var(--text-main); font-weight: 600;">Specialization / Focus:
+            <select class="field-input modal-subchoice-select" style="font-size: 9.5pt; padding: 2px 8px; margin-left: 6px; display: inline-block; width: auto; max-width: 260px;">
+              ${c.subChoiceList.map(sc => `<option value="${sc}" ${sc === this.modalOptionSubChoice ? 'selected' : ''}>${sc}</option>`).join('')}
+            </select>
+          </label>
+        </div>
+      ` : '';
+
+      choicesHtml += `
+        <label class="power-option-choice-card" style="display: flex; align-items: flex-start; gap: 10px; padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 6px; cursor: pointer; background: rgba(0,0,0,0.2);">
+          <input type="radio" name="modal-power-option-radio" value="${c.key}" style="margin-top: 3px;" ${isChecked}>
+          <div style="flex: 1;">
+            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+              <strong style="color: var(--text-main); font-size: 10pt;">${c.label}</strong>
+              ${c.isSuperior ? `<span class="meta-tag tag-option-superior" style="font-size: 8.5pt;">★ Superior Option (+${surchargeAmount} CP if chosen manually)</span>` : '<span class="meta-tag" style="font-size: 8.5pt;">Standard (0 CP Surcharge)</span>'}
+            </div>
+            <div style="font-size: 9pt; color: var(--text-muted); margin-top: 2px;">${c.description}</div>
+            ${subChoiceHtml}
+          </div>
+        </label>
+      `;
+    });
+
+    contentArea.innerHTML = `
+      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+        <span style="font-size: 9.5pt; color: var(--text-main); font-weight: 600;">Select Manifestation or Roll on Subtable:</span>
+        ${optDef.canRoll ? `
+          <button type="button" class="icon-btn" id="btn-roll-modal-power-manifestation" style="font-size: 9pt; padding: 4px 10px; background: #1e3a8a; border-color: #3b82f6;">
+            🎲 Roll Random Manifestation (0 CP Surcharge)
+          </button>
+        ` : ''}
+      </div>
+
+      <div id="modal-opt-roll-result" style="display: none; padding: 8px 12px; border-radius: 6px; background: rgba(30, 58, 138, 0.4); border: 1px solid #3b82f6; font-size: 9.5pt;"></div>
+
+      <div class="power-options-list" style="display: flex; flex-direction: column; gap: 8px;">
+        ${choicesHtml}
+      </div>
+    `;
+
+    // Bind radios
+    const radios = contentArea.querySelectorAll('input[name="modal-power-option-radio"]');
+    radios.forEach(r => {
+      r.addEventListener('change', (e) => {
+        if (e.target.checked) {
+          this.modalOptionSelectedKey = e.target.value;
+          this.modalOptionMethod = 'chosen';
+          this.modalOptionRolledD100 = null;
+
+          optDef.choices.forEach(c => {
+            const scBox = document.getElementById(`modal-subchoice-box-${c.key}`);
+            if (scBox) scBox.style.display = (c.key === e.target.value) ? 'block' : 'none';
+          });
+
+          const rollBanner = document.getElementById('modal-opt-roll-result');
+          if (rollBanner) rollBanner.style.display = 'none';
+
+          this.updateModalPowerOptionsSummary(optDef, power);
+        }
+      });
+    });
+
+    // Bind subchoice selects
+    const subSelects = contentArea.querySelectorAll('.modal-subchoice-select');
+    subSelects.forEach(sel => {
+      sel.addEventListener('change', (e) => {
+        this.modalOptionSubChoice = e.target.value;
+      });
+    });
+
+    // Bind Roll button
+    const rollBtn = document.getElementById('btn-roll-modal-power-manifestation');
+    if (rollBtn) {
+      rollBtn.addEventListener('click', () => {
+        const rolled = globalThis.rollPowerManifestation(optDef);
+        if (!rolled) return;
+        this.modalOptionSelectedKey = rolled.choiceKey;
+        this.modalOptionMethod = 'rolled';
+        this.modalOptionRolledD100 = rolled.d100;
+
+        const targetRadio = contentArea.querySelector(`input[name="modal-power-option-radio"][value="${rolled.choiceKey}"]`);
+        if (targetRadio) targetRadio.checked = true;
+
+        optDef.choices.forEach(c => {
+          const scBox = document.getElementById(`modal-subchoice-box-${c.key}`);
+          if (scBox) scBox.style.display = (c.key === rolled.choiceKey) ? 'block' : 'none';
+        });
+
+        const rollBanner = document.getElementById('modal-opt-roll-result');
+        if (rollBanner) {
+          rollBanner.style.display = 'block';
+          rollBanner.innerHTML = `🎲 Rolled d100: <strong>${rolled.d100}</strong> ➔ <strong>${rolled.choiceObj.label}</strong> (Dice Accepted: <strong>0 CP Surcharge</strong> applied even if superior!)`;
+        }
+
+        this.updateModalPowerOptionsSummary(optDef, power);
+      });
+    }
+  },
+
+  updateModalPowerOptionsSummary(optDef, power) {
+    const summaryEl = document.getElementById('modal-opt-surcharge-summary');
+    if (!summaryEl || !optDef || !power) return;
+
+    const isExp = !!(power.isExceptional || power.isStarred);
+    const curChoice = optDef.choices.find(c => c.key === this.modalOptionSelectedKey);
+
+    let newSurcharge = 0;
+    if (this.modalOptionMethod === 'chosen' && curChoice?.isSuperior) {
+      newSurcharge = isExp ? 20 : 10;
+    }
+
+    const oldSurcharge = power.optionSurcharge || 0;
+    const diff = newSurcharge - oldSurcharge;
+    let diffText = 'No CP cost change';
+    if (diff > 0) {
+      diffText = `<strong style="color: var(--marvel-gold);">+${diff} CP additional surcharge</strong>`;
+    } else if (diff < 0) {
+      diffText = `<strong style="color: #22c55e;">${diff} CP refund</strong>`;
+    }
+
+    const methodNote = this.modalOptionMethod === 'rolled' ? ' [Dice Rolled: 0 CP Surcharge]' : '';
+    summaryEl.innerHTML = `New Surcharge: <strong>+${newSurcharge} CP</strong>${methodNote} | Net Impact: ${diffText}`;
+  },
+
+  savePowerOptionsModal() {
+    if (this.activeOptionPowerIndex === null) return;
+    const power = this.character.powers[this.activeOptionPowerIndex];
+    if (!power) return;
+
+    const optDef = (typeof globalThis.getPowerOptionsDefinition === 'function') ? globalThis.getPowerOptionsDefinition(power) : null;
+    if (!optDef) return;
+
+    const curChoice = optDef.choices.find(c => c.key === this.modalOptionSelectedKey);
+    const isExp = !!(power.isExceptional || power.isStarred);
+
+    let subChoice = null;
+    if (curChoice?.subChoiceList) {
+      const subSel = document.querySelector(`#modal-subchoice-box-${curChoice.key} .modal-subchoice-select`);
+      subChoice = subSel ? subSel.value : (this.modalOptionSubChoice || curChoice.subChoiceList[0]);
+    }
+
+    let newSurcharge = 0;
+    if (this.modalOptionMethod === 'chosen' && curChoice?.isSuperior) {
+      newSurcharge = isExp ? 20 : 10;
+    }
+
+    power.selectedOption = this.modalOptionSelectedKey;
+    power.optionSubChoice = subChoice;
+    power.optionAcquisitionMethod = this.modalOptionMethod;
+    power.optionSurcharge = newSurcharge;
+    power.isSuperiorOption = !!curChoice?.isSuperior;
+
+    if (this.character.calculateDefenses) {
+      this.character.calculateDefenses();
+    }
+
+    this.recordCharacterEdit(`Updated manifestation for ${power.name}: ${curChoice ? curChoice.label : power.selectedOption}`, 'power');
+    this.closePowerOptionsModal();
+    this.saveState();
+    this.render();
+  },
+
+  closePowerOptionsModal() {
+    const modal = document.getElementById('modal-power-options');
+    if (modal) modal.classList.remove('open');
+    this.activeOptionPowerIndex = null;
   },
 
   renderInvPowerDropdown(filterText = '') {
@@ -6132,6 +6664,9 @@ const App = {
     const pop = hero.currentPopularity ?? 10;
 
     // Defenses
+    if (hero.calculateDefenses) {
+      hero.calculateDefenses();
+    }
     const ba = hero.defenses?.bodyArmor || {};
     const ff = hero.defenses?.forceField || {};
     const resList = (hero.defenses?.resistances || []).map(r => `${r.name || r.type} (${r.rank || r.rankName})`).join(', ') || 'None';

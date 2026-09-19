@@ -166,6 +166,19 @@ const UniversalTableEngine = {
     return this.ranks.indexOf(rank);
   },
 
+  getRankByNum(num) {
+    const val = parseInt(num, 10) || 0;
+    let matched = this.ranks[0];
+    for (let i = 0; i < this.ranks.length; i++) {
+      if (this.ranks[i].num <= val) {
+        matched = this.ranks[i];
+      } else {
+        break;
+      }
+    }
+    return matched;
+  },
+
   applyColumnShift(rankName, shift) {
     let idx = this.getRankIndex(rankName);
     if (idx === -1) {
@@ -177,6 +190,11 @@ const UniversalTableEngine = {
     let newIdx = idx + (parseInt(shift) || 0);
     newIdx = Math.max(0, Math.min(newIdx, this.ranks.length - 1));
     return this.ranks[newIdx];
+  },
+
+  shiftColumn(rankName, shift) {
+    const res = this.applyColumnShift(rankName, shift);
+    return res ? res.name : rankName;
   },
 
   /**

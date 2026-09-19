@@ -2766,10 +2766,10 @@ const App = {
     const n = (item.name || '').toLowerCase();
 
     if (k === 'weapons' || k === 'weapon') {
-      return c.includes('weapon') || c.includes('firearm') || c.includes('ammunition') || t.includes('weapon') || t.includes('firearm') || t.includes('shooting') || t.includes('slugthrower') || t.includes('energy');
+      return c.includes('weapon') || c.includes('firearm') || c.includes('ammunition') || t.includes('weapon') || t.includes('firearm') || t.includes('shooting') || t.includes('slugthrower') || t.includes('energy') || t.includes('warhead') || t.includes('payload');
     }
     if (k === 'ammo' || k === 'ammunition') {
-      return c.includes('ammunition') || t.includes('ammunition') || t.includes('cartridge') || t.includes('magazine') || t.includes('clip') || t.includes('rounds') || n.includes('ammunition') || n.includes('shot');
+      return c.includes('ammunition') || t.includes('ammunition') || t.includes('cartridge') || t.includes('magazine') || t.includes('clip') || t.includes('rounds') || t.includes('warhead') || t.includes('payload') || n.includes('ammunition') || n.includes('shot') || n.includes('payload') || n.includes('warhead') || n.includes('arrowhead');
     }
     if (k === 'firearms' || k === 'firearm') {
       return c.includes('firearm') || c.includes('heavy weapon') || c.includes('ammunition') || t.includes('shooting') || t.includes('slugthrower') || t.includes('energy');

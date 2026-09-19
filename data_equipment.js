@@ -6602,7 +6602,8 @@ const PREBUILT_EQUIPMENT_CATALOG = [
     "materialStrength": "Feeble (2)",
     "accessType": "military",
     "accessTypes": [
-      "military"
+      "military",
+      "shield"
     ],
     "description": "Player's Book p. 46: Tail-spool wire-guidance system for missiles. Guided directly by operator's Agility up to 10 areas with no range penalties. Severing the Feeble wire causes missile to fly unguided.",
     "isUnique": false,
@@ -6651,12 +6652,38 @@ const PREBUILT_EQUIPMENT_CATALOG = [
     "materialStrength": "Good (10)",
     "accessType": "military",
     "accessTypes": [
-      "military"
+      "military",
+      "shield"
     ],
     "description": "Player's Book p. 46: Shaped-charge precision warhead focusing explosive force directly onto a single point or armored vehicle (40 points EA damage, no area scatter).",
     "isUnique": false,
     "isReproducible": true,
     "source": "Player's Book p. 46",
+    "blackMarketCostRank": "Incredible",
+    "blackMarketCostValue": 40
+  },
+  {
+    "id": "missile_payload_frag",
+    "name": "Missile Payload: Fragmentary Explosive Warhead",
+    "category": "Heavy Weapon",
+    "type": "Missile Warhead (Component)",
+    "costRank": "Remarkable",
+    "costValue": 30,
+    "damage": "40 Edged Attack (Shrapnel / Scatter)",
+    "damageValue": 40,
+    "range": "Detonation in target area",
+    "rateOfFire": "--",
+    "shots": "1 warhead",
+    "materialStrength": "Good (10)",
+    "accessType": "military",
+    "accessTypes": [
+      "military",
+      "shield"
+    ],
+    "description": "MA8 Weapons Locker p. 28: Fragmentary shrapnel warhead. Inflicts 40 points Hack & Slash (Edged Attack) damage to all targets in the blast area. May also be dropped without missile components as an aerial bomb.",
+    "isUnique": false,
+    "isReproducible": true,
+    "source": "MA8 Weapons Locker p. 28",
     "blackMarketCostRank": "Incredible",
     "blackMarketCostValue": 40
   },
@@ -6675,7 +6702,8 @@ const PREBUILT_EQUIPMENT_CATALOG = [
     "materialStrength": "Remarkable (30)",
     "accessType": "military",
     "accessTypes": [
-      "military"
+      "military",
+      "shield"
     ],
     "description": "Player's Book p. 46: Devastating heavy payload. Inflicts 70 points Edged Attack damage to all in target area and 20 points EA damage to everyone in adjacent areas.",
     "isUnique": false,
@@ -6699,7 +6727,8 @@ const PREBUILT_EQUIPMENT_CATALOG = [
     "materialStrength": "Good (10)",
     "accessType": "military",
     "accessTypes": [
-      "military"
+      "military",
+      "shield"
     ],
     "description": "Player's Book p. 46: Chemical incendiary warhead. Deals 40 points Energy fire damage to all in area, and continues burning at Good (10) Intensity each round until extinguished.",
     "isUnique": false,
@@ -6723,7 +6752,8 @@ const PREBUILT_EQUIPMENT_CATALOG = [
     "materialStrength": "Good (10)",
     "accessType": "military",
     "accessTypes": [
-      "military"
+      "military",
+      "shield"
     ],
     "description": "Player's Book p. 46: Standard explosive missile warhead component. Inflicts 40 points Edged Attack damage to all targets in the detonation area.",
     "isUnique": false,
@@ -6731,6 +6761,31 @@ const PREBUILT_EQUIPMENT_CATALOG = [
     "source": "Player's Book p. 46",
     "blackMarketCostRank": "Incredible",
     "blackMarketCostValue": 40
+  },
+  {
+    "id": "missile_payload_nuclear",
+    "name": "Missile Payload: Tactical Atomic Warhead",
+    "category": "Heavy Weapon",
+    "type": "Missile Warhead (Component)",
+    "costRank": "Unearthly",
+    "costValue": 100,
+    "damage": "1,000 Blast (5 areas) / 100 (10 areas) / 75 (30 areas)",
+    "damageValue": 1000,
+    "range": "Target Area + 30 areas blast radius",
+    "rateOfFire": "--",
+    "shots": "1 warhead",
+    "materialStrength": "Incredible (40)",
+    "accessType": "military",
+    "accessTypes": [
+      "military",
+      "shield"
+    ],
+    "description": "MA8 Weapons Locker p. 28: Tactical nuclear warhead. Inflicts 1,000 points damage across a 5-area radius, 100 points damage 10 areas beyond that, 75 points damage 30 areas beyond that, and Monstrous (75) intensity radiation persisting for 1 year. Classified military/S.H.I.E.L.D. ordnance not available in ordinary situations.",
+    "isUnique": false,
+    "isReproducible": true,
+    "source": "MA8 Weapons Locker p. 28",
+    "blackMarketCostRank": "Class 1000",
+    "blackMarketCostValue": 1000
   },
   {
     "id": "artifact_mjolnir",

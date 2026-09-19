@@ -384,7 +384,9 @@ const PREBUILT_EQUIPMENT_CATALOG = [
     ],
     "description": "Player's Book p. 48-49: Reed Richards' vertical-launch rocket craft designed for rapid intercontinental transport.. Control: Excellent (20), Speed: Shift Y (250), Body: Excellent (20), Protection: Good (10).",
     "isUnique": true,
-    "isReproducible": true,
+    "notForSale": true,
+    "isReproducible": false,
+    "reproducibleError": "Reed Richards' bespoke Pogo Plane incorporates proprietary unstable molecular metallurgy and advanced rocketry. It is a unique prototype and cannot be replicated or bought.",
     "source": "Player's Book p. 48-49",
     "blackMarketCostRank": null,
     "blackMarketCostValue": null
@@ -2145,7 +2147,10 @@ const PREBUILT_EQUIPMENT_CATALOG = [
     "inventionBasePower": "Hyper-Running",
     "inventionPowerRank": "Remarkable",
     "inventionComplexity": "Advanced",
-    "accessType": "civilian",
+    "accessType": "shield",
+    "accessTypes": [
+      "shield"
+    ],
     "isReproducible": true,
     "source": "Official TSR Advanced Rules",
     "blackMarketCostRank": "Incredible",
@@ -2163,18 +2168,22 @@ const PREBUILT_EQUIPMENT_CATALOG = [
     "range": "Touch / 3 Areas Thrown (Returns)",
     "rateOfFire": "1/turn",
     "materialStrength": "Class 1000 (1000)",
-    "description": "A concave disc 2.5 ft in diameter of unique Adamantium-Vibranium alloy created by Dr. Myron MacLain. Absorbs all kinetic impact, blocks energy attacks up to CL1000, and returns when ricocheted.",
+    "description": "A concave disc 2.5 ft in diameter of unique Proto-Adamantium / Vibranium alloy created by Dr. Myron MacLain under the authority of the Strategic Scientific Reserve (SSR), the predecessor to S.H.I.E.L.D. Absorbs all kinetic impact, blocks energy attacks up to CL1000, and returns when ricocheted. Classified agency property; not available for commercial purchase.",
     "isUnique": true,
+    "notForSale": true,
     "reproducible": false,
-    "uniqueReason": "Forged from a one-of-a-kind accidental Vibranium-Adamantium metallurgical anomaly by Dr. Myron MacLain. Cannot be synthesized or replicated by standard science.",
+    "uniqueReason": "Forged from a one-of-a-kind accidental Vibranium-Adamantium metallurgical anomaly by Dr. Myron MacLain under the authority of the SSR (predecessor to S.H.I.E.L.D.). Cannot be synthesized or replicated by standard science.",
     "inventionBasePower": "Invulnerability",
     "inventionPowerRank": "Class 1000",
     "inventionComplexity": "Futuristic",
-    "accessType": "civilian",
+    "accessType": "shield",
+    "accessTypes": [
+      "shield"
+    ],
     "isReproducible": false,
-    "source": "Official TSR Advanced Rules",
-    "blackMarketCostRank": "Good",
-    "blackMarketCostValue": 10
+    "source": "Official TSR Advanced Rules (SSR / S.H.I.E.L.D.)",
+    "blackMarketCostRank": null,
+    "blackMarketCostValue": null
   },
   {
     "id": "veh_motorcycle",
@@ -2213,6 +2222,7 @@ const PREBUILT_EQUIPMENT_CATALOG = [
     "materialStrength": "Class 1000 (1000)",
     "description": "Semi-sentient mystical garment worn by Doctor Strange. Bestows Monstrous flight and can autonomously grapple opponents or defend its master.",
     "isUnique": true,
+    "notForSale": true,
     "reproducible": false,
     "uniqueReason": "Ancient sentient sorcerous relic from the Sanctum Sanctorum. Not a mechanical or electronic device; immune to science and reverse-engineering.",
     "inventionBasePower": "True Flight",
@@ -2221,8 +2231,8 @@ const PREBUILT_EQUIPMENT_CATALOG = [
     "accessType": "civilian",
     "isReproducible": false,
     "source": "Official TSR Advanced Rules",
-    "blackMarketCostRank": "Good",
-    "blackMarketCostValue": 10
+    "blackMarketCostRank": null,
+    "blackMarketCostValue": null
   },
   {
     "id": "gun_shotgun_combat",
@@ -2767,6 +2777,7 @@ const PREBUILT_EQUIPMENT_CATALOG = [
     "accessType": "black_market",
     "description": "Machines of Doom p. 14: Personal titanium-alloy forged battlesuit with nuclear thermoelectric generator. Grants Monstrous (75) physical protection, Amazing (50) energy fields, and 100,000-volt electro-shock surface charge. Unique personal artifact.",
     "isUnique": true,
+    "notForSale": true,
     "isReproducible": false,
     "reproducibleError": "Doctor Doom's personal forged armor is an irreplaceable, master-crafted artifact infused with scientific and occult protections. It cannot be replicated or reverse-engineered.",
     "source": "Machines of Doom p. 14",
@@ -2792,6 +2803,7 @@ const PREBUILT_EQUIPMENT_CATALOG = [
     "accessType": "black_market",
     "description": "Machines of Doom p. 59: Revolutionary chronal displacement platform capable of transporting persons and objects to any era across the continuum. Unique revolutionary breakthrough of Victor Von Doom.",
     "isUnique": true,
+    "notForSale": true,
     "isReproducible": false,
     "reproducibleError": "The Time Platform requires Doctor Doom's secret proprietary chronal math and exotic tachyonic relays. It cannot be manufactured by conventional technology.",
     "source": "Machines of Doom p. 59",
@@ -3235,6 +3247,7 @@ const PREBUILT_EQUIPMENT_CATALOG = [
     "materialStrength": "Class 3000 (3000)",
     "description": "One of the three Eyes created by Vishanti Agamotto. Emits the all-revealing Light of Truth which dispels all illusions and penetrates all disguise.",
     "isUnique": true,
+    "notForSale": true,
     "reproducible": false,
     "uniqueReason": "Divine relic of the Vishanti. Operating purely on mystic All-Seeing principles, it cannot be manufactured in any mundane laboratory.",
     "inventionBasePower": "True Sight",
@@ -3243,8 +3256,8 @@ const PREBUILT_EQUIPMENT_CATALOG = [
     "accessType": "civilian",
     "isReproducible": false,
     "source": "Official TSR Advanced Rules",
-    "blackMarketCostRank": "Good",
-    "blackMarketCostValue": 10
+    "blackMarketCostRank": null,
+    "blackMarketCostValue": null
   },
   {
     "id": "ohotmu_falcon_wings",
@@ -6733,6 +6746,7 @@ const PREBUILT_EQUIPMENT_CATALOG = [
     "materialStrength": "Class 3000 (3000)",
     "description": "Forged from enchanted Uru metal in the heart of a dying star by Dwarven smiths and enchanted by Odin with the Worthiness enchantment. Commands weather, lightning, and flight.",
     "isUnique": true,
+    "notForSale": true,
     "reproducible": false,
     "uniqueReason": "Enchanted divine artifact imbued with Odin's All-Father magic and forged of divine Asgardian Uru. Beyond mortal science and invention rules.",
     "inventionBasePower": "Weather Control",
@@ -6741,8 +6755,8 @@ const PREBUILT_EQUIPMENT_CATALOG = [
     "accessType": "civilian",
     "isReproducible": false,
     "source": "Official TSR Advanced Rules",
-    "blackMarketCostRank": "Good",
-    "blackMarketCostValue": 10
+    "blackMarketCostRank": null,
+    "blackMarketCostValue": null
   },
   {
     "id": "mace_morningstar",

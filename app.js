@@ -2858,6 +2858,36 @@ const App = {
 
     const heroIdx = Math.max(0, activeRankNames.indexOf(heroRankName));
 
+    const isRPMode = !!(this.useResourcePoints || (this.character && this.character.useResourcePoints));
+    const rpBudget = this.character ? this.character.getResourcePointsBudget() : (heroRankVal * 4);
+    const rpSpent = this.character ? (this.character.spentResourcePoints || 0) : 0;
+    const rpAvailable = this.character ? this.character.getAvailableResourcePoints() : Math.max(0, rpBudget - rpSpent);
+
+    // Block commercial procurement for unique artifacts / items
+    if (item.isUnique || item.notForSale) {
+      return {
+        heroRankName,
+        heroRankVal,
+        effectiveCostRank: item.costRank || 'Unique',
+        effectiveCostVal: item.costValue !== undefined ? item.costValue : 0,
+        costNote: 'Unique Artifact / Not Available to Buy',
+        isLocked: true,
+        lockReason: 'Unique items and artifacts cannot be purchased on the commercial or black market.',
+        status: 'unique_not_for_sale',
+        targetColor: null,
+        verdictClass: 'verdict-unaffordable',
+        verdictIcon: '🔒',
+        verdictHeading: 'Unique Item — Not Available for Purchase',
+        verdictDesc: `${item.name} is a unique, one-of-a-kind artifact. Under TSR rules, unique items are not available to buy on the commercial or black market; they may only be awarded as a special storyline or campaign grant.`,
+        isRPMode,
+        rpBudget,
+        rpSpent,
+        rpAvailable,
+        rpCost: 0,
+        requiresShieldApproval: false
+      };
+    }
+
     // Determine cost rank based on market mode
     const isBlackMarketPurchase = (item.accessType === 'black_market') || (this.storeBlackMarketAccess && item.blackMarketCostRank);
     let effectiveCostRank = item.costRank || 'Typical';
@@ -2890,11 +2920,6 @@ const App = {
     }
 
     const requiresShieldApproval = (accessType === 'shield');
-
-    const isRPMode = !!(this.useResourcePoints || (this.character && this.character.useResourcePoints));
-    const rpBudget = this.character ? this.character.getResourcePointsBudget() : (heroRankVal * 4);
-    const rpSpent = this.character ? (this.character.spentResourcePoints || 0) : 0;
-    const rpAvailable = this.character ? this.character.getAvailableResourcePoints() : Math.max(0, rpBudget - rpSpent);
     const rpCost = effectiveCostVal;
     const rpAffordable = (rpAvailable >= rpCost);
 
@@ -2994,9 +3019,9 @@ const App = {
       tbody.innerHTML = '';
       const descTooltip = document.getElementById('store-desc-hover-tooltip');
       if (descTooltip) descTooltip.style.display = 'none';
-      const totalCatalogItems = globalThis.PREBUILT_EQUIPMENT_CATALOG.filter(item => !item.notForSale).length;
+      const totalCatalogItems = globalThis.PREBUILT_EQUIPMENT_CATALOG.filter(item => !item.notForSale && !item.isUnique).length;
       const filtered = globalThis.PREBUILT_EQUIPMENT_CATALOG.filter(item => {
-        if (item.notForSale) return false;
+        if (item.notForSale || item.isUnique) return false;
         return this.matchesStoreSearchQuery(item, q) && 
                this.matchesStoreCategory(item, cat) &&
                this.matchesStoreAccess(item, access);
@@ -3331,7 +3356,20 @@ const App = {
     if (actionsContainer) {
       actionsContainer.innerHTML = '';
 
-      if (evalRes.isLocked) {
+      if (evalRes.status === 'unique_not_for_sale') {
+        const uniqueNotice = document.createElement('div');
+        uniqueNotice.style.cssText = 'color: var(--marvel-gold); font-size: 10pt; font-weight: 600; padding: 12px; background: rgba(255, 215, 0, 0.08); border: 1px solid rgba(255, 215, 0, 0.25); border-radius: 6px; text-align: center; margin-bottom: 8px; width: 100%;';
+        uniqueNotice.innerHTML = `🔒 <strong>Unique Item / Artifact:</strong> Not available to buy on the commercial or black market per TSR rules. May only be awarded through a special GM storyline grant or campaign event.`;
+        actionsContainer.appendChild(uniqueNotice);
+
+        const gmGrantBtn = document.createElement('button');
+        gmGrantBtn.type = 'button';
+        gmGrantBtn.className = 'icon-btn';
+        gmGrantBtn.innerHTML = `⚡ GM Storyline Award (Add to Gear)`;
+        gmGrantBtn.title = 'Add this unique item directly to character equipment as a special storyline or campaign award';
+        gmGrantBtn.addEventListener('click', (e) => this.finalizeItemAcquisition(item, 'Special GM Storyline Grant', e));
+        actionsContainer.appendChild(gmGrantBtn);
+      } else if (evalRes.isLocked) {
         // Option to grant clearance or GM override
         const unlockBtn = document.createElement('button');
         unlockBtn.type = 'button';

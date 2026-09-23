@@ -616,7 +616,11 @@ const POWERS_CATALOG = [
     "description": "The hero can control existing flames, whether natural or Power-based. He can alter any factor involved in combustion without direct physical contact. The hero can increase or decrease the flame's Intensity up to his Power rank and reduce fire damage by his rank number.",
     "rulesText": "The hero can control existing flames, whether natural or Power-based. He can alter any factor involved in combustion without direct physical contact. The hero can increase or decrease the flame's Intensity up to his Power rank and reduce fire damage by his rank number. This Power includes Power rank Resistance to Fire and Heat. The most important aspect of this Power is enabling the hero to reshape flame into any form he desires. This can be used in a variety of Power stunts, as the hero develops numerous fiery constructs to perform miscellaneous deeds.",
     "errataNote": "",
-    "powerStunts": []
+    "powerStunts": [
+      "Flame Constructs: Shape flame into fiery constructs (serpents, raptors, walls, hands) to grapple or strike at range",
+      "Fire Wall Barrier: Erect a blazing wall of fire providing defensive protection against missiles",
+      "Smother Fire: Instantly extinguish all flames within 3 areas with a Psyche FEAT"
+    ]
   },
   {
     "code": "EC11",
@@ -4607,11 +4611,942 @@ function rollPowerManifestation(def) {
   };
 }
 
+/**
+ * Reverse-Engineered Canonical NPC Powers Suite
+ * Parameterized with standard FASERIP ranks to bridge the gap between
+ * UPB static modular powers and the unique, narrative powers of classic NPCs.
+ */
+const MSH_NPC_PRESET_POWERS = [
+  // --- ENERGY CONTROL (6 Powers) ---
+  {
+    code: "NPC_KA",
+    id: "NPC_KA",
+    name: "Kinetic Absorption [Sebastian Shaw]",
+    category: "Energy Control",
+    source: "Canonical NPC: Sebastian Shaw / Black King (GHotMU MU1 / Children of the Atom)",
+    defaultRank: "Remarkable",
+    rankNumber: 30,
+    countsAsTwo: true,
+    isStarred: true,
+    powerSlots: 2,
+    isNpcArchetype: true,
+    description: "Absorbs physical blunt, shooting, and force impact into a temporary Health buffer rather than suffering injury, converting kinetic energy into staggering physical strength and agility boosts.",
+    rulesText: "Damage from physical attacks (excluding wrestling and edged attacks), energy, force, thrown blunt, and shooting attacks are added to the hero's health buffer instead of subtracted. For each (10 x Rank / 6) points absorbed (50 pts at Remarkable), Strength and Agility/Endurance increase by +1CS up to a maximum of 10 x Rank Health buffer and Unearthly (100) or Rank+3CS Strength/Endurance. Energy bleeds off at 100 points per 10 rounds (and -2CS to boosted stats). Exceeding max health buffer requires an immediate Endurance FEAT vs. Kill / Overload result.",
+    errataNote: "Reverse-engineered canonical rule: Remarkable rank (30) perfectly mirrors Sebastian Shaw's 300 bonus Health buffer (400 max) and 50 pt threshold for +1CS up to Unearthly (100).",
+    pool: {
+      maxFormula: "10 * rankNumber",
+      unit: "Absorbed Health Buffer",
+      current: 0,
+      decayRate: "100 pts per 10 rounds (-2CS)",
+      overflowHazard: "Endurance FEAT vs. Kill if exceeding max buffer"
+    },
+    trigger: {
+      event: "on_take_damage",
+      damageTypes: ["blunt", "thrown_blunt", "shooting", "force", "energy"],
+      excludeTypes: ["edged", "wrestling", "mental", "magic"],
+      action: "buffer_health"
+    },
+    traitModifiers: [
+      {
+        targetStats: ["strength", "agility"],
+        thresholdFormula: "poolMax / 6",
+        csPerThreshold: 1,
+        maxCapRank: "Unearthly"
+      }
+    ],
+    powerStunts: [
+      "Kinetic Shockwave: Slam punches hitting the ground release an area shockwave",
+      "Overcharged Pummel: Unleash accumulated kinetic energy as a one-time +2CS bonus slugfest strike",
+      "Reactive Deflection: Convert incoming projectile kinetic momentum into a ricochet"
+    ]
+  },
+  {
+    code: "NPC_EC",
+    id: "NPC_EC",
+    name: "Energy Absorption & Re-channeling [Bishop]",
+    category: "Energy Control",
+    source: "Canonical NPC: Lucas Bishop (GHotMU 1992 Update / X-Men MU7)",
+    defaultRank: "Amazing",
+    rankNumber: 50,
+    countsAsTwo: true,
+    isStarred: true,
+    powerSlots: 2,
+    isNpcArchetype: true,
+    description: "Inherent biological battery that passively absorbs energy attacks (laser, electricity, thermal, plasma, radiation) and re-emits them as concussive kinetic or energy blast waves.",
+    rulesText: "The hero absorbs radiant and directed energy attacks up to Power Rank intensity without sustaining damage. Absorbed energy enters a capacitor pool (max 10 x Rank Number). The hero can fire concussive energy blasts dealing up to Power Rank damage (Agility to hit, 5 areas range), deducting points 1-for-1 from the pool. If hit by an energy attack exceeding Power Rank, the hero takes remaining damage and must make an Endurance FEAT vs. Stun.",
+    errataNote: "Reverse-engineered canonical rule: Bishop's cellular absorption allows him to safely tank and fire back laser and plasma attacks without special equipment.",
+    pool: {
+      maxFormula: "10 * rankNumber",
+      unit: "Stored Radiant Energy (Joules)",
+      current: 0,
+      decayRate: "50 pts per hour without discharge",
+      overflowHazard: "Endurance FEAT vs. Stun if attacked above Power Rank"
+    },
+    trigger: {
+      event: "on_take_damage",
+      damageTypes: ["energy", "fire_heat", "electricity", "radiation", "light", "plasma"],
+      excludeTypes: ["blunt", "edged", "mental", "magic"],
+      action: "store_energy"
+    },
+    traitModifiers: [
+      {
+        targetStats: ["strength"],
+        thresholdFormula: "100",
+        csPerThreshold: 1,
+        maxCapRank: "Remarkable"
+      }
+    ],
+    powerStunts: [
+      "Concussive Beam Discharge: Fire stored energy as a concentrated laser beam with +1CS Agility",
+      "Hyper-Accelerated Healing: Burn 100 energy capacitor points to instantly heal 20 Health",
+      "Flash Burst: Expel 30 points of energy in a blinding 1-area flash requiring Intuition FEAT"
+    ]
+  },
+  {
+    code: "NPC_MAV",
+    id: "NPC_MAV",
+    name: "Kinetic Absorption & Hyper-Metabolism [Maverick]",
+    category: "Energy Control",
+    source: "Canonical NPC: Christoph Nord / Maverick (GHotMU 1992 Update MU8)",
+    defaultRank: "Incredible",
+    rankNumber: 40,
+    countsAsTwo: true,
+    isStarred: true,
+    powerSlots: 2,
+    isNpcArchetype: true,
+    description: "Absorbs kinetic impact from falls, concussive blasts, and blunt strikes, converting the impact into explosive plasma blasts or temporary physical adrenaline surges.",
+    rulesText: "The hero absorbs kinetic energy from impacts, falls, and concussive strikes up to Power Rank intensity into a kinetic capacitor pool (max 5 x Rank Number). The hero can redirect the kinetic energy to project high-velocity plasma blasts from hands (Power Rank Force/Energy) or fuel hyper-metabolic physical bursts (+1CS Agility and Endurance per 40 pts). Kinetic charge decays at 20 points per round.",
+    errataNote: "Reverse-engineered canonical rule: Maverick's mutant ability allows him to survive terminal velocity falls and immediately return fire with kinetic plasma bolts.",
+    pool: {
+      maxFormula: "5 * rankNumber",
+      unit: "Absorbed Kinetic Units",
+      current: 0,
+      decayRate: "20 pts per round",
+      overflowHazard: "Endurance FEAT vs Stun if exceeding capacity"
+    },
+    trigger: {
+      event: "on_take_damage",
+      damageTypes: ["blunt", "force", "falling"],
+      excludeTypes: ["edged", "mental", "magic"],
+      action: "store_energy"
+    },
+    traitModifiers: [
+      {
+        targetStats: ["agility", "endurance"],
+        thresholdFormula: "40",
+        csPerThreshold: 1,
+        maxCapRank: "Amazing"
+      }
+    ],
+    powerStunts: [
+      "Concussive Hand Blast: Fire absorbed kinetic force as a devastating concussive energy bolt",
+      "Kinetic Fall Arrest: Absorb 100% of terminal velocity impact damage from falls up to 10 stories",
+      "Burst Sprint: Spend 40 kinetic pool points to sprint 3 areas in a single turn"
+    ]
+  },
+  {
+    code: "NPC_SUNSPOT",
+    id: "NPC_SUNSPOT",
+    name: "Solar Energy Absorption & Transformation [Sunspot]",
+    category: "Energy Control",
+    source: "Canonical NPC: Roberto da Costa / Sunspot (GHotMU MU5 / New Mutants)",
+    defaultRank: "Incredible",
+    rankNumber: 40,
+    countsAsTwo: true,
+    isStarred: true,
+    powerSlots: 2,
+    isNpcArchetype: true,
+    description: "Absorbs solar energy into bodily cells to transform into a pitch-black thermokinetic plasma state with superhuman physical strength and heat aura.",
+    rulesText: "The hero absorbs sunlight and ambient solar radiation to store in cells (pool max 10 x Rank Number). When transformed, bodily skin turns jet-black with a corona of dark plasma, increasing Strength from Typical (6) to Monstrous (75) and granting Incredible (40) Body Armor against heat and radiation. Depletes solar charge by 10 units per turn when exerting strength away from direct sunlight or in deep darkness.",
+    errataNote: "Reverse-engineered canonical rule: Models Roberto da Costa's iconic pitch-black solar form and physical power scaling.",
+    pool: {
+      maxFormula: "10 * rankNumber",
+      unit: "Solar Storage Units",
+      current: 400,
+      decayRate: "10 units per turn in darkness",
+      overflowHazard: "None"
+    },
+    trigger: {
+      event: "solar_exposure",
+      damageTypes: ["light", "radiation"],
+      action: "store_energy"
+    },
+    traitModifiers: [
+      {
+        targetStats: ["strength"],
+        mode: "set_to_pool",
+        maxCapRank: "Monstrous"
+      }
+    ],
+    powerStunts: [
+      "Solar Thermokinetic Blast: Project concentrated dark solar plasma bolts at Incredible 40 damage",
+      "Solar Flare Glare: Create an intense flash of blinding dark-corona light dazzling opponents",
+      "Thermic Lift: Emit downward thermal draft to hover or glide 2 areas per round"
+    ]
+  },
+  {
+    code: "NPC_CLOAK",
+    id: "NPC_CLOAK",
+    name: "Darkforce Conduit & Dimensional Aperture [Cloak]",
+    category: "Energy Control",
+    source: "Canonical NPC: Tyrone Johnson / Cloak (GHotMU MU2 / Cloak and Dagger)",
+    defaultRank: "Monstrous",
+    rankNumber: 75,
+    countsAsTwo: true,
+    isStarred: true,
+    powerSlots: 2,
+    isNpcArchetype: true,
+    description: "Body serves as an open living portal to the terrifying Darkforce Dimension, draining light, warmth, and life force from engulfed victims and enabling long-range teleportation.",
+    rulesText: "The hero's cloak and body open into the Darkforce Dimension. Opponents engulfed in the cloak or within the 1-area Darkforce aura must make an immediate Psyche FEAT vs Monstrous (75) intensity or suffer 75 points of cold/life-drain damage and debilitating psychic paralysis (drained of light and hope). The hero is intangible to physical attacks (Shift X Intangibility) and can teleport self and passengers through the Darkforce dimension up to 1,000 miles (requiring an Endurance FEAT for passengers).",
+    errataNote: "Reverse-engineered canonical rule: The hunger of the Darkforce requires immersion in living light or feeding upon evil souls.",
+    pool: null,
+    trigger: null,
+    traitModifiers: [],
+    powerStunts: [
+      "Darkforce Engulfment: Envelop up to 3 targets in his cloak, casting them into the Darkforce Dimension",
+      "Long-Range Portal: Open a dark aperture spanning up to 1,000 miles for allies",
+      "Intangible Dark Shift: Shift body out of phase with the physical realm, granting Shift X Intangibility"
+    ]
+  },
+
+  // --- PHYSICAL ENHANCEMENT (5 Powers) ---
+  {
+    code: "NPC_AS",
+    id: "NPC_AS",
+    name: "Adrenaline Surge [The Incredible Hulk]",
+    category: "Physical Enhancement",
+    source: "Canonical NPC: The Incredible Hulk (GHotMU MU3 / Avengers)",
+    defaultRank: "Monstrous",
+    rankNumber: 75,
+    countsAsTwo: true,
+    isStarred: true,
+    powerSlots: 2,
+    isNpcArchetype: true,
+    description: "Rage and combat trauma surge physical prowess, escalating Strength and Endurance higher the longer battle rages or the more damage is sustained.",
+    rulesText: "The hero's physical power increases in direct proportion to anger and injury. Each round of active combat, or upon taking more than 20 points of damage in a single round, the hero gains +1 Rage Token in their pool. Each token grants +1CS to Strength and Endurance (up to +RankNumber/10 Column Shifts max, capping at Shift Y/200). Tokens decay at 1 per round when calm or out of combat.",
+    errataNote: "Reverse-engineered canonical rule: Reflects the classic TSR 'The madder Hulk gets, the stronger Hulk gets' mechanic. At Monstrous rank (75), allows up to +7CS (scaling Monstrous 75 -> Shift Y 200).",
+    pool: {
+      maxFormula: "Math.floor(rankNumber / 10)",
+      unit: "Rage / Adrenaline Tokens",
+      current: 0,
+      decayRate: "1 token per round out of combat",
+      overflowHazard: "None (Prone to uncontrolled rampage)"
+    },
+    trigger: {
+      event: "on_combat_round",
+      damageTypes: ["any_damage", "stress"],
+      action: "surge_stats"
+    },
+    traitModifiers: [
+      {
+        targetStats: ["strength", "endurance"],
+        thresholdFormula: "1",
+        csPerThreshold: 1,
+        maxCapRank: "Shift Y"
+      }
+    ],
+    powerStunts: [
+      "Thunderclap: Clap hands together to produce a Monstrous concussive/sonic shockwave",
+      "Ground Stomp: Smash ground creating localized earthquake affecting 1 area",
+      "Leaping Boost: Channel adrenaline directly into triple leap distance"
+    ]
+  },
+  {
+    code: "NPC_MA",
+    id: "NPC_MA",
+    name: "Unstoppable Momentum [The Juggernaut]",
+    category: "Physical Enhancement",
+    source: "Canonical NPC: Cain Marko / Juggernaut (GHotMU MU3 / Children of the Atom)",
+    defaultRank: "Shift X",
+    rankNumber: 150,
+    countsAsTwo: true,
+    isStarred: true,
+    powerSlots: 2,
+    isNpcArchetype: true,
+    description: "Accelerating movement along a straight line builds unstoppable mystical kinetic mass, granting immunity to physical stoppage and catastrophic ramming devastation.",
+    rulesText: "Once the hero begins a straight-line charging action, they accumulate kinetic momentum. Each continuous area charged grants +1 Momentum Token (up to RankNumber/15 tokens max). Each token grants +1CS to charging ram damage and barrier destruction, and renders the hero immune to physical stoppage by barriers of Material Strength less than Power Rank (Shift X 150). Momentum immediately drops to 0 if the hero stops, turns more than 45 degrees, or is teleported.",
+    errataNote: "Reverse-engineered canonical rule: Implements the mystical unstoppable charge of the Cyttorak avatar.",
+    pool: {
+      maxFormula: "Math.floor(rankNumber / 15)",
+      unit: "Momentum Tokens",
+      current: 0,
+      decayRate: "Instantly resets to 0 upon stopping or sharp turn",
+      overflowHazard: "Collateral structural devastation"
+    },
+    trigger: {
+      event: "straight_charge",
+      damageTypes: [],
+      action: "boost_momentum"
+    },
+    traitModifiers: [
+      {
+        targetStats: ["strength"],
+        thresholdFormula: "1",
+        csPerThreshold: 1,
+        maxCapRank: "Shift Z"
+      }
+    ],
+    powerStunts: [
+      "Unstoppable Ram: Smash through reinforced bank vaults or blast doors up to Power Rank",
+      "Shockwave Trample: Cause slam checks against all combatants adjacent to the charge path",
+      "Anchored Inertia: Plant feet to become immovable against equal or lesser strength"
+    ]
+  },
+  {
+    code: "NPC_SG",
+    id: "NPC_SG",
+    name: "Kinetic Mass Escalation [Strong Guy]",
+    category: "Physical Enhancement",
+    source: "Canonical NPC: Guido Carosella / Strong Guy (GHotMU 1992 Update MU8 / X-Factor)",
+    defaultRank: "Incredible",
+    rankNumber: 40,
+    countsAsTwo: true,
+    isStarred: true,
+    powerSlots: 2,
+    isNpcArchetype: true,
+    description: "Absorbs incoming kinetic energy directly into upper bodily mass, swelling muscular volume and escalating physical Strength to superhuman extremes.",
+    rulesText: "Absorbs kinetic impact (blunt, force, falling) up to Power Rank intensity into a kinetic buffer pool (max 10 x Rank Number). For each 50 points absorbed, Strength increases by +1CS (up to Monstrous 75 or Unearthly 100). The accumulated energy must be expelled through physical combat strikes or heavy labor within 90 seconds (15 rounds); otherwise, the hero suffers an immediate Endurance FEAT vs. Heart Attack / Cardiac Trauma.",
+    errataNote: "Reverse-engineered canonical rule: Accurately reflects Guido's tragic power limitation requiring rapid discharge to protect his cardiovascular system.",
+    pool: {
+      maxFormula: "10 * rankNumber",
+      unit: "Kinetic Buffer Units",
+      current: 0,
+      decayRate: "50 pts per round after 90 seconds",
+      overflowHazard: "Endurance FEAT vs Heart Attack if not vented in 90 seconds"
+    },
+    trigger: {
+      event: "on_take_damage",
+      damageTypes: ["blunt", "force", "falling"],
+      action: "buffer_health"
+    },
+    traitModifiers: [
+      {
+        targetStats: ["strength"],
+        thresholdFormula: "50",
+        csPerThreshold: 1,
+        maxCapRank: "Unearthly"
+      }
+    ],
+    powerStunts: [
+      "Full-Body Body Slam: Hurl amplified bulk onto an opponent dealing accumulated kinetic damage",
+      "Rapid Ground Pound: Vent accumulated kinetic energy into the bedrock to avoid cardiac overload",
+      "Human Battering Ram: Charge through reinforced security doors using expanded upper body bulk"
+    ]
+  },
+  {
+    code: "NPC_QS",
+    id: "NPC_QS",
+    name: "Hyper-Accelerated Metabolism & Reflexes [Quicksilver]",
+    category: "Physical Enhancement",
+    source: "Canonical NPC: Pietro Maximoff / Quicksilver (GHotMU MU4 / Avengers)",
+    defaultRank: "Monstrous",
+    rankNumber: 75,
+    countsAsTwo: true,
+    isStarred: true,
+    powerSlots: 2,
+    isNpcArchetype: true,
+    description: "Metabolic and physiological acceleration enables running at land speeds up to 175 mph with lightning reflexes and multi-attack combat prowess.",
+    rulesText: "Speed across land at Power Rank (Monstrous 75 = 30 areas/round, 175 mph). Hyper-accelerated physiology grants +3CS to initiative rolls, +2CS to dodging, and the ability to make up to 3 separate slugfest attacks or physical actions per round without multiple action penalties. Can run across liquid surfaces (water, toxic waste) without sinking at top velocity.",
+    errataNote: "Reverse-engineered canonical rule: Quicksilver's physiological adaptation provides enhanced friction and oxygen consumption resistance.",
+    pool: null,
+    trigger: null,
+    traitModifiers: [],
+    powerStunts: [
+      "Cyclone Vortex: Run in tight circles at top speed to create an Incredible 40 vacuum/wind funnel",
+      "Machine-Gun Punch Flurry: Deliver a dozen rapid-fire punches to a single target for +1CS damage",
+      "Water-Running: Sprint across liquid surfaces (lakes, rivers) without sinking at top speed"
+    ]
+  },
+  {
+    code: "NPC_WOLV",
+    id: "NPC_WOLV",
+    name: "Adamantium Claws & Skeleton [Wolverine]",
+    category: "Physical Enhancement",
+    source: "Canonical NPC: Logan / Wolverine (GHotMU MU6 / X-Men)",
+    defaultRank: "Shift X",
+    rankNumber: 150,
+    countsAsTwo: true,
+    isStarred: true,
+    powerSlots: 2,
+    isNpcArchetype: true,
+    description: "Six 12-inch retractable razor claws and full skeletal structure bonded with indestructible Class 1000 / Shift X Adamantium alloy.",
+    rulesText: "Six 12-inch retractable claws extend from between the knuckles at will. Claws deal Monstrous (75) Edged damage (Fighting to hit), cutting through materials and Body Armor of less than Shift X material strength without resistance. Adamantium laced skeleton provides +1CS to slugfest punch damage and grants Incredible (40) Body Armor vs blunt attacks, broken bones, and physical compression.",
+    errataNote: "Reverse-engineered canonical rule: The adamantium bond makes Wolverine's claws and bones virtually unbreakable under all normal TSR damage scales.",
+    pool: null,
+    trigger: null,
+    traitModifiers: [],
+    powerStunts: [
+      "Whirlwind Claw Slash: Spin in close combat attacking up to 3 adjacent enemies in one round",
+      "Armor Slicer: Carve through armored vehicles, security bulkheads, and robotic chassis like butter",
+      "Savage Counter: When attacked in melee, make an immediate reactive counter-slash on Yellow+ FEAT"
+    ]
+  },
+
+  // --- SELF-ALTERATION (5 Powers) ---
+  {
+    code: "NPC_MD",
+    id: "NPC_MD",
+    name: "Material Duplication [Absorbing Man]",
+    category: "Self-Alteration",
+    source: "Canonical NPC: Crusher Creel / Absorbing Man (GHotMU MU1 / Avengers Assembled)",
+    defaultRank: "Unearthly",
+    rankNumber: 100,
+    countsAsTwo: true,
+    isStarred: true,
+    powerSlots: 2,
+    isNpcArchetype: true,
+    description: "Physical dermal contact with inorganic matter transmutes bodily composition to duplicate the material strength, durability, and texture of the touched substance.",
+    rulesText: "Touching an inorganic object (steel, stone, vibranium, adamantium, ice) instantly transforms the hero's body into that material. The hero's Strength and Body Armor become equal to the Material Strength of the substance (up to Power Rank maximum). The transformation lasts until another substance is touched or voluntarily dismissed. Touching exotic substances like Uru or cosmic artifacts requires a Psyche FEAT to maintain self-identity.",
+    errataNote: "Reverse-engineered canonical rule: Unearthly rank caps the maximum material strength the hero can mimic without losing mental cohesion (Unearthly 100 covers adamantium).",
+    pool: {
+      maxFormula: "rankNumber",
+      unit: "Material Strength Rank",
+      current: 0,
+      decayRate: "Maintained until dismissed or new contact",
+      overflowHazard: "Psyche FEAT vs. Loss of Identity if mimicking Class 1000 matter"
+    },
+    trigger: {
+      event: "touch_material",
+      damageTypes: [],
+      action: "mimic_material"
+    },
+    traitModifiers: [
+      {
+        targetStats: ["strength"],
+        mode: "set_to_pool",
+        maxCapRank: "Unearthly"
+      }
+    ],
+    powerStunts: [
+      "Wrecking Ball Fusion: Absorb weapon material while swinging to deal +1CS damage",
+      "Gaseous / Liquid Shift: Touch liquids or gases to become amorphous or vaporous",
+      "Compound Duplication: Touch two substances simultaneously (e.g. steel body + diamond fist)"
+    ]
+  },
+  {
+    code: "NPC_COL",
+    id: "NPC_COL",
+    name: "Organic Steel Transformation [Colossus]",
+    category: "Self-Alteration",
+    source: "Canonical NPC: Piotr Rasputin / Colossus (GHotMU MU2 / X-Men)",
+    defaultRank: "Monstrous",
+    rankNumber: 75,
+    countsAsTwo: true,
+    isStarred: true,
+    powerSlots: 2,
+    isNpcArchetype: true,
+    description: "At will, transforms entire cellular structure into a flexible, armored organic steel, elevating physical Strength and durability to superhuman heights.",
+    rulesText: "The hero can transform at will into living organic steel. In armored form, gains Monstrous (75) Strength, Monstrous (75) Body Armor against physical and energy attacks, and complete immunity to extremes of heat and cold (-50°F to 900°F). In steel form, does not require oxygen and cannot drown or suffocate.",
+    errataNote: "Reverse-engineered canonical rule: Piotr Rasputin's mutant form provides flawless full-body physical protection and titanic strength.",
+    pool: null,
+    trigger: null,
+    traitModifiers: [
+      {
+        targetStats: ["strength"],
+        mode: "set_to_pool",
+        maxCapRank: "Monstrous"
+      }
+    ],
+    powerStunts: [
+      "Fastball Special: Hurl an ally (like Wolverine) with Monstrous accuracy and force as a projectile",
+      "Shielding Hug: Enfold allies with armored body to protect them from explosions and cave-ins",
+      "Anvil Punch: Drive double-fisted strike into armored target with +1CS Slam chance"
+    ]
+  },
+  {
+    code: "NPC_JAMIE",
+    id: "NPC_JAMIE",
+    name: "Kinetic Duplication [Multiple Man]",
+    category: "Self-Alteration",
+    source: "Canonical NPC: Jamie Madrox / Multiple Man (GHotMU MU4 / X-Factor)",
+    defaultRank: "Remarkable",
+    rankNumber: 30,
+    countsAsTwo: true,
+    isStarred: true,
+    powerSlots: 2,
+    isNpcArchetype: true,
+    description: "Physical impact or conscious exertion spontaneously generates exact biological duplicates (dupes) of the hero, creating an instant squad or army.",
+    rulesText: "Upon physical impact (kinetic blow, slap, snap of fingers), creates exact biological duplicates of himself up to Power Rank number (30 at Remarkable rank). Each duplicate has identical FASERIP stats, knowledge, and equipment. Absorbing dupes back returns their memories, skills, and wounds (injuries are diluted across the collective health pool). Dupes can act independently or in synchronized swarm tactics.",
+    errataNote: "Reverse-engineered canonical rule: Jamie Madrox's duplicates each possess full human sentience and can learn independent skills.",
+    pool: {
+      maxFormula: "rankNumber",
+      unit: "Active Duplicates",
+      current: 0,
+      decayRate: "Maintained until re-absorbed",
+      overflowHazard: "None (Independent personalities may rebel)"
+    },
+    trigger: {
+      event: "on_take_impact",
+      damageTypes: ["blunt"],
+      action: "spawn_duplicate"
+    },
+    traitModifiers: [],
+    powerStunts: [
+      "Crowd Rush: Command 5+ duplicates to swarm and pin a single target with +2CS Grapple",
+      "Dupe Shield: Sacrificially position duplicates to intercept incoming projectiles and heavy strikes",
+      "Coordinated Flank: Multiple duplicates attack from flanking angles granting +1CS Fighting"
+    ]
+  },
+  {
+    code: "NPC_KITTY",
+    id: "NPC_KITTY",
+    name: "Molecular Phasing & Scrambling [Shadowcat]",
+    category: "Self-Alteration",
+    source: "Canonical NPC: Kitty Pryde / Shadowcat (GHotMU MU5 / X-Men)",
+    defaultRank: "Monstrous",
+    rankNumber: 75,
+    countsAsTwo: true,
+    isStarred: true,
+    powerSlots: 2,
+    isNpcArchetype: true,
+    description: "Slips bodily molecules through the atomic spaces of solid matter, walking through walls and catastrophically disrupting electronics and robotic systems.",
+    rulesText: "The hero can slip bodily atoms through the atomic spaces of solid matter, becoming completely intangible to physical and energy attacks (Monstrous 75 Phasing). Passing phased body parts through electrical, robotic, or electronic systems causes instantaneous catastrophic circuit disruption and scrambling (Monstrous 75 intensity system shutdown). Can phase other people and objects by maintaining physical contact.",
+    errataNote: "Reverse-engineered canonical rule: Kitty's phasing disrupts electrical flow, making her an existential threat to Sentinels and power armor.",
+    pool: null,
+    trigger: null,
+    traitModifiers: [],
+    powerStunts: [
+      "Air Walking: Phase molecules to tread upon atomic density of air molecules, walking upward",
+      "Mass Phasing: Extend phasing field to phase allies, vehicles, or falling debris through solid obstacles",
+      "Circuit Fry: Phase hand through robotic sentry or power armor core to instantly incapacitate target"
+    ]
+  },
+  {
+    code: "NPC_SYM",
+    id: "NPC_SYM",
+    name: "Symbiote Poly-Morph & Bonding [Venom / Carnage]",
+    category: "Self-Alteration",
+    source: "Canonical NPC: Venom & Carnage (GHotMU MU6 / Spider-Man)",
+    defaultRank: "Incredible",
+    rankNumber: 40,
+    countsAsTwo: true,
+    isStarred: true,
+    powerSlots: 2,
+    isNpcArchetype: true,
+    description: "Alien amorphous living symbiote that envelops the host, granting superhuman strength, organic webbing, shapeshifting poly-weaponry, and wall-crawling.",
+    rulesText: "The symbiote bonds with the host, granting +2CS to Strength and Agility, Incredible (40) Body Armor vs blunt and projectile damage, Wall-Crawling (Incredible 40), and Infinite Web-Shooting / Tendril generation (Incredible 40 material strength). Can morph limbs into lethal blades dealing Incredible Edged damage. The symbiote is highly vulnerable to Sonic attacks and intense Fire (-2CS resistance, takes +1CS damage).",
+    errataNote: "Reverse-engineered canonical rule: Grants iconic Klyntar abilities with authentic sonic and thermal vulnerabilities.",
+    pool: null,
+    trigger: null,
+    traitModifiers: [
+      {
+        targetStats: ["strength", "agility"],
+        thresholdFormula: "1",
+        csPerThreshold: 2,
+        maxCapRank: "Amazing"
+      }
+    ],
+    powerStunts: [
+      "Tendril Spear Volley: Sprout multiple lethal razor tendrils attacking up to 4 targets simultaneously",
+      "Camouflage Mimicry: Blend seamlessly into background granting Remarkable 30 Invisibility",
+      "Blade-Limb Morph: Shape limbs into lethal axes, blades, and scythes dealing Incredible Edged damage"
+    ]
+  },
+
+  // --- DEFENSIVE (2 Powers) ---
+  {
+    code: "NPC_SPD",
+    id: "NPC_SPD",
+    name: "Kinetic Rebound & Bouncing [Speedball]",
+    category: "Defensive",
+    source: "Canonical NPC: Robbie Baldwin / Speedball (GHotMU MU5 / New Warriors)",
+    defaultRank: "Amazing",
+    rankNumber: 50,
+    countsAsTwo: true,
+    isStarred: true,
+    powerSlots: 2,
+    isNpcArchetype: true,
+    description: "Envelops body in a field of colorful kinetic force bubbles upon impact, absorbing all concussive shocks and ricocheting with accelerating kinetic velocity.",
+    rulesText: "Surrounds body in an energetic kinetic bubble field upon physical impact. Grants Amazing (50) Body Armor against blunt attacks, falling, and concussive collisions. The hero can bounce off walls, obstacles, and opponents with increasing velocity, dealing kinetic ramming damage equal to accumulated momentum (up to Amazing 50 damage, rolled with Agility). Cannot be slammed while in bouncing state.",
+    errataNote: "Reverse-engineered canonical rule: Converts impact directly into frictionless bouncing momentum.",
+    pool: {
+      maxFormula: "rankNumber",
+      unit: "Momentum Bouncing Units",
+      current: 0,
+      decayRate: "Resets to 0 upon stopping bouncing",
+      overflowHazard: "None"
+    },
+    trigger: {
+      event: "on_take_impact",
+      damageTypes: ["blunt", "falling"],
+      action: "boost_momentum"
+    },
+    traitModifiers: [],
+    powerStunts: [
+      "Ricochet Slam: Bounce between 3 walls to slam into target with +2CS to hit and Slam result",
+      "Pinball Whirlwind: Rapidly bounce across entire area disrupting and knocking down multiple foes",
+      "Kinetic Bubble Cushion: Expand force bubble field to safely catch falling allies from high altitudes"
+    ]
+  },
+  {
+    code: "NPC_BLOB",
+    id: "NPC_BLOB",
+    name: "Anchored Gravity & Immovability [The Blob]",
+    category: "Defensive",
+    source: "Canonical NPC: Fred J. Dukes / The Blob (GHotMU MU1 / Brotherhood)",
+    defaultRank: "Monstrous",
+    rankNumber: 75,
+    countsAsTwo: true,
+    isStarred: true,
+    powerSlots: 2,
+    isNpcArchetype: true,
+    description: "Mono-directional gravitational anchoring and malleable blubbery tissue render the hero virtually immovable and invulnerable to physical trauma.",
+    rulesText: "The hero controls personal mono-directional gravity to anchor firmly to the ground with Monstrous (75) intensity. Cannot be knocked off feet, pushed, lifted, or slammed by any force of lower rank. Pliable fatty tissue provides Monstrous (75) Body Armor against blunt, edged, and projectile attacks, and can trap attacking weapons or limbs (Incredible 40 material strength trapping check).",
+    errataNote: "Reverse-engineered canonical rule: 'Nothing moves the Blob!' - Implements iconic gravity anchoring and projectile trapping.",
+    pool: null,
+    trigger: null,
+    traitModifiers: [],
+    powerStunts: [
+      "Projectile Deflection: Snatch incoming bullets or cannonballs in blubber and bounce them back",
+      "Belly Flop Trample: Leap 1 area and crush pinned opponents for Monstrous 75 blunt damage",
+      "Anchor Lockdown: Plant feet to hold onto collapsing buildings or mooring lines up to Shift X rank"
+    ]
+  },
+
+  // --- ENERGY EMISSION (5 Powers) ---
+  {
+    code: "NPC_ST",
+    id: "NPC_ST",
+    name: "Sound-to-Light Transduction [Dazzler]",
+    category: "Energy Emission",
+    source: "Canonical NPC: Alison Blaire / Dazzler (GHotMU MU2 / Children of the Atom)",
+    defaultRank: "Remarkable",
+    rankNumber: 30,
+    countsAsTwo: true,
+    isStarred: true,
+    powerSlots: 2,
+    isNpcArchetype: true,
+    description: "Transduces ambient acoustic vibrations and sonic attacks into coherent photonic lasers, blinding strobe flashes, and solid-light shields.",
+    rulesText: "The hero absorbs acoustic sound and sonic damage up to Power Rank intensity (immunity to sonic attacks). Sound is converted into photonic charges (pool max 5 x Rank Number). The hero can generate laser beams, solid light constructs, and blinding strobes dealing or defending at Power Rank intensity. In silent environments (vacuum or silence fields), power cannot recharge.",
+    errataNote: "Reverse-engineered canonical rule: Converts decibels to lumens. Rank determines both sonic absorption threshold and maximum photonic emission intensity.",
+    pool: {
+      maxFormula: "5 * rankNumber",
+      unit: "Sonic Charge Pool",
+      current: 0,
+      decayRate: "Dissipates gradually without continuous acoustic input",
+      overflowHazard: "Overload flash if acoustic capacity exceeded"
+    },
+    trigger: {
+      event: "ambient_sound",
+      damageTypes: ["sonic", "vibration", "noise"],
+      action: "store_energy"
+    },
+    traitModifiers: [],
+    powerStunts: [
+      "Strobe Hypnosis: Mesmerize targets in 1 area forcing Psyche FEAT vs. Confusion",
+      "Solid Light Shield: Form translucent energy shield defending at Power Rank",
+      "Laser Scalpel: Focus coherent light into precision cutting beam"
+    ]
+  },
+  {
+    code: "NPC_CS",
+    id: "NPC_CS",
+    name: "Cosmic Radiation Plasma Generation [Havok]",
+    category: "Energy Emission",
+    source: "Canonical NPC: Alex Summers / Havok (GHotMU MU3 / Children of the Atom)",
+    defaultRank: "Amazing",
+    rankNumber: 50,
+    countsAsTwo: true,
+    isStarred: true,
+    powerSlots: 2,
+    isNpcArchetype: true,
+    description: "Constant absorption of ambient cosmic and stellar radiation into a cellular battery, discharging devastating concentric plasma blast waves.",
+    rulesText: "The hero continuously absorbs cosmic rays from the atmosphere. The internal charge naturally saturates up to 10 x Rank Number. The hero can unleash concentric waves of superheated plasma at Power Rank damage and range. If prevented from discharging when saturated at 100%, the hero must make an Endurance FEAT every hour or suffer an uncontrolled radial burst.",
+    errataNote: "Reverse-engineered canonical rule: Models Alex Summers' iconic need to wear containment suits or vent plasma to prevent catastrophic involuntary release.",
+    pool: {
+      maxFormula: "10 * rankNumber",
+      unit: "Cosmic Plasma Charge",
+      current: 0,
+      decayRate: "Passive constant regeneration; accumulates over time",
+      overflowHazard: "Endurance FEAT vs. Uncontrolled Radial Discharge if 100% full"
+    },
+    trigger: {
+      event: "passive_ambient",
+      damageTypes: ["cosmic", "radiation"],
+      action: "store_energy"
+    },
+    traitModifiers: [],
+    powerStunts: [
+      "Concentric Blast Ring: Discharge 360-degree plasma ring hitting all targets in area",
+      "Superheated Disintegration: Focus plasma onto non-living barrier at +1CS damage",
+      "Plasma Propulsion: Channel bursts downward for short rocket-assisted jumps"
+    ]
+  },
+  {
+    code: "NPC_DAG",
+    id: "NPC_DAG",
+    name: "Living Light Daggers [Dagger]",
+    category: "Energy Emission",
+    source: "Canonical NPC: Tandy Bowen / Dagger (GHotMU MU2 / Cloak and Dagger)",
+    defaultRank: "Remarkable",
+    rankNumber: 30,
+    countsAsTwo: false,
+    isStarred: false,
+    powerSlots: 1,
+    isNpcArchetype: true,
+    description: "Generates 6-inch daggers of living bio-luminescent light from fingertips that seek targets, stun evil minds, and detoxify poisons.",
+    rulesText: "Can manifest 6-inch daggers of living bio-luminescent light from fingers. Light daggers can be thrown with +1CS Agility (3 areas range). Upon striking living beings, they deal Remarkable (30) energy damage, purge poisons, toxins, and drug addictions, and force evil/corrupted minds to undergo an agonizing conscience shock (Endurance FEAT vs Stun). Daggers can also track living targets around corners.",
+    errataNote: "Reverse-engineered canonical rule: Tandy Bowen's light daggers uniquely purify bodily toxins while shocking corrupted psyches.",
+    pool: null,
+    trigger: null,
+    traitModifiers: [],
+    powerStunts: [
+      "Homing Light Dagger: Direct thrown light daggers around cover and shields with +2CS to hit",
+      "Purifying Light Infusion: Drive light dagger into poisoned ally to instantly neutralize toxins",
+      "Light Flare Flare: Disperse light into a sudden radiant burst illuminating 5 areas and dispelling shadows"
+    ]
+  },
+  {
+    code: "NPC_BB",
+    id: "NPC_BB",
+    name: "Quasi-Sonic Hypersonic Vocalization [Black Bolt]",
+    category: "Energy Emission",
+    source: "Canonical NPC: Blackagar Boltagon / Black Bolt (GHotMU MU1 / Inhumans)",
+    defaultRank: "Unearthly",
+    rankNumber: 100,
+    countsAsTwo: true,
+    isStarred: true,
+    powerSlots: 2,
+    isNpcArchetype: true,
+    description: "Speech center harnesses cosmic electron energy, producing catastrophic acoustic devastation with a mere whisper and continent-shattering force with a scream.",
+    rulesText: "Speech center channels cosmic electrons. Even a quiet whisper unleashes Unearthly (100) concussive sonic destruction across 10 areas. A full-throated shout or scream delivers Shift Z (500) cataclysmic devastation capable of leveling mountains. Can also channel electron energy into a focused 'Master Blow' slugfest punch dealing Unearthly (100) damage, exhausting him for 1-10 turns afterward.",
+    errataNote: "Reverse-engineered canonical rule: The monarch of the Inhumans possesses one of the single most destructive offensive powers in the Marvel Universe.",
+    pool: null,
+    trigger: null,
+    traitModifiers: [],
+    powerStunts: [
+      "Electron Master Blow: Channel vocal electron energy into an unstoppable punch for 100 Blunt damage",
+      "Focused Ultrasonic Whisper: Target a single armored vehicle or bunker with a precision sonic pulse",
+      "Electron Force Shield: Channel vocal energy into a defensive barrier providing Unearthly protection"
+    ]
+  },
+  {
+    code: "NPC_GOR",
+    id: "NPC_GOR",
+    name: "Seismic Kinetic Stomp [Gorgon]",
+    category: "Energy Emission",
+    source: "Canonical NPC: Gorgon Petragon (GHotMU MU3 / Inhumans)",
+    defaultRank: "Monstrous",
+    rankNumber: 75,
+    countsAsTwo: true,
+    isStarred: true,
+    powerSlots: 2,
+    isNpcArchetype: true,
+    description: "Bull-like hooves generate localized earthquakes, seismic ground shockwaves, and fissures capable of toppling buildings and enemies.",
+    rulesText: "Stamping hooves on solid ground generates seismic shockwaves across up to 3 areas dealing Monstrous (75) kinetic force damage. Structures, vehicles, and enemies in contact with the ground take Monstrous damage and must make an Agility FEAT vs Slam/Fall. Can split solid stone and earth to create chasms.",
+    errataNote: "Reverse-engineered canonical rule: Reflects Gorgon's devastating ground-stomp shockwave mechanics.",
+    pool: null,
+    trigger: null,
+    traitModifiers: [],
+    powerStunts: [
+      "Seismic Fissure: Stomp to split the ground open, creating an impassable chasm 2 areas long",
+      "Upward Kinetic Shock: Stomp to launch heavy debris or parked cars into the air as projectiles",
+      "Targeted Tremor: Send a focused underground shockwave targeting a specific opponent's footing"
+    ]
+  },
+
+  // --- LIFEFORM CONTROL (3 Powers) ---
+  {
+    code: "NPC_PD",
+    id: "NPC_PD",
+    name: "Chemical Pheromone Control [Spider-Woman / Purple Man]",
+    category: "Lifeform Control",
+    source: "Canonical NPC: Jessica Drew / Zebediah Killgrave (GHotMU MU4 / MU5)",
+    defaultRank: "Incredible",
+    rankNumber: 40,
+    countsAsTwo: true,
+    isStarred: true,
+    powerSlots: 2,
+    isNpcArchetype: true,
+    description: "Exudes invisible biochemical pheromones that break down willpower and force compliance, mood alteration, terror, or hypnotic obedience.",
+    rulesText: "The hero secretes biochemical pheromones affecting all living beings within 1 area. Victims must succeed on a Psyche FEAT roll vs. Power Rank intensity or fall under the hero's emotional sway (adoration, docility, fear, or hypnotic obedience). Sealed environmental suits or synthetic oxygen supplies grant immunity. The effect fades over 10-100 rounds after leaving the pheromone zone.",
+    errataNote: "Reverse-engineered canonical rule: Parameterizes hypnotic verbal compulsion and biochemical allure into standard Psyche resistance FEATs.",
+    pool: {
+      maxFormula: "rankNumber",
+      unit: "Pheromone Concentration (%)",
+      current: 0,
+      decayRate: "Dissipates in 10-100 rounds in fresh air",
+      overflowHazard: "None"
+    },
+    trigger: {
+      event: "passive_aura",
+      damageTypes: ["chemical", "mental"],
+      action: "mental_compulsion"
+    },
+    traitModifiers: [],
+    powerStunts: [
+      "Terror Emission: Induce immediate flight/panic in targets within area",
+      "Targeted Allure: Focus pheromones on a single subject for +2CS to Reaction rolls",
+      "Docile Cloud: Render combatants lethargic and unwilling to initiate violence"
+    ]
+  },
+  {
+    code: "NPC_LONG",
+    id: "NPC_LONG",
+    name: "Probability Alternation Aura [Longshot]",
+    category: "Lifeform Control",
+    source: "Canonical NPC: Longshot (GHotMU MU3 / X-Men)",
+    defaultRank: "Amazing",
+    rankNumber: 50,
+    countsAsTwo: true,
+    isStarred: true,
+    powerSlots: 2,
+    isNpcArchetype: true,
+    description: "Psionic probability-manipulation field that unconsciously favors the hero with miraculous good fortune, provided their motives remain pure and unselfish.",
+    rulesText: "Whenever the hero or their allies face impossible odds or deadly danger, the probability aura grants +2CS to all FEAT rolls, while enemy critical successes are downgraded or result in bizarre weapon jams and freak misfires. However, if the power is invoked for purely selfish, corrupt, or evil ends, the probability reverses violently, inflicting -2CS on all the hero's rolls!",
+    errataNote: "Reverse-engineered canonical rule: Implements the iconic TSR moral-contingency probability mechanics for Longshot.",
+    pool: null,
+    trigger: null,
+    traitModifiers: [],
+    powerStunts: [
+      "Miracle Dodge: Automatically evade a lethal attack as a random coincidence deflects the blow",
+      "Lucky Ricochet: Throw a blade or missile with uncanny fortune, ricocheting off 3 items to hit",
+      "Fortunate Jam: Cause an opponent's firearm, energy blaster, or complex gadget to misfire and jam"
+    ]
+  },
+  {
+    code: "NPC_DOM",
+    id: "NPC_DOM",
+    name: "Subconscious Probability Field [Domino]",
+    category: "Lifeform Control",
+    source: "Canonical NPC: Neena Thurman / Domino (GHotMU 1992 Update MU7 / X-Force)",
+    defaultRank: "Remarkable",
+    rankNumber: 30,
+    countsAsTwo: false,
+    isStarred: false,
+    powerSlots: 1,
+    isNpcArchetype: true,
+    description: "Subconscious micro-telekinesis and probability field that creates improbable lucky coincidences in combat while in active motion.",
+    rulesText: "Initiates a subconscious telekinetic probability field whenever in active combat motion. Causes random improbable events to occur in her line of sight (+1CS to all her personal agility and combat FEATs, -1CS to all incoming attacks). Equipment jams, cords snap, and structural supports buckle in her favor.",
+    errataNote: "Reverse-engineered canonical rule: Domino's 'good luck' requires her to be moving or taking direct action to trigger the field.",
+    pool: null,
+    trigger: null,
+    traitModifiers: [],
+    powerStunts: [
+      "Stray Bullet Intercept: An incoming projectile is deflected by a freak piece of flying shrapnel",
+      "Hazard Trigger: Shoot a cable, steam pipe, or bolt just as an enemy moves past to trap them",
+      "Acrobatic Slip: Trip or fall gracefully, perfectly evading a sniper round or area explosion"
+    ]
+  },
+
+  // --- POWER CONTROL (1 Power) ---
+  {
+    code: "NPC_VD",
+    id: "NPC_VD",
+    name: "Bio-Temporal Power & Memory Leech [Rogue]",
+    category: "Power Control",
+    source: "Canonical NPC: Anna Marie / Rogue (GHotMU MU5 / Children of the Atom)",
+    defaultRank: "Monstrous",
+    rankNumber: 75,
+    countsAsTwo: true,
+    isStarred: true,
+    powerSlots: 2,
+    isNpcArchetype: true,
+    description: "Unprotected skin-to-skin contact drains the victim's vital Health, physical abilities, superpowers, and memories, empowering the hero with the stolen gifts.",
+    rulesText: "Unprotected dermal contact drains 10 Health per round from the victim into the hero's temporary pool. For every round of continuous contact, the hero absorbs the victim's powers, physical ability ranks, and memories (capped at the hero's Drain Power Rank) for a duration of (10 x contact rounds) in minutes. If contact continues until the victim is reduced to 0 Health, the transfer of memories and personality risks becoming permanent (requiring an immediate Psyche FEAT).",
+    errataNote: "Reverse-engineered canonical rule: The classic mutant power siphon. Drain rank caps the maximum rank of any stolen ability or power.",
+    pool: {
+      maxFormula: "rankNumber",
+      unit: "Stolen Vital Energy (HP)",
+      current: 0,
+      decayRate: "Fades at 1 round of retention per round of contact",
+      overflowHazard: "Psyche FEAT vs. Permanent Dual Personality if victim knocked to 0 HP"
+    },
+    trigger: {
+      event: "skin_contact",
+      damageTypes: ["life_drain"],
+      action: "drain_target"
+    },
+    traitModifiers: [],
+    powerStunts: [
+      "Power Combination: Simultaneously wield drained flight with existing superhuman strength",
+      "Memory Extraction: Rapidly sift target's memories to obtain passwords or tactical secrets",
+      "Non-Lethal Touch: Graze contact for 1 second to temporarily stun target without taking powers"
+    ]
+  },
+
+  // --- TRAVEL (1 Power) ---
+  {
+    code: "NPC_NC",
+    id: "NPC_NC",
+    name: "Brimstone Teleportation & Momentum Vectoring [Nightcrawler]",
+    category: "Travel",
+    source: "Canonical NPC: Kurt Wagner / Nightcrawler (GHotMU MU4 / X-Men)",
+    defaultRank: "Amazing",
+    rankNumber: 50,
+    countsAsTwo: true,
+    isStarred: true,
+    powerSlots: 2,
+    isNpcArchetype: true,
+    description: "Instantaneous teleportation through a sulfurous brimstone dimension with a loud 'BAMF!', carrying passengers and conserving or vectoring physical momentum.",
+    rulesText: "Teleports by traveling briefly through an alternate sulfurous dimension with a 'BAMF' sound and cloud of brimstone smoke. Can teleport up to 3 miles (or 5 areas in combat). Can maintain or redirect physical momentum between teleportation jumps. Teleporting with passengers requires an Endurance FEAT to prevent nausea/disorientation. Cannot teleport into solid matter (spatial sense automatically aborts).",
+    errataNote: "Reverse-engineered canonical rule: Nightcrawler's dimensional transition enables dazzling hit-and-run combat teleportation.",
+    pool: null,
+    trigger: null,
+    traitModifiers: [],
+    powerStunts: [
+      "Combat Rapid-BAMF: Teleport 3 times in a single round behind opponents, gaining +2CS to hit",
+      "Momentum Drop: Teleport an opponent 100 feet into the air to disarm or drop them",
+      "Brimstone Cloud Blind: Manifest a thick cloud of sulfurous smoke upon exit, dazzling enemies"
+    ]
+  },
+
+  // --- MENTAL ENHANCEMENT (1 Power) ---
+  {
+    code: "NPC_GR",
+    id: "NPC_GR",
+    name: "Penance Stare & Hellfire Scourge [Ghost Rider]",
+    category: "Mental Enhancement",
+    source: "Canonical NPC: Dan Ketch / Johnny Blaze / Ghost Rider (GHotMU MU2 / Midnight Sons)",
+    defaultRank: "Monstrous",
+    rankNumber: 75,
+    countsAsTwo: true,
+    isStarred: true,
+    powerSlots: 2,
+    isNpcArchetype: true,
+    description: "Eye contact subjects a guilty soul to all the pain, agony, and suffering they have ever inflicted on innocents, while hellfire scourges the physical and spiritual form.",
+    rulesText: "Locking eyes with a living or supernatural being forces the victim to experience all the pain, agony, and torment they have ever inflicted on others. The victim must make an immediate Psyche FEAT vs Monstrous (75) intensity or suffer psychic trauma equal to their own lifetime of sins (often causing catatonia, insanity, or immediate cardiac collapse). Can also wreath weapons and chains in mystical Hellfire dealing Monstrous (75) damage bypassing conventional physical armor.",
+    errataNote: "Reverse-engineered canonical rule: The Spirit of Vengeance's ultimate weapon. Ineffective against beings with no soul, blind beings, or multiple eyes.",
+    pool: null,
+    trigger: null,
+    traitModifiers: [],
+    powerStunts: [
+      "Hellfire Scourge: Imbue chains or weapons with mystical Hellfire dealing Monstrous 75 soul damage",
+      "Sin Tracking: Discern the guilt and evil deeds of a target through smell and spiritual aura",
+      "Nightmare Paralyze: Subject target to a momentary glare causing immediate 1-round terror freeze"
+    ]
+  }
+];
+
+// Register GHotMU powers into MSH_POWERS catalog under standard UPB categories
+if (typeof MSH_POWERS !== 'undefined' && Array.isArray(MSH_POWERS)) {
+  MSH_NPC_PRESET_POWERS.forEach(p => {
+    const isStar = !!(p.countsAsTwo || p.isStarred);
+    const existingIdx = MSH_POWERS.findIndex(ep => ep.id === p.code || ep.code === p.code);
+    const mapped = {
+      ...p,
+      id: p.code,
+      powerSlots: isStar ? 2 : (p.powerSlots || 1),
+      isStarred: isStar,
+      countsAsTwo: isStar,
+      errataNotes: p.errataNote || '',
+      stunts: p.powerStunts || []
+    };
+    if (existingIdx >= 0) {
+      MSH_POWERS[existingIdx] = mapped;
+    } else {
+      MSH_POWERS.push(mapped);
+    }
+  });
+}
+
 if (typeof globalThis !== 'undefined') {
   globalThis.POWERS_CATALOG = POWERS_CATALOG;
   globalThis.POWERS_BY_CODE = POWERS_BY_CODE;
   globalThis.POWERS_BY_NAME = POWERS_BY_NAME;
   globalThis.MSH_POWERS = MSH_POWERS;
+  globalThis.MSH_NPC_PRESET_POWERS = MSH_NPC_PRESET_POWERS;
+  globalThis.MSH_GHOTMU_POWERS = MSH_NPC_PRESET_POWERS;
   globalThis.POWER_ATTRIBUTES = POWER_ATTRIBUTES;
   globalThis.RANGE_BY_RANK = RANGE_BY_RANK;
   globalThis.FLIGHT_SPEED = FLIGHT_SPEED;
@@ -4633,6 +5568,8 @@ if (typeof module !== 'undefined' && module.exports) {
     POWERS_BY_CODE,
     POWERS_BY_NAME,
     MSH_POWERS,
+    MSH_NPC_PRESET_POWERS,
+    MSH_GHOTMU_POWERS: MSH_NPC_PRESET_POWERS,
     POWER_ATTRIBUTES,
     RANGE_BY_RANK,
     FLIGHT_SPEED,

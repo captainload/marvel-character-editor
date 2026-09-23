@@ -13,6 +13,93 @@ if (typeof globalThis.UniversalTableEngine === 'undefined' && typeof require !==
   Object.assign(globalThis, require('./data_equipment.js'));
 }
 
+function evalPoolMax(pool, rankValue) {
+  if (!pool) return 0;
+  if (pool.max !== undefined && typeof pool.max === 'number' && !pool.maxFormula) return pool.max;
+  const rankNumber = rankValue || 0;
+  if (typeof pool.maxFormula === 'string') {
+    try {
+      if (pool.maxFormula.includes('10 * rankNumber')) return 10 * rankNumber;
+      if (pool.maxFormula.includes('5 * rankNumber')) return 5 * rankNumber;
+      if (pool.maxFormula.includes('rankNumber / 10')) return Math.floor(rankNumber / 10);
+      if (pool.maxFormula.includes('rankNumber / 15')) return Math.floor(rankNumber / 15);
+      if (pool.maxFormula === 'rankNumber') return rankNumber;
+      const num = parseInt(pool.maxFormula);
+      if (!isNaN(num)) return num;
+      const safeFn = new Function('rankNumber', `return Math.floor(${pool.maxFormula});`);
+      return safeFn(rankNumber);
+    } catch (e) {
+      return rankNumber;
+    }
+  }
+  return pool.max || rankNumber;
+}
+
+function normalizePowerStunt(s, defaultLearned = true) {
+  if (typeof s === 'string') {
+    const colonIdx = s.indexOf(':');
+    const name = colonIdx >= 0 ? s.slice(0, colonIdx).trim() : s.trim();
+    const desc = colonIdx >= 0 ? s.slice(colonIdx + 1).trim() : '';
+    return {
+      id: 'stunt_' + Math.random().toString(36).substr(2, 6),
+      name: name || 'Stunt',
+      description: desc || name,
+      emulatedPowerId: null,
+      emulatedPowerName: null,
+      isLearned: defaultLearned,
+      redSuccesses: defaultLearned ? 1 : 0,
+      yellowSuccesses: defaultLearned ? 3 : 0,
+      greenSuccesses: defaultLearned ? 6 : 0,
+      attemptsCount: defaultLearned ? 10 : 0
+    };
+  }
+  const isLearned = s.isLearned !== undefined ? !!s.isLearned : defaultLearned;
+  const redSucc = isLearned ? 1 : Math.max(0, Math.min(1, parseInt(s.redSuccesses || 0)));
+  const yellowSucc = isLearned ? 3 : Math.max(0, Math.min(3, parseInt(s.yellowSuccesses || 0)));
+  const greenSucc = isLearned ? 6 : Math.max(0, Math.min(6, parseInt(s.greenSuccesses || 0)));
+  return {
+    id: s.id || 'stunt_' + Math.random().toString(36).substr(2, 6),
+    name: s.name || (s.stuntName || 'Unnamed Stunt'),
+    description: s.description || '',
+    emulatedPowerId: s.emulatedPowerId || null,
+    emulatedPowerName: s.emulatedPowerName || null,
+    isLearned: isLearned || (redSucc >= 1 && yellowSucc >= 3 && greenSucc >= 6),
+    redSuccesses: redSucc,
+    yellowSuccesses: yellowSucc,
+    greenSuccesses: greenSucc,
+    attemptsCount: parseInt(s.attemptsCount || (redSucc + yellowSucc + greenSucc))
+  };
+}
+
+function resolvePowerOperationalType(powerData, catalogPower = null) {
+  if (powerData && powerData.operationalType) return powerData.operationalType;
+  if (catalogPower && catalogPower.operationalType) return catalogPower.operationalType;
+
+  const duration = (powerData?.duration || catalogPower?.duration || '').toLowerCase();
+  const category = (powerData?.category || catalogPower?.category || '').toLowerCase();
+  const name = (powerData?.name || catalogPower?.name || '').toLowerCase();
+
+  // Instantaneous duration is inherently Active (requires an action each usage)
+  if (duration.includes('instant')) return 'active';
+
+  // Specific offensive emissions/attacks default to active
+  if (category.includes('energy emission') && !name.includes('shield') && !name.includes('field') && !name.includes('aura') && !name.includes('transduction')) {
+    return 'active';
+  }
+  if (category.includes('fighting') && !name.includes('armor') && !name.includes('weaponry')) {
+    return 'active';
+  }
+
+  // Maintained, Continuous, Permanent, Defenses, Self-Alteration, Physical Enhancement default to Passive
+  return 'passive';
+}
+
+if (typeof globalThis !== 'undefined') {
+  globalThis.evalPoolMax = evalPoolMax;
+  globalThis.normalizePowerStunt = normalizePowerStunt;
+  globalThis.resolvePowerOperationalType = resolvePowerOperationalType;
+}
+
 class FASERIPCharacter {
   constructor(initialData = {}) {
     this.id = initialData.id || 'hero_' + Date.now();
@@ -93,63 +180,79 @@ class FASERIPCharacter {
     };
 
     // Powers Catalog
+    const allCatalogPowers = [
+      ...(globalThis.MSH_POWERS || []),
+      ...(globalThis.MSH_NPC_PRESET_POWERS || [])
+    ];
+
     this.powers = Array.isArray(initialData.powers) ? initialData.powers.map(p => {
-      // Cross-reference canonical MSH_POWERS / POWERS_CATALOG for canonical starred status
-      const catalogPower = (globalThis.MSH_POWERS || []).find(cp => 
-        (p.code && cp.id === p.code) ||
-        (p.catalogId && cp.id === p.catalogId) ||
+      // Cross-reference canonical MSH_POWERS / MSH_NPC_PRESET_POWERS for canonical starred status
+      const catalogPower = allCatalogPowers.find(cp => 
+        (p.code && (cp.id === p.code || cp.code === p.code)) ||
+        (p.catalogId && (cp.id === p.catalogId || cp.code === p.catalogId)) ||
         (p.name && cp.name.toLowerCase() === p.name.toLowerCase()) ||
         (p.name && cp.name.toLowerCase().startsWith(p.name.toLowerCase()))
       );
       const isStarred = !!(p.isStarred || (catalogPower && (catalogPower.isStarred || catalogPower.countsAsTwo)));
       const isExceptional = !!(p.isExceptional || isStarred);
       const powerSlots = isStarred ? 2 : (p.powerSlots || (catalogPower ? catalogPower.powerSlots : 1));
+      const rankName = p.rankName || (catalogPower ? catalogPower.defaultRank : 'Good');
+      const rankVal = p.rankValue ?? (UniversalTableEngine.getRankByName(rankName) ? UniversalTableEngine.getRankByName(rankName).num : 10);
+
+      // Resolve pool & reactive modifier definitions
+      let pool = p.pool || (catalogPower && catalogPower.pool ? JSON.parse(JSON.stringify(catalogPower.pool)) : null);
+      if (pool) {
+        pool.max = evalPoolMax(pool, rankVal);
+        pool.current = Math.min(Math.max(0, parseInt(pool.current ?? 0)), pool.max);
+      }
+
+      const trigger = p.trigger || (catalogPower && catalogPower.trigger ? JSON.parse(JSON.stringify(catalogPower.trigger)) : null);
+      const traitModifiers = Array.isArray(p.traitModifiers) 
+        ? p.traitModifiers 
+        : (catalogPower && catalogPower.traitModifiers ? JSON.parse(JSON.stringify(catalogPower.traitModifiers)) : []);
 
       return {
         id: p.id || 'p_' + Date.now() + Math.random().toString(36).substr(2, 4),
         code: p.code || (catalogPower ? catalogPower.code : null),
-        name: p.name || 'Unnamed Power',
+        name: p.name || (catalogPower ? catalogPower.name : 'Unnamed Power'),
         category: p.category || (catalogPower ? catalogPower.category : 'Special'),
-        rankName: p.rankName || 'Good',
-        rankValue: p.rankValue ?? UniversalTableEngine.getRankByName(p.rankName || 'Good').num,
+        rankName: rankName,
+        rankValue: rankVal,
         powerSlots: powerSlots,
         isStarred: isStarred,
         isExceptional: isExceptional,
+        isNpcArchetype: !!(p.isNpcArchetype || (catalogPower && catalogPower.isNpcArchetype)),
+        isCustom: !!p.isCustom,
+        templateKey: p.templateKey || (catalogPower ? catalogPower.code : null),
         source: p.source || (catalogPower ? catalogPower.source : 'UPB'),
         range: p.range !== undefined ? p.range : (catalogPower ? catalogPower.range : null),
         duration: p.duration !== undefined ? p.duration : (catalogPower ? catalogPower.duration : null),
         areaOfEffect: p.areaOfEffect !== undefined ? p.areaOfEffect : (catalogPower ? catalogPower.areaOfEffect : null),
         targets: p.targets !== undefined ? p.targets : (catalogPower ? catalogPower.targets : null),
         speed: p.speed !== undefined ? p.speed : (catalogPower ? catalogPower.speed : null),
+        pool: pool,
+        trigger: trigger,
+        traitModifiers: traitModifiers,
         adjustments: p.adjustments || null,
         selectedOption: p.selectedOption || null,
         optionSubChoice: p.optionSubChoice || null,
         optionAcquisitionMethod: p.optionAcquisitionMethod || 'chosen',
         optionSurcharge: p.optionSurcharge !== undefined ? parseInt(p.optionSurcharge) : 0,
         isSuperiorOption: !!p.isSuperiorOption,
+        operationalType: p.operationalType || resolvePowerOperationalType(p, catalogPower),
+        isSwitchedOn: p.isSwitchedOn !== undefined ? !!p.isSwitchedOn : true,
+        isDisabled: p.isDisabled !== undefined ? !!p.isDisabled : false,
+        triggerConfig: p.triggerConfig ? JSON.parse(JSON.stringify(p.triggerConfig)) : {
+          mode: 'default',
+          masterPowerId: null,
+          masterPowerName: null,
+          invert: false,
+          conditionLabel: ''
+        },
         notes: p.notes || '',
-        stunts: Array.isArray(p.stunts) ? p.stunts.map(s => {
-          if (typeof s === 'string') {
-            return {
-              id: 'stunt_' + Math.random().toString(36).substr(2, 6),
-              name: s,
-              description: s,
-              emulatedPowerId: null,
-              emulatedPowerName: null,
-              isLearned: true,
-              attemptsCount: 3
-            };
-          }
-          return {
-            id: s.id || 'stunt_' + Math.random().toString(36).substr(2, 6),
-            name: s.name || 'Unnamed Stunt',
-            description: s.description || '',
-            emulatedPowerId: s.emulatedPowerId || null,
-            emulatedPowerName: s.emulatedPowerName || null,
-            isLearned: s.isLearned !== undefined ? !!s.isLearned : false,
-            attemptsCount: parseInt(s.attemptsCount || 0)
-          };
-        }) : []
+        stunts: Array.isArray(p.stunts) 
+          ? p.stunts.map(s => normalizePowerStunt(s, s.isLearned !== undefined ? !!s.isLearned : true))
+          : (catalogPower && Array.isArray(catalogPower.powerStunts) ? catalogPower.powerStunts.map(s => normalizePowerStunt(s, true)) : [])
       };
     }) : [];
 
@@ -245,8 +348,25 @@ class FASERIPCharacter {
       dateLearned: bp.dateLearned || new Date().toISOString()
     })) : [];
 
+    // Karmic Success House Rule (per-character preference)
+    this.karmicSuccess = initialData.karmicSuccess !== undefined ? !!initialData.karmicSuccess : false;
+    this.lastKarmaSpentOnRoll = initialData.lastKarmaSpentOnRoll || null;
+    this.lastKarmaSpentOnRankIncrease = initialData.lastKarmaSpentOnRankIncrease || null;
+
     // Karma Ledger & Advancement History
     this.advancementLog = Array.isArray(initialData.advancementLog) ? [...initialData.advancementLog] : [];
+    if (!this.lastKarmaSpentOnRankIncrease && this.advancementLog.length > 0) {
+      const lastAdv = this.advancementLog.find(e => e.type === 'advancement' || (e.amount < 0 && e.reason && e.reason.toLowerCase().includes('advanced')));
+      if (lastAdv) {
+        this.lastKarmaSpentOnRankIncrease = {
+          amount: Math.abs(lastAdv.amount || 0),
+          target: lastAdv.target || '',
+          from: lastAdv.from || '',
+          to: lastAdv.to || '',
+          category: lastAdv.category || 'ability'
+        };
+      }
+    }
     this.notes = initialData.notes || '';
 
     // Character Edit Log & Timeline Navigation
@@ -340,62 +460,206 @@ class FASERIPCharacter {
       baseAbs = this.individualAbilities;
     }
 
-    // Check for power modifications (e.g. Hyper-Strength Permanent Addition, Growth Atomic Gain/Growth)
-    if (Array.isArray(this.powers)) {
-      let strBonus = 0;
-      let overrideStrRank = null;
-      let overrideStrVal = null;
-
-      const hyperStr = this.powers.find(p => (p.code === 'P20' || (p.name && p.name.toLowerCase() === 'hyper-strength')) && p.selectedOption === 'permanent');
-      if (hyperStr) {
-        strBonus += (hyperStr.rankValue || 0);
-      }
-
-      const growthPower = this.powers.find(p => (p.code === 'S16' || (p.name && p.name.toLowerCase().includes('growth'))));
-      if (growthPower && baseAbs.strength) {
-        if (growthPower.selectedOption === 'gain') {
-          // Atomic Gain sets Strength equal to power rank if higher
-          if ((growthPower.rankValue || 0) > (baseAbs.strength.rankValue || 0)) {
-            overrideStrRank = growthPower.rankName;
-            overrideStrVal = growthPower.rankValue;
-          }
-        } else if (growthPower.selectedOption === 'growth' && typeof UniversalTableEngine !== 'undefined') {
-          // Atomic Growth grants +1CS Strength
-          const shifted = UniversalTableEngine.applyColumnShift(baseAbs.strength.rankName, 1);
-          const shiftedNum = (typeof shifted === 'object' && shifted.num !== undefined) ? shifted.num : UniversalTableEngine.getRankByName(shifted).num;
-          strBonus += Math.max(0, shiftedNum - (baseAbs.strength.rankValue || 0));
-        }
-      }
-
-      if ((strBonus > 0 || overrideStrVal !== null) && baseAbs.strength) {
-        const totalVal = (overrideStrVal !== null ? overrideStrVal : (baseAbs.strength.rankValue || 0)) + strBonus;
-        const rankObj = (typeof UniversalTableEngine !== 'undefined') 
-          ? UniversalTableEngine.getRankByNum(totalVal) 
-          : { name: overrideStrRank || baseAbs.strength.rankName, num: totalVal };
-        return {
-          ...baseAbs,
-          strength: {
-            ...baseAbs.strength,
-            rankName: rankObj.name,
-            rankValue: totalVal,
-            bonusFromPower: strBonus + (overrideStrVal !== null ? (overrideStrVal - (baseAbs.strength.rankValue || 0)) : 0)
-          }
+    // Clone ability references so we can modify without mutating base state
+    const activeAbs = {};
+    for (const key of ['fighting', 'agility', 'strength', 'endurance', 'reason', 'intuition', 'psyche']) {
+      if (baseAbs && baseAbs[key]) {
+        activeAbs[key] = {
+          ...baseAbs[key],
+          bonusFromPower: 0,
+          isBoosted: false
         };
       }
     }
 
-    return baseAbs;
+    if (!Array.isArray(this.powers)) return activeAbs;
+
+    // 1. Legacy canonical UPB checks (Hyper-Strength Permanent Addition, Growth Atomic Gain/Growth)
+    let strBonus = 0;
+    let overrideStrRank = null;
+    let overrideStrVal = null;
+
+    const hyperStr = this.powers.find(p => (p.code === 'P20' || (p.name && p.name.toLowerCase() === 'hyper-strength')) && (p.selectedOption === 'permanent' || !p.selectedOption || p.selectedOption === 'addition'));
+    if (hyperStr && this.isPowerOperating(hyperStr.id)) {
+      strBonus += (hyperStr.rankValue || 0);
+    }
+
+    const growthPower = this.powers.find(p => (p.code === 'S16' || (p.name && p.name.toLowerCase().includes('growth'))));
+    if (growthPower && this.isPowerOperating(growthPower.id) && activeAbs.strength) {
+      if (growthPower.selectedOption === 'gain') {
+        if ((growthPower.rankValue || 0) > (activeAbs.strength.rankValue || 0)) {
+          overrideStrRank = growthPower.rankName;
+          overrideStrVal = growthPower.rankValue;
+        }
+      } else if (growthPower.selectedOption === 'growth' && typeof UniversalTableEngine !== 'undefined') {
+        const shifted = UniversalTableEngine.applyColumnShift(activeAbs.strength.rankName, 1);
+        const shiftedNum = (typeof shifted === 'object' && shifted.num !== undefined) ? shifted.num : UniversalTableEngine.getRankByName(shifted).num;
+        strBonus += Math.max(0, shiftedNum - (activeAbs.strength.rankValue || 0));
+      }
+    }
+
+    if ((strBonus > 0 || overrideStrVal !== null) && activeAbs.strength) {
+      const totalVal = (overrideStrVal !== null ? overrideStrVal : (activeAbs.strength.rankValue || 0)) + strBonus;
+      const rankObj = (typeof UniversalTableEngine !== 'undefined') 
+        ? UniversalTableEngine.getRankByNum(totalVal) 
+        : { name: overrideStrRank || activeAbs.strength.rankName, num: totalVal };
+      activeAbs.strength.rankName = rankObj.name;
+      activeAbs.strength.rankValue = totalVal;
+      activeAbs.strength.bonusFromPower = strBonus + (overrideStrVal !== null ? (overrideStrVal - (baseAbs.strength.rankValue || 0)) : 0);
+      activeAbs.strength.isBoosted = true;
+    }
+
+    // 2. Reactive Trait Modifiers & Power Pools (Reverse-Engineered NPC & Custom Powers)
+    this.powers.forEach(p => {
+      if (!this.isPowerOperating(p.id)) return;
+      if (!p.traitModifiers || !Array.isArray(p.traitModifiers) || p.traitModifiers.length === 0) return;
+      const currentCharge = (p.pool && typeof p.pool.current === 'number') ? p.pool.current : 0;
+      const poolMax = (p.pool && typeof p.pool.max === 'number') ? p.pool.max : 0;
+
+      p.traitModifiers.forEach(mod => {
+        const targets = Array.isArray(mod.targetStats) ? mod.targetStats : (mod.targetStat ? [mod.targetStat] : []);
+        targets.forEach(rawStat => {
+          const statKey = (rawStat || '').toLowerCase().trim();
+          if (!activeAbs[statKey]) return;
+
+          if (mod.mode === 'set_to_pool') {
+            // e.g. Material Duplication or Organic Steel
+            const valToSet = p.pool ? currentCharge : (p.rankValue || 75);
+            if (valToSet > 0 && typeof UniversalTableEngine !== 'undefined') {
+              let finalRank = UniversalTableEngine.getRankByNum(valToSet);
+              if (mod.maxCapRank) {
+                const capObj = UniversalTableEngine.getRankByName(mod.maxCapRank);
+                if (capObj && finalRank.num > capObj.num) finalRank = capObj;
+              }
+              if (finalRank.num > activeAbs[statKey].rankValue) {
+                const diff = finalRank.num - activeAbs[statKey].rankValue;
+                activeAbs[statKey].rankName = finalRank.name;
+                activeAbs[statKey].rankValue = finalRank.num;
+                activeAbs[statKey].bonusFromPower = (activeAbs[statKey].bonusFromPower || 0) + diff;
+                activeAbs[statKey].isBoosted = true;
+              }
+            }
+          } else {
+            // Column Shift scaling based on pool charge
+            let threshold = 50; // default for Remarkable Kinetic Absorption
+            if (mod.thresholdFormula === 'poolMax / 6' && poolMax > 0) {
+              threshold = poolMax / 6;
+            } else if (mod.thresholdFormula === '1') {
+              threshold = 1;
+            } else if (typeof mod.thresholdRatio === 'number' && mod.thresholdRatio > 0) {
+              threshold = mod.thresholdRatio;
+            } else if (typeof mod.scalingRatio === 'number' && mod.scalingRatio > 0) {
+              threshold = mod.scalingRatio;
+            } else if (typeof mod.thresholdFormula === 'string') {
+              const parsed = parseFloat(mod.thresholdFormula);
+              if (!isNaN(parsed) && parsed > 0) threshold = parsed;
+            }
+
+            const csPerStep = mod.csPerThreshold || mod.csBonus || 1;
+            let calculatedCS = (threshold > 0 && currentCharge > 0)
+              ? Math.floor(currentCharge / threshold) * csPerStep
+              : 0;
+
+            if (mod.maxCS && calculatedCS > mod.maxCS) {
+              calculatedCS = mod.maxCS;
+            }
+
+            if (calculatedCS > 0 && typeof UniversalTableEngine !== 'undefined') {
+              const currentRankName = activeAbs[statKey].rankName;
+              let shifted = UniversalTableEngine.applyColumnShift(currentRankName, calculatedCS);
+              if (mod.maxCapRank) {
+                const capObj = UniversalTableEngine.getRankByName(mod.maxCapRank);
+                if (capObj && shifted.num > capObj.num) {
+                  shifted = capObj;
+                }
+              }
+              if (shifted.num > activeAbs[statKey].rankValue) {
+                const diff = shifted.num - activeAbs[statKey].rankValue;
+                activeAbs[statKey].rankName = shifted.name;
+                activeAbs[statKey].rankValue = shifted.num;
+                activeAbs[statKey].bonusFromPower = (activeAbs[statKey].bonusFromPower || 0) + diff;
+                activeAbs[statKey].isBoosted = true;
+              }
+            }
+          }
+        });
+      });
+    });
+
+    return activeAbs;
+  }
+
+  getBaseHealth() {
+    let baseAbs = this.abilities;
+    if (this.isSwarmForm && this.activeSwarmProfile === 'individual' && this.individualAbilities) {
+      baseAbs = this.individualAbilities;
+    }
+    return (
+      (baseAbs?.fighting?.rankValue || 0) +
+      (baseAbs?.agility?.rankValue || 0) +
+      (baseAbs?.strength?.rankValue || 0) +
+      (baseAbs?.endurance?.rankValue || 0)
+    );
+  }
+
+  calculateHealthBreakdown() {
+    const baseHealthMax = this.getBaseHealth();
+    const totalMaxHealth = this.calculateMaxHealth();
+    const currentHealth = Math.max(0, this.currentHealth !== undefined && this.currentHealth !== null ? this.currentHealth : totalMaxHealth);
+
+    // Any Health that exceeds base goes into Bonus Health (uncapped)
+    const currentBaseHealth = Math.min(baseHealthMax, currentHealth);
+    const currentBonusHealth = Math.max(0, currentHealth - baseHealthMax);
+    const powerBonusHealth = Math.max(0, totalMaxHealth - baseHealthMax);
+
+    return {
+      baseHealth: currentBaseHealth,
+      baseHealthMax,
+      bonusHealth: currentBonusHealth,
+      powerBonusHealth,
+      totalMaxHealth,
+      currentHealth
+    };
   }
 
   calculateMaxHealth() {
     if (this.manualMaxHealth !== null) return this.manualMaxHealth;
+    
+    // Base abilities without temporary power shifts
+    let baseAbs = this.abilities;
+    if (this.isSwarmForm && this.activeSwarmProfile === 'individual' && this.individualAbilities) {
+      baseAbs = this.individualAbilities;
+    }
+
     const abs = this.getActiveAbilities();
-    return (
-      (abs.fighting.rankValue || 0) +
-      (abs.agility.rankValue || 0) +
-      (abs.strength.rankValue || 0) +
-      (abs.endurance.rankValue || 0)
+    let baseHealth = (
+      (abs?.fighting?.rankValue || 0) +
+      (abs?.agility?.rankValue || 0) +
+      (abs?.strength?.rankValue || 0) +
+      (abs?.endurance?.rankValue || 0)
     );
+
+    // Incorporate active temporary health buffers from powers (e.g. Kinetic Absorption)
+    let bufferHealthBonus = 0;
+    let maxHealthCap = null;
+    if (Array.isArray(this.powers)) {
+      this.powers.forEach(p => {
+        if (!this.isPowerOperating(p.id)) return;
+        if (p.trigger && p.trigger.action === 'buffer_health' && p.pool && p.pool.current > 0) {
+          bufferHealthBonus += p.pool.current;
+          if (p.pool.maxHealthCap) {
+            maxHealthCap = p.pool.maxHealthCap;
+          }
+        }
+      });
+    }
+
+    let totalHealth = baseHealth + bufferHealthBonus;
+    if (maxHealthCap !== null && totalHealth > maxHealthCap) {
+      totalHealth = maxHealthCap;
+    }
+
+    return totalHealth;
   }
 
   calculateBaseKarma() {
@@ -441,13 +705,23 @@ class FASERIPCharacter {
 
     if (Array.isArray(this.powers)) {
       this.powers.forEach(p => {
+        if (!this.isPowerOperating(p.id)) return;
         const code = p.code || '';
         const nameLower = (p.name || '').toLowerCase();
         const baseRank = p.rankName || 'Typical';
         const baseVal = p.rankValue !== undefined ? p.rankValue : (getRank(baseRank).num || 6);
 
-        // 1. Body Armor (D1 or by name)
-        if (code === 'D1' || nameLower === 'body armor') {
+        // 1. Body Armor (D1, by name, or Organic Steel)
+        if (code === 'D1' || nameLower === 'body armor' || code === 'NPC_COL' || nameLower.includes('organic steel')) {
+          if (code === 'NPC_COL' || nameLower.includes('organic steel')) {
+            if (baseVal > defenses.bodyArmor.physical) {
+              defenses.bodyArmor.physical = baseVal;
+              defenses.bodyArmor.energy = baseVal;
+              defenses.bodyArmor.rankName = baseRank;
+              defenses.bodyArmor.notes = 'Organic Steel Armored Form';
+            }
+            return;
+          }
           const opt = p.selectedOption || 'balanced';
           if (opt === 'physical_only') {
             const shiftedRank = shift(baseRank, 1);
@@ -608,7 +882,9 @@ class FASERIPCharacter {
 
   updateHealth(delta) {
     const maxH = this.calculateMaxHealth();
-    this.currentHealth = Math.max(0, Math.min(maxH * 2, this.currentHealth + delta));
+    const cur = this.currentHealth !== undefined && this.currentHealth !== null ? this.currentHealth : maxH;
+    // Health is non-negative and uncapped on the upper end (bonus health accumulates without arbitrary multiplier caps)
+    this.currentHealth = Math.max(0, cur + delta);
     return this.currentHealth;
   }
 
@@ -642,10 +918,15 @@ class FASERIPCharacter {
     if (!powerData) return null;
     if (!Array.isArray(this.powers)) this.powers = [];
 
-    const catalogPower = (globalThis.MSH_POWERS || []).find(cp => 
-      (powerData.code && cp.id === powerData.code) ||
-      (powerData.id && cp.id === powerData.id) ||
-      (powerData.catalogId && cp.id === powerData.catalogId) ||
+    const allCatalogPowers = [
+      ...(globalThis.MSH_POWERS || []),
+      ...(globalThis.MSH_NPC_PRESET_POWERS || [])
+    ];
+
+    const catalogPower = allCatalogPowers.find(cp => 
+      (powerData.code && (cp.id === powerData.code || cp.code === powerData.code)) ||
+      (powerData.id && (cp.id === powerData.id || cp.code === powerData.id)) ||
+      (powerData.catalogId && (cp.id === powerData.catalogId || cp.code === powerData.catalogId)) ||
       (powerData.name && cp.name.toLowerCase() === powerData.name.toLowerCase()) ||
       (powerData.name && cp.name.toLowerCase().startsWith(powerData.name.toLowerCase()))
     );
@@ -654,9 +935,20 @@ class FASERIPCharacter {
     const isExceptional = !!(powerData.isExceptional || isStarred);
     const powerSlots = isStarred ? 2 : (powerData.powerSlots || (catalogPower ? catalogPower.powerSlots : 1));
 
-    const rankName = powerData.rankName || powerData.rank || 'Good';
+    const rankName = powerData.rankName || powerData.rank || (catalogPower ? catalogPower.defaultRank : 'Good');
     const rankObj = UniversalTableEngine.getRankByName(rankName);
-    const rankVal = powerData.rankValue ?? powerData.rankNum ?? rankObj.num;
+    const rankVal = powerData.rankValue ?? powerData.rankNum ?? (rankObj ? rankObj.num : 10);
+
+    let pool = powerData.pool || (catalogPower && catalogPower.pool ? JSON.parse(JSON.stringify(catalogPower.pool)) : null);
+    if (pool) {
+      pool.max = evalPoolMax(pool, rankVal);
+      pool.current = Math.min(Math.max(0, parseInt(pool.current ?? 0)), pool.max);
+    }
+
+    const trigger = powerData.trigger || (catalogPower && catalogPower.trigger ? JSON.parse(JSON.stringify(catalogPower.trigger)) : null);
+    const traitModifiers = Array.isArray(powerData.traitModifiers)
+      ? [...powerData.traitModifiers]
+      : (catalogPower && catalogPower.traitModifiers ? JSON.parse(JSON.stringify(catalogPower.traitModifiers)) : []);
 
     const newPower = {
       id: powerData.id || 'p_' + Date.now() + Math.random().toString(36).substr(2, 4),
@@ -668,29 +960,235 @@ class FASERIPCharacter {
       powerSlots: powerSlots,
       isStarred: isStarred,
       isExceptional: isExceptional,
+      isNpcArchetype: !!(powerData.isNpcArchetype || (catalogPower && catalogPower.isNpcArchetype)),
+      isCustom: !!powerData.isCustom,
+      templateKey: powerData.templateKey || (catalogPower ? catalogPower.code : null),
       source: powerData.source || (catalogPower ? catalogPower.source : 'UPB'),
       range: powerData.range !== undefined ? powerData.range : (catalogPower ? catalogPower.range : null),
       duration: powerData.duration !== undefined ? powerData.duration : (catalogPower ? catalogPower.duration : null),
       areaOfEffect: powerData.areaOfEffect !== undefined ? powerData.areaOfEffect : (catalogPower ? catalogPower.areaOfEffect : null),
       targets: powerData.targets !== undefined ? powerData.targets : (catalogPower ? catalogPower.targets : null),
       speed: powerData.speed !== undefined ? powerData.speed : (catalogPower ? catalogPower.speed : null),
+      pool: pool,
+      trigger: trigger,
+      traitModifiers: traitModifiers,
       adjustments: powerData.adjustments || null,
       selectedOption: powerData.selectedOption || null,
       optionSubChoice: powerData.optionSubChoice || null,
       optionAcquisitionMethod: powerData.optionAcquisitionMethod || 'chosen',
       optionSurcharge: powerData.optionSurcharge !== undefined ? parseInt(powerData.optionSurcharge) : 0,
       isSuperiorOption: !!powerData.isSuperiorOption,
+      operationalType: powerData.operationalType || resolvePowerOperationalType(powerData, catalogPower),
+      isSwitchedOn: powerData.isSwitchedOn !== undefined ? !!powerData.isSwitchedOn : true,
+      isDisabled: powerData.isDisabled !== undefined ? !!powerData.isDisabled : false,
+      triggerConfig: powerData.triggerConfig ? JSON.parse(JSON.stringify(powerData.triggerConfig)) : {
+        mode: 'default',
+        masterPowerId: null,
+        masterPowerName: null,
+        invert: false,
+        conditionLabel: ''
+      },
       notes: powerData.notes || '',
-      stunts: Array.isArray(powerData.stunts) ? [...powerData.stunts] : []
+      stunts: Array.isArray(powerData.stunts)
+        ? powerData.stunts.map(s => normalizePowerStunt(s, s.isLearned !== undefined ? !!s.isLearned : true))
+        : (catalogPower && Array.isArray(catalogPower.powerStunts) ? catalogPower.powerStunts.map(s => normalizePowerStunt(s, true)) : [])
     };
 
     this.powers.push(newPower);
+    if (this.calculateDefenses) this.calculateDefenses();
     return newPower;
+  }
+
+  setPowerRank(powerId, newRankName) {
+    if (!Array.isArray(this.powers)) return null;
+    const power = typeof powerId === 'number' ? this.powers[powerId] : this.powers.find(p => p.id === powerId);
+    if (!power) return null;
+
+    const rankObj = (typeof UniversalTableEngine !== 'undefined')
+      ? UniversalTableEngine.getRankByName(newRankName)
+      : null;
+    if (!rankObj) return null;
+
+    const oldRankName = power.rankName;
+    const oldRankValue = power.rankValue;
+
+    power.rankName = rankObj.name;
+    power.rankValue = rankObj.num;
+
+    // Rescale pool max if power has an active pool based on rank
+    if (power.pool) {
+      power.pool.max = evalPoolMax(power.pool, rankObj.num);
+      power.pool.current = Math.min(power.pool.current || 0, power.pool.max);
+    }
+
+    // Reset adjustments if rank changes to avoid out-of-sync stat shifts
+    if (power.adjustments) {
+      power.adjustments = null;
+    }
+
+    if (this.calculateDefenses) this.calculateDefenses();
+    if (this.calculateMaxHealth) this.calculateMaxHealth();
+
+    return {
+      power,
+      oldRankName,
+      oldRankValue,
+      newRankName: rankObj.name,
+      newRankValue: rankObj.num
+    };
+  }
+
+  setPowerPoolCharge(powerId, chargeAmount) {
+    if (!Array.isArray(this.powers)) return null;
+    const power = this.powers.find(p => p.id === powerId);
+    if (!power || !power.pool) return null;
+
+    const maxVal = power.pool.max ?? 100;
+    const target = Math.max(0, Math.min(parseInt(chargeAmount) || 0, maxVal));
+    power.pool.current = target;
+
+    if (this.calculateDefenses) this.calculateDefenses();
+    return target;
+  }
+
+  getPowerDerivedEffects(power) {
+    if (!power || !power.pool) return 'No active pool';
+    const cur = power.pool.current || 0;
+    const effects = [];
+
+    if (power.trigger && power.trigger.action === 'buffer_health') {
+      effects.push(`Buffer: +${cur} Health`);
+    }
+
+    if (Array.isArray(power.traitModifiers) && power.traitModifiers.length > 0) {
+      power.traitModifiers.forEach(m => {
+        const stats = m.targetStats || (m.targetTrait ? [m.targetTrait] : ['strength']);
+        if (m.mode === 'set_to_pool') {
+          effects.push(`${stats.join('/')} = Rank ${cur}`);
+        } else {
+          let perUnits = m.perChargeUnits || 50;
+          if (m.thresholdFormula === 'poolMax / 6') {
+            perUnits = Math.max(1, Math.round((power.pool.max || 300) / 6));
+          } else if (m.thresholdFormula === '1') {
+            perUnits = 1;
+          }
+          const steps = Math.floor(cur / (perUnits || 1));
+          const cs = Math.min(steps * (m.csPerThreshold || m.shiftPerStep || 1), m.maxColumnShift || 30);
+          if (cs > 0) {
+            effects.push(`+${cs}CS to ${stats.join('/')}`);
+          }
+        }
+      });
+    }
+
+    return effects.length > 0 ? effects.join(' | ') : 'No active charge benefits';
   }
 
   removePower(powerId) {
     if (!Array.isArray(this.powers)) return;
     this.powers = this.powers.filter(p => p.id !== powerId);
+  }
+
+  isPowerOperating(powerId, visited = new Set()) {
+    if (!powerId || !Array.isArray(this.powers)) return false;
+    const p = this.powers.find(x => x.id === powerId);
+    if (!p) return false;
+
+    // If disabled / neutralized, power is shut down completely
+    if (p.isDisabled) return false;
+
+    // Active powers require an action each use, but are available to operate unless disabled
+    const opType = p.operationalType || 'passive';
+    if (opType === 'active') {
+      return true;
+    }
+
+    // Passive powers check triggers or switch state
+    const cfg = p.triggerConfig || {};
+    if (cfg.mode === 'linked' && cfg.masterPowerId) {
+      if (visited.has(powerId)) {
+        return !!p.isSwitchedOn;
+      }
+      visited.add(powerId);
+
+      const master = this.powers.find(x => x.id === cfg.masterPowerId);
+      if (!master) {
+        return !!p.isSwitchedOn;
+      }
+
+      const masterOperating = this.isPowerOperating(master.id, visited);
+      return cfg.invert ? !masterOperating : masterOperating;
+    }
+
+    return p.isSwitchedOn !== undefined ? !!p.isSwitchedOn : true;
+  }
+
+  togglePowerSwitch(powerId, forceState = null) {
+    if (!Array.isArray(this.powers)) return null;
+    const p = this.powers.find(x => x.id === powerId);
+    if (!p) return null;
+
+    const oldState = !!p.isSwitchedOn;
+    const newState = forceState !== null ? !!forceState : !oldState;
+    p.isSwitchedOn = newState;
+
+    if (this.calculateDefenses) this.calculateDefenses();
+    return {
+      power: p,
+      isSwitchedOn: p.isSwitchedOn,
+      isOperating: this.isPowerOperating(powerId)
+    };
+  }
+
+  setPowerDisabled(powerId, isDisabled) {
+    if (!Array.isArray(this.powers)) return null;
+    const p = this.powers.find(x => x.id === powerId);
+    if (!p) return null;
+
+    p.isDisabled = !!isDisabled;
+
+    if (this.calculateDefenses) this.calculateDefenses();
+    return {
+      power: p,
+      isDisabled: p.isDisabled,
+      isOperating: this.isPowerOperating(powerId)
+    };
+  }
+
+  getLinkedPowers(masterPowerId) {
+    if (!masterPowerId || !Array.isArray(this.powers)) return [];
+    return this.powers.filter(p => p.triggerConfig && p.triggerConfig.mode === 'linked' && p.triggerConfig.masterPowerId === masterPowerId);
+  }
+
+  configurePowerTrigger(powerId, config = {}) {
+    if (!Array.isArray(this.powers)) return null;
+    const p = this.powers.find(x => x.id === powerId);
+    if (!p) return null;
+
+    if (config.operationalType) {
+      p.operationalType = config.operationalType;
+    }
+    if (config.isSwitchedOn !== undefined) {
+      p.isSwitchedOn = !!config.isSwitchedOn;
+    }
+    if (config.isDisabled !== undefined) {
+      p.isDisabled = !!config.isDisabled;
+    }
+    if (!p.triggerConfig) {
+      p.triggerConfig = { mode: 'default', masterPowerId: null, masterPowerName: null, invert: false, conditionLabel: '' };
+    }
+
+    if (config.mode !== undefined) p.triggerConfig.mode = config.mode;
+    if (config.masterPowerId !== undefined) {
+      p.triggerConfig.masterPowerId = config.masterPowerId;
+      const master = this.powers.find(x => x.id === config.masterPowerId);
+      p.triggerConfig.masterPowerName = master ? master.name : null;
+    }
+    if (config.invert !== undefined) p.triggerConfig.invert = !!config.invert;
+    if (config.conditionLabel !== undefined) p.triggerConfig.conditionLabel = (config.conditionLabel || '').trim();
+
+    if (this.calculateDefenses) this.calculateDefenses();
+    return p;
   }
 
   addPowerStunt(powerId, stuntData = {}) {
@@ -699,7 +1197,8 @@ class FASERIPCharacter {
     if (!Array.isArray(power.stunts)) power.stunts = [];
     const isLearned = stuntData.isLearned !== undefined ? !!stuntData.isLearned : false;
     const redSucc = isLearned ? 1 : Math.max(0, Math.min(1, parseInt(stuntData.redSuccesses || 0)));
-    const yellowSucc = isLearned ? 2 : Math.max(0, Math.min(2, parseInt(stuntData.yellowSuccesses || 0)));
+    const yellowSucc = isLearned ? 3 : Math.max(0, Math.min(3, parseInt(stuntData.yellowSuccesses || 0)));
+    const greenSucc = isLearned ? 6 : Math.max(0, Math.min(6, parseInt(stuntData.greenSuccesses || 0)));
 
     const stunt = {
       id: stuntData.id || 'stunt_' + Date.now() + Math.random().toString(36).substr(2, 4),
@@ -707,10 +1206,11 @@ class FASERIPCharacter {
       description: stuntData.description || '',
       emulatedPowerId: stuntData.emulatedPowerId || null,
       emulatedPowerName: stuntData.emulatedPowerName || null,
-      isLearned: isLearned || (redSucc >= 1 && yellowSucc >= 2),
+      isLearned: isLearned || (redSucc >= 1 && yellowSucc >= 3 && greenSucc >= 6),
       redSuccesses: redSucc,
       yellowSuccesses: yellowSucc,
-      attemptsCount: parseInt(stuntData.attemptsCount || (redSucc + yellowSucc))
+      greenSuccesses: greenSucc,
+      attemptsCount: parseInt(stuntData.attemptsCount || (redSucc + yellowSucc + greenSucc))
     };
     power.stunts.push(stunt);
     return stunt;
@@ -732,30 +1232,35 @@ class FASERIPCharacter {
     stunt.isLearned = !stunt.isLearned;
     if (stunt.isLearned) {
       stunt.redSuccesses = 1;
-      stunt.yellowSuccesses = 2;
-      stunt.attemptsCount = Math.max(3, stunt.attemptsCount || 0);
+      stunt.yellowSuccesses = 3;
+      stunt.greenSuccesses = 6;
+      stunt.attemptsCount = Math.max(10, stunt.attemptsCount || 0);
     } else {
       stunt.redSuccesses = 0;
       stunt.yellowSuccesses = 0;
+      stunt.greenSuccesses = 0;
     }
     return stunt.isLearned;
   }
 
   getStuntSuccessesNeeded(stunt) {
-    if (!stunt) return { neededRed: 0, neededYellow: 0, isMastered: false, text: '' };
-    if (stunt.isLearned) return { neededRed: 0, neededYellow: 0, isMastered: true, text: 'Mastered' };
+    if (!stunt) return { neededRed: 0, neededYellow: 0, neededGreen: 0, isMastered: false, text: '' };
+    if (stunt.isLearned) return { neededRed: 0, neededYellow: 0, neededGreen: 0, isMastered: true, text: 'Mastered' };
     const redNeeded = Math.max(0, 1 - (parseInt(stunt.redSuccesses) || 0));
-    const yellowNeeded = Math.max(0, 2 - (parseInt(stunt.yellowSuccesses) || 0));
-    if (redNeeded === 0 && yellowNeeded === 0) {
+    const yellowNeeded = Math.max(0, 3 - (parseInt(stunt.yellowSuccesses) || 0));
+    const greenNeeded = Math.max(0, 6 - (parseInt(stunt.greenSuccesses) || 0));
+    if (redNeeded === 0 && yellowNeeded === 0 && greenNeeded === 0) {
       stunt.isLearned = true;
-      return { neededRed: 0, neededYellow: 0, isMastered: true, text: 'Mastered' };
+      return { neededRed: 0, neededYellow: 0, neededGreen: 0, isMastered: true, text: 'Mastered' };
     }
     const parts = [];
     if (redNeeded > 0) parts.push(`${redNeeded} Red`);
     if (yellowNeeded > 0) parts.push(`${yellowNeeded} Yellow`);
+    if (greenNeeded > 0) parts.push(`${greenNeeded} Green`);
     return {
       neededRed: redNeeded,
       neededYellow: yellowNeeded,
+      neededGreen: greenNeeded,
       isMastered: false,
       text: parts.join(', ') + ' needed'
     };
@@ -769,23 +1274,32 @@ class FASERIPCharacter {
 
     let advanced = false;
     let earnedType = null;
+    const c = (color || '').toLowerCase();
+
     if ((stunt.redSuccesses || 0) < 1) {
-      if (color === 'Red') {
+      if (c === 'red') {
         stunt.redSuccesses = 1;
         stunt.attemptsCount = (stunt.attemptsCount || 0) + 1;
         advanced = true;
         earnedType = 'Red';
       }
-    } else if ((stunt.yellowSuccesses || 0) < 2) {
-      if (color === 'Yellow' || color === 'Red') {
+    } else if ((stunt.yellowSuccesses || 0) < 3) {
+      if (c === 'yellow' || c === 'red') {
         stunt.yellowSuccesses = (stunt.yellowSuccesses || 0) + 1;
         stunt.attemptsCount = (stunt.attemptsCount || 0) + 1;
         advanced = true;
-        earnedType = color === 'Red' ? 'Red (as Yellow)' : 'Yellow';
+        earnedType = c === 'red' ? 'Red (as Yellow)' : 'Yellow';
+      }
+    } else if ((stunt.greenSuccesses || 0) < 6) {
+      if (c === 'green' || c === 'yellow' || c === 'red') {
+        stunt.greenSuccesses = (stunt.greenSuccesses || 0) + 1;
+        stunt.attemptsCount = (stunt.attemptsCount || 0) + 1;
+        advanced = true;
+        earnedType = c === 'red' ? 'Red (as Green)' : (c === 'yellow' ? 'Yellow (as Green)' : 'Green');
       }
     }
 
-    if ((stunt.redSuccesses || 0) >= 1 && (stunt.yellowSuccesses || 0) >= 2) {
+    if ((stunt.redSuccesses || 0) >= 1 && (stunt.yellowSuccesses || 0) >= 3 && (stunt.greenSuccesses || 0) >= 6) {
       stunt.isLearned = true;
     }
     return { stunt, advanced, earnedType, isLearned: stunt.isLearned };
@@ -805,8 +1319,9 @@ class FASERIPCharacter {
     this.updateKarma(-karmaCost, `Guaranteed Stunt Mastery: ${stunt.name} (${power.name})`);
     stunt.isLearned = true;
     stunt.redSuccesses = 1;
-    stunt.yellowSuccesses = 2;
-    stunt.attemptsCount = Math.max(3, stunt.attemptsCount || 0);
+    stunt.yellowSuccesses = 3;
+    stunt.greenSuccesses = 6;
+    stunt.attemptsCount = Math.max(10, stunt.attemptsCount || 0);
 
     return { success: true, stunt };
   }
@@ -880,10 +1395,11 @@ class FASERIPCharacter {
    */
   getEffectiveAbility(abilityKey) {
     const key = (abilityKey || '').toLowerCase();
+    const active = this.getActiveAbilities();
     const base = this.abilities ? this.abilities[key] : null;
     if (!base) return null;
-    let rankName = base.rankName;
-    let rankValue = base.rankValue;
+    let rankName = active[key] ? active[key].rankName : base.rankName;
+    let rankValue = active[key] ? active[key].rankValue : base.rankValue;
 
     (this.equipment || []).filter(e => e.equipped && Array.isArray(e.abilityBoosts)).forEach(e => {
       e.abilityBoosts.forEach(b => {
@@ -1185,7 +1701,7 @@ class FASERIPCharacter {
     };
   }
 
-  applyAdvancement(category, identifier, targetRankName, customNotes = '') {
+  applyAdvancement(category, identifier, targetRankName, customNotes = '', bypassKarmaCost = false) {
     let currentRankName = 'Typical';
     if (category === 'ability') {
       const key = identifier.toLowerCase();
@@ -1202,14 +1718,15 @@ class FASERIPCharacter {
     const calc = this.calculateAdvancement(category, currentRankName, targetRankName);
     if (!calc.valid) return { success: false, error: calc.error };
 
-    if (this.currentKarma < calc.karmaCost) {
-      return {
-        success: false,
-        error: `Insufficient Karma. Need ${calc.karmaCost} Karma, but only have ${this.currentKarma}.`
-      };
+    if (!bypassKarmaCost) {
+      if (this.currentKarma < calc.karmaCost) {
+        return {
+          success: false,
+          error: `Insufficient Karma. Need ${calc.karmaCost} Karma, but only have ${this.currentKarma}.`
+        };
+      }
+      this.currentKarma -= calc.karmaCost;
     }
-
-    this.currentKarma -= calc.karmaCost;
 
     const newRank = UniversalTableEngine.getRankByName(targetRankName);
     if (category === 'ability') {
@@ -1225,6 +1742,15 @@ class FASERIPCharacter {
       this.resources.rankValue = newRank.num;
     }
 
+    this.lastKarmaSpentOnRankIncrease = {
+      amount: calc.karmaCost,
+      category: category,
+      target: identifier,
+      from: calc.currentRank,
+      to: calc.targetRank,
+      trainingDays: calc.trainingDays
+    };
+
     this.advancementLog.unshift({
       date: new Date().toLocaleDateString(),
       type: 'advancement',
@@ -1233,8 +1759,8 @@ class FASERIPCharacter {
       from: calc.currentRank,
       to: calc.targetRank,
       trainingDays: calc.trainingDays,
-      amount: -calc.karmaCost,
-      reason: `Advanced ${identifier} from ${calc.currentRank} to ${calc.targetRank} (${calc.trainingDays} day${calc.trainingDays > 1 ? 's' : ''} training). ${customNotes}`.trim(),
+      amount: bypassKarmaCost ? 0 : -calc.karmaCost,
+      reason: `Advanced ${identifier} from ${calc.currentRank} to ${calc.targetRank} (${calc.trainingDays} day${calc.trainingDays > 1 ? 's' : ''} training). ${customNotes}${bypassKarmaCost ? ' [Test Mode]' : ''}`.trim(),
       balance: this.currentKarma
     });
 
@@ -1539,6 +2065,15 @@ class FASERIPCharacter {
 
     // 11. Offensive, Defensive, and Special Powers + Power Stunts
     this.powers.forEach(p => {
+      const isOperating = this.isPowerOperating(p.id);
+      const isDisabled = !!p.isDisabled;
+      let statusTag = '';
+      if (isDisabled) {
+        statusTag = ' [🚫 Neutralized]';
+      } else if (!isOperating) {
+        statusTag = ' [⚪ Inactive]';
+      }
+
       const pName = p.name.toLowerCase();
       let isOffensive = false;
       let isDefensive = false;
@@ -1609,7 +2144,7 @@ class FASERIPCharacter {
 
         attacks.push({
           id: 'atk_p_' + p.id,
-          name: `${atkName} (${pRankName})`,
+          name: `${atkName} (${pRankName})${statusTag}`,
           category: 'Power',
           actionType: actType,
           abilityName: ablName,
@@ -1618,16 +2153,39 @@ class FASERIPCharacter {
           damage: `${pRankValue} ${dmgType} (${pRankName})`,
           damageValue: pRankValue,
           range: rng,
+          isOperating: isOperating,
+          isDisabled: isDisabled,
           notes: optNotes + (p.notes ? ` • ${p.notes}` : '')
         });
         return;
+      }
+
+      // Reverse-Engineered NPC / Custom Powers with Energy Redirection attacks
+      if (p.trigger && (p.trigger.action === 'store_energy' || p.code === 'NPC_EC' || p.code === 'NPC_ST' || p.code === 'NPC_CS')) {
+        const currentCharge = (p.pool && typeof p.pool.current === 'number') ? p.pool.current : 0;
+        const blastVal = Math.min(currentCharge > 0 ? currentCharge : 0, pRankValue);
+        attacks.push({
+          id: 'atk_p_' + p.id + '_discharge',
+          name: `${p.name} - Discharge Blast${statusTag}`,
+          category: 'Power',
+          actionType: 'energy',
+          abilityName: 'Agility',
+          baseRank: abs.agility.rankName,
+          columnShift: 0,
+          damage: `${blastVal} Energy/Force (Pool: ${currentCharge}/${p.pool?.max || pRankValue})`,
+          damageValue: blastVal,
+          range: range,
+          isOperating: isOperating,
+          isDisabled: isDisabled,
+          notes: `Discharges stored energy. Deals damage up to current pool charge (max ${pRankValue} at ${pRankName}). Reduces pool by damage dealt.`
+        });
       }
 
       // Hyper-Strength Tactical Surge Action (Option: Surge)
       if ((p.code === 'P20' || pName.includes('hyper-strength')) && p.selectedOption === 'surge') {
         attacks.push({
           id: 'atk_p_' + p.id + '_surge',
-          name: 'Hyper-Strength Tactical Surge (+1CS)',
+          name: `Hyper-Strength Tactical Surge (+1CS)${statusTag}`,
           category: 'Power',
           actionType: 'power',
           abilityName: 'Strength',
@@ -1636,6 +2194,8 @@ class FASERIPCharacter {
           damage: '+1CS Lifting & Damage',
           damageValue: abs.strength.rankValue,
           range: 'Self',
+          isOperating: isOperating,
+          isDisabled: isDisabled,
           notes: `Temporary surge: grants +1CS Strength for ${pRankValue} turns once per day. Requires Endurance FEAT afterward to prevent 1-turn exhaustion.`
         });
       }
@@ -1657,9 +2217,19 @@ class FASERIPCharacter {
         }
       }
 
-      if (pName.includes('blast') || pName.includes('bolt') || pName.includes('ray') || pName.includes('beam') || pName.includes('generation') || pName.includes('emission')) {
+      if (pName.includes('blast') || pName.includes('bolt') || pName.includes('ray') || pName.includes('beam') || pName.includes('generation') || pName.includes('emission') || pName.includes('plasma') || pName.includes('vocalization') || pName.includes('scream') || pName.includes('stomp') || pName.includes('daggers')) {
         isOffensive = true;
-        actionType = pName.includes('force') ? 'force' : 'energy';
+        if (pName.includes('vocalization') || pName.includes('scream')) {
+          actionType = 'force';
+          abilityName = 'Endurance';
+          range = `${Math.max(5, Math.round(effectiveAtkVal / 10))} areas`;
+        } else if (pName.includes('stomp')) {
+          actionType = 'force';
+          abilityName = 'Strength';
+          range = `${Math.max(1, Math.round(effectiveAtkVal / 25))} areas`;
+        } else {
+          actionType = (pName.includes('force') || pName.includes('stomp')) ? 'force' : 'energy';
+        }
       } else if (pName.includes('claw') || pName.includes('fang') || pName.includes('sting') || pName.includes('blade') || pName.includes('weapon')) {
         isOffensive = true;
         actionType = 'edged';
@@ -1668,14 +2238,19 @@ class FASERIPCharacter {
       } else if (pName.includes('shoot') || pName.includes('missile') || pName.includes('projectile') || pName.includes('entangle') || pName.includes('web')) {
         isOffensive = true;
         actionType = 'shooting';
-      } else if (pName.includes('mental blast') || pName.includes('telepath') || pName.includes('mind control') || pName.includes('psionic')) {
+      } else if (pName.includes('mental blast') || pName.includes('telepath') || pName.includes('mind control') || pName.includes('psionic') || pName.includes('penance') || pName.includes('stare')) {
         isOffensive = true;
         actionType = 'energy';
         abilityName = 'Psyche';
-        range = `${Math.max(1, Math.round(effectiveAtkVal / 10))} areas`;
+        range = (pName.includes('penance') || pName.includes('stare')) ? 'Touch' : `${Math.max(1, Math.round(effectiveAtkVal / 10))} areas`;
+      } else if (pName.includes('rebound') || pName.includes('bouncing')) {
+        isOffensive = true;
+        actionType = 'slugfest';
+        abilityName = 'Agility';
+        range = '1-2 areas';
       }
 
-      if (pName.includes('force field') || pName.includes('shield') || pName.includes('reflection') || pName.includes('absorption') || pName.includes('armor') || pName.includes('resistance') || pName.includes('invisibility') || pName.includes('phasing')) {
+      if (pName.includes('force field') || pName.includes('shield') || pName.includes('reflection') || pName.includes('absorption') || pName.includes('armor') || pName.includes('resistance') || pName.includes('invisibility') || pName.includes('phasing') || pName.includes('immovability') || pName.includes('rebound') || pName.includes('organic steel')) {
         isDefensive = true;
       }
 
@@ -1684,7 +2259,7 @@ class FASERIPCharacter {
         const adjNote = p.adjustments ? ` [Adjusted: +${p.adjustments.shift} ${p.adjustments.aspectA.label} / -${p.adjustments.shift} ${p.adjustments.aspectB.label}]` : '';
         attacks.push({
           id: 'atk_p_' + p.id,
-          name: `${p.name} (${effectiveAtkRank})${specLabel}${adjSuffix}`,
+          name: `${p.name} (${effectiveAtkRank})${specLabel}${adjSuffix}${statusTag}`,
           category: 'Power',
           actionType: actionType,
           abilityName: abilityName,
@@ -1693,6 +2268,8 @@ class FASERIPCharacter {
           damage: `${effectiveAtkVal} (${effectiveAtkRank})`,
           damageValue: dmgVal,
           range: range,
+          isOperating: isOperating,
+          isDisabled: isDisabled,
           notes: (p.notes || `Power Rank: ${effectiveAtkRank} (${effectiveAtkVal}). Stunts: ${p.stunts?.length || 0}`) + adjNote
         });
       }
@@ -1700,7 +2277,7 @@ class FASERIPCharacter {
       if (isDefensive) {
         attacks.push({
           id: 'atk_p_def_' + p.id,
-          name: `${p.name} (${p.rankName})`,
+          name: `${p.name} (${p.rankName})${statusTag}`,
           category: 'Defense',
           actionType: pName.includes('reflection') ? 'reflection' : 'defense',
           abilityName: p.name,
@@ -1709,6 +2286,8 @@ class FASERIPCharacter {
           damage: `Absorbs/Protects ${p.rankValue} points`,
           damageValue: p.rankValue,
           range: pName.includes('force field') ? `${Math.max(1, Math.round(p.rankValue / 10))} areas` : 'Self',
+          isOperating: isOperating,
+          isDisabled: isDisabled,
           notes: p.notes || `Defensive Power: ${p.rankName} (${p.rankValue}). Blocks, absorbs, or deflects incoming attacks.`
         });
       }
@@ -1720,7 +2299,7 @@ class FASERIPCharacter {
           const needsLabel = st.isLearned ? '' : ` (${succInfo.text})`;
           attacks.push({
             id: 'atk_stunt_' + st.id,
-            name: `Stunt: ${st.name}${needsLabel}`,
+            name: `Stunt: ${st.name}${needsLabel}${statusTag}`,
             category: 'Power Stunt',
             actionType: 'stunt',
             abilityName: p.name,
@@ -1734,8 +2313,11 @@ class FASERIPCharacter {
             parentPowerId: p.id,
             parentPowerName: p.name,
             isLearned: !!st.isLearned,
+            isOperating: isOperating,
+            isDisabled: isDisabled,
             redSuccesses: st.redSuccesses || 0,
             yellowSuccesses: st.yellowSuccesses || 0,
+            greenSuccesses: st.greenSuccesses || 0,
             successesText: succInfo.text,
             notes: `[${st.isLearned ? '⭐ Mastered' : '🔄 Learning: ' + succInfo.text + ' (100 KP/attempt)'}] ${st.description || 'Power stunt.'}${st.emulatedPowerName ? ' (Emulates ' + st.emulatedPowerName + ')' : ''}`
           });
@@ -1783,6 +2365,9 @@ class FASERIPCharacter {
       equipment: this.equipment,
       knownBlueprints: this.knownBlueprints || [],
       advancementLog: this.advancementLog,
+      karmicSuccess: this.karmicSuccess,
+      lastKarmaSpentOnRoll: this.lastKarmaSpentOnRoll,
+      lastKarmaSpentOnRankIncrease: this.lastKarmaSpentOnRankIncrease,
       editLog: this.editLog,
       editHistoryIndex: this.editHistoryIndex,
       notes: this.notes

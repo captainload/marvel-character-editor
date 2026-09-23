@@ -35,6 +35,24 @@ const App = {
   isWidthWarningDismissed: false,
   powerAdjustment: false,
   activeAdjustmentPowerIndex: null,
+  VERSION: '1.4.0',
+  BUILD_DATE: '2026-09-22',
+  COMMIT_SHA: 'a4f5c9b',
+  REPO_OWNER: 'captainload',
+  REPO_NAME: 'marvel-character-editor',
+  updateSettings: {
+    onStartup: true,
+    onFile: true,
+    scheduled: false,
+    intervalMinutes: 60,
+    lastChecked: null,
+    lastKnownRemoteVersion: null
+  },
+  updateScheduleTimer: null,
+  _lastUpdateCheckTime: 0,
+  karmaMode: 'session',
+  advancementSnapshot: null,
+  testModeSnapshot: null,
 
   init() {
     // 1. Viewport Width 1080px Check
@@ -75,6 +93,14 @@ const App = {
     this.updateHistoryNavButtons();
     this.renderEditLog();
     this.initEasterEgg();
+
+    // 5. Initialize update checker & background checks
+    this.initUpdateChecker();
+    if (this.updateSettings && this.updateSettings.onStartup) {
+      setTimeout(() => {
+        this.checkForUpdates({ trigger: 'startup', silent: true });
+      }, 1500);
+    }
   },
 
   checkViewportWidth() {
@@ -186,28 +212,189 @@ const App = {
       });
     }
 
-    // Quick Vitals Steppers
-    const setupStepper = (id, delta, isKarma = false) => {
+    // Quick Vitals Steppers (Accelerating Hold Steppers for Health & Karma)
+    const setupAcceleratingHoldStepper = (id, delta, isKarma = false) => {
       const el = document.getElementById(id);
-      if (el) {
-        el.addEventListener('click', () => {
-          if (isKarma) {
-            this.character.updateKarma(delta, delta > 0 ? 'Quick Karma Bonus' : 'Quick Karma Spend');
-          } else {
-            this.character.updateHealth(delta);
+      if (!el) return;
+
+      let holdTimeout = null;
+      let tickTimeout = null;
+      let isHolding = false;
+      let holdStartTime = 0;
+      let stepsApplied = 0;
+
+      const executeStep = () => {
+        if (!this.character) return false;
+        if (isKarma) {
+          if (this.karmaMode === 'test') {
+            this.showStatusToast('🧪 Test Mode is active (Karma is already infinite: ∞ KP).');
+            return false;
           }
+          this.character.updateKarma(delta, delta > 0 ? 'Quick Karma Bonus' : 'Quick Karma Spend');
+        } else {
+          this.character.updateHealth(delta);
+        }
+        stepsApplied++;
+        this.renderVitals();
+        return true;
+      };
+
+      const startHoldLoop = () => {
+        const scheduleNext = () => {
+          if (!isHolding) return;
+          const elapsed = Date.now() - holdStartTime;
+          // Accelerate: start at 120ms, drop to 60ms after 1s, drop to 25ms after 2.5s
+          let nextDelay = 120;
+          if (elapsed > 2500) {
+            nextDelay = 25;
+          } else if (elapsed > 1000) {
+            nextDelay = 60;
+          }
+
+          tickTimeout = setTimeout(() => {
+            if (!isHolding) return;
+            const ok = executeStep();
+            if (ok) {
+              scheduleNext();
+            } else {
+              stopHold();
+            }
+          }, nextDelay);
+        };
+
+        scheduleNext();
+      };
+
+      const stopHold = () => {
+        if (!isHolding && !holdTimeout && !tickTimeout) return;
+        isHolding = false;
+        if (holdTimeout) {
+          clearTimeout(holdTimeout);
+          holdTimeout = null;
+        }
+        if (tickTimeout) {
+          clearTimeout(tickTimeout);
+          tickTimeout = null;
+        }
+        if (stepsApplied > 0) {
           this.saveState();
-          this.renderVitals();
-        });
-      }
+          stepsApplied = 0;
+        }
+      };
+
+      el.addEventListener('pointerdown', (e) => {
+        if (e.button !== undefined && e.button !== 0) return;
+        e.preventDefault();
+        stopHold();
+
+        isHolding = true;
+        holdStartTime = Date.now();
+        stepsApplied = 0;
+
+        if (el.setPointerCapture && e.pointerId !== undefined) {
+          try {
+            el.setPointerCapture(e.pointerId);
+          } catch (_) {}
+        }
+
+        const ok = executeStep();
+        if (!ok) {
+          isHolding = false;
+          return;
+        }
+
+        holdTimeout = setTimeout(() => {
+          if (!isHolding) return;
+          startHoldLoop();
+        }, 350);
+      });
+
+      const handlePointerEnd = (e) => {
+        if (el.releasePointerCapture && e.pointerId !== undefined) {
+          try {
+            el.releasePointerCapture(e.pointerId);
+          } catch (_) {}
+        }
+        stopHold();
+      };
+
+      el.addEventListener('pointerup', handlePointerEnd);
+      el.addEventListener('pointercancel', handlePointerEnd);
+      el.addEventListener('pointerleave', (e) => {
+        if (!el.hasPointerCapture || !el.hasPointerCapture(e.pointerId)) {
+          stopHold();
+        }
+      });
+      el.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+      });
+      el.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+      });
     };
 
-    setupStepper('btn-health-minus10', -10);
-    setupStepper('btn-health-minus1', -1);
-    setupStepper('btn-health-plus1', 1);
-    setupStepper('btn-health-plus10', 10);
-    setupStepper('btn-karma-minus10', -10, true);
-    setupStepper('btn-karma-plus10', 10, true);
+    setupAcceleratingHoldStepper('btn-health-minus1', -1, false);
+    setupAcceleratingHoldStepper('btn-health-plus1', 1, false);
+    setupAcceleratingHoldStepper('btn-karma-minus1', -1, true);
+    setupAcceleratingHoldStepper('btn-karma-plus1', 1, true);
+
+    // Quick Vitals Manual Inputs (Health & Karma +"###" fields)
+    const setupManualVitalInput = (id, isKarma = false) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+
+      const applyValue = () => {
+        const raw = el.value.trim();
+        if (!raw) return;
+        const delta = parseInt(raw, 10);
+        if (isNaN(delta) || delta === 0) {
+          el.value = '';
+          return;
+        }
+
+        if (isKarma) {
+          if (this.karmaMode === 'test') {
+            this.showStatusToast('🧪 Test Mode is active (Karma is already infinite: ∞ KP).');
+          } else {
+            this.character.updateKarma(delta, delta > 0 ? `Karma Reward (+${delta} KP)` : `Manual Karma Spend (${delta} KP)`);
+            this.saveState();
+            this.renderVitals();
+            this.showStatusToast(`✨ Karma ${delta > 0 ? '+' : ''}${delta} KP applied (Total: ${this.character.currentKarma} KP)`);
+          }
+        } else {
+          this.character.updateHealth(delta);
+          this.saveState();
+          this.renderVitals();
+          const b = typeof this.character.calculateHealthBreakdown === 'function' ? this.character.calculateHealthBreakdown() : null;
+          if (b && b.bonusHealth > 0) {
+            this.showStatusToast(`❤️ Health ${delta > 0 ? '+' : ''}${delta} applied (Total: ${this.character.currentHealth} | Base: ${b.baseHealth}, Bonus: +${b.bonusHealth})`);
+          } else {
+            this.showStatusToast(`❤️ Health ${delta > 0 ? '+' : ''}${delta} applied (${this.character.currentHealth}/${this.character.calculateMaxHealth()})`);
+          }
+        }
+
+        el.value = '';
+      };
+
+      el.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          applyValue();
+          el.blur();
+        } else if (e.key === 'Escape') {
+          el.value = '';
+          el.blur();
+        }
+      });
+
+      el.addEventListener('blur', () => {
+        applyValue();
+      });
+    };
+
+    setupManualVitalInput('input-health-adjust', false);
+    setupManualVitalInput('input-karma-adjust', true);
 
     // Conditions Management
     const addCondBtn = document.getElementById('btn-add-condition');
@@ -242,33 +429,6 @@ const App = {
         if (e.target === overlay) overlay.classList.remove('open');
       });
     });
-
-    // Die Roller Dialog Trigger Actions
-    const rollTriggerBtn = document.getElementById('btn-roller-roll');
-    if (rollTriggerBtn) {
-      rollTriggerBtn.addEventListener('click', () => this.executeRollerFEAT());
-    }
-
-    // Stepper Listeners (Replacing Slider)
-    const btnShiftDown = document.getElementById('btn-roller-shift-down');
-    if (btnShiftDown) {
-      btnShiftDown.addEventListener('click', () => {
-        if (this.rollerShift > -5) {
-          this.rollerShift--;
-          this.updateRollerPreview();
-        }
-      });
-    }
-
-    const btnShiftUp = document.getElementById('btn-roller-shift-up');
-    if (btnShiftUp) {
-      btnShiftUp.addEventListener('click', () => {
-        if (this.rollerShift < 5) {
-          this.rollerShift++;
-          this.updateRollerPreview();
-        }
-      });
-    }
 
     // Auto-update Exceptional/Starred checkbox when selecting power
     const pCatSelect = document.getElementById('select-power-catalog');
@@ -551,6 +711,26 @@ const App = {
       });
     }
 
+    // Karmic Success Preference Init & Listeners
+    const karmicOpt = document.getElementById('option-karmic-success');
+    const savedKarmic = typeof localStorage !== 'undefined' ? localStorage.getItem('msh_option_karmic_success') : null;
+    this.karmicSuccess = (savedKarmic === 'true');
+    if (this.character && this.character.karmicSuccess !== undefined && savedKarmic === null) {
+      this.karmicSuccess = !!this.character.karmicSuccess;
+    }
+    if (this.character) {
+      this.character.karmicSuccess = this.karmicSuccess;
+    }
+    if (karmicOpt) {
+      karmicOpt.checked = this.karmicSuccess;
+      karmicOpt.addEventListener('change', (e) => {
+        this.setKarmicSuccess(e.target.checked);
+        this.showStatusToast(e.target.checked 
+          ? '✨ Karmic Success house rule ENABLED (refund up to 20 KP on Blue shift)' 
+          : 'Karmic Success house rule disabled');
+      });
+    }
+
     // Power Adjustment Modal Listeners
     const btnCloseAdjModal = document.getElementById('btn-close-adj-modal');
     const btnCancelAdj = document.getElementById('btn-cancel-adj');
@@ -602,6 +782,41 @@ const App = {
       btnSaveOptModal.addEventListener('click', () => this.savePowerOptionsModal());
     }
 
+    // Power Trigger & Operational Mode Modal Listeners
+    const btnCloseTriggerModal = document.getElementById('btn-close-trigger-modal');
+    const btnCancelTriggerModal = document.getElementById('btn-cancel-trigger-modal');
+    const btnSaveTriggerModal = document.getElementById('btn-save-trigger-modal');
+    const btnResetTrigger = document.getElementById('btn-reset-trigger');
+    if (btnCloseTriggerModal) {
+      btnCloseTriggerModal.addEventListener('click', () => this.closePowerTriggerModal());
+    }
+    if (btnCancelTriggerModal) {
+      btnCancelTriggerModal.addEventListener('click', () => this.closePowerTriggerModal());
+    }
+    if (btnSaveTriggerModal) {
+      btnSaveTriggerModal.addEventListener('click', () => this.savePowerTriggerModal());
+    }
+    if (btnResetTrigger) {
+      btnResetTrigger.addEventListener('click', () => this.resetPowerTriggerModal());
+    }
+
+    // Radio change listener for linkage mode
+    document.querySelectorAll('input[name="trigger-link-mode"]').forEach(radio => {
+      radio.addEventListener('change', (e) => {
+        const details = document.getElementById('trigger-linked-details');
+        if (details) {
+          details.style.display = (e.target.value === 'linked') ? 'block' : 'none';
+        }
+      });
+    });
+
+    // Preset chips
+    document.querySelectorAll('#modal-power-trigger [data-preset]').forEach(chip => {
+      chip.addEventListener('click', () => {
+        this.applyTriggerPreset(chip.dataset.preset);
+      });
+    });
+
     // File / Options Dropdown Menu Toggle
     const btnFileOptions = document.getElementById('btn-file-options');
     const fileOptionsMenu = document.getElementById('file-options-menu');
@@ -651,6 +866,205 @@ const App = {
         if (fileOptionsMenu) fileOptionsMenu.classList.remove('open');
         const optModal = document.getElementById('options-modal');
         if (optModal) optModal.classList.add('open');
+      });
+    }
+
+    const menuItemAdvancement = document.getElementById('menu-item-advancement');
+    if (menuItemAdvancement) {
+      menuItemAdvancement.addEventListener('click', () => {
+        if (fileOptionsMenu) fileOptionsMenu.classList.remove('open');
+        if (this.karmaMode === 'session') {
+          this.promptAdvancementModeSwitch();
+        } else {
+          this.openAdvancementModal();
+        }
+      });
+    }
+
+    const menuItemUpdates = document.getElementById('menu-item-updates');
+    if (menuItemUpdates) {
+      menuItemUpdates.addEventListener('click', () => {
+        if (fileOptionsMenu) fileOptionsMenu.classList.remove('open');
+        this.checkForUpdates({ trigger: 'manual', silent: false });
+      });
+    }
+
+    const karmaRankPill = document.getElementById('vital-karma-last-rank');
+    if (karmaRankPill) {
+      karmaRankPill.addEventListener('click', () => {
+        if (this.karmaMode === 'session') {
+          this.promptAdvancementModeSwitch();
+        } else {
+          this.openAdvancementModal();
+        }
+      });
+    }
+
+    // Karma Operating Mode Trigger (clicking vital-left / karma display)
+    const karmaModeTrigger = document.getElementById('vital-karma-mode-trigger');
+    if (karmaModeTrigger) {
+      karmaModeTrigger.addEventListener('click', () => this.openKarmaModeModal());
+    }
+
+    // Karma Operating Mode Modal Controls
+    const btnCloseKarmaMode = document.getElementById('btn-close-karma-mode-modal');
+    if (btnCloseKarmaMode) {
+      btnCloseKarmaMode.addEventListener('click', () => {
+        const modal = document.getElementById('modal-karma-mode');
+        if (modal) modal.classList.remove('open');
+      });
+    }
+    const btnCancelKarmaMode = document.getElementById('btn-cancel-karma-mode');
+    if (btnCancelKarmaMode) {
+      btnCancelKarmaMode.addEventListener('click', () => {
+        const modal = document.getElementById('modal-karma-mode');
+        if (modal) modal.classList.remove('open');
+      });
+    }
+    const btnApplyKarmaMode = document.getElementById('btn-apply-karma-mode');
+    if (btnApplyKarmaMode) {
+      btnApplyKarmaMode.addEventListener('click', async () => {
+        const checkedRadio = document.querySelector('input[name="karma-mode-choice"]:checked');
+        if (checkedRadio) {
+          const success = await this.setKarmaMode(checkedRadio.value);
+          if (success) {
+            const modal = document.getElementById('modal-karma-mode');
+            if (modal) modal.classList.remove('open');
+          }
+        }
+      });
+    }
+    const btnRevertAdvInModal = document.getElementById('btn-revert-adv-in-modal');
+    if (btnRevertAdvInModal) {
+      btnRevertAdvInModal.addEventListener('click', () => this.revertAdvancementChanges());
+    }
+    const btnOpenAdvFromMode = document.getElementById('btn-open-adv-from-mode');
+    if (btnOpenAdvFromMode) {
+      btnOpenAdvFromMode.addEventListener('click', () => {
+        const modal = document.getElementById('modal-karma-mode');
+        if (modal) modal.classList.remove('open');
+        this.openAdvancementModal();
+      });
+    }
+
+    // Mode cards click selection
+    document.querySelectorAll('.karma-mode-card').forEach(card => {
+      card.addEventListener('click', (e) => {
+        if (e.target.closest('#btn-revert-adv-in-modal')) return;
+        const mode = card.getAttribute('data-mode');
+        if (mode) {
+          const radio = card.querySelector('input[type="radio"]');
+          if (radio) radio.checked = true;
+          document.querySelectorAll('.karma-mode-card').forEach(c => c.classList.remove('active'));
+          card.classList.add('active');
+        }
+      });
+    });
+
+    // Advancement Modal Banner Controls
+    const btnSwitchModeFromAdv = document.getElementById('btn-switch-mode-from-advmodal');
+    if (btnSwitchModeFromAdv) {
+      btnSwitchModeFromAdv.addEventListener('click', async () => {
+        if (this.karmaMode === 'advancement' || this.karmaMode === 'test') {
+          await this.setKarmaMode('session');
+        } else {
+          await this.setKarmaMode('advancement');
+        }
+      });
+    }
+    const btnRevertAdvInAdvModal = document.getElementById('btn-revert-adv-in-advmodal');
+    if (btnRevertAdvInAdvModal) {
+      btnRevertAdvInAdvModal.addEventListener('click', () => this.revertAdvancementChanges());
+    }
+
+    // Character Advancement Modal Controls
+    const btnCloseAdvModal = document.getElementById('btn-close-adv-modal');
+    if (btnCloseAdvModal) {
+      btnCloseAdvModal.addEventListener('click', () => {
+        const advModal = document.getElementById('modal-advancement');
+        if (advModal) advModal.classList.remove('open');
+      });
+    }
+
+    const btnCancelAdv = document.getElementById('btn-cancel-adv');
+    if (btnCancelAdv) {
+      btnCancelAdv.addEventListener('click', () => {
+        const advModal = document.getElementById('modal-advancement');
+        if (advModal) advModal.classList.remove('open');
+      });
+    }
+
+    const btnApplyAdv = document.getElementById('btn-apply-adv');
+    if (btnApplyAdv) {
+      btnApplyAdv.addEventListener('click', () => this.handleApplyAdvancement());
+    }
+
+    const advCategorySelect = document.getElementById('adv-category-select');
+    if (advCategorySelect) {
+      advCategorySelect.addEventListener('change', () => {
+        this.populateAdvancementItems();
+        this.updateAdvancementPreview();
+      });
+    }
+
+    const advItemSelect = document.getElementById('adv-item-select');
+    if (advItemSelect) {
+      advItemSelect.addEventListener('change', () => this.updateAdvancementPreview());
+    }
+
+    const advTargetRankSelect = document.getElementById('adv-target-rank-select');
+    if (advTargetRankSelect) {
+      advTargetRankSelect.addEventListener('change', () => this.updateAdvancementPreview());
+    }
+
+    const advModalOverlay = document.getElementById('modal-advancement');
+    if (advModalOverlay) {
+      advModalOverlay.addEventListener('click', (e) => {
+        if (e.target === advModalOverlay) {
+          advModalOverlay.classList.remove('open');
+        }
+      });
+    }
+
+    // Program Updates Settings Controls
+    const chkUpdateStartup = document.getElementById('option-update-on-startup');
+    if (chkUpdateStartup) {
+      chkUpdateStartup.addEventListener('change', (e) => {
+        this.updateSettings.onStartup = e.target.checked;
+        this.saveUpdateSettings();
+      });
+    }
+
+    const chkUpdateFile = document.getElementById('option-update-on-file');
+    if (chkUpdateFile) {
+      chkUpdateFile.addEventListener('change', (e) => {
+        this.updateSettings.onFile = e.target.checked;
+        this.saveUpdateSettings();
+      });
+    }
+
+    const chkUpdateScheduled = document.getElementById('option-update-scheduled');
+    if (chkUpdateScheduled) {
+      chkUpdateScheduled.addEventListener('change', (e) => {
+        this.updateSettings.scheduled = e.target.checked;
+        this.saveUpdateSettings();
+        this.setupUpdateSchedule();
+      });
+    }
+
+    const selUpdateInterval = document.getElementById('option-update-interval');
+    if (selUpdateInterval) {
+      selUpdateInterval.addEventListener('change', (e) => {
+        this.updateSettings.intervalMinutes = parseInt(e.target.value, 10) || 60;
+        this.saveUpdateSettings();
+        this.setupUpdateSchedule();
+      });
+    }
+
+    const btnCheckNow = document.getElementById('btn-check-updates-now');
+    if (btnCheckNow) {
+      btnCheckNow.addEventListener('click', () => {
+        this.checkForUpdates({ trigger: 'manual', silent: false });
       });
     }
 
@@ -1335,23 +1749,138 @@ const App = {
   },
 
   renderVitals() {
-    const maxH = this.character.calculateMaxHealth();
-    const curH = this.character.currentHealth;
+    if (!this.character) return;
+    const breakdown = typeof this.character.calculateHealthBreakdown === 'function'
+      ? this.character.calculateHealthBreakdown()
+      : {
+          baseHealth: typeof this.character.getBaseHealth === 'function' ? this.character.getBaseHealth() : this.character.calculateMaxHealth(),
+          bonusHealth: 0,
+          totalMaxHealth: this.character.calculateMaxHealth(),
+          currentHealth: this.character.currentHealth
+        };
+
+    const maxH = breakdown.totalMaxHealth;
+    const curH = breakdown.currentHealth;
     const hPct = Math.min(100, Math.max(0, Math.round((curH / Math.max(maxH, 1)) * 100)));
 
-    document.getElementById('vital-health-cur').textContent = curH;
-    document.getElementById('vital-health-max').textContent = maxH;
+    const hBaseEl = document.getElementById('vital-health-base');
+    if (hBaseEl) {
+      hBaseEl.textContent = breakdown.baseHealth;
+      const bMax = breakdown.baseHealthMax || breakdown.baseHealth;
+      hBaseEl.title = breakdown.baseHealth < bMax
+        ? `Base Health: ${breakdown.baseHealth} / ${bMax} (Damaged)`
+        : `Base Health: ${breakdown.baseHealth} (Full)`;
+    }
+
+    const hBonusEl = document.getElementById('vital-health-bonus');
+    const hBonusPill = document.getElementById('vital-health-bonus-pill');
+    if (hBonusEl) {
+      hBonusEl.textContent = breakdown.bonusHealth > 0 ? `+${breakdown.bonusHealth}` : '0';
+      if (hBonusPill) {
+        if (breakdown.bonusHealth > 0) {
+          hBonusPill.classList.add('active-bonus');
+          hBonusPill.title = `Bonus Health: +${breakdown.bonusHealth}. Absorbs incoming damage first!`;
+        } else {
+          hBonusPill.classList.remove('active-bonus');
+          hBonusPill.title = 'Bonus Health: 0 (Health exceeding base goes here and absorbs damage first)';
+        }
+      }
+    }
+
+    const hCurEl = document.getElementById('vital-health-cur');
+    if (hCurEl) hCurEl.textContent = curH;
+    const hMaxEl = document.getElementById('vital-health-max');
+    if (hMaxEl) hMaxEl.textContent = maxH;
     const hFill = document.getElementById('vital-health-fill');
-    hFill.style.width = `${hPct}%`;
-    hFill.className = hPct < 30 ? 'vital-progress-fill health-fill low' : 'vital-progress-fill health-fill';
+    if (hFill) {
+      hFill.style.width = `${hPct}%`;
+      if (hPct < 30) {
+        hFill.className = 'vital-progress-fill health-fill low';
+      } else if (breakdown.bonusHealth > 0) {
+        hFill.className = 'vital-progress-fill health-fill bonus';
+      } else {
+        hFill.className = 'vital-progress-fill health-fill';
+      }
+    }
 
+    const isTestMode = this.karmaMode === 'test';
+    const curK = isTestMode ? '∞' : this.character.currentKarma;
+    const kCurEl = document.getElementById('vital-karma-cur');
+    if (kCurEl) kCurEl.textContent = curK;
+
+    // Render Karma Mode Badge
+    const modeBadge = document.getElementById('vital-karma-mode-badge');
+    if (modeBadge) {
+      const mode = this.karmaMode || 'session';
+      modeBadge.className = `vital-karma-mode-badge mode-${mode}`;
+      if (mode === 'test') {
+        modeBadge.textContent = 'Test (∞)';
+        modeBadge.title = 'Current Mode: Test Mode (Infinite KP) — Click to change';
+      } else if (mode === 'advancement') {
+        modeBadge.textContent = 'Advancement';
+        modeBadge.title = 'Current Mode: Advancement Mode — Click to change';
+      } else {
+        modeBadge.textContent = 'Session';
+        modeBadge.title = 'Current Mode: Session Mode (Standard Play) — Click to change';
+      }
+    }
+
+    // Optional legacy base & fill elements if present in DOM
     const baseK = this.character.calculateBaseKarma();
-    const curK = this.character.currentKarma;
-    const kPct = Math.min(100, Math.max(0, Math.round((curK / Math.max(baseK, 1)) * 100)));
+    const kBaseEl = document.getElementById('vital-karma-base');
+    if (kBaseEl) kBaseEl.textContent = baseK;
+    const kFillEl = document.getElementById('vital-karma-fill');
+    if (kFillEl) {
+      const kPct = Math.min(100, Math.max(0, Math.round((curK / Math.max(baseK, 1)) * 100)));
+      kFillEl.style.width = `${Math.max(5, kPct)}%`;
+    }
 
-    document.getElementById('vital-karma-cur').textContent = curK;
-    document.getElementById('vital-karma-base').textContent = baseK;
-    document.getElementById('vital-karma-fill').style.width = `${Math.max(5, kPct)}%`;
+    // Render Last Karma Spent on Roll display
+    const lastSpentEl = document.getElementById('vital-karma-last-val');
+    const lastSpentBox = document.getElementById('vital-karma-last-roll');
+    if (lastSpentEl) {
+      const last = (this.character && this.character.lastKarmaSpentOnRoll)
+        ? this.character.lastKarmaSpentOnRoll
+        : (this.lastKarmaSpentOnRoll || null);
+      if (last && typeof last.spent === 'number') {
+        const rollLabel = last.name ? ` (${last.name})` : '';
+        if (last.spent === 0) {
+          lastSpentEl.textContent = '0 KP';
+          if (lastSpentBox) lastSpentBox.title = `Last FEAT roll${rollLabel}: 0 KP spent`;
+        } else if (last.refund && last.refund > 0) {
+          lastSpentEl.innerHTML = `-${last.spent} KP <span class="karmic-refund-badge" style="font-size: 0.9em;">(↩+${last.refund})</span>`;
+          if (lastSpentBox) lastSpentBox.title = `Last FEAT roll${rollLabel}: ${last.spent} KP spent (+${last.refund} KP refunded by Karmic Success)`;
+        } else {
+          lastSpentEl.textContent = `-${last.spent} KP`;
+          if (lastSpentBox) lastSpentBox.title = `Last FEAT roll${rollLabel}: ${last.spent} KP spent`;
+        }
+      } else {
+        lastSpentEl.textContent = '--';
+        if (lastSpentBox) lastSpentBox.title = 'No Karma spent on a roll yet';
+      }
+    }
+
+    // Render Last Karma Spent on Rank Increase display
+    const lastRankEl = document.getElementById('vital-karma-last-rank-val');
+    const lastRankBox = document.getElementById('vital-karma-last-rank');
+    if (lastRankEl) {
+      const lastRank = (this.character && this.character.lastKarmaSpentOnRankIncrease)
+        ? this.character.lastKarmaSpentOnRankIncrease
+        : null;
+      if (lastRank && typeof lastRank.amount === 'number' && lastRank.amount > 0) {
+        lastRankEl.textContent = `-${lastRank.amount} KP`;
+        const targetDesc = lastRank.target ? (lastRank.target.charAt(0).toUpperCase() + lastRank.target.slice(1)) : 'Trait';
+        const fromTo = (lastRank.from && lastRank.to) ? ` (${lastRank.from} → ${lastRank.to})` : '';
+        const days = lastRank.trainingDays ? ` • ${lastRank.trainingDays} day${lastRank.trainingDays > 1 ? 's' : ''} training` : '';
+        if (lastRankBox) lastRankBox.title = `Last Rank Increase: Advanced ${targetDesc}${fromTo} for ${lastRank.amount} KP${days}. Click to open Character Advancement.`;
+      } else {
+        lastRankEl.textContent = '--';
+        if (lastRankBox) lastRankBox.title = 'No Karma spent on a rank increase yet. Click to open Character Advancement.';
+      }
+    }
+
+    const rollerAvailKarma = this.getRollerEl ? this.getRollerEl('roller-avail-karma') : null;
+    if (rollerAvailKarma) rollerAvailKarma.textContent = curK;
   },
 
   renderAbilities() {
@@ -1587,19 +2116,66 @@ const App = {
 
     this.character.powers.forEach((p, idx) => {
       const pRank = UniversalTableEngine.getRankByName(p.rankName);
+      const isOperating = this.character.isPowerOperating ? this.character.isPowerOperating(p.id) : true;
+      const isDisabled = !!p.isDisabled;
+      const opType = p.operationalType || 'passive';
+      const isSwitchedOn = p.isSwitchedOn !== undefined ? !!p.isSwitchedOn : true;
+      const triggerConfig = p.triggerConfig || { mode: 'default' };
+
       const card = document.createElement('div');
-      card.className = 'card';
+      card.className = 'card' + (isDisabled ? ' power-card-disabled' : (!isOperating ? ' power-card-standby' : ''));
       card.style.marginBottom = '12px';
 
       const isStarredPower = !!p.isStarred;
       const isExp = isStarredPower || !!p.isExceptional;
-      const cpCost = (isExp ? 20 : 10) + (p.rankValue * (isExp ? 2 : 1)) + (p.optionSurcharge || 0);
+      const baseCost = isExp ? 20 : 10;
+      const rankMult = isExp ? 2 : 1;
+      const surcharge = p.optionSurcharge || 0;
+      const cpCost = baseCost + (p.rankValue * rankMult) + surcharge;
+
+      const activeRanks = (typeof UniversalTableEngine !== 'undefined' && UniversalTableEngine.ranks)
+        ? UniversalTableEngine.ranks.filter(r => r.name !== 'Shift 0' && !r.name.startsWith('Class') && r.name !== 'Beyond')
+        : (typeof RANKS !== 'undefined' ? RANKS.slice(1, 14) : []);
+
+      const rankSelectOptionsHtml = activeRanks.map(r => {
+        const costForRank = baseCost + (r.num * rankMult) + surcharge;
+        const isSelected = r.name.toLowerCase() === p.rankName.toLowerCase();
+        return `<option value="${r.name}" ${isSelected ? 'selected' : ''}>${r.name} (${r.num}) - ${costForRank} CP</option>`;
+      }).join('');
 
       let badgeHtml = '';
       if (isStarredPower) {
-        badgeHtml = '<span class="meta-tag tag-starred">★ Starred (2 Slots)</span>';
+        badgeHtml = '<span class="meta-tag tag-starred" title="Starred Power (20 CP Base + 2x Rank)">★</span>';
       } else if (p.isExceptional) {
-        badgeHtml = '<span class="meta-tag tag-exceptional">★ Exceptional (2x CP)</span>';
+        badgeHtml = '<span class="meta-tag tag-exceptional" title="Exceptional Power (20 CP Base + 2x Rank)">★</span>';
+      }
+
+      // Operational mode / status badges
+      let operationalBadgeHtml = '';
+      if (isDisabled) {
+        operationalBadgeHtml = '<span class="meta-tag tag-power-neutralized" title="Power is Neutralized / Disabled">🚫 Neutralized</span>';
+      } else if (opType === 'active') {
+        operationalBadgeHtml = '<span class="meta-tag tag-power-active-type" title="Active Power: Requires an action each time used">⚡ Action</span>';
+      } else {
+        if (triggerConfig.mode === 'linked' && triggerConfig.masterPowerId) {
+          const invLabel = triggerConfig.invert ? ' (Inverted)' : '';
+          operationalBadgeHtml += `<span class="meta-tag tag-power-linked" title="Linked to: ${triggerConfig.masterPowerName || 'Master'}${invLabel}">🔗 Linked: ${triggerConfig.masterPowerName || 'Master'}${invLabel}</span> `;
+        }
+        if (isOperating) {
+          operationalBadgeHtml += '<span class="meta-tag tag-operating-on" title="Power is currently Operating">🟢 Active</span>';
+        } else {
+          operationalBadgeHtml += '<span class="meta-tag tag-operating-off" title="Power is currently Standby / Inactive">⚪ Standby</span>';
+        }
+      }
+
+      // On/Off switch button for passive powers
+      let switchBtnHtml = '';
+      if (opType === 'passive') {
+        switchBtnHtml = `
+          <button type="button" class="power-switch-btn ${isSwitchedOn ? 'on' : 'off'}" data-toggle-power-switch="${idx}" title="${isSwitchedOn ? 'Power is switched ON (Click to switch off)' : 'Power is switched OFF (Click to switch on)'}">
+            ${isSwitchedOn ? '🟢 On' : '⚪ Off'}
+          </button>
+        `;
       }
 
       // Resolve power options / manifestation badge
@@ -1658,7 +2234,7 @@ const App = {
 
       const powerTitleHtml = `
         <div class="power-title-container dropdown-container">
-          <button type="button" class="power-title-btn dropdown-toggle" data-power-menu-toggle="${idx}" title="Click for Power Menu (Adjust, Remove)">
+          <button type="button" class="power-title-btn dropdown-toggle" data-power-menu-toggle="${idx}" title="Click for Power Menu (Change Rank, Triggers, Adjust, Disable, Remove)">
             ${p.name} <span class="power-menu-caret">▾</span>
           </button>
           <div class="dropdown-menu power-dropdown-menu" id="power-menu-${idx}">
@@ -1667,8 +2243,17 @@ const App = {
               ⚙️ Configure Option / Manifestation
             </button>
             ` : ''}
+            <button type="button" class="dropdown-item power-menu-item" data-action="change-power-rank" data-power-idx="${idx}">
+              🎯 Change Rank (${p.rankName})
+            </button>
+            <button type="button" class="dropdown-item power-menu-item" data-action="configure-power-trigger" data-power-idx="${idx}">
+              🔗 Triggers &amp; Operational Mode
+            </button>
             <button type="button" class="dropdown-item power-menu-item" data-action="adjust-power" data-power-idx="${idx}">
               ⚡ Adjust Power
+            </button>
+            <button type="button" class="dropdown-item power-menu-item ${isDisabled ? 'enable-item' : 'disable-item'}" data-action="toggle-disable-power" data-power-idx="${idx}">
+              ${isDisabled ? '✅ Re-enable Power' : '🚫 Disable Power (Neutralized)'}
             </button>
             <button type="button" class="dropdown-item power-menu-item danger-item" data-action="remove-power" data-power-idx="${idx}">
               🗑️ Remove power
@@ -1683,12 +2268,16 @@ const App = {
             ${powerTitleHtml}
             <button type="button" class="help-circle-btn" title="View details and rules for ${p.name}" data-power-name="${p.name}">?</button>
             ${badgeHtml}
+            ${operationalBadgeHtml}
             ${adjustedBadgeHtml}
             ${optionBadgeHtml}
           </div>
           <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+            ${switchBtnHtml}
             <span class="meta-tag tag-power-cp" style="font-weight: 700;">${cpCost} CP</span>
-            <span class="rank-pill" style="background-color: ${pRank.color};">${pRank.name} (${p.rankValue})</span>
+            <select class="power-rank-select" data-power-rank-select="${idx}" title="Change Rank for ${p.name} (CP cost is calculated automatically)" style="background-color: ${pRank.color};">
+              ${rankSelectOptionsHtml}
+            </select>
             <button type="button" class="power-roll-btn" data-roll-power="${idx}" title="Roll ${p.name} FEAT">🎲 Roll</button>
             <button class="icon-btn" style="padding: 2px 8px; min-height: 28px; background: #881337;" data-del-power="${idx}" title="Delete Power">✕</button>
           </div>
@@ -1699,6 +2288,80 @@ const App = {
         </div>
         ${customNotesHtml}
       `;
+
+      // Render Interactive Pool / Charge Tracker Widget (for powers with dynamic energy pools or rage counters)
+      if (p.pool) {
+        const poolDiv = document.createElement('div');
+        poolDiv.className = 'power-pool-widget';
+        poolDiv.style.cssText = 'margin: 10px 0 6px 0; padding: 10px 12px; background: rgba(0, 0, 0, 0.25); border: 1px solid rgba(56, 189, 248, 0.2); border-radius: 6px;';
+        const curCharge = p.pool.current || 0;
+        const maxCharge = p.pool.max || 100;
+        const pct = Math.max(0, Math.min(100, Math.round((curCharge / (maxCharge || 1)) * 100)));
+        const unitName = p.pool.unit || 'Charge Units';
+        const derivedSummary = this.character.getPowerDerivedEffects(p);
+
+        poolDiv.innerHTML = `
+          <div class="power-pool-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 6px;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <strong style="color: var(--marvel-gold); font-size: 10pt;">⚡ ${unitName}:</strong>
+              <span class="power-pool-count" style="font-weight: 700; font-size: 10.5pt; color: #38bdf8;">${curCharge} / ${maxCharge}</span>
+            </div>
+            <div class="power-pool-effects-badge" style="font-size: 9pt; font-weight: 600; padding: 2px 8px; border-radius: 4px; background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3);">
+              ${derivedSummary}
+            </div>
+          </div>
+          <div class="power-pool-progress-bar" style="height: 6px; border-radius: 3px; background: rgba(255, 255, 255, 0.1); overflow: hidden; margin-bottom: 8px;">
+            <div class="power-pool-progress-fill" style="height: 100%; width: ${pct}%; background: linear-gradient(90deg, #3b82f6, #06b6d4); transition: width 0.2s ease;"></div>
+          </div>
+          <div class="power-pool-controls" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px;">
+            <div style="display: flex; gap: 4px; align-items: center;">
+              <button type="button" class="pool-step-btn icon-btn" style="min-height: 28px; padding: 2px 8px; font-size: 9pt;" data-step="-50">-50</button>
+              <button type="button" class="pool-step-btn icon-btn" style="min-height: 28px; padding: 2px 8px; font-size: 9pt;" data-step="-10">-10</button>
+              <button type="button" class="pool-step-btn icon-btn" style="min-height: 28px; padding: 2px 6px; font-size: 9pt;" data-step="-1">-1</button>
+            </div>
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <input type="number" class="field-input pool-direct-input" value="${curCharge}" min="0" max="${maxCharge}" style="width: 80px; text-align: center; font-weight: 700; min-height: 28px; padding: 2px 6px; font-size: 10pt;">
+              <button type="button" class="icon-btn pool-set-btn primary" style="min-height: 28px; padding: 2px 10px; font-size: 9pt;">Set</button>
+            </div>
+            <div style="display: flex; gap: 4px; align-items: center;">
+              <button type="button" class="pool-step-btn icon-btn" style="min-height: 28px; padding: 2px 6px; font-size: 9pt;" data-step="1">+1</button>
+              <button type="button" class="pool-step-btn icon-btn" style="min-height: 28px; padding: 2px 8px; font-size: 9pt;" data-step="10">+10</button>
+              <button type="button" class="pool-step-btn icon-btn" style="min-height: 28px; padding: 2px 8px; font-size: 9pt;" data-step="50">+50</button>
+            </div>
+          </div>
+          ${p.pool.decayRate ? `<div style="font-size: 8.5pt; color: var(--text-muted); margin-top: 4px;">⏱️ Bleed-off: ${p.pool.decayRate}</div>` : ''}
+        `;
+
+        poolDiv.querySelectorAll('.pool-step-btn').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const step = parseInt(btn.dataset.step) || 0;
+            const res = this.character.setPowerPoolCharge(p.id, curCharge + step);
+            if (res) {
+              this.recordCharacterEdit(`Adjusted ${p.name} pool to ${res.newVal}/${res.maxVal} (${res.effectsSummary})`, 'power');
+              this.render();
+            }
+          });
+        });
+
+        const directInput = poolDiv.querySelector('.pool-direct-input');
+        const setBtn = poolDiv.querySelector('.pool-set-btn');
+        const applyDirect = (e) => {
+          if (e) e.stopPropagation();
+          const val = parseInt(directInput.value) || 0;
+          const res = this.character.setPowerPoolCharge(p.id, val);
+          if (res) {
+            this.recordCharacterEdit(`Set ${p.name} pool to ${res.newVal}/${res.maxVal} (${res.effectsSummary})`, 'power');
+            this.render();
+          }
+        };
+        if (setBtn) setBtn.addEventListener('click', applyDirect);
+        if (directInput) directInput.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') applyDirect(e);
+        });
+
+        card.appendChild(poolDiv);
+      }
 
       // Render Power Stunts Section inside Power Card
       const stuntsDiv = document.createElement('div');
@@ -1720,6 +2383,7 @@ const App = {
             const parts = [];
             if (succInfo.neededRed > 0) parts.push(`<span class="badge-red">${succInfo.neededRed} Red</span>`);
             if (succInfo.neededYellow > 0) parts.push(`<span class="badge-yellow">${succInfo.neededYellow} Yellow</span>`);
+            if (succInfo.neededGreen > 0) parts.push(`<span class="badge-green">${succInfo.neededGreen} Green</span>`);
             neededHtml = `<span class="stunt-needed-badge">(Needs ${parts.join(', ')})</span>`;
           }
 
@@ -1858,6 +2522,75 @@ const App = {
         });
       }
 
+      // Operational Switch Button Toggle (On/Off)
+      const switchBtn = card.querySelector(`[data-toggle-power-switch="${idx}"]`);
+      if (switchBtn) {
+        switchBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const res = this.character.togglePowerSwitch(p.id);
+          this.recordCharacterEdit(`Toggled ${p.name} switch: ${res.isSwitchedOn ? 'ON' : 'OFF'}`, 'power');
+          this.saveState();
+          this.render();
+        });
+      }
+
+      // Configure Trigger action from Menu
+      const configTriggerBtn = card.querySelector(`[data-action="configure-power-trigger"][data-power-idx="${idx}"]`);
+      if (configTriggerBtn) {
+        configTriggerBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          if (menuEl) menuEl.classList.remove('show');
+          this.openPowerTriggerModal(idx);
+        });
+      }
+
+      // Power Rank Selector Change Event
+      const rankSelect = card.querySelector(`[data-power-rank-select="${idx}"]`);
+      if (rankSelect) {
+        rankSelect.addEventListener('change', (e) => {
+          e.stopPropagation();
+          const newRankName = e.target.value;
+          const res = this.character.setPowerRank(p.id, newRankName);
+          if (res) {
+            const isExpPwr = !!(p.isExceptional || p.isStarred);
+            const newCost = (isExpPwr ? 20 : 10) + (res.newRankValue * (isExpPwr ? 2 : 1)) + (p.optionSurcharge || 0);
+            this.recordCharacterEdit(`Changed ${p.name} rank: ${res.oldRankName} (${res.oldRankValue}) ➔ ${res.newRankName} (${res.newRankValue}) [${newCost} CP]`, 'power');
+            this.saveState();
+            this.render();
+            this.showStatusToast(`⚡ "${p.name}" changed to ${res.newRankName} (${res.newRankValue}) [${newCost} CP]`);
+          }
+        });
+      }
+
+      // Change Rank action from Power Menu
+      const changeRankBtn = card.querySelector(`[data-action="change-power-rank"][data-power-idx="${idx}"]`);
+      if (changeRankBtn) {
+        changeRankBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          if (menuEl) menuEl.classList.remove('show');
+          if (rankSelect) {
+            rankSelect.focus();
+            if (typeof rankSelect.showPicker === 'function') {
+              try { rankSelect.showPicker(); } catch (_) {}
+            }
+          }
+        });
+      }
+
+      // Toggle Disable / Neutralize action from Menu
+      const toggleDisableBtn = card.querySelector(`[data-action="toggle-disable-power"][data-power-idx="${idx}"]`);
+      if (toggleDisableBtn) {
+        toggleDisableBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          if (menuEl) menuEl.classList.remove('show');
+          const willDisable = !p.isDisabled;
+          this.character.setPowerDisabled(p.id, willDisable);
+          this.recordCharacterEdit(`${willDisable ? 'Disabled / Neutralized' : 'Re-enabled'} power: ${p.name}`, 'power');
+          this.saveState();
+          this.render();
+        });
+      }
+
       // Configure Option action from Menu
       const configOptBtn = card.querySelector(`[data-action="configure-power-option"][data-power-idx="${idx}"]`);
       if (configOptBtn) {
@@ -1989,6 +2722,8 @@ const App = {
     if (redInp) redInp.value = '0';
     const yelInp = document.getElementById('stunt-yellow-successes');
     if (yelInp) yelInp.value = '0';
+    const greenInp = document.getElementById('stunt-green-successes');
+    if (greenInp) greenInp.value = '0';
 
     const modal = document.getElementById('stunt-modal');
     if (modal) modal.classList.add('open');
@@ -2020,6 +2755,7 @@ const App = {
     const isLearned = document.getElementById('stunt-learned-check').checked;
     const redSuccesses = parseInt(document.getElementById('stunt-red-successes')?.value || 0);
     const yellowSuccesses = parseInt(document.getElementById('stunt-yellow-successes')?.value || 0);
+    const greenSuccesses = parseInt(document.getElementById('stunt-green-successes')?.value || 0);
 
     this.character.addPowerStunt(power.id, {
       name,
@@ -2029,7 +2765,8 @@ const App = {
       isLearned,
       redSuccesses,
       yellowSuccesses,
-      attemptsCount: isLearned ? 3 : (redSuccesses + yellowSuccesses)
+      greenSuccesses,
+      attemptsCount: isLearned ? 10 : (redSuccesses + yellowSuccesses + greenSuccesses)
     });
 
     this.saveState();
@@ -2476,6 +3213,10 @@ const App = {
     );
   },
 
+  getAllAvailablePowers() {
+    return globalThis.MSH_POWERS || [];
+  },
+
   handleAddPower(mouseEvent = null) {
     const powerId = document.getElementById('select-power-catalog').value;
     if (!powerId) {
@@ -2485,7 +3226,8 @@ const App = {
     const rankName = document.getElementById('select-new-power-rank').value;
     const manualExceptional = document.getElementById('check-power-exceptional') ? document.getElementById('check-power-exceptional').checked : false;
 
-    const catalogPower = globalThis.MSH_POWERS.find(p => p.id === powerId);
+    const allAvailable = this.getAllAvailablePowers();
+    const catalogPower = allAvailable.find(p => p.id === powerId || p.code === powerId);
     if (!catalogPower) {
       this.showCustomAlert('Please select a superpower from the dropdown before adding.', 'Select Power', mouseEvent);
       return;
@@ -2536,6 +3278,12 @@ const App = {
       powerSlots: isStarred ? 2 : 1,
       isExceptional: isExceptional,
       isStarred: isStarred,
+      isNpcArchetype: !!catalogPower.isNpcArchetype,
+      isCustom: !!catalogPower.isCustom,
+      templateKey: catalogPower.templateKey || catalogPower.code,
+      pool: catalogPower.pool ? JSON.parse(JSON.stringify(catalogPower.pool)) : null,
+      trigger: catalogPower.trigger ? JSON.parse(JSON.stringify(catalogPower.trigger)) : null,
+      traitModifiers: catalogPower.traitModifiers ? JSON.parse(JSON.stringify(catalogPower.traitModifiers)) : [],
       range: catalogPower.range,
       duration: catalogPower.duration,
       areaOfEffect: catalogPower.areaOfEffect,
@@ -2546,7 +3294,7 @@ const App = {
       optionAcquisitionMethod: optionAcquisitionMethod,
       optionSurcharge: optionSurcharge,
       isSuperiorOption: isSuperiorOption,
-      notes: '',
+      notes: catalogPower.rulesText ? (catalogPower.errataNote ? `${catalogPower.rulesText} (${catalogPower.errataNote})` : catalogPower.rulesText) : '',
       stunts: catalogPower.powerStunts || []
     });
 
@@ -2592,26 +3340,26 @@ const App = {
       }
       this.recordCharacterEdit(`Removed power: ${powerName} (+${cpRefund} CP refunded)`, 'power');
       this.render();
-      await this.showCustomAlert(
-        `"${powerName}" was removed.\n\n${cpRefund} CP has been refunded to your Character Point budget.`,
-        '✅ Power Removed & CP Refunded',
-        mouseEvent
-      );
+      this.showStatusToast(`🗑️ "${powerName}" removed (+${cpRefund} CP refunded)`);
     }
   },
 
   renderPowerDropdown(filterText = '') {
     const pCatSel = document.getElementById('select-power-catalog');
-    if (!pCatSel || !globalThis.MSH_POWERS) return;
+    if (!pCatSel) return;
 
+    const allPowers = this.getAllAvailablePowers();
     const previousVal = pCatSel.value;
     const q = (filterText || '').toLowerCase().trim();
-    const filtered = q ? globalThis.MSH_POWERS.filter(p => 
+    const filtered = q ? allPowers.filter(p => 
       p.name.toLowerCase().includes(q) || 
-      p.id.toLowerCase().includes(q) || 
+      (p.id && p.id.toLowerCase().includes(q)) || 
+      (p.code && p.code.toLowerCase().includes(q)) || 
       (p.category && p.category.toLowerCase().includes(q)) ||
       ((q === '*' || q === 'star' || q === 'starred') && p.isStarred)
-    ) : globalThis.MSH_POWERS;
+    ) : allPowers;
+
+    let html = '<option value="">-- Select Power --</option>';
 
     const cats = {};
     filtered.forEach(p => {
@@ -2620,13 +3368,14 @@ const App = {
       cats[c].push(p);
     });
 
-    let html = '<option value="">-- Select Power --</option>';
-    for (const catName in cats) {
-      html += `<optgroup label="${catName}">`;
+    const sortedCatNames = Object.keys(cats).sort();
+
+    for (const catName of sortedCatNames) {
+      html += `<optgroup label="⭐ UPB: ${catName}">`;
       html += cats[catName].map(p => {
         const star = p.isStarred ? '★ ' : '';
-        const tag = p.isStarred ? ' (Starred / 2 Slots)' : '';
-        return `<option value="${p.id}">[${p.id}] ${star}${p.name}${tag}</option>`;
+        const tag = p.isStarred ? ' (Starred ★)' : '';
+        return `<option value="${p.id || p.code}">[${p.code || p.id}] ${star}${p.name}${tag}</option>`;
       }).join('');
       html += `</optgroup>`;
     }
@@ -2643,8 +3392,9 @@ const App = {
 
   syncPowerSelectionUI() {
     const pCatSel = document.getElementById('select-power-catalog');
-    if (!pCatSel || !globalThis.MSH_POWERS) return;
-    const selectedP = globalThis.MSH_POWERS.find(p => p.id === pCatSel.value);
+    if (!pCatSel) return;
+    const allPowers = this.getAllAvailablePowers();
+    const selectedP = allPowers.find(p => p.id === pCatSel.value || p.code === pCatSel.value);
     const checkExp = document.getElementById('check-power-exceptional');
     const labelExpText = document.getElementById('label-power-exceptional-text');
     const bannerEl = document.getElementById('power-starred-banner');
@@ -2680,10 +3430,15 @@ const App = {
         checkExp.disabled = true;
       }
       if (labelExpText) {
-        labelExpText.innerHTML = '<strong class="starred-label-text">★ Starred Power (2 Slots, 20 CP Base + 2x Rank)</strong>';
+        labelExpText.innerHTML = '<strong class="starred-label-text">★ Starred Power (20 CP Base + 2x Rank)</strong>';
       }
       if (bannerEl) {
         bannerEl.style.display = 'block';
+        if (selectedP.isNpcArchetype) {
+          bannerEl.innerHTML = `🌟 <strong>Reverse-Engineered GHotMU Superpower:</strong> ${selectedP.name}. ${selectedP.source ? '(' + selectedP.source + '). ' : ''}Uses CMF Exceptional point-buy pricing (<strong>20 CP Base + 2× Rank CP</strong>).`;
+        } else {
+          bannerEl.innerHTML = `★ <strong>Official Starred Power:</strong> Per TSR rules (Player's Book p. 19 & UPB p. 16-19), this heavyweight power uses CMF Exceptional point-buy pricing (<strong>20 CP Base + 2× Rank CP</strong>).`;
+        }
       }
     } else {
       if (checkExp) {
@@ -2695,6 +3450,12 @@ const App = {
       if (bannerEl) {
         bannerEl.style.display = 'none';
       }
+    }
+
+    // Set default rank if specified
+    const rankSel = document.getElementById('select-new-power-rank');
+    if (rankSel && selectedP.defaultRank) {
+      rankSel.value = selectedP.defaultRank;
     }
 
     const optDef = (typeof globalThis.getPowerOptionsDefinition === 'function') ? globalThis.getPowerOptionsDefinition(selectedP) : null;
@@ -3099,6 +3860,225 @@ const App = {
     this.activeOptionPowerIndex = null;
   },
 
+  openPowerTriggerModal(powerIndex) {
+    const power = this.character.powers[powerIndex];
+    if (!power) return;
+
+    this.activeTriggerPowerIndex = powerIndex;
+    const modal = document.getElementById('modal-power-trigger');
+    if (!modal) return;
+
+    const pRank = UniversalTableEngine.getRankByName(power.rankName);
+    const pIndexInp = document.getElementById('modal-trigger-power-index');
+    const pNameEl = document.getElementById('modal-trigger-power-name');
+    const pRankEl = document.getElementById('modal-trigger-power-rank');
+    const pStatusBadge = document.getElementById('modal-trigger-status-badge');
+    const pMetaEl = document.getElementById('modal-trigger-power-meta');
+
+    if (pIndexInp) pIndexInp.value = powerIndex;
+    if (pNameEl) pNameEl.textContent = power.name;
+    if (pRankEl) pRankEl.textContent = `${pRank.name} (${power.rankValue})`;
+    
+    const isOperating = this.character.isPowerOperating(power.id);
+    if (pStatusBadge) {
+      if (power.isDisabled) {
+        pStatusBadge.className = 'meta-tag tag-power-neutralized';
+        pStatusBadge.textContent = '🚫 Neutralized';
+      } else if (isOperating) {
+        pStatusBadge.className = 'meta-tag tag-operating-on';
+        pStatusBadge.textContent = '🟢 Operating';
+      } else {
+        pStatusBadge.className = 'meta-tag tag-operating-off';
+        pStatusBadge.textContent = '⚪ Standby / Off';
+      }
+    }
+
+    const dur = power.duration || 'Not specified';
+    if (pMetaEl) {
+      const defaultMode = (dur === 'Instantaneous') ? 'Active (requires action each turn)' : 'Passive (switched on/off at will)';
+      pMetaEl.textContent = `Category: ${power.category || 'Special'} | UPB Duration: ${dur} | Default: ${defaultMode}`;
+    }
+
+    // Operational Type radio
+    const opType = power.operationalType || 'passive';
+    const radPassive = document.getElementById('trigger-op-passive');
+    const radActive = document.getElementById('trigger-op-active');
+    if (radPassive && radActive) {
+      radPassive.checked = (opType === 'passive');
+      radActive.checked = (opType === 'active');
+    }
+
+    // Trigger config
+    const cfg = power.triggerConfig || { mode: 'default', masterPowerId: null, masterPowerName: null, invert: false, conditionLabel: '' };
+    const radDefault = document.getElementById('trigger-link-default');
+    const radLinked = document.getElementById('trigger-link-linked');
+    if (radDefault && radLinked) {
+      radDefault.checked = (cfg.mode !== 'linked');
+      radLinked.checked = (cfg.mode === 'linked');
+    }
+
+    // Populate Master Power select
+    const masterSel = document.getElementById('trigger-master-select');
+    if (masterSel) {
+      masterSel.innerHTML = '';
+      const otherPowers = this.character.powers.filter((_, idx) => idx !== powerIndex);
+      if (otherPowers.length === 0) {
+        masterSel.innerHTML = '<option value="">(No other powers available)</option>';
+      } else {
+        otherPowers.forEach(other => {
+          const opt = document.createElement('option');
+          opt.value = other.id;
+          opt.textContent = `${other.name} [${other.rankName || 'Good'}] (${other.operationalType || 'passive'})`;
+          if (cfg.masterPowerId === other.id) {
+            opt.selected = true;
+          }
+          masterSel.appendChild(opt);
+        });
+      }
+    }
+
+    // Invert checkbox
+    const invertCheck = document.getElementById('trigger-invert-check');
+    if (invertCheck) {
+      invertCheck.checked = !!cfg.invert;
+    }
+
+    // Condition input
+    const condInp = document.getElementById('trigger-condition-input');
+    if (condInp) {
+      condInp.value = cfg.conditionLabel || '';
+    }
+
+    // Toggle linked sub-panel
+    const linkedDetails = document.getElementById('trigger-linked-details');
+    if (linkedDetails) {
+      linkedDetails.style.display = (cfg.mode === 'linked') ? 'block' : 'none';
+    }
+
+    modal.classList.add('open');
+  },
+
+  closePowerTriggerModal() {
+    const modal = document.getElementById('modal-power-trigger');
+    if (modal) modal.classList.remove('open');
+    this.activeTriggerPowerIndex = null;
+  },
+
+  savePowerTriggerModal() {
+    if (this.activeTriggerPowerIndex === null || this.activeTriggerPowerIndex === undefined) return;
+    const power = this.character.powers[this.activeTriggerPowerIndex];
+    if (!power) return;
+
+    const radActive = document.getElementById('trigger-op-active');
+    const operationalType = radActive?.checked ? 'active' : 'passive';
+
+    const radLinked = document.getElementById('trigger-link-linked');
+    const isLinked = !!radLinked?.checked;
+    const mode = isLinked ? 'linked' : 'default';
+
+    const masterSel = document.getElementById('trigger-master-select');
+    const masterPowerId = (isLinked && masterSel) ? masterSel.value : null;
+
+    const invertCheck = document.getElementById('trigger-invert-check');
+    const invert = isLinked && !!invertCheck?.checked;
+
+    const condInp = document.getElementById('trigger-condition-input');
+    const conditionLabel = condInp ? (condInp.value || '').trim() : '';
+
+    this.character.configurePowerTrigger(power.id, {
+      operationalType,
+      mode,
+      masterPowerId,
+      invert,
+      conditionLabel
+    });
+
+    const masterName = power.triggerConfig?.masterPowerName || masterPowerId;
+    this.recordCharacterEdit(`Configured trigger for ${power.name}: ${operationalType.toUpperCase()}${isLinked ? ' (Linked to ' + masterName + (invert ? ' [Inverted]' : '') + ')' : ' (Independent)'}`, 'power');
+    this.closePowerTriggerModal();
+    this.saveState();
+    this.render();
+  },
+
+  resetPowerTriggerModal() {
+    if (this.activeTriggerPowerIndex === null || this.activeTriggerPowerIndex === undefined) return;
+    const power = this.character.powers[this.activeTriggerPowerIndex];
+    if (!power) return;
+
+    const radPassive = document.getElementById('trigger-op-passive');
+    const radActive = document.getElementById('trigger-op-active');
+    const radDefault = document.getElementById('trigger-link-default');
+    const radLinked = document.getElementById('trigger-link-linked');
+    const linkedDetails = document.getElementById('trigger-linked-details');
+    const invertCheck = document.getElementById('trigger-invert-check');
+    const condInp = document.getElementById('trigger-condition-input');
+
+    const defaultOp = (power.duration === 'Instantaneous') ? 'active' : 'passive';
+    if (radPassive) radPassive.checked = (defaultOp === 'passive');
+    if (radActive) radActive.checked = (defaultOp === 'active');
+    if (radDefault) radDefault.checked = true;
+    if (radLinked) radLinked.checked = false;
+    if (linkedDetails) linkedDetails.style.display = 'none';
+    if (invertCheck) invertCheck.checked = false;
+    if (condInp) condInp.value = '';
+  },
+
+  applyTriggerPreset(presetKey) {
+    if (this.activeTriggerPowerIndex === null || this.activeTriggerPowerIndex === undefined) return;
+    const power = this.character.powers[this.activeTriggerPowerIndex];
+    if (!power) return;
+
+    const radPassive = document.getElementById('trigger-op-passive');
+    const radActive = document.getElementById('trigger-op-active');
+    const radLinked = document.getElementById('trigger-link-linked');
+    const linkedDetails = document.getElementById('trigger-linked-details');
+    const masterSel = document.getElementById('trigger-master-select');
+    const invertCheck = document.getElementById('trigger-invert-check');
+    const condInp = document.getElementById('trigger-condition-input');
+
+    if (presetKey === 'cannonball') {
+      // Force Field triggered by Rocket Flight
+      if (radPassive) radPassive.checked = true;
+      if (radLinked) radLinked.checked = true;
+      if (linkedDetails) linkedDetails.style.display = 'block';
+      if (invertCheck) invertCheck.checked = false;
+      if (condInp) condInp.value = 'In Rocket Flight (also protects touching allies)';
+      if (masterSel) {
+        const flPwr = Array.from(masterSel.options).find(o => o.text.toLowerCase().includes('flight') || o.text.toLowerCase().includes('rocket'));
+        if (flPwr) flPwr.selected = true;
+      }
+    } else if (presetKey === 'colossus') {
+      // Body Armor / Strength triggered by Organic Steel
+      if (radPassive) radPassive.checked = true;
+      if (radLinked) radLinked.checked = true;
+      if (linkedDetails) linkedDetails.style.display = 'block';
+      if (invertCheck) invertCheck.checked = false;
+      if (condInp) condInp.value = 'Organic Steel Transformation Active';
+      if (masterSel) {
+        const colPwr = Array.from(masterSel.options).find(o => o.text.toLowerCase().includes('organic steel') || o.text.toLowerCase().includes('steel') || o.text.toLowerCase().includes('transformation'));
+        if (colPwr) colPwr.selected = true;
+      }
+    } else if (presetKey === 'frost') {
+      // Inverted: Telepathy disabled during Diamond Form
+      if (radPassive) radPassive.checked = true;
+      if (radLinked) radLinked.checked = true;
+      if (linkedDetails) linkedDetails.style.display = 'block';
+      if (invertCheck) invertCheck.checked = true;
+      if (condInp) condInp.value = 'Disabled while Diamond Form is active';
+      if (masterSel) {
+        const diaPwr = Array.from(masterSel.options).find(o => o.text.toLowerCase().includes('diamond') || o.text.toLowerCase().includes('form'));
+        if (diaPwr) diaPwr.selected = true;
+      }
+    } else if (presetKey === 'hulk') {
+      // Hyper-Strength triggered by Anger / Adrenalin
+      if (radPassive) radPassive.checked = true;
+      if (radLinked) radLinked.checked = false;
+      if (linkedDetails) linkedDetails.style.display = 'none';
+      if (invertCheck) invertCheck.checked = false;
+      if (condInp) condInp.value = 'Adrenalin Surge / Anger Trigger';
+    }
+  },
+
   renderInvPowerDropdown(filterText = '') {
     const invPwrSel = document.getElementById('inv-power-select');
     if (!invPwrSel || !globalThis.MSH_POWERS) return;
@@ -3165,7 +4145,6 @@ const App = {
         const isStarred = !!t.isStarred;
         const starPrefix = isStarred ? '⭐ ' : '';
         const starName = `${t.name}${isStarred ? '*' : ''}`;
-        const slotsText = isStarred ? '2 Slots' : '1 Slot';
         const costText = `${t.costCP || (isStarred ? 20 : 10)} CP`;
         const allowsSpec = !!t.allowsSpecialization;
 
@@ -3178,12 +4157,12 @@ const App = {
 
         if (!allowsSpec && learnedCount > 0) {
           // Cannot be duplicated
-          return `<option value="${t.id || t.name}" disabled style="opacity: 0.5;">${starPrefix}${starName} (${slotsText}, ${costText}) [Already Learned]</option>`;
+          return `<option value="${t.id || t.name}" disabled style="opacity: 0.5;">${starPrefix}${starName} (${costText}) [Already Learned]</option>`;
         } else if (allowsSpec && learnedCount > 0) {
           // Can be learned multiple times with different specializations
-          return `<option value="${t.id || t.name}">${starPrefix}${starName} (${slotsText}, ${costText}) [${learnedCount} learned - Add Specialty]</option>`;
+          return `<option value="${t.id || t.name}">${starPrefix}${starName} (${costText}) [${learnedCount} learned - Add Specialty]</option>`;
         } else {
-          return `<option value="${t.id || t.name}">${starPrefix}${starName} (${slotsText}, ${costText})</option>`;
+          return `<option value="${t.id || t.name}">${starPrefix}${starName} (${costText})</option>`;
         }
       }).join('');
       html += `</optgroup>`;
@@ -4020,6 +4999,23 @@ const App = {
     this.saveState();
   },
 
+  setKarmicSuccess(enabled) {
+    this.karmicSuccess = !!enabled;
+    if (this.character) {
+      this.character.karmicSuccess = this.karmicSuccess;
+    }
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem('msh_option_karmic_success', this.karmicSuccess ? 'true' : 'false');
+    }
+    const opt = document.getElementById('option-karmic-success');
+    if (opt) opt.checked = this.karmicSuccess;
+    const rollerCheck = this.getRollerEl ? this.getRollerEl('roller-check-karmic-success') : null;
+    if (rollerCheck) rollerCheck.checked = this.karmicSuccess;
+    const docRollerCheck = document.getElementById('roller-check-karmic-success');
+    if (docRollerCheck) docRollerCheck.checked = this.karmicSuccess;
+    this.saveState();
+  },
+
   setUniversalTableMode(mode, save = true) {
     this.universalTableMode = (mode === 'cmf') ? 'cmf' : 'standard';
     if (typeof UniversalTableEngine !== 'undefined' && UniversalTableEngine.setTableMode) {
@@ -4097,6 +5093,11 @@ const App = {
       if (typeof document.body.setAttribute === 'function') {
         document.body.setAttribute('data-theme', theme);
       }
+    }
+    if (this.isRollerPoppedOut && this.isRollerPoppedOut()) {
+      try {
+        this.rollerPopoutWindow.document.body.setAttribute('data-theme', theme);
+      } catch (e) {}
     }
     const themeSelect = typeof document !== 'undefined' ? document.getElementById('option-theme') : null;
     if (themeSelect) themeSelect.value = theme;
@@ -5329,14 +6330,13 @@ const App = {
     const slotsBadge = document.getElementById('talents-slots-badge');
     const cardTitle = document.getElementById('talents-card-title');
 
-    const totalSlots = this.character.getTotalTalentSlots ? this.character.getTotalTalentSlots() : this.character.talents.length;
     const totalCP = (this.character.talents || []).reduce((sum, t) => sum + (t.costCP !== undefined ? t.costCP : (t.isStarred ? 20 : 10)), 0);
 
     if (slotsBadge) {
-      slotsBadge.textContent = `${totalSlots} Slot${totalSlots === 1 ? '' : 's'} (${totalCP} CP)`;
+      slotsBadge.textContent = `${totalCP} CP`;
     }
     if (cardTitle) {
-      cardTitle.textContent = `🥋 Talents & Skills (${this.character.talents.length} Learned · ${totalSlots} Slots)`;
+      cardTitle.textContent = `🥋 Talents & Skills (${this.character.talents.length} Learned · ${totalCP} CP)`;
     }
 
     if (container) {
@@ -5345,7 +6345,6 @@ const App = {
         const card = document.createElement('div');
         card.className = 'attack-card';
         const isStarred = !!t.isStarred;
-        const slots = t.slots || (isStarred ? 2 : 1);
         const costCP = t.costCP !== undefined ? t.costCP : (isStarred ? 20 : 10);
         const allowsSpec = !!t.allowsSpecialization;
 
@@ -5354,7 +6353,7 @@ const App = {
             <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
               <button type="button" class="help-circle-btn" data-help-talent="${t.name}" title="View details for ${t.name}">?</button>
               <strong style="color: #38bdf8; font-size: 11pt;">${t.name}${isStarred ? '*' : ''}</strong>
-              ${isStarred ? `<span class="meta-tag tag-starred">⭐ Starred (2 Slots)</span>` : `<span class="meta-tag" style="font-size: 8pt;">1 Slot</span>`}
+              ${isStarred ? `<span class="meta-tag tag-starred" title="Starred Talent (20 CP)">★</span>` : ''}
             </div>
             <div style="display: flex; gap: 8px; align-items: center;">
               <span class="meta-tag" style="color: var(--marvel-gold); font-weight: 700;">${costCP} CP</span>
@@ -5644,232 +6643,562 @@ const App = {
   },
 
   /* Roller Window & Dialog Logic */
+  getRollerBox() {
+    if (this.rollerPopoutWindow && !this.rollerPopoutWindow.closed) {
+      try {
+        const box = this.rollerPopoutWindow.document.querySelector('.modal-box.roller-compact');
+        if (box) return box;
+      } catch (e) {}
+    }
+    return document.querySelector('.modal-box.roller-compact');
+  },
+
+  getRollerEl(id) {
+    const box = this.getRollerBox();
+    if (box) {
+      const el = box.querySelector(`#${id}`);
+      if (el) return el;
+    }
+    return document.getElementById(id);
+  },
+
+  isRollerPoppedOut() {
+    return !!(this.rollerPopoutWindow && !this.rollerPopoutWindow.closed);
+  },
+
   initRollerWindow() {
     const modal = document.getElementById('roller-modal');
-    const popoutBtn = document.getElementById('btn-roller-popout');
     const modalBox = modal ? modal.querySelector('.modal-box.roller-compact') : null;
-    const header = modal ? modal.querySelector('.modal-header.compact') : null;
 
-    // Load popout state from localStorage
+    // Close child popout window if main page unloads/reloads
+    window.addEventListener('beforeunload', () => {
+      if (this.rollerPopoutWindow && !this.rollerPopoutWindow.closed) {
+        try {
+          this.rollerPopoutWindow.close();
+        } catch (e) {}
+      }
+    });
+
+    // Auto-adjust modal boundaries on window resize when docked
+    window.addEventListener('resize', () => {
+      if (!this.isRollerPoppedOut()) {
+        this.adjustRollerModalBounds();
+      }
+    });
+
+    // Delegated event listener directly on modalBox so all interactions work in main window OR pop-out window
+    if (modalBox) {
+      modalBox.addEventListener('click', (e) => {
+        // Popout / Dock toggle
+        const popBtn = e.target.closest('#btn-roller-popout');
+        if (popBtn) {
+          e.preventDefault();
+          e.stopPropagation();
+          this.toggleRollerPopout();
+          return;
+        }
+
+        // Close / Dock
+        const closeBtn = e.target.closest('.modal-close, .modal-close-btn');
+        if (closeBtn) {
+          e.preventDefault();
+          e.stopPropagation();
+          this.closeRoller();
+          return;
+        }
+
+        // Roll Trigger
+        const rollBtn = e.target.closest('#btn-roller-roll');
+        if (rollBtn) {
+          e.preventDefault();
+          e.stopPropagation();
+          this.executeRollerFEAT();
+          return;
+        }
+
+        // Column shift down (-1 CS)
+        const shiftDownBtn = e.target.closest('#btn-roller-shift-down');
+        if (shiftDownBtn) {
+          e.preventDefault();
+          e.stopPropagation();
+          if (this.rollerShift > -5) {
+            this.rollerShift--;
+            this.updateRollerPreview();
+          }
+          return;
+        }
+
+        // Column shift up (+1 CS)
+        const shiftUpBtn = e.target.closest('#btn-roller-shift-up');
+        if (shiftUpBtn) {
+          e.preventDefault();
+          e.stopPropagation();
+          if (this.rollerShift < 5) {
+            this.rollerShift++;
+            this.updateRollerPreview();
+          }
+          return;
+        }
+
+        // Karma spending steppers & Clear button
+        const btnKClear = e.target.closest('#btn-karma-spend-clear');
+        if (btnKClear) {
+          e.preventDefault();
+          e.stopPropagation();
+          this.updateKarmaSpend(0);
+          return;
+        }
+
+        const btnKMinus10 = e.target.closest('#btn-karma-spend-minus10');
+        if (btnKMinus10) {
+          e.preventDefault();
+          e.stopPropagation();
+          this.updateKarmaSpend(this.rollerKarmaSpend - 10);
+          return;
+        }
+        const btnKMinus1 = e.target.closest('#btn-karma-spend-minus1');
+        if (btnKMinus1) {
+          e.preventDefault();
+          e.stopPropagation();
+          this.updateKarmaSpend(this.rollerKarmaSpend - 1);
+          return;
+        }
+        const btnKPlus1 = e.target.closest('#btn-karma-spend-plus1');
+        if (btnKPlus1) {
+          e.preventDefault();
+          e.stopPropagation();
+          this.updateKarmaSpend(this.rollerKarmaSpend + 1);
+          return;
+        }
+        const btnKPlus10 = e.target.closest('#btn-karma-spend-plus10');
+        if (btnKPlus10) {
+          e.preventDefault();
+          e.stopPropagation();
+          this.updateKarmaSpend(this.rollerKarmaSpend + 10);
+          return;
+        }
+      });
+
+      modalBox.addEventListener('input', (e) => {
+        if (e.target.id === 'roller-karma-spend-input') {
+          const val = parseInt(e.target.value) || 0;
+          this.updateKarmaSpend(val);
+        }
+      });
+
+      modalBox.addEventListener('change', (e) => {
+        if (e.target.id === 'roller-check-karmic-success') {
+          this.setKarmicSuccess(e.target.checked);
+          this.showStatusToast(e.target.checked 
+            ? '✨ Karmic Success ENABLED (refund up to 20 KP on Blue shift)' 
+            : 'Karmic Success disabled');
+        }
+      });
+    }
+  },
+
+  updateKarmaSpend(newVal) {
+    // Karma added to d100 roll (clamped between 0 and 100)
+    this.rollerKarmaSpend = Math.max(0, Math.min(100, isNaN(newVal) ? 0 : newVal));
+    const inp = this.getRollerEl('roller-karma-spend-input');
+    if (inp) inp.value = this.rollerKarmaSpend;
+    this.updateRollerKarmaDisplay();
+  },
+
+  updateRollerKarmaDisplay() {
+    const diceVisual = this.getRollerEl('roller-dice-num');
+    if (diceVisual) {
+      diceVisual.innerHTML = `-- <span class="dice-kp-badge">+ ${this.rollerKarmaSpend || 0} KP</span>`;
+      diceVisual.style.borderColor = 'var(--border-color)';
+      diceVisual.style.color = '#fff';
+    }
+    this.highlightRollerColor(null);
+    const effectEl = this.getRollerEl('roller-effect-desc');
+    const effectBox = effectEl ? effectEl.closest('.battle-effect-box') : null;
+    if (effectEl) {
+      effectEl.innerHTML = '';
+      if (effectBox) effectBox.style.display = 'none';
+    }
+  },
+
+  saveRollerPopoutGeometry() {
+    const pop = this.rollerPopoutWindow;
+    if (!pop || pop.closed) return;
     try {
-      const savedState = localStorage.getItem('msh_roller_window_state');
-      if (savedState) {
-        const state = JSON.parse(savedState);
-        this.rollerPoppedOut = !!state.isPoppedOut;
-        if (this.rollerPoppedOut && modal && modalBox) {
-          modal.classList.add('popped-out');
-          if (popoutBtn) {
-            popoutBtn.textContent = '↘ Dock';
-            popoutBtn.title = 'Dock back into standard modal dialog';
-          }
-          const viewW = window.innerWidth || 1200;
-          const viewH = window.innerHeight || 800;
-          const w = modalBox.offsetWidth || 450;
-          let x = (state.x !== undefined) ? state.x : Math.max(10, viewW - w - 24);
-          let y = (state.y !== undefined) ? state.y : 20;
+      const x = pop.screenX !== undefined ? pop.screenX : pop.screenLeft;
+      const y = pop.screenY !== undefined ? pop.screenY : pop.screenTop;
+      const w = pop.outerWidth || pop.innerWidth;
+      const h = pop.outerHeight || pop.innerHeight;
+      if (typeof x === 'number' && typeof y === 'number' && typeof w === 'number' && typeof h === 'number' && w >= 250 && h >= 250) {
+        const geo = {
+          width: Math.round(w),
+          height: Math.round(h),
+          left: Math.round(x),
+          top: Math.round(y)
+        };
+        localStorage.setItem('msh_roller_popout_geometry', JSON.stringify(geo));
+      }
+    } catch (e) {}
+  },
 
-          // Clamp to safe viewport bounds
-          x = Math.max(10, Math.min(x, Math.max(10, viewW - 120)));
-          y = Math.max(10, Math.min(y, Math.max(10, viewH - 120)));
-
-          modalBox.style.left = `${x}px`;
-          modalBox.style.top = `${y}px`;
-          modalBox.style.position = 'fixed';
-          modalBox.style.margin = '0';
-          modalBox.style.maxHeight = `${Math.max(260, viewH - y - 10)}px`;
-
-          if (state.width !== undefined && state.height !== undefined) {
-            modalBox.style.width = `${Math.min(state.width, viewW - 20)}px`;
-            modalBox.style.height = `${Math.min(state.height, viewH - y - 10)}px`;
-          }
+  getRollerPopoutGeometry() {
+    try {
+      const stored = localStorage.getItem('msh_roller_popout_geometry');
+      if (stored) {
+        const geo = JSON.parse(stored);
+        if (geo && typeof geo.width === 'number' && typeof geo.height === 'number') {
+          const width = Math.max(320, Math.min(geo.width, 2560));
+          const height = Math.max(280, Math.min(geo.height, 1600));
+          const left = (typeof geo.left === 'number' && !isNaN(geo.left) && Math.abs(geo.left) < 30000) ? Math.round(geo.left) : null;
+          const top = (typeof geo.top === 'number' && !isNaN(geo.top) && Math.abs(geo.top) < 30000) ? Math.round(geo.top) : null;
+          return { width, height, left, top };
         }
       }
-    } catch (e) {
-      console.warn('Could not restore roller window state', e);
-    }
-
-    // Popout button toggle
-    if (popoutBtn) {
-      popoutBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        this.toggleRollerPopout();
-      });
-    }
-
-    // Draggable header when in popped-out floating mode
-    if (header && modalBox) {
-      let isDragging = false;
-      let startX = 0;
-      let startY = 0;
-      let initialLeft = 0;
-      let initialTop = 0;
-
-      header.addEventListener('mousedown', (e) => {
-        if (!this.rollerPoppedOut) return;
-        if (e.target.closest('button')) return; // Don't initiate drag on button clicks
-
-        isDragging = true;
-        startX = e.clientX;
-        startY = e.clientY;
-
-        const rect = modalBox.getBoundingClientRect();
-        initialLeft = rect.left;
-        initialTop = rect.top;
-
-        const onMouseMove = (moveEvt) => {
-          if (!isDragging) return;
-          const dx = moveEvt.clientX - startX;
-          const dy = moveEvt.clientY - startY;
-
-          let newLeft = initialLeft + dx;
-          let newTop = initialTop + dy;
-
-          const viewW = window.innerWidth || 1200;
-          const viewH = window.innerHeight || 800;
-          const boxW = modalBox.offsetWidth || 450;
-          const boxH = modalBox.offsetHeight || 440;
-
-          const maxLeft = Math.max(10, viewW - boxW - 10);
-          const maxTop = Math.max(10, viewH - boxH - 10);
-
-          newLeft = Math.max(10, Math.min(newLeft, maxLeft));
-          newTop = Math.max(10, Math.min(newTop, maxTop));
-
-          modalBox.style.left = `${newLeft}px`;
-          modalBox.style.top = `${newTop}px`;
-          modalBox.style.position = 'fixed';
-          modalBox.style.margin = '0';
-          modalBox.style.maxHeight = `${Math.max(260, viewH - newTop - 10)}px`;
-        };
-
-        const onMouseUp = () => {
-          if (isDragging) {
-            isDragging = false;
-            window.removeEventListener('mousemove', onMouseMove);
-            window.removeEventListener('mouseup', onMouseUp);
-            this.saveRollerWindowState();
-            this.adjustRollerModalBounds();
-          }
-        };
-
-        window.addEventListener('mousemove', onMouseMove);
-        window.addEventListener('mouseup', onMouseUp);
-      });
-    }
-
-    // Auto-adjust modal boundaries when viewport is resized
-    window.addEventListener('resize', () => this.adjustRollerModalBounds());
-
-    // Pre-Roll Karma Spending Steppers & Direct Input
-    const updateKarmaSpend = (newVal) => {
-      const maxKarma = this.character ? this.character.currentKarma : 0;
-      this.rollerKarmaSpend = Math.max(0, Math.min(maxKarma, newVal));
-      const inp = document.getElementById('roller-karma-spend-input');
-      if (inp) inp.value = this.rollerKarmaSpend;
-    };
-
-    const btnKMinus10 = document.getElementById('btn-karma-spend-minus10');
-    if (btnKMinus10) btnKMinus10.addEventListener('click', () => updateKarmaSpend(this.rollerKarmaSpend - 10));
-
-    const btnKMinus1 = document.getElementById('btn-karma-spend-minus1');
-    if (btnKMinus1) btnKMinus1.addEventListener('click', () => updateKarmaSpend(this.rollerKarmaSpend - 1));
-
-    const btnKPlus1 = document.getElementById('btn-karma-spend-plus1');
-    if (btnKPlus1) btnKPlus1.addEventListener('click', () => updateKarmaSpend(this.rollerKarmaSpend + 1));
-
-    const btnKPlus10 = document.getElementById('btn-karma-spend-plus10');
-    if (btnKPlus10) btnKPlus10.addEventListener('click', () => updateKarmaSpend(this.rollerKarmaSpend + 10));
-
-    const karmaInput = document.getElementById('roller-karma-spend-input');
-    if (karmaInput) {
-      karmaInput.addEventListener('input', (e) => {
-        const val = parseInt(e.target.value) || 0;
-        updateKarmaSpend(val);
-      });
-    }
+    } catch (e) {}
+    return null;
   },
 
   toggleRollerPopout() {
-    this.rollerPoppedOut = !this.rollerPoppedOut;
-    const modal = document.getElementById('roller-modal');
-    const popoutBtn = document.getElementById('btn-roller-popout');
-    const modalBox = modal ? modal.querySelector('.modal-box.roller-compact') : null;
-
-    const viewW = window.innerWidth || 1200;
-    const viewH = window.innerHeight || 800;
-
-    if (this.rollerPoppedOut) {
-      if (modal) modal.classList.add('popped-out');
-      if (popoutBtn) {
-        popoutBtn.textContent = '↘ Dock';
-        popoutBtn.title = 'Dock back into standard modal dialog';
-      }
-
-      // Default to top-right floating position or valid saved state
-      const boxW = modalBox ? (modalBox.offsetWidth || 450) : 450;
-      let targetLeft = Math.max(10, viewW - boxW - 24);
-      let targetTop = 20;
-
-      try {
-        const saved = localStorage.getItem('msh_roller_window_state');
-        if (saved) {
-          const st = JSON.parse(saved);
-          if (st.isPoppedOut && typeof st.x === 'number' && typeof st.y === 'number') {
-            targetLeft = Math.max(10, Math.min(st.x, Math.max(10, viewW - boxW - 10)));
-            targetTop = Math.max(10, Math.min(st.y, Math.max(10, viewH - 120)));
-          }
-        }
-      } catch (e) {}
-
-      if (modalBox) {
-        modalBox.style.left = `${Math.round(targetLeft)}px`;
-        modalBox.style.top = `${Math.round(targetTop)}px`;
-        modalBox.style.position = 'fixed';
-        modalBox.style.margin = '0';
-        modalBox.style.maxHeight = `${Math.max(260, viewH - targetTop - 10)}px`;
-      }
+    if (this.isRollerPoppedOut()) {
+      this.dockRoller(true);
     } else {
-      if (modal) modal.classList.remove('popped-out');
-      if (popoutBtn) {
-        popoutBtn.textContent = '↗ Pop-out';
-        popoutBtn.title = 'Pop-out floating modeless window';
-      }
-      if (modalBox) {
-        modalBox.style.width = '';
-        modalBox.style.height = '';
-        this.positionRollerModal(null);
-      }
+      this.popoutRoller();
     }
-    this.saveRollerWindowState();
-    this.adjustRollerModalBounds();
   },
 
-  saveRollerWindowState() {
+  popoutRoller() {
+    const modal = document.getElementById('roller-modal');
+    const modalBox = document.querySelector('.modal-box.roller-compact');
+    if (!modalBox) return;
+
+    if (this.isRollerPoppedOut()) {
+      try {
+        this.rollerPopoutWindow.focus();
+      } catch (e) {}
+      return;
+    }
+
+    const savedGeo = this.getRollerPopoutGeometry();
+    let width = 560;
+    let height = 650;
+    let left = null;
+    let top = null;
+
+    if (savedGeo) {
+      width = savedGeo.width;
+      height = savedGeo.height;
+      if (savedGeo.left !== null && savedGeo.top !== null) {
+        left = savedGeo.left;
+        top = savedGeo.top;
+      }
+    }
+
+    if (left === null || top === null) {
+      const screenLeft = (window.screenX !== undefined ? window.screenX : window.screenLeft || 0);
+      const screenTop = (window.screenY !== undefined ? window.screenY : window.screenTop || 0);
+      const outerW = window.outerWidth || window.innerWidth || 1200;
+      left = Math.max(20, screenLeft + outerW - width - 40);
+      top = Math.max(20, screenTop + 60);
+    }
+
+    let pop = null;
+    try {
+      pop = window.open('', 'MSH_Universal_Table_Roller', `width=${width},height=${height},left=${left},top=${top},menubar=no,toolbar=no,location=no,status=no,resizable=yes,scrollbars=yes`);
+      if (pop && !pop.closed) {
+        try {
+          pop.resizeTo(width, height);
+          pop.moveTo(left, top);
+        } catch (e) {}
+      }
+    } catch (err) {
+      console.warn('window.open error:', err);
+    }
+
+    if (!pop || pop.closed || typeof pop.closed === 'undefined') {
+      this.showStatusToast('⚠️ Pop-out window blocked by browser. Please allow popups for this site.');
+      return;
+    }
+
+    this.rollerPopoutWindow = pop;
+    this.rollerPoppedOut = true;
+
+    if (modal) {
+      modal.classList.remove('open');
+      modal.classList.remove('popped-out');
+    }
+
+    const popDoc = pop.document;
+    popDoc.open();
+    popDoc.write(`<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Universal Table FEAT Roller - Marvel Super Heroes</title>
+</head>
+<body>
+  <div class="roller-popout-shell" id="roller-popout-shell"></div>
+</body>
+</html>`);
+    popDoc.close();
+
+    // Copy head link & style elements for fonts and styling
+    document.querySelectorAll('link[rel="stylesheet"], style').forEach(node => {
+      try {
+        popDoc.head.appendChild(node.cloneNode(true));
+      } catch (e) {}
+    });
+
+    // Popout shell & container styling
+    const popStyle = popDoc.createElement('style');
+    popStyle.textContent = `
+      html, body {
+        margin: 0;
+        padding: 0;
+        min-height: 100%;
+        box-sizing: border-box;
+      }
+      body {
+        padding: 12px;
+        background: var(--bg-dark, #0b0f19);
+        color: var(--text-main, #f1f5f9);
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        display: flex;
+        justify-content: center;
+        align-items: flex-start;
+        overflow-y: auto;
+      }
+      .roller-popout-shell {
+        width: 100%;
+        max-width: 100%;
+        display: flex;
+        justify-content: center;
+      }
+      .modal-box.roller-compact {
+        width: 100% !important;
+        max-width: 100% !important;
+        position: static !important;
+        margin: 0 !important;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5) !important;
+        border: 1px solid var(--border-color, #334155) !important;
+        max-height: none !important;
+        height: auto !important;
+        resize: none !important;
+        display: flex !important;
+      }
+      .modal-header.compact {
+        cursor: default !important;
+      }
+    `;
+    popDoc.head.appendChild(popStyle);
+
+    // Sync theme
+    const theme = document.body.getAttribute('data-theme');
+    if (theme) popDoc.body.setAttribute('data-theme', theme);
+
+    // Move modalBox into popout document
+    if (!this.rollerPlaceholder) {
+      this.rollerPlaceholder = document.createComment('roller-modal-box-placeholder');
+    }
+    if (modalBox.parentNode) {
+      modalBox.parentNode.insertBefore(this.rollerPlaceholder, modalBox);
+    }
+    const mount = popDoc.getElementById('roller-popout-shell');
+    if (mount) {
+      mount.appendChild(modalBox);
+    }
+
+    // Update Pop-out button to Dock
+    const popBtn = this.getRollerEl('btn-roller-popout');
+    if (popBtn) {
+      popBtn.textContent = '↘ Dock';
+      popBtn.title = 'Dock roller back into main sheet window';
+    }
+
+    // Track resizing and movements
+    pop.addEventListener('resize', () => {
+      this.saveRollerPopoutGeometry();
+    });
+
+    // Automatic restoration when popout window closes
+    let returned = false;
+    const returnModal = () => {
+      if (returned) return;
+      this.saveRollerPopoutGeometry();
+      returned = true;
+      if (this.rollerPlaceholder && this.rollerPlaceholder.parentNode) {
+        this.rollerPlaceholder.parentNode.insertBefore(modalBox, this.rollerPlaceholder);
+        this.rollerPlaceholder.remove();
+        this.rollerPlaceholder = null;
+      } else {
+        const m = document.getElementById('roller-modal');
+        if (m && !m.contains(modalBox)) m.appendChild(modalBox);
+      }
+      this.rollerPopoutWindow = null;
+      this.rollerPoppedOut = false;
+      modalBox.style.width = '';
+      modalBox.style.height = '';
+      modalBox.style.position = '';
+      modalBox.style.left = '';
+      modalBox.style.top = '';
+      modalBox.style.margin = '';
+      const b = document.getElementById('btn-roller-popout');
+      if (b) {
+        b.textContent = '↗ Pop-out';
+        b.title = 'Pop-out into separate window';
+      }
+    };
+
+    pop.addEventListener('beforeunload', returnModal);
+    pop.addEventListener('unload', returnModal);
+
+    // Watcher interval in case pop window is moved or terminated abruptly
+    const checkInterval = setInterval(() => {
+      if (!this.rollerPopoutWindow || this.rollerPopoutWindow.closed) {
+        clearInterval(checkInterval);
+        returnModal();
+      } else {
+        this.saveRollerPopoutGeometry();
+      }
+    }, 400);
+
+    this.updateRollerPreview();
+    try {
+      pop.focus();
+    } catch (e) {}
+
+    this.showStatusToast('↗ Die Roller popped out into separate window');
+  },
+
+  dockRoller(keepOpenInPage = true) {
+    const pop = this.rollerPopoutWindow;
+    if (pop && !pop.closed) {
+      this.saveRollerPopoutGeometry();
+      try {
+        pop.close();
+      } catch (e) {}
+    }
+    this.rollerPopoutWindow = null;
+    this.rollerPoppedOut = false;
+
+    const modalBox = document.querySelector('.modal-box.roller-compact');
+    if (this.rollerPlaceholder && this.rollerPlaceholder.parentNode && modalBox) {
+      this.rollerPlaceholder.parentNode.insertBefore(modalBox, this.rollerPlaceholder);
+      this.rollerPlaceholder.remove();
+      this.rollerPlaceholder = null;
+    } else if (modalBox) {
+      const m = document.getElementById('roller-modal');
+      if (m && !m.contains(modalBox)) m.appendChild(modalBox);
+    }
+
+    if (modalBox) {
+      modalBox.style.width = '';
+      modalBox.style.height = '';
+      modalBox.style.position = '';
+      modalBox.style.left = '';
+      modalBox.style.top = '';
+      modalBox.style.margin = '';
+    }
+
+    const popBtn = document.getElementById('btn-roller-popout');
+    if (popBtn) {
+      popBtn.textContent = '↗ Pop-out';
+      popBtn.title = 'Pop-out into separate window';
+    }
+
+    const modal = document.getElementById('roller-modal');
+    if (modal) {
+      if (keepOpenInPage) {
+        modal.classList.add('open');
+        this.positionRollerModal(null);
+        this.adjustRollerModalBounds();
+      } else {
+        modal.classList.remove('open');
+      }
+    }
+    this.showStatusToast('↘ Die Roller docked back into main window');
+  },
+
+  closeRoller() {
+    if (this.isRollerPoppedOut()) {
+      this.dockRoller(false);
+    } else {
+      const modal = document.getElementById('roller-modal');
+      if (modal) modal.classList.remove('open');
+    }
+  },
+
+  positionRollerModal(clickEvent = null) {
     const modal = document.getElementById('roller-modal');
     const modalBox = modal ? modal.querySelector('.modal-box.roller-compact') : null;
     if (!modalBox) return;
 
-    try {
-      const rect = modalBox.getBoundingClientRect ? modalBox.getBoundingClientRect() : {
-        left: parseInt(modalBox.style.left) || 20,
-        top: parseInt(modalBox.style.top) || 60,
-        width: parseInt(modalBox.style.width) || 450,
-        height: parseInt(modalBox.style.height) || 440
-      };
-      const state = {
-        isPoppedOut: this.rollerPoppedOut,
-        x: Math.round(rect.left || parseInt(modalBox.style.left) || 20),
-        y: Math.round(rect.top || parseInt(modalBox.style.top) || 60),
-        width: Math.round(rect.width || parseInt(modalBox.style.width) || 450),
-        height: Math.round(rect.height || parseInt(modalBox.style.height) || 440)
-      };
-      localStorage.setItem('msh_roller_window_state', JSON.stringify(state));
-    } catch (e) {
-      console.warn('Could not save roller window state', e);
+    if (this.isRollerPoppedOut()) return;
+
+    const viewW = window.innerWidth || 1200;
+    const viewH = window.innerHeight || 800;
+
+    modalBox.style.maxHeight = `${Math.max(280, viewH - 24)}px`;
+
+    const modalW = modalBox.offsetWidth || 540;
+    const modalH = modalBox.offsetHeight || 380;
+
+    // Calculate center of the roll button (#btn-roller-roll) relative to modalBox
+    const rollBtn = modalBox.querySelector('#btn-roller-roll');
+    let btnCenterX = modalW / 2;
+    let btnCenterY = 150;
+
+    if (rollBtn) {
+      const boxRect = modalBox.getBoundingClientRect();
+      const btnRect = rollBtn.getBoundingClientRect();
+      if (btnRect.width > 0 && btnRect.height > 0) {
+        btnCenterX = (btnRect.left - boxRect.left) + (btnRect.width / 2);
+        btnCenterY = (btnRect.top - boxRect.top) + (btnRect.height / 2);
+      }
+    }
+
+    let targetLeft = 0;
+    let targetTop = 0;
+
+    if (clickEvent && typeof clickEvent.clientX === 'number') {
+      targetLeft = clickEvent.clientX - btnCenterX;
+      targetTop = clickEvent.clientY - btnCenterY;
+    } else {
+      targetLeft = (viewW - modalW) / 2;
+      targetTop = (viewH - modalH) / 2;
+    }
+
+    targetLeft = Math.max(10, Math.min(targetLeft, Math.max(10, viewW - modalW - 10)));
+    targetTop = Math.max(10, Math.min(targetTop, Math.max(10, viewH - modalH - 10)));
+
+    modalBox.style.position = 'fixed';
+    modalBox.style.left = `${Math.round(targetLeft)}px`;
+    modalBox.style.top = `${Math.round(targetTop)}px`;
+    modalBox.style.margin = '0';
+    modalBox.style.maxHeight = `${Math.max(260, viewH - targetTop - 10)}px`;
+
+    // Micro-correction: ensure mouse is precisely centered over the roll button
+    if (rollBtn && clickEvent && typeof clickEvent.clientX === 'number') {
+      const finalBtnRect = rollBtn.getBoundingClientRect();
+      if (finalBtnRect.width > 0 && finalBtnRect.height > 0) {
+        const currentBtnCenterX = finalBtnRect.left + (finalBtnRect.width / 2);
+        const currentBtnCenterY = finalBtnRect.top + (finalBtnRect.height / 2);
+        const diffX = clickEvent.clientX - currentBtnCenterX;
+        const diffY = clickEvent.clientY - currentBtnCenterY;
+
+        if (Math.abs(diffX) > 0.5 || Math.abs(diffY) > 0.5) {
+          targetLeft += diffX;
+          targetTop += diffY;
+          targetLeft = Math.max(10, Math.min(targetLeft, Math.max(10, viewW - modalW - 10)));
+          targetTop = Math.max(10, Math.min(targetTop, Math.max(10, viewH - modalH - 10)));
+          modalBox.style.left = `${Math.round(targetLeft)}px`;
+          modalBox.style.top = `${Math.round(targetTop)}px`;
+        }
+      }
     }
   },
 
   adjustRollerModalBounds() {
+    if (this.isRollerPoppedOut()) return;
     const modal = document.getElementById('roller-modal');
     const modalBox = modal ? modal.querySelector('.modal-box.roller-compact') : null;
     if (!modalBox || !modal || !modal.classList.contains('open')) return;
@@ -5878,14 +7207,13 @@ const App = {
     const viewW = window.innerWidth || 1200;
     const rect = modalBox.getBoundingClientRect ? modalBox.getBoundingClientRect() : {
       bottom: (parseInt(modalBox.style.top) || 0) + (modalBox.offsetHeight || 440),
-      right: (parseInt(modalBox.style.left) || 0) + (modalBox.offsetWidth || 450),
+      right: (parseInt(modalBox.style.left) || 0) + (modalBox.offsetWidth || 540),
       top: parseInt(modalBox.style.top) || 0,
       left: parseInt(modalBox.style.left) || 0,
       height: modalBox.offsetHeight || 440,
-      width: modalBox.offsetWidth || 450
+      width: modalBox.offsetWidth || 540
     };
 
-    // If bottom exceeds viewport viewable area, shift top up and cap maxHeight
     if (rect.bottom > viewH - 10) {
       const overflow = rect.bottom - (viewH - 10);
       const currentTop = parseInt(modalBox.style.top) || rect.top || 10;
@@ -5897,7 +7225,6 @@ const App = {
       modalBox.style.maxHeight = `${Math.max(260, viewH - currentTop - 10)}px`;
     }
 
-    // Ensure right side doesn't exceed screen
     if (rect.right > viewW - 10) {
       const overflowX = rect.right - (viewW - 10);
       const currentLeft = parseInt(modalBox.style.left) || rect.left || 10;
@@ -5905,49 +7232,26 @@ const App = {
     }
   },
 
-  positionRollerModal(clickEvent = null) {
-    const modal = document.getElementById('roller-modal');
-    const modalBox = modal ? modal.querySelector('.modal-box.roller-compact') : null;
-    if (!modalBox) return;
+  highlightRollerColor(winningColor) {
+    const box = this.getRollerBox();
+    if (!box) return;
+    const threshBoxes = box.querySelectorAll('.thresh-box');
+    threshBoxes.forEach(el => {
+      el.classList.remove('lit', 'dimmed');
+    });
 
-    // If window is currently popped-out floating, adjust bounds and retain floating spot
-    if (this.rollerPoppedOut) {
-      this.adjustRollerModalBounds();
-      return;
-    }
+    if (!winningColor) return;
 
-    const viewW = window.innerWidth || 1200;
-    const viewH = window.innerHeight || 800;
-
-    // Set initial safety maxHeight before measuring
-    modalBox.style.maxHeight = `${Math.max(280, viewH - 24)}px`;
-
-    const modalW = modalBox.offsetWidth || 450;
-    const modalH = modalBox.offsetHeight || 440;
-
-    let targetLeft = 0;
-    let targetTop = 0;
-
-    if (clickEvent && typeof clickEvent.clientX === 'number') {
-      // Centered directly under the mouse cursor that initiated the roll
-      targetLeft = clickEvent.clientX - (modalW / 2);
-      targetTop = clickEvent.clientY - (modalH / 2);
-    } else {
-      // Centered in viewport
-      targetLeft = (viewW - modalW) / 2;
-      targetTop = (viewH - modalH) / 2;
-    }
-
-    // Strictly clamp within viewport bounds with 10px padding
-    targetLeft = Math.max(10, Math.min(targetLeft, Math.max(10, viewW - modalW - 10)));
-    targetTop = Math.max(10, Math.min(targetTop, Math.max(10, viewH - modalH - 10)));
-
-    modalBox.style.position = 'fixed';
-    modalBox.style.left = `${Math.round(targetLeft)}px`;
-    modalBox.style.top = `${Math.round(targetTop)}px`;
-    modalBox.style.margin = '0';
-    // Constrain maxHeight dynamically so the bottom of the modal NEVER exceeds viewH - 10px
-    modalBox.style.maxHeight = `${Math.max(260, viewH - targetTop - 10)}px`;
+    const norm = String(winningColor).trim().toLowerCase();
+    threshBoxes.forEach(el => {
+      const colAttr = (el.getAttribute('data-color') || '').toLowerCase();
+      const isMatch = el.classList.contains(norm) || colAttr === norm;
+      if (isMatch) {
+        el.classList.add('lit');
+      } else if (el.style.display !== 'none') {
+        el.classList.add('dimmed');
+      }
+    });
   },
 
   openRoller(params, clickEvent = null) {
@@ -5956,22 +7260,31 @@ const App = {
     this.rollerKarmaSpend = 0;
 
     const modal = document.getElementById('roller-modal');
-    document.getElementById('roller-title').textContent = params.name;
-    document.getElementById('roller-ability').textContent = params.abilityName;
+    const titleEl = this.getRollerEl('roller-title');
+    if (titleEl) titleEl.textContent = params.name;
+    const abilityEl = this.getRollerEl('roller-ability');
+    if (abilityEl) abilityEl.textContent = params.abilityName;
 
     // Reset pre-roll Karma expenditure
-    const availKarmaEl = document.getElementById('roller-avail-karma');
+    const availKarmaEl = this.getRollerEl('roller-avail-karma');
     if (availKarmaEl) {
-      availKarmaEl.textContent = this.character ? this.character.currentKarma : 0;
+      availKarmaEl.textContent = (this.karmaMode === 'test') ? '∞' : (this.character ? this.character.currentKarma : 0);
     }
-    const karmaInp = document.getElementById('roller-karma-spend-input');
+    const karmaInp = this.getRollerEl('roller-karma-spend-input');
     if (karmaInp) {
       karmaInp.value = '0';
     }
 
+    // Sync Karmic Success House Rule checkbox in roller
+    const rollerKarmicCheck = this.getRollerEl('roller-check-karmic-success');
+    if (rollerKarmicCheck) {
+      rollerKarmicCheck.checked = !!this.karmicSuccess;
+    }
+
     // Per TSR Player's Book p. 18: Karma may NEVER be added to Resource FEATs
-    const karmaSpendRow = modal ? modal.querySelector('.roller-karma-spend-row') : null;
-    const karmaHintEl = modal ? modal.querySelector('.karma-spend-label .karma-avail-hint') : null;
+    const currentBox = this.getRollerBox();
+    const karmaSpendRow = currentBox ? currentBox.querySelector('.roller-karma-spend-row') : null;
+    const karmaHintEl = currentBox ? currentBox.querySelector('.karma-spend-label .karma-avail-hint') : null;
     if (params.isResourceFEAT) {
       if (karmaSpendRow) {
         karmaSpendRow.style.opacity = '0.35';
@@ -5985,46 +7298,68 @@ const App = {
         karmaSpendRow.style.opacity = '1';
         karmaSpendRow.style.pointerEvents = 'auto';
       }
+      const isTest = this.karmaMode === 'test';
       if (karmaHintEl) {
-        karmaHintEl.innerHTML = `(Avail: <strong id="roller-avail-karma">${this.character ? this.character.currentKarma : 0}</strong> KP)`;
+        const availText = isTest ? '∞' : (this.character ? this.character.currentKarma : 0);
+        karmaHintEl.innerHTML = `(Avail: <strong id="roller-avail-karma">${availText}</strong> KP)`;
       }
     }
 
-    const diceVisual = document.getElementById('roller-dice-num');
+    const diceVisual = this.getRollerEl('roller-dice-num');
     if (diceVisual) {
       diceVisual.innerHTML = '-- <span class="dice-kp-badge">+ 0 KP</span>';
       diceVisual.style.borderColor = 'var(--border-color)';
       diceVisual.style.color = '#fff';
     }
 
-    const effectEl = document.getElementById('roller-effect-desc');
+    const effectEl = this.getRollerEl('roller-effect-desc');
+    const effectBox = effectEl ? effectEl.closest('.battle-effect-box') : null;
     if (effectEl) {
-      effectEl.textContent = 'Click "Roll" to resolve action.';
+      effectEl.innerHTML = '';
+      if (effectBox) effectBox.style.display = 'none';
     }
+    this.highlightRollerColor(null);
 
     this.updateRollerPreview();
-    modal.classList.add('open');
-    this.positionRollerModal(clickEvent);
-    this.adjustRollerModalBounds();
+
+    if (this.isRollerPoppedOut()) {
+      try {
+        this.rollerPopoutWindow.focus();
+      } catch (e) {}
+    } else {
+      if (modal) {
+        modal.classList.add('open');
+        this.positionRollerModal(clickEvent);
+        this.adjustRollerModalBounds();
+      }
+    }
   },
 
   updateRollerPreview() {
     if (!this.activeRoller) return;
     const shift = this.rollerShift || 0;
-    const shiftValEl = document.getElementById('roller-shift-val');
+    const shiftValEl = this.getRollerEl('roller-shift-val');
     if (shiftValEl) {
       shiftValEl.textContent = (shift >= 0 ? '+' : '') + shift + ' CS';
     }
 
+    this.highlightRollerColor(null);
+    const effectEl = this.getRollerEl('roller-effect-desc');
+    const effectBox = effectEl ? effectEl.closest('.battle-effect-box') : null;
+    if (effectEl) {
+      effectEl.innerHTML = '';
+      if (effectBox) effectBox.style.display = 'none';
+    }
+
     const isCMF = (typeof UniversalTableEngine !== 'undefined' && UniversalTableEngine.tableMode === 'cmf');
-    const blueBox = document.getElementById('roller-thresh-blue-box');
+    const blueBox = this.getRollerEl('roller-thresh-blue-box');
     if (blueBox) {
       blueBox.style.display = isCMF ? 'flex' : 'none';
     }
 
     const effRank = UniversalTableEngine.applyColumnShift(this.activeRoller.initialRank, shift);
 
-    const prevEl = document.getElementById('roller-rank-preview');
+    const prevEl = this.getRollerEl('roller-rank-preview');
     if (prevEl) {
       prevEl.textContent = `${effRank.name} (${effRank.num})`;
       prevEl.style.color = effRank.color;
@@ -6034,11 +7369,11 @@ const App = {
       const thresh = (UniversalTableEngine.table && UniversalTableEngine.table[effRank.name]) || [0, 52, 82, 96];
       const [fumbleMax, greenMin, yellowMin, redMin] = thresh;
 
-      const blueEl = document.getElementById('roller-thresh-blue');
+      const blueEl = this.getRollerEl('roller-thresh-blue');
       if (blueEl) {
         blueEl.textContent = fumbleMax > 0 ? (fumbleMax === 1 ? '01' : `01-${String(fumbleMax).padStart(2, '0')}`) : 'None';
       }
-      const whiteEl = document.getElementById('roller-thresh-white');
+      const whiteEl = this.getRollerEl('roller-thresh-white');
       if (whiteEl) {
         if (fumbleMax === 0) {
           const wMax = greenMin - 1;
@@ -6049,29 +7384,29 @@ const App = {
           whiteEl.textContent = (wMin <= wMax) ? `${String(wMin).padStart(2, '0')}-${String(wMax).padStart(2, '0')}` : 'None';
         }
       }
-      const greenEl = document.getElementById('roller-thresh-green');
+      const greenEl = this.getRollerEl('roller-thresh-green');
       if (greenEl) greenEl.textContent = `${greenMin}+`;
-      const yellowEl = document.getElementById('roller-thresh-yellow');
+      const yellowEl = this.getRollerEl('roller-thresh-yellow');
       if (yellowEl) yellowEl.textContent = `${yellowMin}+`;
-      const redEl = document.getElementById('roller-thresh-red');
+      const redEl = this.getRollerEl('roller-thresh-red');
       if (redEl) redEl.textContent = `${redMin}+`;
     } else {
       const thresh = (UniversalTableEngine.table && UniversalTableEngine.table[effRank.name]) || [51, 81, 98];
       const whiteMax = Math.max(0, thresh[0] - 1);
-      const whiteEl = document.getElementById('roller-thresh-white');
+      const whiteEl = this.getRollerEl('roller-thresh-white');
       if (whiteEl) {
         whiteEl.textContent = whiteMax > 0 ? `01-${String(whiteMax).padStart(2, '0')}` : 'None';
       }
-      const greenEl = document.getElementById('roller-thresh-green');
+      const greenEl = this.getRollerEl('roller-thresh-green');
       if (greenEl) greenEl.textContent = `${thresh[0]}+`;
-      const yellowEl = document.getElementById('roller-thresh-yellow');
+      const yellowEl = this.getRollerEl('roller-thresh-yellow');
       if (yellowEl) yellowEl.textContent = `${thresh[1]}+`;
-      const redEl = document.getElementById('roller-thresh-red');
+      const redEl = this.getRollerEl('roller-thresh-red');
       if (redEl) redEl.textContent = `${thresh[2]}+`;
     }
 
     // Update CS Details Row below action row
-    const csDetailsEl = document.getElementById('roller-cs-details-text');
+    const csDetailsEl = this.getRollerEl('roller-cs-details-text');
     if (csDetailsEl) {
       const baseName = this.activeRoller.initialRank;
       const baseObj = UniversalTableEngine.getRankByName(baseName);
@@ -6085,7 +7420,9 @@ const App = {
       details += ` → Final: ${effRank.name} (${effRank.num})`;
       csDetailsEl.textContent = details;
     }
-    this.adjustRollerModalBounds();
+    if (!this.isRollerPoppedOut()) {
+      this.adjustRollerModalBounds();
+    }
   },
 
   executeRollerFEAT(forcedRoll = null) {
@@ -6095,19 +7432,23 @@ const App = {
     
     // Commit and deduct pre-roll Karma expenditure (Disallowed for Resource FEATs per Player's Book p. 18)
     let spentKarma = 0;
+    const isTestMode = this.karmaMode === 'test';
     if (!isResourceFEAT) {
-      const maxAvail = this.character ? this.character.currentKarma : 0;
-      spentKarma = Math.min(maxAvail, Math.max(0, this.rollerKarmaSpend));
-      if (spentKarma > 0 && this.character) {
-        this.character.updateKarma(-spentKarma, `Pre-roll Karma committed on ${this.activeRoller.name}`);
-        this.saveState();
-        this.renderVitals();
-        const availKarmaEl = document.getElementById('roller-avail-karma');
-        if (availKarmaEl) availKarmaEl.textContent = this.character.currentKarma;
+      spentKarma = Math.max(0, this.rollerKarmaSpend || 0);
+      if (spentKarma > 0 && this.character && !isTestMode) {
+        const availKarma = Math.max(0, this.character.currentKarma || 0);
+        const deduction = Math.min(availKarma, spentKarma);
+        if (deduction > 0) {
+          this.character.updateKarma(-deduction, `Pre-roll Karma committed on ${this.activeRoller.name}`);
+          this.saveState();
+          this.renderVitals();
+          const availKarmaEl = this.getRollerEl('roller-avail-karma');
+          if (availKarmaEl) availKarmaEl.textContent = this.character.currentKarma;
+        }
       }
     }
     this.rollerKarmaSpend = 0;
-    const spendInp = document.getElementById('roller-karma-spend-input');
+    const spendInp = this.getRollerEl('roller-karma-spend-input');
     if (spendInp) spendInp.value = '0';
 
     let rawRoll = forcedRoll;
@@ -6118,6 +7459,44 @@ const App = {
     const finalRoll = Math.min(100, rawRoll + spentKarma);
 
     const featResult = UniversalTableEngine.resolveFEAT(this.activeRoller.initialRank, finalRoll, shift);
+    const rawResult = UniversalTableEngine.resolveFEAT(this.activeRoller.initialRank, rawRoll, shift);
+
+    // Karmic Success House Rule:
+    // When a player spending KP shifts a blue result to something higher,
+    // they get back up to 20 KP of any KP they spent.
+    const isKarmicSuccess = !!(
+      this.karmicSuccess &&
+      spentKarma > 0 &&
+      rawResult.color === 'Blue' &&
+      featResult.color !== 'Blue'
+    );
+    const refundKarma = isKarmicSuccess ? Math.min(20, spentKarma) : 0;
+
+    // Track last Karma spent on a roll for vitals display & persistence
+    this.lastKarmaSpentOnRoll = {
+      spent: spentKarma,
+      refund: refundKarma,
+      name: this.activeRoller ? this.activeRoller.name : 'FEAT Roll'
+    };
+    if (this.character) {
+      this.character.lastKarmaSpentOnRoll = this.lastKarmaSpentOnRoll;
+    }
+
+    if (isKarmicSuccess && refundKarma > 0 && this.character && !isTestMode) {
+      this.character.updateKarma(refundKarma, `✨ Karmic Success refund (+${refundKarma} KP on Blue shift)`);
+      this.saveState();
+      const availKarmaEl = this.getRollerEl('roller-avail-karma');
+      if (availKarmaEl) availKarmaEl.textContent = this.character.currentKarma;
+    } else if (this.character) {
+      this.saveState();
+    }
+
+    this.renderVitals();
+
+    if (isKarmicSuccess) {
+      this.showStatusToast(`✨ Karmic Success! Blue result shifted to ${featResult.color} FEAT (+${refundKarma} KP refunded)`);
+    }
+
     const battleEffect = UniversalTableEngine.getBattleEffect(
       this.activeRoller.actionType,
       featResult.color,
@@ -6135,15 +7514,21 @@ const App = {
     const c = colorMap[featResult.color] || '#fff';
 
     // Show '[roll] + [KP] KP' in the roll result's box with colored KP badge
-    const diceVisual = document.getElementById('roller-dice-num');
+    const diceVisual = this.getRollerEl('roller-dice-num');
     if (diceVisual) {
-      diceVisual.innerHTML = `${rawRoll} <span class="dice-kp-badge">+ ${spentKarma} KP</span>`;
+      const refundBadge = (isKarmicSuccess && refundKarma > 0)
+        ? ` <span class="karmic-refund-badge" title="Karmic Success: +${refundKarma} KP refunded">(↩+${refundKarma})</span>`
+        : '';
+      diceVisual.innerHTML = `${rawRoll} <span class="dice-kp-badge">+ ${spentKarma} KP${refundBadge}</span>`;
       diceVisual.style.borderColor = c;
       diceVisual.style.color = c;
     }
 
+    // Highlight winning color in the color result row
+    this.highlightRollerColor(featResult.color);
+
     // Update CS Details Row below action row
-    const csDetailsEl = document.getElementById('roller-cs-details-text');
+    const csDetailsEl = this.getRollerEl('roller-cs-details-text');
     if (csDetailsEl) {
       const baseName = this.activeRoller.initialRank;
       const baseObj = UniversalTableEngine.getRankByName(baseName);
@@ -6158,10 +7543,25 @@ const App = {
       csDetailsEl.textContent = details;
     }
 
-    const effectEl = document.getElementById('roller-effect-desc');
+    const effectEl = this.getRollerEl('roller-effect-desc');
+    const effectBox = effectEl ? effectEl.closest('.battle-effect-box') : null;
     if (effectEl) {
       const labelText = featResult.color === 'Blue' ? 'DARK BLUE FUMBLE!' : `${featResult.color.toUpperCase()} FEAT!`;
-      effectEl.innerHTML = `<span style="color:${c}; font-weight:900; font-size:11pt;">${labelText} (${finalRoll} on ${featResult.effectiveRank})</span><div style="color:var(--text-main); font-size:10pt; margin-top: 2px;">${battleEffect.desc}</div>`;
+      let effectHtml = `<span style="color:${c}; font-weight:900; font-size:11pt;">${labelText} (${finalRoll} on ${featResult.effectiveRank})</span><div style="color:var(--text-main); font-size:10pt; margin-top: 2px;">${battleEffect.desc}</div>`;
+      if (isKarmicSuccess) {
+        effectHtml += `
+          <div class="karmic-success-callout">
+            <span style="font-size: 14pt;">✨</span>
+            <div>
+              <strong>Karmic Success Triggered!</strong><br>
+              Raw roll was a <strong>Blue fumble (${rawRoll})</strong>. By spending <strong>${spentKarma} KP</strong>, you successfully shifted it to a <strong>${featResult.color} FEAT</strong>!<br>
+              House rule refund: <strong>+${refundKarma} KP</strong> (up to 20 KP refunded) restored to your Karma pool.
+            </div>
+          </div>
+        `;
+      }
+      effectEl.innerHTML = effectHtml;
+      if (effectBox) effectBox.style.display = 'block';
     }
 
     // Automatic Equipment Procurement Resolution on Resource FEAT rolls (Player's Book p. 18)
@@ -6286,7 +7686,9 @@ const App = {
         }
       }
     }
-    this.adjustRollerModalBounds();
+    if (!this.isRollerPoppedOut()) {
+      this.adjustRollerModalBounds();
+    }
   },
 
   /* Custom In-UI Dialog System (Alerts & Confirmations matching UI style) */
@@ -6547,14 +7949,14 @@ const App = {
         content = `
           <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px;">
             <span class="meta-tag" style="color: var(--marvel-gold); font-weight:700;">Category: ${p.category || 'General'}</span>
-            <span class="meta-tag">${isStarred ? '<span class="starred-label-text">★ 2 Power Slots (Starred)</span>' : `Slots: ${p.powerSlots || 1}`}</span>
+            ${isStarred ? '<span class="meta-tag"><span class="starred-label-text">★ Starred Power</span></span>' : ''}
             <span class="meta-tag">Source: ${p.source || 'Player Book / UPB'}</span>
             ${p.defaultRank ? `<span class="meta-tag">Default Rank: ${p.defaultRank}</span>` : ''}
           </div>
           ${isStarred ? `
             <div class="calc-rule-callout starred-power-banner" style="margin-bottom: 12px;">
               <strong class="starred-label-text">★ TSR Starred Superpower (Player's Book p. 19 / UPB p. 16):</strong>
-              This power is exceptionally potent and inherently counts as <strong>2 Power Slots</strong> against character limits. In CMF Point-Buy, it costs <strong>20 CP Base</strong> (instead of 10 CP) and <strong>2× Rank CP</strong>.
+              This power is exceptionally potent. In CMF Point-Buy, it costs <strong>20 CP Base</strong> (instead of 10 CP) and <strong>2× Rank CP</strong>.
             </div>
           ` : ''}
           ${detailsBar}
@@ -6583,7 +7985,7 @@ const App = {
           <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px;">
             <span class="meta-tag" style="color: var(--marvel-gold); font-weight:700;">Group: ${t.group || t.category || 'General'}</span>
             <span class="meta-tag">Cost: ${t.costCP || (isStarred ? 20 : 10)} CP</span>
-            ${isStarred ? `<span class="meta-tag tag-starred">⭐ Starred (2 Slots)</span>` : `<span class="meta-tag">1 Slot</span>`}
+            ${isStarred ? `<span class="meta-tag tag-starred">★ Starred</span>` : ''}
             ${t.allowsSpecialization ? `<span class="meta-tag" style="color: #38bdf8; border-color: rgba(56, 189, 248, 0.4);">🎯 Allows Multiple Specialties</span>` : ''}
             ${t.minResourcesRank ? `<span class="meta-tag" style="color: #4ade80; border-color: rgba(74, 222, 128, 0.4);">💰 Min Resources: ${t.minResourcesRank} (${t.minResourcesRankValue})</span>` : ''}
             ${t.bonus ? `<span class="meta-tag" style="color: #38bdf8;">Bonus: ${t.bonus}</span>` : ''}
@@ -6592,8 +7994,8 @@ const App = {
           </div>
           ${isStarred ? `
             <div class="calc-rule-callout starred-power-banner" style="margin-bottom: 12px;">
-              <strong class="starred-label-text">⭐ TSR Starred Talent (Player's Book p. 10, Table 8):</strong>
-              Talents marked with an asterisk (*) count as <strong>two talent slots</strong> and cost <strong>20 CP</strong> (instead of 10 CP).
+              <strong class="starred-label-text">★ TSR Starred Talent (Player's Book p. 10, Table 8):</strong>
+              Talents marked with an asterisk (*) cost <strong>20 CP</strong> in CMF Point-Buy (instead of 10 CP).
               ${t.minResourcesRank ? `<br><strong>Heir to Fortune Special Rule:</strong> Guarantees a minimum Resource rank of <strong>Remarkable (30)</strong>.` : ''}
             </div>
           ` : ''}
@@ -6682,10 +8084,13 @@ const App = {
     if (this.powerAdjustment !== undefined) {
       this.character.powerAdjustment = this.powerAdjustment;
     }
+    this.karmaMode = 'session';
+    this.advancementSnapshot = null;
+    this.testModeSnapshot = null;
     this.saveState();
     this.switchTab('main-stats');
     this.render();
-    await this.showCustomAlert('Fresh character initialized and ready for character creation!', '✨ New Character Created', mouseEvent);
+    this.showStatusToast('✨ Fresh character initialized and ready for character creation!');
   },
 
   exportCharacter() {
@@ -6699,6 +8104,9 @@ const App = {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+    if (this.updateSettings && this.updateSettings.onFile) {
+      this.checkForUpdates({ trigger: 'file_save', silent: true });
+    }
   },
 
   importCharacter(event) {
@@ -6709,6 +8117,9 @@ const App = {
       try {
         const data = JSON.parse(e.target.result);
         this.character = FASERIPCharacter.fromJSON(data);
+        this.karmaMode = 'session';
+        this.advancementSnapshot = null;
+        this.testModeSnapshot = null;
         if (!this.character.editLog || this.character.editLog.length === 0) {
           this.character.recordEdit(`Imported character: ${this.character.name}`, 'initial');
         }
@@ -6717,6 +8128,9 @@ const App = {
         this.updateHistoryNavButtons();
         this.renderEditLog();
         this.showCustomAlert(`Successfully imported "${this.character.name}"!`, '📁 Character Loaded');
+        if (this.updateSettings && this.updateSettings.onFile) {
+          this.checkForUpdates({ trigger: 'file_load', silent: true });
+        }
       } catch (err) {
         this.showCustomAlert('Failed to load .msh character file: ' + err.message, '⚠️ Load Error');
       }
@@ -7256,6 +8670,26 @@ const App = {
     this.showStatusToast(`⮞ Restored: ${targetEntry.description} (${stepNum}/${totalSteps})`);
   },
 
+  handleRollbackToEdit(targetIdx) {
+    if (!this.character || !this.character.editLog || !this.character.editLog[targetIdx]) return;
+    const targetEntry = this.character.editLog[targetIdx];
+    if (!targetEntry || !targetEntry.snapshot) return;
+
+    const preservedLog = this.character.editLog;
+    this.character = FASERIPCharacter.fromJSON(targetEntry.snapshot);
+    this.character.editLog = preservedLog;
+    this.character.editHistoryIndex = targetIdx;
+
+    this.saveState();
+    this.render();
+    this.updateHistoryNavButtons();
+    this.renderEditLog();
+
+    const stepNum = targetIdx + 1;
+    const totalSteps = preservedLog.length;
+    this.showStatusToast(`↺ Rolled back to: "${targetEntry.description}" (${stepNum}/${totalSteps})`);
+  },
+
   updateHistoryNavButtons() {
     if (typeof document === 'undefined' || !this.character) return;
     const btnBack = document.getElementById('btn-history-back');
@@ -7306,17 +8740,46 @@ const App = {
       const activeIndicator = isActive ? '<span style="color: #38bdf8; font-weight: 800; margin-right: 4px;">▶</span>' : '';
 
       return `
-        <div class="edit-log-item${activeClass}" title="${isActive ? 'Current Revision' : 'Recorded Edit'}">
+        <div class="edit-log-item${activeClass}" data-edit-idx="${origIdx}" title="${isActive ? 'Current Revision (Active)' : `Click to roll back to: ${entry.description}`}">
           <div class="edit-log-desc">${activeIndicator}${entry.description}</div>
           <div class="edit-log-meta">
             <span class="edit-log-badge ${catClass}">${entry.category || 'edit'}</span>
             <span class="edit-log-time">${timeStr}</span>
+            ${isActive ? `
+              <span class="edit-log-current-pill">Current</span>
+            ` : `
+              <button type="button" class="icon-btn compact edit-log-rollback-btn" data-rollback-idx="${origIdx}" title="Roll back to this point">↺ Roll Back</button>
+            `}
           </div>
         </div>
       `;
     }).join('');
 
     container.innerHTML = html;
+
+    // Attach click events to roll back to clicked revision
+    container.querySelectorAll('.edit-log-item').forEach(item => {
+      item.addEventListener('click', async (e) => {
+        const idx = parseInt(item.getAttribute('data-edit-idx'), 10);
+        if (isNaN(idx)) return;
+        if (idx === this.character.editHistoryIndex) {
+          this.showStatusToast('ℹ️ Already at this revision.');
+          return;
+        }
+        const entry = this.character.editLog[idx];
+        if (!entry) return;
+
+        const isRollback = idx < this.character.editHistoryIndex;
+        const actionWord = isRollback ? 'Roll back' : 'Fast-forward';
+        const confirmed = await this.showCustomConfirm(
+          `${actionWord} character state to revision #${idx + 1}?\n\n"${entry.description}"\n\n(Timestamp: ${new Date(entry.timestamp).toLocaleTimeString()})`,
+          `↺ ${actionWord} to Revision #${idx + 1}`
+        );
+        if (!confirmed) return;
+
+        this.handleRollbackToEdit(idx);
+      });
+    });
   },
 
   copyEditLogToClipboard() {
@@ -7477,6 +8940,876 @@ const App = {
           closeEasterEgg();
         }
       });
+    }
+  },
+
+  // =========================================================================
+  // KARMA OPERATING MODES (SESSION, ADVANCEMENT, TEST)
+  // =========================================================================
+
+  openKarmaModeModal() {
+    const modal = document.getElementById('modal-karma-mode');
+    if (!modal) return;
+
+    const curMode = this.karmaMode || 'session';
+
+    // Update modal header badge
+    const badge = document.getElementById('karma-mode-modal-badge');
+    if (badge) {
+      if (curMode === 'test') {
+        badge.textContent = 'Current: Test Mode (∞)';
+        badge.style.color = '#fbbf24';
+      } else if (curMode === 'advancement') {
+        badge.textContent = 'Current: Advancement Mode';
+        badge.style.color = '#c084fc';
+      } else {
+        badge.textContent = 'Current: Session Mode';
+        badge.style.color = '#60a5fa';
+      }
+    }
+
+    // Sync radio cards selection
+    document.querySelectorAll('.karma-mode-card').forEach(card => {
+      const mode = card.getAttribute('data-mode');
+      const radio = card.querySelector('input[type="radio"]');
+      if (mode === curMode) {
+        card.classList.add('active');
+        if (radio) radio.checked = true;
+      } else {
+        card.classList.remove('active');
+        if (radio) radio.checked = false;
+      }
+    });
+
+    // Advancement Mode active strip & revert button
+    const advStrip = document.getElementById('adv-mode-active-strip');
+    const advSummary = document.getElementById('adv-mode-changes-summary');
+    const revertBtn = document.getElementById('btn-revert-adv-in-modal');
+    const openAdvBtn = document.getElementById('btn-open-adv-from-mode');
+
+    if (curMode === 'advancement') {
+      if (advStrip) advStrip.style.display = 'flex';
+      const hasChanges = !!(this.advancementSnapshot && JSON.stringify(this.character.toJSON()) !== this.advancementSnapshot);
+      if (advSummary) {
+        advSummary.textContent = hasChanges
+          ? '⚠️ Trait advancements have been made in this session.'
+          : 'Advancement Mode active (no rank changes made yet).';
+      }
+      if (revertBtn) {
+        revertBtn.style.display = hasChanges ? 'inline-block' : 'none';
+      }
+      if (openAdvBtn) openAdvBtn.style.display = 'inline-block';
+    } else {
+      if (advStrip) advStrip.style.display = 'none';
+      if (openAdvBtn) openAdvBtn.style.display = (curMode === 'test') ? 'inline-block' : 'none';
+    }
+
+    modal.classList.add('open');
+  },
+
+  async promptAdvancementModeSwitch() {
+    const confirmed = await this.showCustomConfirm(
+      'Character Advancement is locked during Session Mode to prevent accidental Karma spending during live play.\n\n' +
+      'Would you like to switch to Advancement Mode now to spend KP on permanent rank increases?',
+      '📈 Switch to Advancement Mode?'
+    );
+    if (confirmed) {
+      const ok = await this.setKarmaMode('advancement');
+      if (ok) {
+        this.openAdvancementModal();
+      }
+    }
+  },
+
+  async setKarmaMode(targetMode, force = false) {
+    if (!targetMode) return false;
+    const currentMode = this.karmaMode || 'session';
+    if (targetMode === currentMode) return true;
+
+    // 1. If currently in Test Mode and switching away:
+    if (currentMode === 'test') {
+      if (!force) {
+        const confirmExit = await this.showCustomConfirm(
+          'Warning: Exiting Test Mode will clear all test changes, roll experiments, and planned rank increases, restoring your character to their pre-test state.\n\n' +
+          'Are you sure you want to discard test changes and switch modes?',
+          '⚠️ Discard Test Changes?'
+        );
+        if (!confirmExit) {
+          // Re-sync UI radio to test
+          const radioTest = document.getElementById('radio-mode-test');
+          if (radioTest) radioTest.checked = true;
+          document.querySelectorAll('.karma-mode-card').forEach(c => {
+            if (c.getAttribute('data-mode') === 'test') c.classList.add('active');
+            else c.classList.remove('active');
+          });
+          return false;
+        }
+      }
+
+      // Restore pre-test character snapshot
+      if (this.testModeSnapshot) {
+        try {
+          this.character = FASERIPCharacter.fromJSON(JSON.parse(this.testModeSnapshot));
+        } catch (e) {
+          console.error('Failed to restore test mode snapshot', e);
+        }
+      }
+      this.testModeSnapshot = null;
+      this.showStatusToast('🧪 Test Mode ended. Character restored to pre-test state.');
+    }
+
+    // 2. If currently in Advancement Mode and switching away:
+    if (currentMode === 'advancement') {
+      const hasChanges = !!(this.advancementSnapshot && JSON.stringify(this.character.toJSON()) !== this.advancementSnapshot);
+      if (hasChanges && !force) {
+        const keepAdvancements = await this.showCustomConfirm(
+          'You have made trait advancements during this Advancement session.\n\n' +
+          'Select "Keep Advancements" to permanently save your rank increases, or "Revert Advancements" to undo all changes made during this session.',
+          '📈 Trait Advancements Made',
+          null,
+          'Keep Advancements',
+          'Revert Advancements'
+        );
+
+        if (!keepAdvancements) {
+          // User chose Revert
+          try {
+            this.character = FASERIPCharacter.fromJSON(JSON.parse(this.advancementSnapshot));
+            this.showStatusToast('↺ Trait advancements reverted.');
+          } catch (e) {
+            console.error('Failed to revert advancement snapshot', e);
+          }
+        } else {
+          this.showStatusToast('✅ Trait advancements permanently saved.');
+        }
+      }
+      this.advancementSnapshot = null;
+    }
+
+    // 3. Entering Test Mode:
+    if (targetMode === 'test') {
+      this.testModeSnapshot = JSON.stringify(this.character.toJSON());
+      this.showStatusToast('🧪 Test Mode active: Infinite KP granted. (Changes will be cleared upon exit)');
+    }
+
+    // 4. Entering Advancement Mode:
+    if (targetMode === 'advancement') {
+      this.advancementSnapshot = JSON.stringify(this.character.toJSON());
+      this.showStatusToast('📈 Advancement Mode active: Trait advancement unlocked.');
+    }
+
+    // 5. Entering Session Mode:
+    if (targetMode === 'session') {
+      this.showStatusToast('🎮 Session Mode active: Standard play rules engaged.');
+    }
+
+    // Apply mode
+    this.karmaMode = targetMode;
+    this.saveState();
+    this.render();
+    this.renderVitals();
+
+    // Update open Die Roller if any
+    const availKarmaEl = this.getRollerEl('roller-avail-karma');
+    if (availKarmaEl) {
+      availKarmaEl.textContent = (this.karmaMode === 'test') ? '∞' : (this.character ? this.character.currentKarma : 0);
+    }
+
+    // Update open Advancement modal if any
+    const advModal = document.getElementById('modal-advancement');
+    if (advModal && advModal.classList.contains('open')) {
+      this.updateAdvancementPreview();
+    }
+
+    // Update open Karma Mode modal if any
+    const karmaModal = document.getElementById('modal-karma-mode');
+    if (karmaModal && karmaModal.classList.contains('open')) {
+      this.openKarmaModeModal();
+    }
+
+    return true;
+  },
+
+  async revertAdvancementChanges() {
+    if (!this.advancementSnapshot) {
+      await this.showCustomAlert('No trait advancements to revert.', '↺ Revert Advancements');
+      return;
+    }
+
+    const confirmed = await this.showCustomConfirm(
+      'Revert all advancements made in this session?\n\n' +
+      'All spent Karma and trait rank increases will be undone, restoring your character to the start of this Advancement session.',
+      '↺ Revert Advancements'
+    );
+    if (!confirmed) return;
+
+    try {
+      this.character = FASERIPCharacter.fromJSON(JSON.parse(this.advancementSnapshot));
+      this.saveState();
+      this.render();
+      this.renderVitals();
+
+      // Refresh modals
+      const advModal = document.getElementById('modal-advancement');
+      if (advModal && advModal.classList.contains('open')) {
+        this.populateAdvancementItems();
+        this.updateAdvancementPreview();
+      }
+
+      const karmaModal = document.getElementById('modal-karma-mode');
+      if (karmaModal && karmaModal.classList.contains('open')) {
+        this.openKarmaModeModal();
+      }
+
+      this.showStatusToast('↺ All advancements reverted to session start.');
+    } catch (e) {
+      console.error('Failed to revert advancement snapshot', e);
+      await this.showCustomAlert('Error reverting advancements.', 'Revert Failed');
+    }
+  },
+
+  // =========================================================================
+  // CHARACTER ADVANCEMENT (RANK INCREASE VIA KARMA SPEND)
+  // =========================================================================
+
+  openAdvancementModal(category = 'ability', identifier = null) {
+    if (!this.character) return;
+    const modal = document.getElementById('modal-advancement');
+    if (!modal) return;
+
+    // Refresh Karma badge
+    const karmaBadge = document.getElementById('adv-karma-badge');
+    if (karmaBadge) {
+      const isTest = this.karmaMode === 'test';
+      karmaBadge.textContent = isTest ? 'Avail: ∞ KP' : `Avail: ${this.character.currentKarma || 0} KP`;
+    }
+
+    const catSelect = document.getElementById('adv-category-select');
+    if (catSelect) {
+      catSelect.value = category;
+    }
+
+    this.populateAdvancementItems(identifier);
+    this.updateAdvancementPreview();
+
+    const notesInput = document.getElementById('adv-custom-notes');
+    if (notesInput) notesInput.value = '';
+
+    modal.classList.add('open');
+  },
+
+  populateAdvancementItems(preferredIdentifier = null) {
+    if (!this.character) return;
+    const catSelect = document.getElementById('adv-category-select');
+    const itemSelect = document.getElementById('adv-item-select');
+    if (!catSelect || !itemSelect) return;
+
+    const category = catSelect.value;
+    itemSelect.innerHTML = '';
+
+    if (category === 'ability') {
+      const abilities = [
+        { key: 'fighting', name: 'Fighting (F)' },
+        { key: 'agility', name: 'Agility (A)' },
+        { key: 'strength', name: 'Strength (S)' },
+        { key: 'endurance', name: 'Endurance (E)' },
+        { key: 'reason', name: 'Reason (R)' },
+        { key: 'intuition', name: 'Intuition (I)' },
+        { key: 'psyche', name: 'Psyche (P)' }
+      ];
+      abilities.forEach(ab => {
+        const stat = this.character.abilities[ab.key] || { rankName: 'Typical', rankValue: 6 };
+        const opt = document.createElement('option');
+        opt.value = ab.key;
+        opt.textContent = `${ab.name} — ${stat.rankName} (${stat.rankValue})`;
+        itemSelect.appendChild(opt);
+      });
+    } else if (category === 'power') {
+      const powers = this.character.powers || [];
+      if (powers.length === 0) {
+        const opt = document.createElement('option');
+        opt.value = '';
+        opt.textContent = '-- No Superpowers on Character --';
+        opt.disabled = true;
+        itemSelect.appendChild(opt);
+      } else {
+        powers.forEach((p, idx) => {
+          const opt = document.createElement('option');
+          opt.value = p.id || p.name;
+          opt.textContent = `${p.name} — ${p.rankName} (${p.rankValue})`;
+          itemSelect.appendChild(opt);
+        });
+      }
+    } else if (category === 'resources') {
+      const res = this.character.resources || { rankName: 'Typical', rankValue: 6 };
+      const opt = document.createElement('option');
+      opt.value = 'resources';
+      opt.textContent = `Resources — ${res.rankName} (${res.rankValue})`;
+      itemSelect.appendChild(opt);
+    }
+
+    if (preferredIdentifier && itemSelect.querySelector(`option[value="${preferredIdentifier}"]`)) {
+      itemSelect.value = preferredIdentifier;
+    }
+  },
+
+  updateAdvancementPreview() {
+    if (!this.character) return;
+    const catSelect = document.getElementById('adv-category-select');
+    const itemSelect = document.getElementById('adv-item-select');
+    const curRankDisplay = document.getElementById('adv-current-rank-display');
+    const targetRankSelect = document.getElementById('adv-target-rank-select');
+    const karmaCostEl = document.getElementById('adv-calc-karma-cost');
+    const trainingDaysEl = document.getElementById('adv-calc-training-days');
+    const remainingKarmaEl = document.getElementById('adv-calc-remaining-karma');
+    const applyBtn = document.getElementById('btn-apply-adv');
+
+    // Update Mode Banner in Advancement Modal
+    const modeBanner = document.getElementById('adv-modal-mode-banner');
+    const bannerIcon = document.getElementById('adv-banner-icon');
+    const bannerTitle = document.getElementById('adv-banner-title');
+    const bannerDesc = document.getElementById('adv-banner-desc');
+    const btnRevertInAdvModal = document.getElementById('btn-revert-adv-in-advmodal');
+    const btnSwitchInAdvModal = document.getElementById('btn-switch-mode-from-advmodal');
+
+    const mode = this.karmaMode || 'session';
+    if (modeBanner) {
+      modeBanner.className = `adv-modal-banner mode-banner-${mode}`;
+    }
+
+    if (mode === 'session') {
+      if (bannerIcon) bannerIcon.textContent = '🔒';
+      if (bannerTitle) bannerTitle.textContent = 'Session Mode (Locked)';
+      if (bannerDesc) bannerDesc.textContent = 'Advancement locked during live play.';
+      if (btnRevertInAdvModal) btnRevertInAdvModal.style.display = 'none';
+      if (btnSwitchInAdvModal) {
+        btnSwitchInAdvModal.style.display = 'inline-block';
+        btnSwitchInAdvModal.textContent = '📈 Switch to Advancement Mode';
+      }
+    } else if (mode === 'advancement') {
+      if (bannerIcon) bannerIcon.textContent = '📈';
+      if (bannerTitle) bannerTitle.textContent = 'Advancement Mode Active';
+      if (bannerDesc) bannerDesc.textContent = 'Spending KP permanently increases trait ranks.';
+      const hasChanges = !!(this.advancementSnapshot && JSON.stringify(this.character.toJSON()) !== this.advancementSnapshot);
+      if (btnRevertInAdvModal) {
+        btnRevertInAdvModal.style.display = hasChanges ? 'inline-block' : 'none';
+      }
+      if (btnSwitchInAdvModal) {
+        btnSwitchInAdvModal.style.display = 'inline-block';
+        btnSwitchInAdvModal.textContent = '🎮 Return to Session Mode';
+      }
+    } else if (mode === 'test') {
+      if (bannerIcon) bannerIcon.textContent = '🧪';
+      if (bannerTitle) bannerTitle.textContent = 'Test Mode (Infinite KP / Sandbox)';
+      if (bannerDesc) bannerDesc.textContent = 'Changes are temporary and cleared when exiting Test Mode.';
+      if (btnRevertInAdvModal) btnRevertInAdvModal.style.display = 'none';
+      if (btnSwitchInAdvModal) {
+        btnSwitchInAdvModal.style.display = 'inline-block';
+        btnSwitchInAdvModal.textContent = '🎮 Exit Test Mode';
+      }
+    }
+
+    if (!catSelect || !itemSelect || !targetRankSelect) return;
+
+    const category = catSelect.value;
+    const identifier = itemSelect.value;
+
+    if (!identifier) {
+      if (curRankDisplay) curRankDisplay.textContent = '--';
+      if (targetRankSelect) targetRankSelect.innerHTML = '<option value="">--</option>';
+      if (karmaCostEl) karmaCostEl.textContent = '0 KP';
+      if (trainingDaysEl) trainingDaysEl.textContent = '0 Days';
+      if (remainingKarmaEl) remainingKarmaEl.textContent = (mode === 'test') ? '∞ KP' : `${this.character.currentKarma || 0} KP`;
+      if (applyBtn) applyBtn.disabled = true;
+      return;
+    }
+
+    let currentRankName = 'Typical';
+    let currentRankNum = 6;
+    if (category === 'ability') {
+      const stat = this.character.abilities[identifier];
+      if (stat) {
+        currentRankName = stat.rankName;
+        currentRankNum = stat.rankValue;
+      }
+    } else if (category === 'power') {
+      const power = this.character.powers.find(p => p.id === identifier || p.name.toLowerCase() === identifier.toLowerCase());
+      if (power) {
+        currentRankName = power.rankName;
+        currentRankNum = power.rankValue;
+      }
+    } else if (category === 'resources') {
+      currentRankName = this.character.resources?.rankName || 'Typical';
+      currentRankNum = this.character.resources?.rankValue || 6;
+    }
+
+    if (curRankDisplay) {
+      curRankDisplay.textContent = `${currentRankName} (${currentRankNum})`;
+    }
+
+    // Populate target ranks (all ranks above current)
+    const allRanks = (typeof UniversalTableEngine !== 'undefined' && (UniversalTableEngine.ranks || UniversalTableEngine.RANKS))
+      ? (UniversalTableEngine.ranks || UniversalTableEngine.RANKS)
+      : ((typeof RANKS !== 'undefined') ? RANKS : []);
+    const curIdx = allRanks.findIndex(r => r.name.toLowerCase() === currentRankName.toLowerCase());
+
+    const prevSelectedTarget = targetRankSelect.value;
+    targetRankSelect.innerHTML = '';
+
+    if (curIdx === -1 || curIdx >= allRanks.length - 1) {
+      const opt = document.createElement('option');
+      opt.value = '';
+      opt.textContent = 'Maximum Rank Achieved (Beyond)';
+      targetRankSelect.appendChild(opt);
+      if (karmaCostEl) karmaCostEl.textContent = '0 KP';
+      if (trainingDaysEl) trainingDaysEl.textContent = '0 Days';
+      if (remainingKarmaEl) remainingKarmaEl.textContent = (mode === 'test') ? '∞ KP' : `${this.character.currentKarma} KP`;
+      if (applyBtn) applyBtn.disabled = true;
+      return;
+    }
+
+    for (let i = curIdx + 1; i < allRanks.length; i++) {
+      const r = allRanks[i];
+      const opt = document.createElement('option');
+      opt.value = r.name;
+      opt.textContent = `${r.name} (${r.num}) [+${i - curIdx} CS]`;
+      targetRankSelect.appendChild(opt);
+    }
+
+    if (prevSelectedTarget && targetRankSelect.querySelector(`option[value="${prevSelectedTarget}"]`)) {
+      targetRankSelect.value = prevSelectedTarget;
+    } else {
+      targetRankSelect.selectedIndex = 0;
+    }
+
+    const selectedTarget = targetRankSelect.value;
+    const calc = this.character.calculateAdvancement(category, currentRankName, selectedTarget);
+
+    if (calc && calc.valid) {
+      if (karmaCostEl) karmaCostEl.textContent = `${calc.karmaCost} KP`;
+      if (trainingDaysEl) trainingDaysEl.textContent = `${calc.trainingDays} Day${calc.trainingDays > 1 ? 's' : ''}`;
+
+      if (mode === 'session') {
+        const remaining = this.character.currentKarma - calc.karmaCost;
+        if (remainingKarmaEl) {
+          remainingKarmaEl.textContent = `${remaining} KP`;
+          remainingKarmaEl.style.color = remaining >= 0 ? '#4ade80' : '#ef4444';
+        }
+        if (applyBtn) {
+          applyBtn.disabled = true;
+          applyBtn.title = 'Advancement is locked in Session Mode. Switch to Advancement Mode.';
+        }
+      } else if (mode === 'test') {
+        if (remainingKarmaEl) {
+          remainingKarmaEl.textContent = '∞ KP';
+          remainingKarmaEl.style.color = '#4ade80';
+        }
+        if (applyBtn) {
+          applyBtn.disabled = false;
+          applyBtn.title = 'Apply Test Advancement (Infinite KP)';
+        }
+      } else {
+        const remaining = this.character.currentKarma - calc.karmaCost;
+        if (remainingKarmaEl) {
+          remainingKarmaEl.textContent = `${remaining} KP`;
+          remainingKarmaEl.style.color = remaining >= 0 ? '#4ade80' : '#ef4444';
+        }
+        if (applyBtn) {
+          applyBtn.disabled = remaining < 0;
+          applyBtn.title = remaining < 0 ? `Need ${calc.karmaCost} KP (You only have ${this.character.currentKarma} KP)` : '';
+        }
+      }
+    } else {
+      if (karmaCostEl) karmaCostEl.textContent = '0 KP';
+      if (trainingDaysEl) trainingDaysEl.textContent = '0 Days';
+      if (applyBtn) applyBtn.disabled = true;
+    }
+  },
+
+  async handleApplyAdvancement() {
+    if (!this.character) return;
+    if (this.karmaMode === 'session') {
+      await this.showCustomAlert(
+        'Trait advancement is locked in Session Mode to prevent accidental spending during live play.\n\n' +
+        'Please switch to Advancement Mode or Test Mode.',
+        '🔒 Advancement Locked'
+      );
+      return;
+    }
+
+    const catSelect = document.getElementById('adv-category-select');
+    const itemSelect = document.getElementById('adv-item-select');
+    const targetRankSelect = document.getElementById('adv-target-rank-select');
+    const notesInput = document.getElementById('adv-custom-notes');
+
+    if (!catSelect || !itemSelect || !targetRankSelect) return;
+
+    const category = catSelect.value;
+    const identifier = itemSelect.value;
+    const targetRankName = targetRankSelect.value;
+    const customNotes = notesInput ? notesInput.value.trim() : '';
+
+    if (!identifier || !targetRankName) {
+      await this.showCustomAlert('Please select a trait and target rank to advance.', 'Advancement Incomplete');
+      return;
+    }
+
+    const isTest = this.karmaMode === 'test';
+    const result = this.character.applyAdvancement(category, identifier, targetRankName, customNotes, isTest);
+    if (!result.success) {
+      await this.showCustomAlert(result.error || 'Failed to apply advancement.', 'Cannot Advance Rank');
+      return;
+    }
+
+    const targetDesc = identifier.charAt(0).toUpperCase() + identifier.slice(1);
+    const modeTag = isTest ? ' [Test Mode]' : '';
+    this.recordCharacterEdit(`Advanced ${targetDesc} to ${targetRankName}${modeTag} (-${result.calc.karmaCost} KP)`, 'advancement');
+
+    this.saveState();
+    this.render();
+    this.renderVitals();
+
+    const modal = document.getElementById('modal-advancement');
+    if (modal) modal.classList.remove('open');
+
+    if (isTest) {
+      await this.showCustomAlert(
+        `🧪 [Test Mode] Advanced ${targetDesc} to ${targetRankName}!\n\n` +
+        `Required Karma Cost: ${result.calc.karmaCost} KP\n` +
+        `Training Time: ${result.calc.trainingDays} day(s)\n` +
+        `Karma Balance: ∞ KP\n\n` +
+        `Note: All test-mode changes will be cleared when you switch away from Test Mode.`,
+        '🧪 Test Advancement Applied'
+      );
+    } else {
+      await this.showCustomAlert(
+        `Successfully advanced ${targetDesc} to ${targetRankName}!\n\n` +
+        `Karma Cost: ${result.calc.karmaCost} KP\n` +
+        `Training Time: ${result.calc.trainingDays} day(s)\n` +
+        `Karma Balance: ${this.character.currentKarma} KP`,
+        '📈 Rank Advance Successful'
+      );
+    }
+  },
+
+  // =========================================================================
+  // PROGRAM UPDATE CHECKER & AUTOMATION
+  // =========================================================================
+
+  initUpdateChecker() {
+    // Load stored update settings
+    if (typeof localStorage !== 'undefined') {
+      const saved = localStorage.getItem('msh_update_settings');
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          this.updateSettings = Object.assign(this.updateSettings, parsed);
+        } catch (e) {
+          console.warn('Failed to parse msh_update_settings', e);
+        }
+      }
+    }
+
+    // Sync UI elements
+    const chkStartup = document.getElementById('option-update-on-startup');
+    if (chkStartup) chkStartup.checked = !!this.updateSettings.onStartup;
+
+    const chkFile = document.getElementById('option-update-on-file');
+    if (chkFile) chkFile.checked = !!this.updateSettings.onFile;
+
+    const chkScheduled = document.getElementById('option-update-scheduled');
+    if (chkScheduled) chkScheduled.checked = !!this.updateSettings.scheduled;
+
+    const selInterval = document.getElementById('option-update-interval');
+    if (selInterval) selInterval.value = String(this.updateSettings.intervalMinutes || 60);
+
+    this.updateLastCheckedUI();
+    this.setupUpdateSchedule();
+  },
+
+  saveUpdateSettings() {
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem('msh_update_settings', JSON.stringify(this.updateSettings));
+    }
+  },
+
+  setupUpdateSchedule() {
+    if (this.updateScheduleTimer) {
+      clearInterval(this.updateScheduleTimer);
+      this.updateScheduleTimer = null;
+    }
+
+    if (this.updateSettings && this.updateSettings.scheduled) {
+      const mins = parseInt(this.updateSettings.intervalMinutes, 10) || 60;
+      const ms = Math.max(5, mins) * 60 * 1000;
+      this.updateScheduleTimer = setInterval(() => {
+        this.checkForUpdates({ trigger: 'schedule', silent: true });
+      }, ms);
+    }
+  },
+
+  updateLastCheckedUI() {
+    const textEl = document.getElementById('update-last-checked-text');
+    if (!textEl) return;
+
+    if (!this.updateSettings.lastChecked) {
+      textEl.textContent = 'Never';
+      return;
+    }
+
+    try {
+      const d = new Date(this.updateSettings.lastChecked);
+      textEl.textContent = `${d.toLocaleDateString()} ${d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+    } catch (e) {
+      textEl.textContent = this.updateSettings.lastChecked;
+    }
+  },
+
+  compareVersions(v1, v2) {
+    if (!v1 || !v2) return 0;
+    const clean = (s) => String(s).replace(/^[v^~]/i, '').trim();
+    const p1 = clean(v1).split('.').map(n => parseInt(n, 10) || 0);
+    const p2 = clean(v2).split('.').map(n => parseInt(n, 10) || 0);
+    const maxLen = Math.max(p1.length, p2.length);
+    for (let i = 0; i < maxLen; i++) {
+      const num1 = p1[i] || 0;
+      const num2 = p2[i] || 0;
+      if (num1 > num2) return 1;
+      if (num1 < num2) return -1;
+    }
+    return 0;
+  },
+
+  async checkForUpdates({ trigger = 'manual', silent = false } = {}) {
+    const now = Date.now();
+    // Throttle automated checks to at most once per 20 seconds to prevent rapid network spam
+    if (trigger !== 'manual' && this._lastUpdateCheckTime && (now - this._lastUpdateCheckTime < 20000)) {
+      return;
+    }
+    this._lastUpdateCheckTime = now;
+
+    const badgeEl = document.getElementById('update-status-badge');
+    if (badgeEl && !silent) {
+      badgeEl.textContent = 'Checking...';
+      badgeEl.style.color = '#38bdf8';
+    }
+
+    // Quick offline detection if available in browser
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+      if (badgeEl && !silent) {
+        badgeEl.textContent = 'Offline';
+        badgeEl.style.color = '#ef4444';
+      }
+      if (!silent) {
+        await this.showCustomAlert(
+          'You appear to be offline. Please connect to the internet to check for program updates.',
+          '⚠️ Offline'
+        );
+      }
+      return;
+    }
+
+    const currentVer = this.VERSION || '1.4.0';
+    const localBuildDate = this.BUILD_DATE || '2026-09-22';
+    const localCommitSha = this.COMMIT_SHA || 'a4f5c9b';
+    const repoOwner = this.REPO_OWNER || 'captainload';
+    const repoName = this.REPO_NAME || 'marvel-character-editor';
+    const branch = 'main';
+
+    let updateAvailable = false;
+    let isUpToDate = false;
+    let remoteVersion = null;
+    let remoteReleaseDate = null;
+    let remoteNotes = '';
+    let remoteUrl = `https://github.com/${repoOwner}/${repoName}`;
+    let checkSource = '';
+    let lastError = null;
+
+    // Strategy 1: Check GitHub raw version.json
+    try {
+      const rawUrl = `https://raw.githubusercontent.com/${repoOwner}/${repoName}/${branch}/version.json?_t=${now}`;
+      const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+      const timeoutId = controller ? setTimeout(() => controller.abort(), 4000) : null;
+      const resp = await fetch(rawUrl, {
+        cache: 'no-store',
+        signal: controller ? controller.signal : undefined
+      });
+      if (timeoutId) clearTimeout(timeoutId);
+      if (resp && resp.ok) {
+        const data = await resp.json();
+        if (data && data.version) {
+          remoteVersion = data.version;
+          remoteReleaseDate = data.releaseDate || null;
+          remoteNotes = data.releaseNotes || '';
+          if (data.repo) remoteUrl = data.repo;
+          checkSource = 'version.json';
+          const cmp = this.compareVersions(remoteVersion, currentVer);
+          if (cmp > 0) updateAvailable = true;
+          else isUpToDate = true;
+        }
+      }
+    } catch (err) {
+      lastError = err.message;
+    }
+
+    // Strategy 2: Check GitHub Releases API
+    if (!remoteVersion) {
+      try {
+        const releaseUrl = `https://api.github.com/repos/${repoOwner}/${repoName}/releases/latest`;
+        const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+        const timeoutId = controller ? setTimeout(() => controller.abort(), 4000) : null;
+        const resp = await fetch(releaseUrl, {
+          headers: { 'Accept': 'application/vnd.github.v3+json' },
+          cache: 'no-store',
+          signal: controller ? controller.signal : undefined
+        });
+        if (timeoutId) clearTimeout(timeoutId);
+        if (resp && resp.ok) {
+          const data = await resp.json();
+          if (data && data.tag_name) {
+            remoteVersion = data.tag_name.replace(/^v/i, '');
+            remoteReleaseDate = data.published_at ? data.published_at.slice(0, 10) : null;
+            remoteNotes = data.body || '';
+            if (data.html_url) remoteUrl = data.html_url;
+            checkSource = 'GitHub Releases';
+            const cmp = this.compareVersions(remoteVersion, currentVer);
+            if (cmp > 0) updateAvailable = true;
+            else isUpToDate = true;
+          }
+        }
+      } catch (err) {
+        lastError = err.message;
+      }
+    }
+
+    // Strategy 3: Check GitHub Commits API on default branch
+    if (!remoteVersion && !isUpToDate) {
+      try {
+        const commitUrl = `https://api.github.com/repos/${repoOwner}/${repoName}/commits/${branch}`;
+        const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+        const timeoutId = controller ? setTimeout(() => controller.abort(), 4000) : null;
+        const resp = await fetch(commitUrl, {
+          headers: { 'Accept': 'application/vnd.github.v3+json' },
+          cache: 'no-store',
+          signal: controller ? controller.signal : undefined
+        });
+        if (timeoutId) clearTimeout(timeoutId);
+        if (resp && resp.ok) {
+          const data = await resp.json();
+          if (data && data.sha) {
+            const commitSha = data.sha.slice(0, 7);
+            const commitDate = data.commit?.committer?.date || data.commit?.author?.date || '';
+            const commitMsg = (data.commit?.message || '').split('\n')[0];
+            checkSource = `GitHub Repository (${branch})`;
+
+            const verMatch = commitMsg.match(/\bv?(\d+\.\d+\.\d+)\b/);
+            if (verMatch) {
+              remoteVersion = verMatch[1];
+              const cmp = this.compareVersions(remoteVersion, currentVer);
+              if (cmp > 0) updateAvailable = true;
+              else isUpToDate = true;
+            } else {
+              const remoteTime = new Date(commitDate).getTime();
+              const localTime = new Date(localBuildDate).getTime();
+              if (remoteTime > (localTime + 86400000) && commitSha !== localCommitSha) {
+                updateAvailable = true;
+                remoteVersion = `commit ${commitSha}`;
+              } else {
+                isUpToDate = true;
+                remoteVersion = currentVer;
+              }
+            }
+            remoteReleaseDate = commitDate ? commitDate.slice(0, 10) : null;
+            remoteNotes = `Latest commit on ${branch}: "${commitMsg}" (${commitSha})`;
+          }
+        } else if (resp && resp.status === 403) {
+          lastError = 'GitHub API rate limit exceeded. Please wait a moment and try again.';
+        } else if (resp) {
+          lastError = `GitHub responded with HTTP status ${resp.status}`;
+        }
+      } catch (err) {
+        lastError = err.message;
+      }
+    }
+
+    // Strategy 4: Fallback to local ./version.json if running via http:// or https:// web server
+    if (!remoteVersion && !isUpToDate && typeof window !== 'undefined' && window.location && window.location.protocol.startsWith('http')) {
+      try {
+        const resp = await fetch(`./version.json?_t=${now}`, { cache: 'no-store' });
+        if (resp && resp.ok) {
+          const data = await resp.json();
+          if (data && data.version) {
+            remoteVersion = data.version;
+            remoteReleaseDate = data.releaseDate || null;
+            remoteNotes = data.releaseNotes || '';
+            checkSource = 'Local version.json';
+            const cmp = this.compareVersions(remoteVersion, currentVer);
+            if (cmp > 0) updateAvailable = true;
+            else isUpToDate = true;
+          }
+        }
+      } catch (err) {}
+    }
+
+    // If all strategies failed to connect to GitHub
+    if (!updateAvailable && !isUpToDate) {
+      if (badgeEl && !silent) {
+        badgeEl.textContent = 'Check failed';
+        badgeEl.style.color = '#ef4444';
+      }
+      if (!silent) {
+        await this.showCustomAlert(
+          `Could not check for updates.\n\n` +
+          `Details: ${lastError || 'Unable to reach GitHub repository'}\n\n` +
+          `Please check your internet connection or visit:\n${remoteUrl}`,
+          '⚠️ Update Check'
+        );
+      }
+      return;
+    }
+
+    // Update settings timestamp
+    this.updateSettings.lastChecked = new Date().toISOString();
+    this.updateSettings.lastKnownRemoteVersion = remoteVersion || currentVer;
+    this.saveUpdateSettings();
+    this.updateLastCheckedUI();
+
+    if (updateAvailable) {
+      if (badgeEl) {
+        badgeEl.textContent = `Update available: v${remoteVersion}`;
+        badgeEl.style.color = '#f59e0b';
+      }
+
+      if (silent) {
+        this.showStatusToast(`🔄 Update Available: New version (${remoteVersion}) is available on GitHub!`);
+      } else {
+        const notes = remoteNotes ? `\n\nRelease / Commit Info:\n${remoteNotes}` : '';
+        await this.showCustomAlert(
+          `A new version of Marvel Character Editor is available!\n\n` +
+          `Current Version: v${currentVer}\n` +
+          `New Version: ${remoteVersion.startsWith('v') ? remoteVersion : 'v' + remoteVersion} (${remoteReleaseDate || 'Latest'})\n` +
+          `Repository: ${remoteUrl}` +
+          notes,
+          '🚀 Program Update Available'
+        );
+      }
+    } else {
+      // Up to date
+      if (badgeEl) {
+        badgeEl.textContent = `Up to date (v${currentVer})`;
+        badgeEl.style.color = '#4ade80';
+      }
+
+      if (!silent) {
+        const notes = remoteNotes ? `\n\n${remoteNotes}` : '';
+        await this.showCustomAlert(
+          `You are running the latest version of Marvel Character Editor (v${currentVer}).\n\n` +
+          `Connected to: ${checkSource}\n` +
+          `Repository: ${remoteUrl}` +
+          notes,
+          '✅ Program Up to Date'
+        );
+      }
     }
   }
 };

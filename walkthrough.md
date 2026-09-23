@@ -295,3 +295,48 @@ Comprehensive expansion integrating all canonical priced equipment from the offi
   - Result: `ALL STORE SORTING & FILTERING TESTS PASSED! ✅`
 - Full regression suite passed (Easter egg, tab condensation, history undo/redo, power removal, options modal).
 - Git commit `d6dfc99` pushed to `origin/main`.
+
+---
+
+## 8. Accelerating Hold Steppers, Split Health Breakdown & Karma Chip Reorganization
+
+### 1. Accelerating Hold Steppers (-1 / +1)
+- Replaced `-10` and `+10` stepper buttons with single `-1` and `+1` steppers for both Health and Karma in the condensed vitals bar.
+- Implemented `setupAcceleratingHoldStepper` utilizing `pointerdown`, `pointerup`, `pointerleave`, and `pointercancel` with `setPointerCapture` for full desktop mouse and touch compatibility:
+  - **Single Click / Tap**: Immediately modifies vital by $\pm 1$.
+  - **Hold Delay**: 350ms delay before auto-repeat kicks in.
+  - **Dynamic Acceleration**:
+    - $0.35\text{s} - 1.0\text{s}$: Ticks every $120\text{ms}$ ($\approx 8\text{ steps/sec}$).
+    - $1.0\text{s} - 2.5\text{s}$: Ticks every $60\text{ms}$ ($\approx 16\text{ steps/sec}$).
+    - $> 2.5\text{s}$: Ticks every $25\text{ms}$ ($\approx 40\text{ steps/sec}$).
+  - **Persistence**: `renderVitals()` is called on every tick for real-time visual feedback, and `saveState()` is invoked once upon pointer release to prevent localStorage thrashing.
+  - Context menu and synthetic duplicate clicks are prevented.
+
+### 2. Split Health Breakdown (Base, Bonus, Total) & Damage Priority
+- Added `getBaseHealth()` and updated `calculateHealthBreakdown()` in [`FASERIPCharacter`](file:///H:/My%20Drive/RPG%20development/Marvel/character_model.js):
+  - **Base Health**: Natural unshifted sum of physical abilities ($\text{Fighting} + \text{Agility} + \text{Strength} + \text{Endurance}$). Displays current base health ($0 \le \text{base} \le \text{baseMax}$) with tooltip showing full capacity.
+  - **Bonus Health**: Any current health that exceeds the base health cap ($\max(0, \text{currentHealth} - \text{baseHealthMax})$).
+  - **Damage Priority**: Reductions to Health automatically deplete Bonus Health first until it drops to 0; only then does further damage reduce Base Health. Healing restores Base Health first before overflowing into Bonus Health.
+  - **Uncapped Bonus Health**: Removed the arbitrary $\times 2$ cap on bonus health; bonus health can accumulate freely to any value without restriction, while maintaining a strict floor of 0.
+  - **Total Health**: Displayed as $\text{Current} / \text{Max}$ where $\text{Base} + \text{Bonus} = \text{Current}$.
+- Displayed in three distinct styled stat pills in the Health chip (`.vital-health-breakdown`):
+  - `Base: [value]`
+  - `Bonus: [+bonus]` or `0` (dynamically highlighted in cyan `.active-bonus` when active)
+  - `Total: [cur]/[max]`
+- Followed by the real-time animated health progress bar (with cyan overheal gradient `.health-fill.bonus` when bonus health is active) and manual `+###` adjustment box with detailed toast status.
+
+### 3. Reorganized Karma (KP) Chip
+- **Isolated Karma Mode Badge**: Removed the total Karma number from `#vital-karma-mode-trigger`, ensuring clicking the badge cleanly opens the 3-Way Mode Switcher (Session, Advancement, Test) without confusion between the mode and current Karma.
+- **Spend History**: Preserved roll spend (`Roll: -XX KP`) and advancement spend (`Rank: -XX KP`).
+- **"Adjust KP:" Label**: Added an explicit uppercase label (`.adjust-field-label`) in front of the manual input field (`#input-karma-adjust`).
+- **Hold Steppers**: Accompanied by `-1` and `+1` accelerating hold steppers.
+- **Right-Aligned Total KP Box**: Placed the current KP total at the far right end of the chip (`#vital-karma-total-box`), styled with amber badge styling and `∞` indicator when in Test Mode.
+
+### 4. Theme Support & Verification
+- Full styling support and theme overrides for **Four-Color**, **Manilla** (slate & paper), and **Aqua** (deep navy & cyan) added to [`styles.css`](file:///H:/My%20Drive/RPG%20development/Marvel/styles.css).
+- Verified with automated test suite [`scratch/test_accelerating_vitals.js`](file:///H:/My%20Drive/RPG%20development/Marvel/scratch/test_accelerating_vitals.js):
+  - All markup structure and ordering verified.
+  - Health breakdown calculations (Base, Bonus, Total) verified.
+  - Stepper wiring and test mode infinite handling verified.
+  - Regression test suites [`scratch/test_user_requested_updates.js`](file:///H:/My%20Drive/RPG%20development/Marvel/scratch/test_user_requested_updates.js) and [`scratch/test_karma_modes.js`](file:///H:/My%20Drive/RPG%20development/Marvel/scratch/test_karma_modes.js) passed with 100% success.
+

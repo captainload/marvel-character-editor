@@ -79,6 +79,8 @@
             </div>
 
             <div class="dropdown-divider"></div>
+            <button type="button" class="dropdown-item" id="menu-item-advancement">📈 Character Advancement...</button>
+            <button type="button" class="dropdown-item" id="menu-item-updates">🔄 Check for Updates...</button>
             <button type="button" class="dropdown-item" id="menu-item-options">⚙️ Preferences & Options...</button>
           </div>
         </div>
@@ -111,34 +113,65 @@
       <!-- Condensed Vitals Bar (Health & Karma live bars) -->
       <div class="vitals-row condensed">
         <!-- Health Chip -->
-        <div class="vital-chip compact">
+        <div class="vital-chip compact vital-chip-health" id="vital-chip-health">
           <div class="vital-left">
             <span class="vital-title">❤️ Health</span>
-            <span class="vital-numbers"><span id="vital-health-cur">100</span>/<span id="vital-health-max">100</span></span>
+          </div>
+          <div class="vital-health-breakdown" title="Health Breakdown: Base (F+A+S+E) + Bonus (Powers/Buffers) = Total">
+            <div class="vital-stat-pill" title="Base Health from physical abilities (F+A+S+E)">
+              <span class="pill-label">Base:</span> <strong id="vital-health-base">--</strong>
+            </div>
+            <div class="vital-stat-pill vital-stat-pill-bonus" id="vital-health-bonus-pill" title="Bonus Health gained from powers, buffers, or health exceeding base">
+              <span class="pill-label">Bonus:</span> <strong id="vital-health-bonus">0</strong>
+            </div>
+            <div class="vital-stat-pill vital-stat-pill-total" title="Current Health / Maximum Health">
+              <span class="pill-label">Total:</span> <strong id="vital-health-cur">100</strong>/<span id="vital-health-max">100</span>
+            </div>
           </div>
           <div class="vital-progress-bg">
             <div class="vital-progress-fill health-fill" id="vital-health-fill" style="width: 100%;"></div>
           </div>
           <div class="vital-steppers">
-            <button class="icon-btn" id="btn-health-minus10" title="-10 Health">-10</button>
-            <button class="icon-btn" id="btn-health-minus1" title="-1 Health">-1</button>
-            <button class="icon-btn" id="btn-health-plus1" title="+1 Health">+1</button>
-            <button class="icon-btn" id="btn-health-plus10" title="+10 Health">+10</button>
+            <div class="vital-manual-wrap" title="Manual Health adjustment (+### or -###). Type amount and press Enter or click away to apply.">
+              <span class="vital-manual-tag">HP</span>
+              <input type="text" id="input-health-adjust" class="vital-manual-input" placeholder="+###" autocomplete="off" aria-label="Manual Health adjustment">
+            </div>
+            <button class="icon-btn vital-hold-btn" id="btn-health-minus1" title="-1 Health (Hold to auto-decrement)">-1</button>
+            <button class="icon-btn vital-hold-btn" id="btn-health-plus1" title="+1 Health (Hold to auto-increment)">+1</button>
           </div>
         </div>
 
-        <!-- Karma Chip -->
-        <div class="vital-chip compact">
-          <div class="vital-left">
-            <span class="vital-title">✨ Karma</span>
-            <span class="vital-numbers"><span id="vital-karma-cur">100</span> <span style="font-size: 10pt; color: var(--text-muted);">(<span id="vital-karma-base">100</span>)</span></span>
+        <!-- Karma Chip (Shows mode badge, spend history, manual adjust, hold steppers, and total KP pool) -->
+        <div class="vital-chip compact vital-chip-karma" id="vital-chip-karma">
+          <div class="vital-left clickable" id="vital-karma-mode-trigger" title="Karma Operating Mode: Click to switch between Session, Advancement, and Test Mode">
+            <div style="display: flex; align-items: center; gap: 5px;">
+              <span class="vital-title">✨ Karma</span>
+              <span class="vital-karma-mode-badge mode-session" id="vital-karma-mode-badge" title="Current Mode: Session Mode (Click to change)">Session</span>
+            </div>
           </div>
-          <div class="vital-progress-bg">
-            <div class="vital-progress-fill karma-fill" id="vital-karma-fill" style="width: 100%;"></div>
+          <div class="vital-karma-history">
+            <div class="vital-karma-pill" id="vital-karma-last-roll" title="Last Karma spent on a FEAT roll">
+              <span class="history-pill-label">Roll:</span> <strong id="vital-karma-last-val">--</strong>
+            </div>
+            <div class="vital-karma-pill clickable" id="vital-karma-last-rank" title="Last Karma spent on a Rank Increase (Click to open Advancement)">
+              <span class="history-pill-label">Rank:</span> <strong id="vital-karma-last-rank-val">--</strong>
+            </div>
+          </div>
+          <div class="vital-adjust-box" title="Manual Karma adjustment (+### or -###). Type amount and press Enter or click away to apply.">
+            <span class="adjust-field-label">Adjust KP:</span>
+            <div class="vital-manual-wrap">
+              <span class="vital-manual-tag">KP</span>
+              <input type="text" id="input-karma-adjust" class="vital-manual-input" placeholder="+###" autocomplete="off" aria-label="Manual Karma adjustment">
+            </div>
           </div>
           <div class="vital-steppers">
-            <button class="icon-btn" id="btn-karma-minus10" title="-10 Karma">-10</button>
-            <button class="icon-btn" id="btn-karma-plus10" title="+10 Karma">+10</button>
+            <button class="icon-btn vital-hold-btn" id="btn-karma-minus1" title="-1 Karma (Hold to auto-decrement)">-1</button>
+            <button class="icon-btn vital-hold-btn" id="btn-karma-plus1" title="+1 Karma (Hold to auto-increment)">+1</button>
+          </div>
+          <div class="vital-total-box" id="vital-karma-total-box" title="Current total Karma Points (KP)">
+            <span class="total-label">Total:</span>
+            <strong id="vital-karma-cur" class="vital-total-val">100</strong>
+            <span class="vital-unit">KP</span>
           </div>
         </div>
       </div>
@@ -334,7 +367,7 @@
       <!-- Add Power Form -->
       <!-- Add Power Form -->
       <div class="card">
-        <div class="card-header">
+        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
           <div style="display: flex; align-items: center; gap: 8px;">
             <span class="card-title">⚡ Add Superpower (CMF Point-Buy: 10 Base + Rank)</span>
             <span id="powers-slots-badge" class="meta-tag" style="font-size: 10pt;">Slots: 0</span>
@@ -343,7 +376,7 @@
         <div style="display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 12px; align-items: end;">
           <div>
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-              <span class="field-label" style="margin-bottom: 0;">Choose Superpower (271 Canonical Powers):</span>
+              <span class="field-label" style="margin-bottom: 0;">Choose Superpower (Universal Catalog & GHotMU Powers):</span>
               <input type="text" id="filter-power-search" placeholder="🔍 Filter powers..." style="font-size: 10pt; padding: 2px 8px; border-radius: 4px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-main); width: 140px;">
             </div>
             <div style="display: flex; gap: 6px; align-items: center;">
@@ -366,7 +399,7 @@
           <button class="icon-btn primary" id="btn-add-power" style="min-height: 44px;">➕ Add Power</button>
         </div>
         <div id="power-starred-banner" class="starred-power-banner" style="display: none; margin-top: 10px; padding: 8px 12px; border-radius: 4px; font-size: 10pt;">
-          ★ <strong>Official Starred Power:</strong> Per TSR rules (Player's Book p. 19 & UPB p. 16-19), this heavyweight power automatically allocates <strong>2 power slots</strong> and uses CMF Exceptional point-buy pricing (<strong>20 CP Base + 2× Rank CP</strong>).
+          ★ <strong>Official Starred Power:</strong> Per TSR rules (Player's Book p. 19 & UPB p. 16-19), this heavyweight power uses CMF Exceptional point-buy pricing (<strong>20 CP Base + 2× Rank CP</strong>).
         </div>
         <!-- Dynamic Power Options & Random Manifestation Box -->
         <div id="power-options-container" class="power-options-box" style="display: none; margin-top: 12px; padding: 14px 16px; border: 1.5px solid var(--border-color); border-radius: 8px; background: rgba(0, 0, 0, 0.25);">
@@ -681,7 +714,7 @@
         <div class="card">
           <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
             <span class="card-title" id="talents-card-title">🥋 Talents & Skills (10 CP / 20 CP Starred)</span>
-            <span id="talents-slots-badge" class="meta-tag tag-starred" style="font-size: 8.5pt;">0 Slots</span>
+            <span id="talents-slots-badge" class="meta-tag" style="font-size: 8.5pt;">0 CP</span>
           </div>
 
           <div style="display: flex; gap: 10px; margin-bottom: 8px;">
@@ -856,7 +889,7 @@
       <div class="modal-header compact">
         <span class="modal-title" id="roller-title">FEAT Roll</span>
         <div style="display: flex; align-items: center; gap: 6px;">
-          <button type="button" class="icon-btn roller-popout-btn" id="btn-roller-popout" title="Pop-out floating modeless window">↗ Pop-out</button>
+          <button type="button" class="icon-btn roller-popout-btn" id="btn-roller-popout" title="Pop-out into separate window">↗ Pop-out</button>
           <button class="modal-close">&times;</button>
         </div>
       </div>
@@ -874,42 +907,6 @@
           </div>
         </div>
 
-        <!-- 4-Color / 5-Color Universal Table Threshold Grid: Blue (CMF), White, Green, Yellow, Red -->
-        <div class="roller-thresh-grid">
-          <div class="thresh-box blue" id="roller-thresh-blue-box" style="display: none;">
-            <span class="thresh-name">Blue</span>
-            <span class="thresh-val" id="roller-thresh-blue">01-07</span>
-          </div>
-          <div class="thresh-box white">
-            <span class="thresh-name">White</span>
-            <span class="thresh-val" id="roller-thresh-white">01-35</span>
-          </div>
-          <div class="thresh-box green">
-            <span class="thresh-name">Green</span>
-            <span class="thresh-val" id="roller-thresh-green">36+</span>
-          </div>
-          <div class="thresh-box yellow">
-            <span class="thresh-name">Yellow</span>
-            <span class="thresh-val" id="roller-thresh-yellow">66+</span>
-          </div>
-          <div class="thresh-box red">
-            <span class="thresh-name">Red</span>
-            <span class="thresh-val" id="roller-thresh-red">95+</span>
-          </div>
-        </div>
-
-        <!-- CS Stepper & Control (Positioned Just Above Spend Karma Control) -->
-        <div class="roller-stepper-row">
-          <div class="stepper-controls">
-            <button type="button" class="stepper-btn" id="btn-roller-shift-down" title="Shift Left (-1 CS)">−</button>
-            <button type="button" class="stepper-btn" id="btn-roller-shift-up" title="Shift Right (+1 CS)">+</button>
-          </div>
-          <div class="cs-control-display">
-            <span class="field-label" style="margin-bottom: 0;">Column Shift:</span>
-            <strong id="roller-shift-val" style="font-size: 11pt; color: #38bdf8;">+0 CS</strong>
-          </div>
-        </div>
-
         <!-- Pre-Roll Karma Spending Stepper/Field (Committed BEFORE rolling) -->
         <div class="roller-karma-spend-row">
           <div class="karma-spend-label">
@@ -917,18 +914,36 @@
             <span class="karma-avail-hint">(Avail: <strong id="roller-avail-karma">0</strong> KP)</span>
           </div>
           <div class="karma-stepper-controls">
+            <button type="button" class="stepper-btn stepper-btn-clear" id="btn-karma-spend-clear" title="Clear added Karma (Zero KP)">Clear</button>
             <button type="button" class="stepper-btn" id="btn-karma-spend-minus10" title="-10 Karma">−10</button>
             <button type="button" class="stepper-btn" id="btn-karma-spend-minus1" title="-1 Karma">−1</button>
-            <input type="number" id="roller-karma-spend-input" class="field-input compact" min="0" value="0" style="width: 54px; text-align: center; font-weight: 700; padding: 2px 4px;">
+            <input type="number" id="roller-karma-spend-input" class="field-input compact" min="0" max="100" value="0" style="width: 54px; text-align: center; font-weight: 700; padding: 2px 4px;">
             <button type="button" class="stepper-btn" id="btn-karma-spend-plus1" title="+1 Karma">+1</button>
             <button type="button" class="stepper-btn" id="btn-karma-spend-plus10" title="+10 Karma">+10</button>
           </div>
         </div>
 
-        <!-- Roll Action Row: Roll Button (cut by 75%) placed to the LEFT of the Dice Readout '[roll] + [KP]' -->
+        <!-- Karmic Success House Rule Toggle in Roller -->
+        <div class="roller-karmic-rule-row">
+          <label class="roller-karmic-toggle" title="House Rule: Spending KP to shift a Blue result to a higher color refunds up to 20 KP of spent KP">
+            <input type="checkbox" id="roller-check-karmic-success">
+            <span>✨ House Rule: <strong>Karmic Success</strong> (refund up to 20 spent KP on Blue shift)</span>
+          </label>
+        </div>
+
+        <!-- Roll Action Row: Left: CS Stepper (-/+ # CS) · Center: Centered Roll Button · Right: Compact Roll Result -->
         <div class="roller-action-row">
-          <button class="icon-btn primary" id="btn-roller-roll">🎲 Roll</button>
-          <div class="roller-dice-visual" id="roller-dice-num">-- <span class="dice-kp-badge">+ 0 KP</span></div>
+          <div class="roller-cs-stepper-inline" title="Column Shift adjustment (-5 to +5 CS)">
+            <div class="stepper-controls">
+              <button type="button" class="stepper-btn" id="btn-roller-shift-down" title="Shift Left (-1 CS)">−</button>
+              <button type="button" class="stepper-btn" id="btn-roller-shift-up" title="Shift Right (+1 CS)">+</button>
+            </div>
+            <strong id="roller-shift-val" class="roller-shift-display">+0 CS</strong>
+          </div>
+          <button class="icon-btn primary" id="btn-roller-roll" title="Resolve Universal Table FEAT roll">🎲 Roll</button>
+          <div class="roller-result-container">
+            <div class="roller-dice-visual" id="roller-dice-num">-- <span class="dice-kp-badge">+ 0 KP</span></div>
+          </div>
         </div>
 
         <!-- Row showing brief details about CS's that went into the final result -->
@@ -937,9 +952,33 @@
           <span id="roller-cs-details-text">Base: Typical · Shift: +0 CS → Final: Typical (6)</span>
         </div>
 
-        <!-- Battle Effect Outcome Box (No huge banner) -->
-        <div class="battle-effect-box compact">
-          <div style="font-size: 10.5pt; font-weight: 700; color: #fff;" id="roller-effect-desc">Click Roll to resolve action.</div>
+        <!-- Color Result Row: 4-Color / 5-Color Universal Table Threshold Grid: Blue (CMF), White, Green, Yellow, Red -->
+        <div class="roller-thresh-grid" id="roller-thresh-grid">
+          <div class="thresh-box blue" id="roller-thresh-blue-box" data-color="blue" style="display: none;">
+            <span class="thresh-name">Blue</span>
+            <span class="thresh-val" id="roller-thresh-blue">01-07</span>
+          </div>
+          <div class="thresh-box white" id="roller-thresh-white-box" data-color="white">
+            <span class="thresh-name">White</span>
+            <span class="thresh-val" id="roller-thresh-white">01-35</span>
+          </div>
+          <div class="thresh-box green" id="roller-thresh-green-box" data-color="green">
+            <span class="thresh-name">Green</span>
+            <span class="thresh-val" id="roller-thresh-green">36+</span>
+          </div>
+          <div class="thresh-box yellow" id="roller-thresh-yellow-box" data-color="yellow">
+            <span class="thresh-name">Yellow</span>
+            <span class="thresh-val" id="roller-thresh-yellow">66+</span>
+          </div>
+          <div class="thresh-box red" id="roller-thresh-red-box" data-color="red">
+            <span class="thresh-name">Red</span>
+            <span class="thresh-val" id="roller-thresh-red">95+</span>
+          </div>
+        </div>
+
+        <!-- Battle Effect Outcome Box (Shown dynamically after roll) -->
+        <div class="battle-effect-box compact" id="roller-effect-box" style="display: none;">
+          <div style="font-size: 10.5pt; font-weight: 700; color: #fff;" id="roller-effect-desc"></div>
         </div>
 
       </div>
@@ -1888,6 +1927,16 @@
             </div>
           </label>
 
+          <label class="checkbox-label" style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer;">
+            <input type="checkbox" id="option-karmic-success" style="margin-top: 3px;">
+            <div>
+              <strong style="color: var(--text-main);">Enable "Karmic Success" House Rule</strong>
+              <div style="color: var(--text-muted); font-size: 10pt; margin-top: 2px; line-height: 1.4;">
+                When a player spending KP shifts a Blue (fumble/blunder) result to something higher (White, Green, Yellow, or Red), they get back up to 20 KP of any KP they spent.
+              </div>
+            </div>
+          </label>
+
           <div>
             <span class="field-label" style="margin-bottom: 6px; color: var(--text-muted);">Universal Action Table &amp; Rank System:</span>
             <select id="option-universal-table" class="field-input" style="min-height: 40px;">
@@ -1902,16 +1951,82 @@
           </div>
 
           <div>
-            <span class="field-label" style="margin-bottom: 6px; color: var(--text-muted);">Tactical Movement Area Division:</span>
-            <select id="option-area-division" class="field-input" style="min-height: 40px;">
-              <option value="standard">Standard Full Areas: 1 Area = 132 Feet (Default TSR Rules)</option>
-              <option value="quarter">Quarter Area Rule: 4 Quadrants of 33 Feet (33 ft / quadrant)</option>
-              <option value="six">Six Subareas Rule: 6 Squares of 22 Feet (22 ft / subarea)</option>
-            </select>
-            <div style="color: var(--text-muted); font-size: 10pt; margin-top: 6px; line-height: 1.5;">
-              Divides standard area squares into smaller tactical units for battle-mats and miniatures:
-              <br>• <strong>Quarter Area:</strong> 4 quadrants of 33 ft each (2&times;2 sub-grid per area).
-              <br>• <strong>Six Subareas:</strong> 6 squares of 22 ft each (2&times;3 sub-grid per area).
+            <div>
+              <span class="field-label" style="margin-bottom: 6px; color: var(--text-muted);">Tactical Movement Area Division:</span>
+              <select id="option-area-division" class="field-input" style="min-height: 40px;">
+                <option value="standard">Standard Full Areas: 1 Area = 132 Feet (Default TSR Rules)</option>
+                <option value="quarter">Quarter Area Rule: 4 Quadrants of 33 Feet (33 ft / quadrant)</option>
+                <option value="six">Six Subareas Rule: 6 Squares of 22 Feet (22 ft / subarea)</option>
+              </select>
+              <div style="color: var(--text-muted); font-size: 10pt; margin-top: 6px; line-height: 1.5;">
+                Divides standard area squares into smaller tactical units for battle-mats and miniatures:
+                <br>• <strong>Quarter Area:</strong> 4 quadrants of 33 ft each (2&times;2 sub-grid per area).
+                <br>• <strong>Six Subareas:</strong> 6 squares of 22 ft each (2&times;3 sub-grid per area).
+              </div>
+            </div>
+
+            <!-- SECTION: PROGRAM UPDATES & AUTOMATED CHECKING -->
+            <div style="font-weight: 700; color: var(--text-main); font-size: 11pt; border-bottom: 1px solid var(--border-color); padding-bottom: 6px; margin-top: 10px; display: flex; justify-content: space-between; align-items: center;">
+              <span>🔄 Program Updates &amp; Automated Checking</span>
+              <span class="meta-tag" id="update-version-tag" style="color: var(--marvel-gold); font-size: 9pt;">v1.4.0</span>
+            </div>
+
+            <div class="update-settings-panel" style="background: rgba(0, 0, 0, 0.2); border: 1px solid var(--border-color); border-radius: 6px; padding: 12px; display: flex; flex-direction: column; gap: 10px;">
+              <div style="color: var(--text-muted); font-size: 9.5pt; line-height: 1.4;">
+                Configure how and when the program checks for updates. All options can be enabled independently:
+              </div>
+
+              <!-- Option 1: On Execution / Startup -->
+              <label class="checkbox-label" style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer;">
+                <input type="checkbox" id="option-update-on-startup" style="margin-top: 3px;" checked>
+                <div>
+                  <strong style="color: var(--text-main);">Check for updates on program execution</strong>
+                  <div style="color: var(--text-muted); font-size: 9pt;">Silently checks for new versions when the application first launches.</div>
+                </div>
+              </label>
+
+              <!-- Option 2: After each file save or load -->
+              <label class="checkbox-label" style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer;">
+                <input type="checkbox" id="option-update-on-file" style="margin-top: 3px;" checked>
+                <div>
+                  <strong style="color: var(--text-main);">Check for updates after each file save or load</strong>
+                  <div style="color: var(--text-muted); font-size: 9pt;">Checks whenever saving or opening a character file (.msh / .json).</div>
+                </div>
+              </label>
+
+              <!-- Option 3: On a recurring schedule -->
+              <label class="checkbox-label" style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer;">
+                <input type="checkbox" id="option-update-scheduled" style="margin-top: 3px;">
+                <div style="flex: 1;">
+                  <strong style="color: var(--text-main);">Check for updates on a recurring schedule</strong>
+                  <div style="color: var(--text-muted); font-size: 9pt; margin-bottom: 6px;">Automatically runs in the background at regular intervals.</div>
+                  
+                  <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;" id="update-interval-container">
+                    <span class="field-label" style="margin-bottom: 0; font-size: 9pt;">Frequency:</span>
+                    <select id="option-update-interval" class="field-input compact" style="min-height: 30px; font-size: 9.5pt; width: auto; min-width: 170px;">
+                      <option value="5">Every 5 minutes</option>
+                      <option value="15">Every 15 minutes</option>
+                      <option value="30">Every 30 minutes</option>
+                      <option value="60" selected>Every 1 hour</option>
+                      <option value="120">Every 2 hours</option>
+                      <option value="360">Every 6 hours</option>
+                      <option value="720">Every 12 hours</option>
+                      <option value="1440">Every 24 hours</option>
+                    </select>
+                  </div>
+                </div>
+              </label>
+
+              <!-- Status Bar & Manual Check Button -->
+              <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; padding-top: 8px; border-top: 1px solid rgba(255, 255, 255, 0.08); margin-top: 2px;">
+                <div style="font-size: 9pt; color: var(--text-muted);">
+                  <span>Last checked: <strong id="update-last-checked-text" style="color: var(--text-main);">Never</strong></span>
+                  <span id="update-status-badge" style="margin-left: 8px; font-weight: 700; color: #4ade80;"></span>
+                </div>
+                <button type="button" class="icon-btn" id="btn-check-updates-now" style="font-size: 9.5pt; padding: 4px 12px;">
+                  🔄 Check for Updates Now
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -2131,14 +2246,18 @@
             </label>
           </div>
 
-          <div id="stunt-successes-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; background: rgba(15, 23, 42, 0.4); border: 1px solid var(--border-color); border-radius: 6px; padding: 10px;">
+          <div id="stunt-successes-row" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; background: rgba(15, 23, 42, 0.4); border: 1px solid var(--border-color); border-radius: 6px; padding: 10px;">
             <div>
-              <span class="field-label">Red Successes (0-1):</span>
+              <span class="field-label" title="Attempt 1: Red FEAT required (TSR Rules)">Red (0-1):</span>
               <input type="number" id="stunt-red-successes" class="field-input" min="0" max="1" value="0">
             </div>
             <div>
-              <span class="field-label">Yellow Successes (0-2):</span>
-              <input type="number" id="stunt-yellow-successes" class="field-input" min="0" max="2" value="0">
+              <span class="field-label" title="Attempts 2-4: Yellow FEAT required (TSR Rules)">Yellow (0-3):</span>
+              <input type="number" id="stunt-yellow-successes" class="field-input" min="0" max="3" value="0">
+            </div>
+            <div>
+              <span class="field-label" title="Attempts 5-10: Green FEAT required (TSR Rules)">Green (0-6):</span>
+              <input type="number" id="stunt-green-successes" class="field-input" min="0" max="6" value="0">
             </div>
           </div>
         </div>
@@ -2287,6 +2406,310 @@
           <button type="button" class="icon-btn" id="btn-cancel-opt-modal">Cancel</button>
           <button type="button" class="icon-btn primary" id="btn-save-opt-modal">💾 Save Option</button>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: POWER TRIGGERS & OPERATIONAL MODE CONFIGURATION -->
+  <div id="modal-power-trigger" class="modal-overlay">
+    <div class="modal-box" style="max-width: 620px; width: 95%;">
+      <div class="modal-header">
+        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+          <span class="modal-title">🔗 Power Triggers &amp; Operational Mode</span>
+          <span class="meta-tag" id="modal-trigger-power-rank" style="color: var(--marvel-gold); font-size: 10.5pt; font-weight: 700;"></span>
+        </div>
+        <button type="button" class="modal-close" id="btn-close-trigger-modal">&times;</button>
+      </div>
+      <div class="modal-body" style="padding: 16px 20px; display: flex; flex-direction: column; gap: 14px; max-height: 75vh; overflow-y: auto;">
+        <input type="hidden" id="modal-trigger-power-index" value="">
+
+        <!-- Header Summary Card -->
+        <div class="power-adj-card" style="padding: 10px 14px; border-radius: 6px; background: rgba(15, 23, 42, 0.4); border: 1px solid var(--border-color);">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px;">
+            <strong id="modal-trigger-power-name" style="font-size: 12pt; color: var(--text-main);"></strong>
+            <span id="modal-trigger-status-badge" class="meta-tag" style="font-size: 9.5pt;"></span>
+          </div>
+          <div id="modal-trigger-power-meta" style="font-size: 9.5pt; color: var(--text-muted); margin-top: 4px;"></div>
+        </div>
+
+        <!-- Section 1: Operational Type -->
+        <div style="background: rgba(255, 255, 255, 0.03); padding: 12px 14px; border-radius: 6px; border: 1px solid var(--border-color);">
+          <label style="display: block; font-weight: 700; color: var(--marvel-gold); margin-bottom: 8px; font-size: 10.5pt;">
+            ⚡ Operational Mode
+          </label>
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            <label style="display: flex; align-items: flex-start; gap: 8px; cursor: pointer; font-size: 10pt;">
+              <input type="radio" name="trigger-op-type" value="passive" id="trigger-op-passive" style="margin-top: 3px;">
+              <div>
+                <strong>Passive / Continuous Operation</strong>
+                <div style="color: var(--text-muted); font-size: 9pt;">Maintains operation across combat rounds once switched on (e.g. Body Armor, Force Fields, Alternate Forms, Sensory Powers, Flight). Can be switched on/off at will.</div>
+              </div>
+            </label>
+            <label style="display: flex; align-items: flex-start; gap: 8px; cursor: pointer; font-size: 10pt;">
+              <input type="radio" name="trigger-op-type" value="active" id="trigger-op-active" style="margin-top: 3px;">
+              <div>
+                <strong>Active / At-Will Action</strong>
+                <div style="color: var(--text-muted); font-size: 9pt;">Requires an active action each time used in combat (e.g. Energy Blasts, Punches, Natural Weapons, Projectiles). Available at all times unless disabled.</div>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <!-- Section 2: Trigger Mode -->
+        <div style="background: rgba(255, 255, 255, 0.03); padding: 12px 14px; border-radius: 6px; border: 1px solid var(--border-color);">
+          <label style="display: block; font-weight: 700; color: var(--marvel-gold); margin-bottom: 8px; font-size: 10.5pt;">
+            🔗 Trigger &amp; Activation Linkage
+          </label>
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            <label style="display: flex; align-items: flex-start; gap: 8px; cursor: pointer; font-size: 10pt;">
+              <input type="radio" name="trigger-link-mode" value="default" id="trigger-link-default" style="margin-top: 3px;" checked>
+              <div>
+                <strong>Default / Independent</strong>
+                <div style="color: var(--text-muted); font-size: 9pt;">Operates normally and independently of any other superhuman power.</div>
+              </div>
+            </label>
+            <label style="display: flex; align-items: flex-start; gap: 8px; cursor: pointer; font-size: 10pt;">
+              <input type="radio" name="trigger-link-mode" value="linked" id="trigger-link-linked" style="margin-top: 3px;">
+              <div>
+                <strong>Linked to Master Power</strong>
+                <div style="color: var(--text-muted); font-size: 9pt;">State is slaved to another power (e.g., Colossus's Body Armor triggers when Organic Steel activates; Cannonball's Force Field triggers while Rocket Flight is operating).</div>
+              </div>
+            </label>
+          </div>
+
+          <!-- Sub-panel for Linked Mode -->
+          <div id="trigger-linked-details" style="display: none; margin-top: 12px; padding: 10px 12px; background: rgba(0, 0, 0, 0.25); border-radius: 6px; border: 1px solid rgba(168, 85, 247, 0.3);">
+            <div style="margin-bottom: 10px;">
+              <label for="trigger-master-select" style="display: block; font-size: 9.5pt; font-weight: 600; margin-bottom: 4px; color: #c084fc;">
+                Select Master Power:
+              </label>
+              <select id="trigger-master-select" class="field-input" style="width: 100%; min-height: 32px; font-size: 10pt;">
+                <!-- Dynamically populated with other powers -->
+              </select>
+            </div>
+            <div style="margin-bottom: 10px;">
+              <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 9.5pt;">
+                <input type="checkbox" id="trigger-invert-check">
+                <span><strong>Invert Activation Condition</strong> (Power is shut off while master power operates, e.g. Emma Frost's Diamond Form disables Telepathy)</span>
+              </label>
+            </div>
+            <div>
+              <label for="trigger-condition-input" style="display: block; font-size: 9.5pt; font-weight: 600; margin-bottom: 4px; color: var(--text-muted);">
+                Activation Condition Description (Optional):
+              </label>
+              <input type="text" id="trigger-condition-input" class="field-input" placeholder="e.g. Adrenalin Surge, In Flight, Physical Contact" style="width: 100%; min-height: 30px; font-size: 9.5pt;">
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 3: Canonical Archetype Presets -->
+        <div style="background: rgba(255, 255, 255, 0.02); padding: 10px 12px; border-radius: 6px; border: 1px solid rgba(255, 255, 255, 0.08);">
+          <div style="font-size: 9pt; font-weight: 700; color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase;">
+            Quick Archetype Presets:
+          </div>
+          <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+            <button type="button" class="power-preset-chip" data-preset="cannonball" title="Slaves this power to Rocket Flight">
+              🚀 Cannonball (Flight Trigger)
+            </button>
+            <button type="button" class="power-preset-chip" data-preset="colossus" title="Slaves this power to Organic Steel / Transformation">
+              🛡️ Colossus (Armored Form Trigger)
+            </button>
+            <button type="button" class="power-preset-chip" data-preset="frost" title="Inverted linkage: disabled while diamond form is active">
+              💎 Emma Frost (Inverted Form Link)
+            </button>
+            <button type="button" class="power-preset-chip" data-preset="hulk" title="Passive linked to Adrenalin Surge / Anger">
+              😡 Hulk (Surge / Anger Link)
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 18px; border-top: 1px solid var(--border-color);">
+        <button type="button" class="icon-btn" id="btn-reset-trigger" style="font-size: 9pt;">↺ Reset to Default</button>
+        <div style="display: flex; gap: 8px;">
+          <button type="button" class="icon-btn" id="btn-cancel-trigger-modal">Cancel</button>
+          <button type="button" class="icon-btn primary" id="btn-save-trigger-modal">💾 Save Trigger Config</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: KARMA OPERATING MODE MANAGER (SESSION, ADVANCEMENT, TEST) -->
+  <div id="modal-karma-mode" class="modal-overlay">
+    <div class="modal-box" style="max-width: 580px; width: 95%;">
+      <div class="modal-header">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span class="modal-title">✨ Karma Operating Mode</span>
+          <span class="meta-tag" id="karma-mode-modal-badge" style="color: var(--marvel-gold); font-weight: 700;">Current: Session Mode</span>
+        </div>
+        <button type="button" class="modal-close" id="btn-close-karma-mode-modal">&times;</button>
+      </div>
+      <div class="modal-body" style="padding: 16px 20px; display: flex; flex-direction: column; gap: 14px;">
+        <div style="font-size: 9.5pt; color: var(--text-muted); line-height: 1.4;">
+          Select how Karma is utilized for your character. Switch between standard live gameplay, trait advancement, or an infinite-KP sandbox for testing and planning.
+        </div>
+
+        <!-- Three-Way Toggle Cards -->
+        <div class="karma-mode-cards-container" style="display: flex; flex-direction: column; gap: 10px;">
+          <!-- Card 1: Session Mode -->
+          <div class="karma-mode-card" data-mode="session" id="mode-card-session" style="cursor: pointer;">
+            <div class="mode-card-header">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span class="mode-icon">🎮</span>
+                <strong class="mode-name">Session Mode</strong>
+                <span class="mode-tag tag-session">Standard Play</span>
+              </div>
+              <input type="radio" name="karma-mode-choice" value="session" id="radio-mode-session" style="cursor: pointer;">
+            </div>
+            <div class="mode-card-desc">
+              Spend Karma normally for FEAT rolls and power stunt attempts. Permanent trait rank advancement is <strong>locked</strong> to prevent accidental spending during live sessions.
+            </div>
+          </div>
+
+          <!-- Card 2: Advancement Mode -->
+          <div class="karma-mode-card" data-mode="advancement" id="mode-card-advancement" style="cursor: pointer;">
+            <div class="mode-card-header">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span class="mode-icon">📈</span>
+                <strong class="mode-name">Advancement Mode</strong>
+                <span class="mode-tag tag-advancement">Trait Growth</span>
+              </div>
+              <input type="radio" name="karma-mode-choice" value="advancement" id="radio-mode-advancement" style="cursor: pointer;">
+            </div>
+            <div class="mode-card-desc">
+              Unlocks spending accumulated Karma on permanent trait advancements (Abilities, Powers, Resources) per TSR rules. Automatically captures a baseline snapshot upon entry.
+            </div>
+            <!-- Advancement In-Progress Actions / Summary -->
+            <div id="adv-mode-active-strip" style="display: none; margin-top: 8px; padding-top: 8px; border-top: 1px dashed rgba(255,255,255,0.1); justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px;">
+              <span id="adv-mode-changes-summary" style="font-size: 8.5pt; color: var(--marvel-gold); font-weight: 600;">No advancements made in this session yet</span>
+              <button type="button" class="icon-btn compact" id="btn-revert-adv-in-modal" style="font-size: 8.5pt; color: #ef4444; border-color: rgba(239, 68, 68, 0.4);">↺ Revert All Advancements</button>
+            </div>
+          </div>
+
+          <!-- Card 3: Test Mode -->
+          <div class="karma-mode-card" data-mode="test" id="mode-card-test" style="cursor: pointer;">
+            <div class="mode-card-header">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span class="mode-icon">🧪</span>
+                <strong class="mode-name">Test Mode</strong>
+                <span class="mode-tag tag-test">Infinite KP / Sandbox</span>
+              </div>
+              <input type="radio" name="karma-mode-choice" value="test" id="radio-mode-test" style="cursor: pointer;">
+            </div>
+            <div class="mode-card-desc">
+              Grants <strong>infinite Karma (∞ KP)</strong>. Freely experiment with Karma-boosted rolls or plan trait rank increases without spending real Karma.
+            </div>
+            <div style="margin-top: 6px; font-size: 8.5pt; color: #f59e0b; display: flex; align-items: center; gap: 4px;">
+              <span>⚠️</span>
+              <span>When switching away from Test Mode, all test-mode changes will be cleared and your character will revert to their pre-test state.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 18px; border-top: 1px solid var(--border-color);">
+        <button type="button" class="icon-btn" id="btn-open-adv-from-mode" style="display: none; font-size: 9pt;">📈 Open Character Advancement</button>
+        <div style="display: flex; gap: 8px; margin-left: auto;">
+          <button type="button" class="icon-btn" id="btn-cancel-karma-mode">Cancel</button>
+          <button type="button" class="icon-btn primary" id="btn-apply-karma-mode">Switch Mode</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: CHARACTER ADVANCEMENT (RANK INCREASE VIA KARMA) -->
+  <div id="modal-advancement" class="modal-overlay">
+    <div class="modal-box" style="max-width: 540px; width: 95%;">
+      <div class="modal-header">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span class="modal-title">📈 Character Advancement</span>
+          <span class="meta-tag" id="adv-karma-badge" style="color: var(--marvel-gold); font-weight: 700;">Avail: 0 KP</span>
+        </div>
+        <button type="button" class="modal-close" id="btn-close-adv-modal">&times;</button>
+      </div>
+      <div class="modal-body" style="padding: 16px 20px; display: flex; flex-direction: column; gap: 14px;">
+        <!-- Mode Banner in Advancement Modal -->
+        <div id="adv-modal-mode-banner" class="adv-modal-banner mode-banner-session">
+          <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px; width: 100%;">
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <span id="adv-banner-icon">🔒</span>
+              <strong id="adv-banner-title">Session Mode (Locked)</strong>
+              <span id="adv-banner-desc" style="font-size: 8.5pt; opacity: 0.85;">Advancement locked during live play.</span>
+            </div>
+            <div style="display: flex; gap: 6px;">
+              <button type="button" class="icon-btn compact" id="btn-revert-adv-in-advmodal" style="display: none; font-size: 8pt; color: #ef4444; border-color: rgba(239,68,68,0.4);">↺ Revert Changes</button>
+              <button type="button" class="icon-btn compact" id="btn-switch-mode-from-advmodal" style="font-size: 8.5pt;">📈 Switch to Advancement Mode</button>
+            </div>
+          </div>
+        </div>
+
+        <div style="font-size: 9.5pt; color: var(--text-muted); line-height: 1.4;">
+          Per TSR Advanced Set rules (Player's Book p. 19), a hero may spend accumulated Karma to permanently advance an Ability, Power, or Resource rank. Training time equals the number of rank bands added in days.
+        </div>
+
+        <div>
+          <label for="adv-category-select" style="display: block; font-weight: 700; font-size: 10pt; margin-bottom: 4px; color: var(--text-main);">
+            Category to Advance:
+          </label>
+          <select id="adv-category-select" class="field-input" style="width: 100%; min-height: 36px; font-size: 10.5pt;">
+            <option value="ability">Primary Ability (FASERIP)</option>
+            <option value="power">Superpower</option>
+            <option value="resources">Resources</option>
+          </select>
+        </div>
+
+        <div>
+          <label for="adv-item-select" style="display: block; font-weight: 700; font-size: 10pt; margin-bottom: 4px; color: var(--text-main);">
+            Select Trait:
+          </label>
+          <select id="adv-item-select" class="field-input" style="width: 100%; min-height: 36px; font-size: 10.5pt;">
+            <!-- Populated dynamically -->
+          </select>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+          <div>
+            <label style="display: block; font-weight: 700; font-size: 9.5pt; margin-bottom: 4px; color: var(--text-muted);">
+              Current Rank:
+            </label>
+            <div id="adv-current-rank-display" style="padding: 8px 12px; background: rgba(0, 0, 0, 0.3); border: 1px solid var(--border-color); border-radius: 6px; font-weight: 800; font-size: 11pt; color: #fff;">
+              --
+            </div>
+          </div>
+          <div>
+            <label for="adv-target-rank-select" style="display: block; font-weight: 700; font-size: 9.5pt; margin-bottom: 4px; color: var(--marvel-gold);">
+              Target New Rank:
+            </label>
+            <select id="adv-target-rank-select" class="field-input" style="width: 100%; min-height: 38px; font-size: 10.5pt; font-weight: 700;">
+              <!-- Populated dynamically with higher ranks -->
+            </select>
+          </div>
+        </div>
+
+        <!-- Calculation Summary Box -->
+        <div id="adv-calc-box" style="background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 6px; padding: 12px 14px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+            <span style="font-size: 10pt; color: var(--text-muted);">Required Karma Cost:</span>
+            <strong id="adv-calc-karma-cost" style="font-size: 12pt; color: var(--marvel-gold); font-family: var(--font-mono);">0 KP</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+            <span style="font-size: 10pt; color: var(--text-muted);">Required Training Days:</span>
+            <strong id="adv-calc-training-days" style="font-size: 11pt; color: #38bdf8;">0 Days</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 6px; border-top: 1px solid rgba(255, 255, 255, 0.08);">
+            <span style="font-size: 10pt; color: var(--text-muted);">Karma After Advancement:</span>
+            <strong id="adv-calc-remaining-karma" style="font-size: 11pt; color: #4ade80; font-family: var(--font-mono);">0 KP</strong>
+          </div>
+        </div>
+
+        <div>
+          <label for="adv-custom-notes" style="display: block; font-size: 9pt; font-weight: 600; margin-bottom: 4px; color: var(--text-muted);">
+            Training / Roleplay Notes (Optional):
+          </label>
+          <input type="text" id="adv-custom-notes" class="field-input" placeholder="e.g. Danger Room training with Wolverine; Stark lab research" style="width: 100%; min-height: 32px; font-size: 9.5pt;">
+        </div>
+      </div>
+      <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 8px; padding: 12px 18px; border-top: 1px solid var(--border-color);">
+        <button type="button" class="icon-btn" id="btn-cancel-adv">Cancel</button>
+        <button type="button" class="icon-btn primary" id="btn-apply-adv">📈 Confirm Rank Increase</button>
       </div>
     </div>
   </div>

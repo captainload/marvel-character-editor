@@ -141,16 +141,17 @@ const UniversalTableEngine = {
   getRankByName(name) {
     if (!name) return this.ranks[3]; // Default Typical
     const norm = String(name).trim().toLowerCase();
+    const clean = norm.replace(/[-_]/g, ' ');
     // 1. Match in active table ranks
-    let found = this.ranks.find(r => r.name.toLowerCase() === norm || r.abbr.toLowerCase() === norm);
+    let found = this.ranks.find(r => r.name.toLowerCase() === norm || r.name.toLowerCase() === clean || r.abbr.toLowerCase() === norm);
     if (found) return found;
-    found = this.ranks.find(r => norm.includes(r.name.toLowerCase()));
+    found = this.ranks.find(r => norm.includes(r.name.toLowerCase()) || clean.includes(r.name.toLowerCase()));
     if (found) return found;
 
     // 2. Cross-table fallback if rank is from the other table mode
     const altRanks = this.activeMode === 'cmf' ? STANDARD_RANKS : CMF_RANKS;
-    found = altRanks.find(r => r.name.toLowerCase() === norm || r.abbr.toLowerCase() === norm) ||
-            altRanks.find(r => norm.includes(r.name.toLowerCase()));
+    found = altRanks.find(r => r.name.toLowerCase() === norm || r.name.toLowerCase() === clean || r.abbr.toLowerCase() === norm) ||
+            altRanks.find(r => norm.includes(r.name.toLowerCase()) || clean.includes(r.name.toLowerCase()));
     if (found) return found;
 
     return this.ranks[3]; // Default Typical

@@ -1,0 +1,7 @@
+{
+  "version": "1.4.0",
+  "releaseDate": "2026-09-22",
+  "name": "Marvel Super Heroes Character Editor",
+  "repo": "https://github.com/captainload/marvel-character-editor",
+  "notes": "Added 3-way Karma modes (Session, Advancement, Test), accelerating hold vitals steppers, split dynamic Health breakdown (Base, Bonus, Total) with uncapped bonus health and damage absorption priority, and edit timeline rollback."
+}

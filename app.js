@@ -35,7 +35,7 @@ const App = {
   isWidthWarningDismissed: false,
   powerAdjustment: false,
   activeAdjustmentPowerIndex: null,
-  VERSION: '1.4.3',
+  VERSION: '1.4.4',
   BUILD_DATE: '2026-09-23',
   COMMIT_SHA: '6a15ff5',
   REPO_OWNER: 'captainload',
@@ -3393,11 +3393,18 @@ const App = {
     const sortedCatNames = Object.keys(cats).sort();
 
     for (const catName of sortedCatNames) {
+      cats[catName].sort((a, b) => {
+        const nameA = (a.name || '').replace(/^[★⭐\s]+/, '').toLowerCase();
+        const nameB = (b.name || '').replace(/^[★⭐\s]+/, '').toLowerCase();
+        return nameA.localeCompare(nameB, undefined, { sensitivity: 'base' });
+      });
       html += `<optgroup label="⭐ UPB: ${catName}">`;
       html += cats[catName].map(p => {
         const star = p.isStarred ? '★ ' : '';
         const tag = p.isStarred ? ' (Starred ★)' : '';
-        return `<option value="${p.id || p.code}">[${p.code || p.id}] ${star}${p.name}${tag}</option>`;
+        const isNpc = (p.code && p.code.startsWith('NPC_')) || (p.id && p.id.startsWith('NPC_'));
+        const codePrefix = isNpc ? '' : `[${p.code || p.id}] `;
+        return `<option value="${p.id || p.code}">${codePrefix}${star}${p.name}${tag}</option>`;
       }).join('');
       html += `</optgroup>`;
     }
@@ -4121,11 +4128,19 @@ const App = {
     });
 
     let html = '<option value="">-- Select Power --</option>';
-    for (const catName in cats) {
+    const sortedCatNames = Object.keys(cats).sort();
+    for (const catName of sortedCatNames) {
+      cats[catName].sort((a, b) => {
+        const nameA = (a.name || '').replace(/^[★⭐\s]+/, '').toLowerCase();
+        const nameB = (b.name || '').replace(/^[★⭐\s]+/, '').toLowerCase();
+        return nameA.localeCompare(nameB, undefined, { sensitivity: 'base' });
+      });
       html += `<optgroup label="${catName}">`;
       html += cats[catName].map(p => {
         const star = p.isStarred ? '★ ' : '';
-        return `<option value="${p.name}">[${p.id}] ${star}${p.name}</option>`;
+        const isNpc = (p.code && p.code.startsWith('NPC_')) || (p.id && p.id.startsWith('NPC_'));
+        const codePrefix = isNpc ? '' : `[${p.id || p.code}] `;
+        return `<option value="${p.name}">${codePrefix}${star}${p.name}</option>`;
       }).join('');
       html += `</optgroup>`;
     }
@@ -7865,7 +7880,8 @@ const App = {
 
       if (p) {
         const isStarred = !!(p.isStarred || p.countsAsTwo || p.powerSlots === 2);
-        const codeBadge = p.code || p.id || '';
+        const isNpc = (p.code && p.code.startsWith('NPC_')) || (p.id && p.id.startsWith('NPC_'));
+        const codeBadge = isNpc ? '' : (p.code || p.id || '');
         title = `${isStarred ? '★ ' : '⚡ '}${codeBadge ? '[' + codeBadge + '] ' : ''}${p.name}`;
 
         const fullText = (p.rulesText || p.description || 'Standard superhuman power effect.').trim();
@@ -9631,7 +9647,7 @@ const App = {
       return;
     }
 
-    const currentVer = this.VERSION || '1.4.3';
+    const currentVer = this.VERSION || '1.4.4';
     const localBuildDate = this.BUILD_DATE || '2026-09-23';
     const localCommitSha = this.COMMIT_SHA || '6a15ff5';
     const repoOwner = this.REPO_OWNER || 'captainload';

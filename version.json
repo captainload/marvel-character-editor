@@ -1,7 +1,7 @@
 {
-  "version": "1.4.3",
+  "version": "1.4.4",
   "releaseDate": "2026-09-23",
   "name": "Marvel Super Heroes Character Editor",
   "repo": "https://github.com/captainload/marvel-character-editor",
-  "notes": "Removed Health bar, added Health Reset button, renamed vitals adjustment labels to HP -/+ and KIP -/+ without placeholders, enlarged adjustment fields for touch controls, separated Penance Stare and Hellfire into independent powers, and removed redundant composite NPC powers."
+  "notes": "Moved [NPC_] tags to follow NPC names, seamlessly sorted NPC powers alphabetically alongside standard UPB powers in category dropdowns and catalog, and re-grouped Probability Manipulation under Matter Control."
 }

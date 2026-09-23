@@ -4622,7 +4622,7 @@ const MSH_NPC_PRESET_POWERS = [
   {
     code: "NPC_PS",
     id: "NPC_PS",
-    name: "Penance Stare [Ghost Rider]",
+    name: "Penance Stare [Ghost Rider] [NPC_PS]",
     category: "Mental Enhancement",
     source: "Canonical: Dan Ketch / Johnny Blaze / Ghost Rider (GHotMU MU2 / TSR MSH)",
     defaultRank: "Monstrous",
@@ -4648,7 +4648,7 @@ const MSH_NPC_PRESET_POWERS = [
   {
     code: "NPC_HF",
     id: "NPC_HF",
-    name: "Hellfire [Ghost Rider]",
+    name: "Hellfire [Ghost Rider] [NPC_HF]",
     category: "Energy Emission",
     source: "Canonical: Ghost Rider / Daimon Hellstrom (GHotMU MU2 / Midnight Sons)",
     defaultRank: "Monstrous",
@@ -4674,7 +4674,7 @@ const MSH_NPC_PRESET_POWERS = [
   {
     code: "NPC_AS",
     id: "NPC_AS",
-    name: "Adrenaline Surge [The Incredible Hulk]",
+    name: "Adrenaline Surge [The Incredible Hulk] [NPC_AS]",
     category: "Physical Enhancement",
     source: "Canonical: The Incredible Hulk (GHotMU MU3 / Advanced Set)",
     defaultRank: "Monstrous",
@@ -4715,7 +4715,7 @@ const MSH_NPC_PRESET_POWERS = [
   {
     code: "NPC_MA",
     id: "NPC_MA",
-    name: "Unstoppable Momentum [The Juggernaut]",
+    name: "Unstoppable Momentum [The Juggernaut] [NPC_MA]",
     category: "Physical Enhancement",
     source: "Canonical: Cain Marko / Juggernaut (GHotMU MU3 / Children of the Atom)",
     defaultRank: "Shift X",
@@ -4754,12 +4754,12 @@ const MSH_NPC_PRESET_POWERS = [
     ]
   },
 
-  // --- LIFEFORM CONTROL ---
+  // --- MATTER CONTROL ---
   {
     code: "NPC_PM",
     id: "NPC_PM",
-    name: "Probability Manipulation [Longshot / Domino]",
-    category: "Lifeform Control",
+    name: "Probability Manipulation [Longshot / Domino] [NPC_PM]",
+    category: "Matter Control",
     source: "Canonical: Longshot / Domino / Scarlet Witch (GHotMU MU3 / MU7)",
     defaultRank: "Remarkable",
     rankNumber: 30,
@@ -4769,7 +4769,7 @@ const MSH_NPC_PRESET_POWERS = [
     isNpcArchetype: true,
     description: "Psionically or subconsciously bends local probability fields, skewing chance in the hero's favor while provoking freak malfunctions and misfires for adversaries.",
     rulesText: "The hero manipulates local probability fields to favor themselves or hex their foes. In combat and dramatic situations, the hero gains a +1CS bonus to their action FEAT rolls (+2CS on Power Rank FEATs). Conversely, enemies targeting the hero suffer a -1CS penalty, with hostile critical results frequently converted into freak weapon jams, snapped cords, tripping over debris, or environmental misfires. If the hero operates under a limitation (e.g. Longshot's requirement of pure motive or Domino's requirement of continuous movement), violating the limitation suspends or inverts the field (-1CS to hero) until resolved.",
-    errataNote: "Canonical TSR power: Represents the iconic probability and good luck mechanics of Longshot and Domino. Completely absent from the 271 UPB powers.",
+    errataNote: "Canonical TSR power: Represents the iconic probability and good luck mechanics of Longshot and Domino. Grouped with Matter Control as limited reality manipulation.",
     pool: null,
     trigger: null,
     traitModifiers: [],
@@ -4801,6 +4801,21 @@ if (typeof MSH_POWERS !== 'undefined' && Array.isArray(MSH_POWERS)) {
     } else {
       MSH_POWERS.push(mapped);
     }
+    if (typeof POWERS_BY_CODE !== 'undefined') {
+      POWERS_BY_CODE[p.code] = mapped;
+    }
+    if (typeof POWERS_BY_NAME !== 'undefined') {
+      POWERS_BY_NAME[p.name.toLowerCase()] = mapped;
+    }
+  });
+
+  // Sort MSH_POWERS by category and power name so all powers (standard and NPC) are seamlessly integrated
+  MSH_POWERS.sort((a, b) => {
+    const catComp = (a.category || '').localeCompare(b.category || '', undefined, { sensitivity: 'base' });
+    if (catComp !== 0) return catComp;
+    const nameA = (a.name || '').replace(/^[★⭐\s]+/, '').toLowerCase();
+    const nameB = (b.name || '').replace(/^[★⭐\s]+/, '').toLowerCase();
+    return nameA.localeCompare(nameB, undefined, { sensitivity: 'base' });
   });
 }
 

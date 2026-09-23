@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Marvel Super Heroes (FASERIP) - Character Builder & Editor</title>
-  <link rel="stylesheet" href="styles.css?v=1.4.2">
+  <link rel="stylesheet" href="styles.css?v=1.4.3">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bangers&display=swap" rel="stylesheet">
@@ -129,13 +129,11 @@
               <span class="pill-label">Total:</span> <strong id="vital-health-cur">100</strong>/<span id="vital-health-max">100</span>
             </div>
           </div>
-          <div class="vital-progress-bg">
-            <div class="vital-progress-fill health-fill" id="vital-health-fill" style="width: 100%;"></div>
-          </div>
           <div class="vital-steppers">
+            <button type="button" class="icon-btn vital-reset-btn" id="btn-health-reset" title="Reset Health: Restore health to full normal amount">Reset</button>
             <div class="vital-manual-wrap" title="Manual Health adjustment (+### or -###). Type amount and press Enter or click away to apply.">
-              <span class="vital-manual-tag">HP</span>
-              <input type="text" id="input-health-adjust" class="vital-manual-input" placeholder="+###" autocomplete="off" aria-label="Manual Health adjustment">
+              <span class="vital-manual-tag">HP -/+</span>
+              <input type="text" id="input-health-adjust" class="vital-manual-input" autocomplete="off" aria-label="Manual Health adjustment">
             </div>
             <button class="icon-btn vital-hold-btn" id="btn-health-minus1" title="-1 Health (Hold to auto-decrement)">-1</button>
             <button class="icon-btn vital-hold-btn" id="btn-health-plus1" title="+1 Health (Hold to auto-increment)">+1</button>
@@ -159,10 +157,9 @@
             </div>
           </div>
           <div class="vital-adjust-box" title="Manual Karma adjustment (+### or -###). Type amount and press Enter or click away to apply.">
-            <span class="adjust-field-label">Adjust KP:</span>
             <div class="vital-manual-wrap">
-              <span class="vital-manual-tag">KP</span>
-              <input type="text" id="input-karma-adjust" class="vital-manual-input" placeholder="+###" autocomplete="off" aria-label="Manual Karma adjustment">
+              <span class="vital-manual-tag">KIP -/+</span>
+              <input type="text" id="input-karma-adjust" class="vital-manual-input" autocomplete="off" aria-label="Manual Karma adjustment">
             </div>
           </div>
           <div class="vital-steppers">
@@ -2821,13 +2818,13 @@
   </div>
 
   <!-- Scripts Loading -->
-  <script src="universal_table.js?v=1.4.2"></script>
-  <script src="data_forms.js?v=1.4.2"></script>
-  <script src="data_powers.js?v=1.4.2"></script>
-  <script src="data_talents.js?v=1.4.2"></script>
-  <script src="data_equipment.js?v=1.4.2"></script>
-  <script src="inventions.js?v=1.4.2"></script>
-  <script src="character_model.js?v=1.4.2"></script>
-  <script src="app.js?v=1.4.2"></script>
+  <script src="universal_table.js?v=1.4.3"></script>
+  <script src="data_forms.js?v=1.4.3"></script>
+  <script src="data_powers.js?v=1.4.3"></script>
+  <script src="data_talents.js?v=1.4.3"></script>
+  <script src="data_equipment.js?v=1.4.3"></script>
+  <script src="inventions.js?v=1.4.3"></script>
+  <script src="character_model.js?v=1.4.3"></script>
+  <script src="app.js?v=1.4.3"></script>
 </body>
 </html>

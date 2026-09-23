@@ -733,6 +733,37 @@ body {
   transform: scale(0.92);
 }
 
+/* Quick Vitals Reset Button */
+.vital-reset-btn {
+  padding: 2px 7px;
+  font-size: 8pt;
+  font-weight: 700;
+  height: 26px;
+  border-radius: 4px;
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.vital-reset-btn:hover {
+  background: rgba(239, 68, 68, 0.3);
+  color: #fca5a5;
+  border-color: #ef4444;
+  box-shadow: 0 0 6px rgba(239, 68, 68, 0.4);
+}
+
+.vital-reset-btn:active {
+  transform: scale(0.94);
+}
+
 /* Quick Vitals Manual Adjust Inputs (KP & HP +"###") */
 .vital-manual-wrap {
   display: inline-flex;
@@ -3709,6 +3740,31 @@ body.touch-friendly .vital-steppers button {
   min-width: 36px;
   font-size: 10.5pt;
   border-radius: 5px;
+}
+
+body.touch-friendly .vital-reset-btn {
+  padding: 4px 10px;
+  min-height: 36px;
+  font-size: 9.5pt;
+  border-radius: 5px;
+}
+
+/* Touch controls: Bigger HP and KP manual adjustment fields */
+body.touch-friendly .vital-manual-wrap {
+  height: 36px;
+  border-radius: 6px;
+}
+
+body.touch-friendly .vital-manual-tag {
+  font-size: 9pt;
+  padding: 0 8px;
+}
+
+body.touch-friendly .vital-manual-input {
+  width: 58px;
+  min-height: 36px;
+  font-size: 11pt;
+  padding: 0 4px;
 }
 
 body.touch-friendly .vital-chip.compact {
@@ -6937,6 +6993,16 @@ body[data-theme="manilla"] .edit-log-current-pill {
   border-color: #ef4444;
   background: #fee2e2;
 }
+body[data-theme="manilla"] .vital-reset-btn {
+  background: #fee2e2;
+  color: #b91c1c;
+  border-color: #fca5a5;
+}
+body[data-theme="manilla"] .vital-reset-btn:hover {
+  background: #fecaca;
+  color: #991b1b;
+  border-color: #ef4444;
+}
 body[data-theme="manilla"] .vital-manual-wrap {
   background: #ffffff;
   border-color: #c2bcaf;
@@ -7015,6 +7081,16 @@ body[data-theme="aqua"] .edit-log-current-pill {
   color: #38bdf8;
   border-color: #0284c7;
   background: #0c2340;
+}
+body[data-theme="aqua"] .vital-reset-btn {
+  background: rgba(248, 113, 113, 0.15);
+  color: #fca5a5;
+  border-color: rgba(248, 113, 113, 0.4);
+}
+body[data-theme="aqua"] .vital-reset-btn:hover {
+  background: rgba(248, 113, 113, 0.3);
+  color: #ffffff;
+  border-color: #f87171;
 }
 body[data-theme="aqua"] .vital-manual-wrap {
   background: #08213e;

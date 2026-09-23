@@ -888,6 +888,12 @@ class FASERIPCharacter {
     return this.currentHealth;
   }
 
+  resetHealth() {
+    const maxH = this.calculateMaxHealth();
+    this.currentHealth = maxH;
+    return this.currentHealth;
+  }
+
   updateKarma(delta, reason = '') {
     this.currentKarma = Math.max(0, this.currentKarma + delta);
     this.advancementLog.unshift({

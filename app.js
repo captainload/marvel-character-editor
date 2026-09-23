@@ -35,9 +35,9 @@ const App = {
   isWidthWarningDismissed: false,
   powerAdjustment: false,
   activeAdjustmentPowerIndex: null,
-  VERSION: '1.4.0',
+  VERSION: '1.4.1',
   BUILD_DATE: '2026-09-22',
-  COMMIT_SHA: 'a4f5c9b',
+  COMMIT_SHA: '6a15ff5',
   REPO_OWNER: 'captainload',
   REPO_NAME: 'marvel-character-editor',
   updateSettings: {
@@ -9609,9 +9609,9 @@ const App = {
       return;
     }
 
-    const currentVer = this.VERSION || '1.4.0';
+    const currentVer = this.VERSION || '1.4.1';
     const localBuildDate = this.BUILD_DATE || '2026-09-22';
-    const localCommitSha = this.COMMIT_SHA || 'a4f5c9b';
+    const localCommitSha = this.COMMIT_SHA || '6a15ff5';
     const repoOwner = this.REPO_OWNER || 'captainload';
     const repoName = this.REPO_NAME || 'marvel-character-editor';
     const branch = 'main';

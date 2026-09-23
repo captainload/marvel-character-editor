@@ -35,7 +35,7 @@ const App = {
   isWidthWarningDismissed: false,
   powerAdjustment: false,
   activeAdjustmentPowerIndex: null,
-  VERSION: '1.4.1',
+  VERSION: '1.4.2',
   BUILD_DATE: '2026-09-22',
   COMMIT_SHA: '6a15ff5',
   REPO_OWNER: 'captainload',
@@ -900,10 +900,14 @@ const App = {
       });
     }
 
-    // Karma Operating Mode Trigger (clicking vital-left / karma display)
+    // Karma Operating Mode Trigger (clicking vital-left / karma display or topbar TEST badge)
     const karmaModeTrigger = document.getElementById('vital-karma-mode-trigger');
     if (karmaModeTrigger) {
       karmaModeTrigger.addEventListener('click', () => this.openKarmaModeModal());
+    }
+    const headerTestBadge = document.getElementById('header-test-mode-badge');
+    if (headerTestBadge) {
+      headerTestBadge.addEventListener('click', () => this.openKarmaModeModal());
     }
 
     // Karma Operating Mode Modal Controls
@@ -1823,6 +1827,12 @@ const App = {
         modeBadge.textContent = 'Session';
         modeBadge.title = 'Current Mode: Session Mode (Standard Play) — Click to change';
       }
+    }
+
+    // Render Topbar TEST Mode Badge (appears after hero name)
+    const headerTestBadge = document.getElementById('header-test-mode-badge');
+    if (headerTestBadge) {
+      headerTestBadge.style.display = isTestMode ? 'inline-flex' : 'none';
     }
 
     // Optional legacy base & fill elements if present in DOM
@@ -9609,7 +9619,7 @@ const App = {
       return;
     }
 
-    const currentVer = this.VERSION || '1.4.1';
+    const currentVer = this.VERSION || '1.4.2';
     const localBuildDate = this.BUILD_DATE || '2026-09-22';
     const localCommitSha = this.COMMIT_SHA || '6a15ff5';
     const repoOwner = this.REPO_OWNER || 'captainload';

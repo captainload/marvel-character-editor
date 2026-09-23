@@ -1,7 +1,7 @@
 {
-  "version": "1.4.4",
+  "version": "1.4.5",
   "releaseDate": "2026-09-23",
   "name": "Marvel Super Heroes Character Editor",
   "repo": "https://github.com/captainload/marvel-character-editor",
-  "notes": "Moved [NPC_] tags to follow NPC names, seamlessly sorted NPC powers alphabetically alongside standard UPB powers in category dropdowns and catalog, and re-grouped Probability Manipulation under Matter Control."
+  "notes": "Moved Rules Errata to File menu and added prominent Advancement button on the top toolbar."
 }

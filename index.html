@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Marvel Super Heroes (FASERIP) - Character Builder & Editor</title>
-  <link rel="stylesheet" href="styles.css?v=1.4.4">
+  <link rel="stylesheet" href="styles.css?v=1.4.5">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bangers&display=swap" rel="stylesheet">
@@ -39,7 +39,7 @@
       <!-- Top Action Toolbar -->
       <div class="top-controls">
         <button id="btn-cheatsheet" class="icon-btn" title="Rules Cheat Sheet & Universal Table">📖 Cheat Sheet</button>
-        <a href="msh_rules_errata_report.html" target="_blank" class="icon-btn" title="View 36-Issue Rules Errata Report" style="text-decoration: none;">⚖️ Errata</a>
+        <button type="button" id="btn-top-advancement" class="icon-btn" title="Character Advancement (Spend Karma to raise abilities, powers, or add talents)">📈 Advancement</button>
         
         <!-- File / Options Dropdown Menu -->
         <div class="dropdown-container" id="file-options-dropdown-container">
@@ -81,6 +81,7 @@
 
             <div class="dropdown-divider"></div>
             <button type="button" class="dropdown-item" id="menu-item-advancement">📈 Character Advancement...</button>
+            <a href="msh_rules_errata_report.html" target="_blank" class="dropdown-item" id="menu-item-errata" style="text-decoration: none;">⚖️ Rules Errata Report</a>
             <button type="button" class="dropdown-item" id="menu-item-updates">🔄 Check for Updates...</button>
             <button type="button" class="dropdown-item" id="menu-item-options">⚙️ Preferences & Options...</button>
           </div>
@@ -2818,13 +2819,13 @@
   </div>
 
   <!-- Scripts Loading -->
-  <script src="universal_table.js?v=1.4.4"></script>
-  <script src="data_forms.js?v=1.4.4"></script>
-  <script src="data_powers.js?v=1.4.4"></script>
-  <script src="data_talents.js?v=1.4.4"></script>
-  <script src="data_equipment.js?v=1.4.4"></script>
-  <script src="inventions.js?v=1.4.4"></script>
-  <script src="character_model.js?v=1.4.4"></script>
-  <script src="app.js?v=1.4.4"></script>
+  <script src="universal_table.js?v=1.4.5"></script>
+  <script src="data_forms.js?v=1.4.5"></script>
+  <script src="data_powers.js?v=1.4.5"></script>
+  <script src="data_talents.js?v=1.4.5"></script>
+  <script src="data_equipment.js?v=1.4.5"></script>
+  <script src="inventions.js?v=1.4.5"></script>
+  <script src="character_model.js?v=1.4.5"></script>
+  <script src="app.js?v=1.4.5"></script>
 </body>
 </html>

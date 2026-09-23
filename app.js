@@ -8,6 +8,9 @@ const App = {
   character: null,
   activeTab: 'main-stats',
   activeCheatTab: 'combat',
+  cheatsheetPopoutWindow: null,
+  cheatsheetPoppedOut: false,
+  cheatsheetPlaceholder: null,
   activeRoller: null,
   rollerShift: 0,
   rollerKarmaSpend: 0,
@@ -35,7 +38,7 @@ const App = {
   isWidthWarningDismissed: false,
   powerAdjustment: false,
   activeAdjustmentPowerIndex: null,
-  VERSION: '1.4.5',
+  VERSION: '1.4.6',
   BUILD_DATE: '2026-09-23',
   COMMIT_SHA: '6a15ff5',
   REPO_OWNER: 'captainload',
@@ -87,6 +90,7 @@ const App = {
     // 4. Setup UI listeners and populate static selectors
     this.setupEventListeners();
     this.initRollerWindow();
+    this.initCheatSheetWindow();
     this.populateDropdowns();
     this.updateStoreClearancesUI();
     this.render();
@@ -449,6 +453,7 @@ const App = {
     document.querySelectorAll('.modal-overlay').forEach(overlay => {
       overlay.addEventListener('click', (e) => {
         if (overlay.id === 'roller-modal' && this.rollerPoppedOut) return;
+        if (overlay.id === 'cheatsheet-modal' && this.cheatsheetPoppedOut) return;
         if (e.target === overlay) overlay.classList.remove('open');
       });
     });
@@ -1512,8 +1517,8 @@ const App = {
   switchCheatTab(tabKey) {
     this.activeCheatTab = tabKey;
     ['combat', 'table', 'movement', 'health', 'materials'].forEach(t => {
-      const btn = document.getElementById(`cheat-tab-btn-${t}`);
-      const sec = document.getElementById(`cheat-section-${t}`);
+      const btn = (typeof this.getCheatSheetEl === 'function') ? this.getCheatSheetEl(`cheat-tab-btn-${t}`) : document.getElementById(`cheat-tab-btn-${t}`);
+      const sec = (typeof this.getCheatSheetEl === 'function') ? this.getCheatSheetEl(`cheat-section-${t}`) : document.getElementById(`cheat-section-${t}`);
       if (btn) btn.classList.toggle('active', t === tabKey);
       if (sec) sec.style.display = t === tabKey ? 'block' : 'none';
     });
@@ -5081,7 +5086,7 @@ const App = {
     }
     const tableOpt = document.getElementById('option-universal-table');
     if (tableOpt) tableOpt.value = this.universalTableMode;
-    const cheatTableOpt = document.getElementById('cheat-table-mode-select');
+    const cheatTableOpt = (typeof this.getCheatSheetEl === 'function') ? this.getCheatSheetEl('cheat-table-mode-select') : document.getElementById('cheat-table-mode-select');
     if (cheatTableOpt) cheatTableOpt.value = this.universalTableMode;
 
     this.populateDropdowns();
@@ -5091,8 +5096,8 @@ const App = {
   },
 
   updateAreaDivisionDisplay() {
-    const titleEl = document.getElementById('cheat-active-area-rule');
-    const descEl = document.getElementById('cheat-active-area-rule-desc');
+    const titleEl = (typeof this.getCheatSheetEl === 'function') ? this.getCheatSheetEl('cheat-active-area-rule') : document.getElementById('cheat-active-area-rule');
+    const descEl = (typeof this.getCheatSheetEl === 'function') ? this.getCheatSheetEl('cheat-active-area-rule-desc') : document.getElementById('cheat-active-area-rule-desc');
     if (!titleEl) return;
 
     if (this.areaDivisionRule === 'quarter') {
@@ -5152,6 +5157,11 @@ const App = {
     if (this.isRollerPoppedOut && this.isRollerPoppedOut()) {
       try {
         this.rollerPopoutWindow.document.body.setAttribute('data-theme', theme);
+      } catch (e) {}
+    }
+    if (this.isCheatSheetPoppedOut && this.isCheatSheetPoppedOut()) {
+      try {
+        this.cheatsheetPopoutWindow.document.body.setAttribute('data-theme', theme);
       } catch (e) {}
     }
     const themeSelect = typeof document !== 'undefined' ? document.getElementById('option-theme') : null;
@@ -6614,14 +6624,14 @@ const App = {
   },
 
   renderCheatSheetTable() {
-    const tbody = document.getElementById('cheatsheet-table-body');
+    const tbody = (typeof this.getCheatSheetEl === 'function') ? this.getCheatSheetEl('cheatsheet-table-body') : document.getElementById('cheatsheet-table-body');
     if (!tbody) return;
     tbody.innerHTML = '';
 
     const isCMF = (this.universalTableMode === 'cmf');
-    const headerRow = document.getElementById('cheatsheet-table-header-row');
-    const titleEl = document.getElementById('cheat-table-title');
-    const descEl = document.getElementById('cheat-table-desc');
+    const headerRow = (typeof this.getCheatSheetEl === 'function') ? this.getCheatSheetEl('cheatsheet-table-header-row') : document.getElementById('cheatsheet-table-header-row');
+    const titleEl = (typeof this.getCheatSheetEl === 'function') ? this.getCheatSheetEl('cheat-table-title') : document.getElementById('cheat-table-title');
+    const descEl = (typeof this.getCheatSheetEl === 'function') ? this.getCheatSheetEl('cheat-table-desc') : document.getElementById('cheat-table-desc');
 
     if (isCMF) {
       if (titleEl) titleEl.textContent = '🎲 Universal Action Table Matrix (CMF 22 Ranks)';
@@ -7871,9 +7881,405 @@ const App = {
     });
   },
 
-  openCheatSheet() {
+  /* Rules Cheat Sheet Popout Window Logic */
+  getCheatSheetBox() {
+    if (this.cheatsheetPopoutWindow && !this.cheatsheetPopoutWindow.closed) {
+      try {
+        const box = this.cheatsheetPopoutWindow.document.querySelector('.modal-box.cheatsheet-modal-box');
+        if (box) return box;
+      } catch (e) {}
+    }
+    return document.querySelector('.modal-box.cheatsheet-modal-box');
+  },
+
+  getCheatSheetEl(id) {
+    const box = this.getCheatSheetBox();
+    if (box) {
+      const el = box.querySelector(`#${id}`);
+      if (el) return el;
+    }
+    return document.getElementById(id);
+  },
+
+  isCheatSheetPoppedOut() {
+    return !!(this.cheatsheetPopoutWindow && !this.cheatsheetPopoutWindow.closed);
+  },
+
+  saveCheatSheetPopoutGeometry() {
+    const pop = this.cheatsheetPopoutWindow;
+    if (!pop || pop.closed) return;
+    try {
+      const x = pop.screenX !== undefined ? pop.screenX : pop.screenLeft;
+      const y = pop.screenY !== undefined ? pop.screenY : pop.screenTop;
+      const w = pop.outerWidth || pop.innerWidth;
+      const h = pop.outerHeight || pop.innerHeight;
+      if (typeof x === 'number' && typeof y === 'number' && typeof w === 'number' && typeof h === 'number' && w >= 300 && h >= 300) {
+        const geo = {
+          width: Math.round(w),
+          height: Math.round(h),
+          left: Math.round(x),
+          top: Math.round(y)
+        };
+        localStorage.setItem('msh_cheatsheet_popout_geometry', JSON.stringify(geo));
+      }
+    } catch (e) {}
+  },
+
+  getCheatSheetPopoutGeometry() {
+    try {
+      const stored = localStorage.getItem('msh_cheatsheet_popout_geometry');
+      if (stored) {
+        const geo = JSON.parse(stored);
+        if (geo && typeof geo.width === 'number' && typeof geo.height === 'number') {
+          const width = Math.max(400, Math.min(geo.width, 3840));
+          const height = Math.max(350, Math.min(geo.height, 2160));
+          const left = (typeof geo.left === 'number' && !isNaN(geo.left) && Math.abs(geo.left) < 30000) ? Math.round(geo.left) : null;
+          const top = (typeof geo.top === 'number' && !isNaN(geo.top) && Math.abs(geo.top) < 30000) ? Math.round(geo.top) : null;
+          return { width, height, left, top };
+        }
+      }
+    } catch (e) {}
+    return null;
+  },
+
+  toggleCheatSheetPopout() {
+    if (this.isCheatSheetPoppedOut()) {
+      this.dockCheatSheet(true);
+    } else {
+      this.popoutCheatSheet();
+    }
+  },
+
+  popoutCheatSheet() {
     const modal = document.getElementById('cheatsheet-modal');
-    modal.classList.add('open');
+    const modalBox = document.querySelector('.modal-box.cheatsheet-modal-box');
+    if (!modalBox) return;
+
+    if (this.isCheatSheetPoppedOut()) {
+      try {
+        this.cheatsheetPopoutWindow.focus();
+      } catch (e) {}
+      return;
+    }
+
+    const savedGeo = this.getCheatSheetPopoutGeometry();
+    let width = 900;
+    let height = 800;
+    let left = null;
+    let top = null;
+
+    if (savedGeo) {
+      width = savedGeo.width;
+      height = savedGeo.height;
+      if (savedGeo.left !== null && savedGeo.top !== null) {
+        left = savedGeo.left;
+        top = savedGeo.top;
+      }
+    }
+
+    if (left === null || top === null) {
+      const screenLeft = (window.screenX !== undefined ? window.screenX : window.screenLeft || 0);
+      const screenTop = (window.screenY !== undefined ? window.screenY : window.screenTop || 0);
+      const outerW = window.outerWidth || window.innerWidth || 1200;
+      left = Math.max(20, screenLeft + Math.round((outerW - width) / 2));
+      top = Math.max(20, screenTop + 40);
+    }
+
+    let pop = null;
+    try {
+      pop = window.open('', 'MSH_Rules_Cheat_Sheet', `width=${width},height=${height},left=${left},top=${top},menubar=no,toolbar=no,location=no,status=no,resizable=yes,scrollbars=yes`);
+      if (pop && !pop.closed) {
+        try {
+          pop.resizeTo(width, height);
+          pop.moveTo(left, top);
+        } catch (e) {}
+      }
+    } catch (err) {
+      console.warn('window.open error:', err);
+    }
+
+    if (!pop || pop.closed || typeof pop.closed === 'undefined') {
+      this.showStatusToast('⚠️ Pop-out window blocked by browser. Please allow popups for this site.');
+      return;
+    }
+
+    this.cheatsheetPopoutWindow = pop;
+    this.cheatsheetPoppedOut = true;
+
+    if (modal) {
+      modal.classList.remove('open');
+    }
+
+    const popDoc = pop.document;
+    popDoc.open();
+    popDoc.write(`<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Rules Cheat Sheet - Marvel Super Heroes</title>
+</head>
+<body>
+  <div class="cheatsheet-popout-shell" id="cheatsheet-popout-shell"></div>
+</body>
+</html>`);
+    popDoc.close();
+
+    // Copy head link & style elements for fonts and styling
+    document.querySelectorAll('link[rel="stylesheet"], style').forEach(node => {
+      try {
+        popDoc.head.appendChild(node.cloneNode(true));
+      } catch (e) {}
+    });
+
+    // Provide App and parent references to popup window scope so inline onclick="App.switchCheatTab(...)" works
+    try {
+      pop.App = this;
+      pop.window.App = this;
+    } catch (e) {}
+
+    // Popout shell & container styling
+    const popStyle = popDoc.createElement('style');
+    popStyle.textContent = `
+      html, body {
+        margin: 0;
+        padding: 0;
+        min-height: 100%;
+        height: 100%;
+        box-sizing: border-box;
+      }
+      body {
+        padding: 10px;
+        background: var(--bg-dark, #0b0f19);
+        color: var(--text-main, #f1f5f9);
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        display: flex;
+        justify-content: center;
+        align-items: stretch;
+        overflow: hidden;
+      }
+      .cheatsheet-popout-shell {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        flex: 1;
+        min-height: 0;
+      }
+      .modal-box.cheatsheet-modal-box {
+        width: 100% !important;
+        max-width: 100% !important;
+        height: 100% !important;
+        max-height: 100% !important;
+        position: static !important;
+        margin: 0 !important;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5) !important;
+        border: 1px solid var(--border-color, #334155) !important;
+        resize: none !important;
+        display: flex !important;
+        flex-direction: column !important;
+      }
+      .modal-box.cheatsheet-modal-box .modal-body {
+        flex: 1 !important;
+        overflow-y: auto !important;
+        min-height: 0 !important;
+      }
+    `;
+    popDoc.head.appendChild(popStyle);
+
+    // Sync theme
+    const theme = document.body.getAttribute('data-theme');
+    if (theme) popDoc.body.setAttribute('data-theme', theme);
+
+    // Move modalBox into popout document
+    if (!this.cheatsheetPlaceholder) {
+      this.cheatsheetPlaceholder = document.createComment('cheatsheet-modal-box-placeholder');
+    }
+    if (modalBox.parentNode) {
+      modalBox.parentNode.insertBefore(this.cheatsheetPlaceholder, modalBox);
+    }
+    const mount = popDoc.getElementById('cheatsheet-popout-shell');
+    if (mount) {
+      mount.appendChild(modalBox);
+    }
+
+    // Update Pop-out button to Dock
+    const popBtn = this.getCheatSheetEl('btn-cheatsheet-popout');
+    if (popBtn) {
+      popBtn.textContent = '↘ Dock';
+      popBtn.title = 'Dock cheat sheet back into main window';
+    }
+
+    // Track resizing and movements
+    pop.addEventListener('resize', () => {
+      this.saveCheatSheetPopoutGeometry();
+    });
+
+    // Automatic restoration when popout window closes
+    let returned = false;
+    const returnModal = () => {
+      if (returned) return;
+      this.saveCheatSheetPopoutGeometry();
+      returned = true;
+      if (this.cheatsheetPlaceholder && this.cheatsheetPlaceholder.parentNode) {
+        this.cheatsheetPlaceholder.parentNode.insertBefore(modalBox, this.cheatsheetPlaceholder);
+        this.cheatsheetPlaceholder.remove();
+        this.cheatsheetPlaceholder = null;
+      } else {
+        const m = document.getElementById('cheatsheet-modal');
+        if (m && !m.contains(modalBox)) m.appendChild(modalBox);
+      }
+      this.cheatsheetPopoutWindow = null;
+      this.cheatsheetPoppedOut = false;
+      modalBox.style.width = '';
+      modalBox.style.height = '';
+      modalBox.style.position = '';
+      modalBox.style.left = '';
+      modalBox.style.top = '';
+      modalBox.style.margin = '';
+      const b = document.getElementById('btn-cheatsheet-popout');
+      if (b) {
+        b.textContent = '↗ Pop-out';
+        b.title = 'Pop-out into separate window';
+      }
+    };
+
+    pop.addEventListener('beforeunload', returnModal);
+    pop.addEventListener('unload', returnModal);
+
+    // Watcher interval in case pop window is moved or terminated abruptly
+    const checkInterval = setInterval(() => {
+      if (!this.cheatsheetPopoutWindow || this.cheatsheetPopoutWindow.closed) {
+        clearInterval(checkInterval);
+        returnModal();
+      } else {
+        this.saveCheatSheetPopoutGeometry();
+      }
+    }, 400);
+
+    if (this.activeCheatTab === 'table') {
+      this.renderCheatSheetTable();
+    }
+    try {
+      pop.focus();
+    } catch (e) {}
+
+    this.showStatusToast('↗ Rules Cheat Sheet popped out into separate window');
+  },
+
+  dockCheatSheet(keepOpenInPage = true) {
+    const pop = this.cheatsheetPopoutWindow;
+    if (pop && !pop.closed) {
+      this.saveCheatSheetPopoutGeometry();
+      try {
+        pop.close();
+      } catch (e) {}
+    }
+    this.cheatsheetPopoutWindow = null;
+    this.cheatsheetPoppedOut = false;
+
+    const modalBox = document.querySelector('.modal-box.cheatsheet-modal-box');
+    if (this.cheatsheetPlaceholder && this.cheatsheetPlaceholder.parentNode && modalBox) {
+      this.cheatsheetPlaceholder.parentNode.insertBefore(modalBox, this.cheatsheetPlaceholder);
+      this.cheatsheetPlaceholder.remove();
+      this.cheatsheetPlaceholder = null;
+    } else if (modalBox) {
+      const m = document.getElementById('cheatsheet-modal');
+      if (m && !m.contains(modalBox)) m.appendChild(modalBox);
+    }
+
+    if (modalBox) {
+      modalBox.style.width = '';
+      modalBox.style.height = '';
+      modalBox.style.position = '';
+      modalBox.style.left = '';
+      modalBox.style.top = '';
+      modalBox.style.margin = '';
+    }
+
+    const popBtn = document.getElementById('btn-cheatsheet-popout');
+    if (popBtn) {
+      popBtn.textContent = '↗ Pop-out';
+      popBtn.title = 'Pop-out into separate window';
+    }
+
+    const modal = document.getElementById('cheatsheet-modal');
+    if (modal) {
+      if (keepOpenInPage) {
+        modal.classList.add('open');
+      } else {
+        modal.classList.remove('open');
+      }
+    }
+    if (this.activeCheatTab === 'table') {
+      this.renderCheatSheetTable();
+    }
+    this.showStatusToast('↘ Rules Cheat Sheet docked back into main window');
+  },
+
+  closeCheatSheet() {
+    if (this.isCheatSheetPoppedOut()) {
+      this.dockCheatSheet(false);
+    } else {
+      const modal = document.getElementById('cheatsheet-modal');
+      if (modal) modal.classList.remove('open');
+    }
+  },
+
+  initCheatSheetWindow() {
+    const modalBox = document.querySelector('.modal-box.cheatsheet-modal-box');
+    if (!modalBox) return;
+
+    modalBox.addEventListener('click', (e) => {
+      const popBtn = e.target.closest('#btn-cheatsheet-popout');
+      if (popBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        this.toggleCheatSheetPopout();
+        return;
+      }
+
+      const closeBtn = e.target.closest('.modal-close, .modal-close-btn, #btn-cheatsheet-close');
+      if (closeBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        this.closeCheatSheet();
+        return;
+      }
+
+      const tabBtn = e.target.closest('[id^="cheat-tab-btn-"]');
+      if (tabBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        const tabKey = tabBtn.id.replace('cheat-tab-btn-', '');
+        this.switchCheatTab(tabKey);
+        return;
+      }
+    });
+
+    modalBox.addEventListener('change', (e) => {
+      if (e.target && e.target.id === 'cheat-table-mode-select') {
+        this.setUniversalTableMode(e.target.value);
+      }
+    });
+
+    window.addEventListener('beforeunload', () => {
+      if (this.cheatsheetPopoutWindow && !this.cheatsheetPopoutWindow.closed) {
+        try {
+          this.saveCheatSheetPopoutGeometry();
+          this.cheatsheetPopoutWindow.close();
+        } catch (e) {}
+      }
+    });
+  },
+
+  openCheatSheet() {
+    if (this.isCheatSheetPoppedOut && this.isCheatSheetPoppedOut()) {
+      try {
+        this.cheatsheetPopoutWindow.focus();
+      } catch (e) {}
+      return;
+    }
+    const modal = document.getElementById('cheatsheet-modal');
+    if (modal) modal.classList.add('open');
   },
 
   showHelpModal(type, queryKey) {
@@ -9665,7 +10071,7 @@ const App = {
       return;
     }
 
-    const currentVer = this.VERSION || '1.4.5';
+    const currentVer = this.VERSION || '1.4.6';
     const localBuildDate = this.BUILD_DATE || '2026-09-23';
     const localCommitSha = this.COMMIT_SHA || '6a15ff5';
     const repoOwner = this.REPO_OWNER || 'captainload';

@@ -2130,7 +2130,8 @@ select.field-input option {
   flex-shrink: 0;
 }
 
-.roller-popout-btn {
+.roller-popout-btn,
+.cheatsheet-popout-btn {
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -2146,7 +2147,8 @@ select.field-input option {
   transition: all 0.15s ease;
 }
 
-.roller-popout-btn:hover {
+.roller-popout-btn:hover,
+.cheatsheet-popout-btn:hover {
   background: #38bdf8;
   color: #030712;
 }
@@ -3977,7 +3979,8 @@ body.touch-friendly #btn-roller-roll {
   font-size: 12pt;
 }
 
-body.touch-friendly .roller-popout-btn {
+body.touch-friendly .roller-popout-btn,
+body.touch-friendly .cheatsheet-popout-btn {
   min-height: 34px;
   padding: 4px 10px;
   font-size: 10pt;
@@ -4477,13 +4480,15 @@ body[data-theme="manilla"] .roll-action-btn:hover {
   border-color: #991b1b !important;
 }
 
-body[data-theme="manilla"] .roller-popout-btn {
+body[data-theme="manilla"] .roller-popout-btn,
+body[data-theme="manilla"] .cheatsheet-popout-btn {
   background: #ffffff !important;
   border: 1px solid #cbd5e1 !important;
   color: #0f172a !important;
 }
 
-body[data-theme="manilla"] .roller-popout-btn:hover {
+body[data-theme="manilla"] .roller-popout-btn:hover,
+body[data-theme="manilla"] .cheatsheet-popout-btn:hover {
   background: #b91c1c !important;
   border-color: #991b1b !important;
   color: #ffffff !important;

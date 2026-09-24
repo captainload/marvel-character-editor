@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Marvel Super Heroes (FASERIP) - Character Builder & Editor</title>
-  <link rel="stylesheet" href="styles.css?v=1.4.8">
+  <link rel="stylesheet" href="styles.css?v=1.4.9">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bangers&display=swap" rel="stylesheet">
@@ -1122,15 +1122,24 @@
                 <td><span class="feat-red">Automatic Miss</span> (Attacker misses completely!)</td>
               </tr>
               <tr>
-                <td><strong>Blocking / Parrying</strong> (Shield / Melee)</td>
-                <td>Fighting</td>
-                <td><span class="feat-white">Full Damage</span> (Block fails)</td>
-                <td><span class="feat-green">Damage Absorbed</span> (Up to Shield/Material rank)</td>
-                <td><span class="feat-yellow">Absorbed + Off-Balance</span> (Foe -1CS next turn)</td>
-                <td><span class="feat-red">Absorbed + Disarm</span> (Disarms foe / Free riposte)</td>
+                <td><strong>Blocking / Bracing</strong> (Unarmed Physical Defense)</td>
+                <td>Strength</td>
+                <td><span class="feat-white">Block Fails</span> (Full damage taken)</td>
+                <td><span class="feat-green">Partial Absorption</span> (Temp Armor at Str -2CS)</td>
+                <td><span class="feat-yellow">Full Absorption</span> (Temp Armor at full Str rank)</td>
+                <td><span class="feat-red">Superior Absorption</span> (Temp Armor at Str +1CS)</td>
+              </tr>
+              <tr>
+                <td><strong>Shield Blocking</strong> (Interposing Shield / Cover)</td>
+                <td>Material Str</td>
+                <td><span class="feat-white">Bypassed</span> (Misses shield; full damage)</td>
+                <td><span class="feat-green">Shield Absorbs</span> (Body Armor = Shield Material)</td>
+                <td><span class="feat-yellow">Solid Deflection</span> (Shield absorbs; no pushback)</td>
+                <td><span class="feat-red">Impenetrable Guard</span> (Absorbs up to Material +1CS)</td>
               </tr>
             </tbody>
           </table>
+          <p class="cheat-note" style="margin-top: 6px; font-size: 0.85em; color: #555;"><em>Defensive Action Rules:</em> All defenses are declared at turn start (Pre-Action). <strong>Evading</strong> (Fighting) avoids melee blows from one foe (no other actions). <strong>Dodging</strong> (Agility) imposes CS penalties against ranged or charging attacks (allows half movement). <strong>Blocking</strong> (Strength) uses physical power to absorb physical damage as temporary Body Armor for that turn. When using a <strong>Shield</strong>, the shield's Material Strength provides direct Body Armor protection against intercepted attacks.</p>
 
           <h3>💥 Secondary Combat Conditions & Resolution Tables</h3>
           
@@ -2888,13 +2897,13 @@
   </div>
 
   <!-- Scripts Loading -->
-  <script src="universal_table.js?v=1.4.8"></script>
-  <script src="data_forms.js?v=1.4.8"></script>
-  <script src="data_powers.js?v=1.4.8"></script>
-  <script src="data_talents.js?v=1.4.8"></script>
-  <script src="data_equipment.js?v=1.4.8"></script>
-  <script src="inventions.js?v=1.4.8"></script>
-  <script src="character_model.js?v=1.4.8"></script>
-  <script src="app.js?v=1.4.8"></script>
+  <script src="universal_table.js?v=1.4.9"></script>
+  <script src="data_forms.js?v=1.4.9"></script>
+  <script src="data_powers.js?v=1.4.9"></script>
+  <script src="data_talents.js?v=1.4.9"></script>
+  <script src="data_equipment.js?v=1.4.9"></script>
+  <script src="inventions.js?v=1.4.9"></script>
+  <script src="character_model.js?v=1.4.9"></script>
+  <script src="app.js?v=1.4.9"></script>
 </body>
 </html>

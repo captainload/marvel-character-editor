@@ -400,11 +400,11 @@ const UniversalTableEngine = {
         break;
 
       case "block":
-        if (color === "Blue") return { hit: false, fumble: true, desc: "Autohit! Guard drops or shield knocked away; incoming attack strikes unobstructed." };
-        if (color === "White") return { hit: false, desc: "Block failed. Hero absorbs full damage from incoming attack." };
-        if (color === "Green") return { hit: true, desc: "Solid Block: Absorbs damage up to shield or limb material strength." };
-        if (color === "Yellow") return { hit: true, desc: "Deflective Block: Attacker takes recoil and is thrown off balance (-1CS)." };
-        if (color === "Red") return { hit: true, desc: "Counter Block: Full deflection and attacker opens up for immediate counter-attack." };
+        if (color === "Blue") return { hit: false, fumble: true, desc: "Autohit! Guard drops or shield knocked aside; incoming attack strikes unobstructed." };
+        if (color === "White") return { hit: false, desc: "Block failed. Hero absorbs no damage and takes full incoming damage." };
+        if (color === "Green") return { hit: true, desc: "Partial Block: Absorbs damage with temporary Body Armor at Strength -2CS (or shield Material Strength)." };
+        if (color === "Yellow") return { hit: true, desc: "Solid Block: Absorbs damage with temporary Body Armor equal to full Strength rank." };
+        if (color === "Red") return { hit: true, desc: "Superior Block: Absorbs damage with temporary Body Armor at Strength +1CS; attacker may take rebound damage." };
         break;
 
       case "defense":

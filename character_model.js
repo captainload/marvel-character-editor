@@ -1997,29 +1997,29 @@ class FASERIPCharacter {
       notes: evadeNotes.join('; ') || 'Melee only. Green = -2CS to attacker, Yellow = -4CS, Red = Attacker misses completely.'
     });
 
-    // 9. Block / Parry
+    // 9. Block / Shield
     let blockCS = 0;
     let blockNotes = [];
+    const equippedShield = (this.equipment || []).find(eq => eq.equipped && (eq.name || '').toLowerCase().includes('shield'));
     if (hasShield) {
       blockCS += 1;
-      blockNotes.push('+1CS Shield');
+      blockNotes.push('+1CS Shield Talent');
     }
-    if (hasMartialB) {
-      blockCS += 1;
-      blockNotes.push('+1CS Martial Arts B');
+    if (equippedShield) {
+      blockNotes.push(`Equipped: ${equippedShield.name}`);
     }
     attacks.push({
       id: 'atk_block',
-      name: 'Block / Parry',
+      name: equippedShield ? `Block (${equippedShield.name})` : 'Block / Bracing',
       category: 'Defense',
       actionType: 'block',
-      abilityName: 'Fighting',
-      baseRank: abs.fighting.rankName,
+      abilityName: 'Strength',
+      baseRank: abs.strength.rankName,
       columnShift: blockCS,
-      damage: 'Defensive Block',
+      damage: 'Defensive Armor',
       damageValue: 0,
-      range: 'Touch',
-      notes: blockNotes.join('; ') || 'Fighting FEAT to block or parry attacks. Green = Absorbs damage up to material strength.'
+      range: 'Self',
+      notes: blockNotes.join('; ') || 'Strength FEAT (or Shield Material) providing temporary Body Armor. Green = Str -2CS armor, Yellow = Full Str armor, Red = Str +1CS armor.'
     });
 
     // 10. Equipped Weapons

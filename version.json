@@ -1,7 +1,7 @@
 {
-  "version": "1.4.8",
-  "releaseDate": "2026-09-23",
+  "version": "1.4.9",
+  "releaseDate": "2026-09-24",
   "name": "Marvel Super Heroes Character Editor",
   "repo": "https://github.com/captainload/marvel-character-editor",
-  "notes": "Condensed Karma display and combined it on the same row with the CMF Point-Buy (CP) tier and budget breakdown strip."
+  "notes": "Canonical TSR Marvel Super Heroes (Advanced Set) rules overhaul for defensive combat FEATs: Blocking (Strength / Shield Material) corrected, removing non-canonical off-balance and riposte mechanics."
 }

@@ -38,7 +38,7 @@ const App = {
   isWidthWarningDismissed: false,
   powerAdjustment: false,
   activeAdjustmentPowerIndex: null,
-  VERSION: '1.4.6',
+  VERSION: '1.4.7',
   BUILD_DATE: '2026-09-23',
   COMMIT_SHA: '6a15ff5',
   REPO_OWNER: 'captainload',
@@ -97,6 +97,11 @@ const App = {
     this.updateHistoryNavButtons();
     this.renderEditLog();
     this.initEasterEgg();
+
+    // Prompt Character Creation Setup Wizard if hero setup is pending
+    if (this.character && this.character.isCreationSetupPending) {
+      setTimeout(() => this.openCreationWizardModal(), 150);
+    }
 
     // 5. Initialize update checker & background checks
     this.initUpdateChecker();
@@ -190,15 +195,15 @@ const App = {
       });
     }
 
-    // CMF Point-Buy Tier Selector
+    // CMF Point-Buy Tier Selector & Creation Wizard Triggers
     const tierSelect = document.getElementById('point-tier-select');
     if (tierSelect) {
       tierSelect.addEventListener('change', (e) => {
         const customBox = document.getElementById('custom-budget-box');
         if (e.target.value === 'custom') {
-          customBox.style.display = 'flex';
+          if (customBox) customBox.style.display = 'flex';
         } else {
-          customBox.style.display = 'none';
+          if (customBox) customBox.style.display = 'none';
           this.character.setPointTier(e.target.value);
           this.saveState();
           this.renderPointBuy();
@@ -216,6 +221,44 @@ const App = {
       });
     }
 
+    const btnOpenWizard = document.getElementById('btn-open-creation-wizard');
+    if (btnOpenWizard) {
+      btnOpenWizard.addEventListener('click', () => this.openCreationWizardModal());
+    }
+
+    // Creation Setup Wizard Modal Controls
+    const btnCloseCharInit = document.getElementById('btn-close-char-init-modal');
+    if (btnCloseCharInit) {
+      btnCloseCharInit.addEventListener('click', () => this.closeCreationWizardModal());
+    }
+
+    const btnCancelCharInit = document.getElementById('btn-cancel-char-init');
+    if (btnCancelCharInit) {
+      btnCancelCharInit.addEventListener('click', () => this.closeCreationWizardModal());
+    }
+
+    const btnApplyCharInit = document.getElementById('btn-apply-char-init');
+    if (btnApplyCharInit) {
+      btnApplyCharInit.addEventListener('click', () => this.applyCreationWizardSetup());
+    }
+
+    const initTierSelect = document.getElementById('init-tier-select');
+    if (initTierSelect) {
+      initTierSelect.addEventListener('change', (e) => {
+        const customRow = document.getElementById('init-custom-tier-row');
+        if (customRow) {
+          customRow.style.display = e.target.value === 'custom' ? 'flex' : 'none';
+        }
+      });
+    }
+
+    const initFormSelect = document.getElementById('init-form-select');
+    if (initFormSelect) {
+      initFormSelect.addEventListener('change', (e) => {
+        this.updateCreationFormPreview(e.target.value);
+      });
+    }
+
     // Quick Vitals Steppers (Accelerating Hold Steppers for Health & Karma)
     const setupAcceleratingHoldStepper = (id, delta, isKarma = false) => {
       const el = document.getElementById(id);
@@ -226,6 +269,7 @@ const App = {
       let isHolding = false;
       let holdStartTime = 0;
       let stepsApplied = 0;
+      let pointerDownExecuted = false;
 
       const executeStep = () => {
         if (!this.character) return false;
@@ -288,6 +332,7 @@ const App = {
 
       el.addEventListener('pointerdown', (e) => {
         if (e.button !== undefined && e.button !== 0) return;
+        pointerDownExecuted = true;
         e.preventDefault();
         stopHold();
 
@@ -325,13 +370,22 @@ const App = {
       el.addEventListener('pointerup', handlePointerEnd);
       el.addEventListener('pointercancel', handlePointerEnd);
       el.addEventListener('pointerleave', (e) => {
-        if (!el.hasPointerCapture || !el.hasPointerCapture(e.pointerId)) {
+        try {
+          if (!el.hasPointerCapture || !el.hasPointerCapture(e.pointerId)) {
+            stopHold();
+          }
+        } catch (_) {
           stopHold();
         }
       });
       el.addEventListener('click', (e) => {
         e.preventDefault();
         e.stopPropagation();
+        if (!pointerDownExecuted && stepsApplied === 0) {
+          executeStep();
+          this.saveState();
+        }
+        pointerDownExecuted = false;
       });
       el.addEventListener('contextmenu', (e) => {
         e.preventDefault();
@@ -1549,6 +1603,12 @@ const App = {
         if (!sel.dataset.bound) {
           sel.dataset.bound = 'true';
           sel.addEventListener('change', (e) => {
+            if (this.character && this.character.isCreationSetupPending) {
+              this.showStatusToast('⚠️ Please choose your Starting Tier and Physical Form before spending CP.');
+              this.openCreationWizardModal();
+              this.renderAbilities();
+              return;
+            }
             const capKey = k.charAt(0).toUpperCase() + k.slice(1);
             this.character.setAbilityRank(k, e.target.value);
             this.recordCharacterEdit(`Updated ${capKey} to ${e.target.value}`, 'ability');
@@ -1567,6 +1627,13 @@ const App = {
       if (!resSel.dataset.bound) {
         resSel.dataset.bound = 'true';
         resSel.addEventListener('change', (e) => {
+          if (this.character && this.character.isCreationSetupPending) {
+            this.showStatusToast('⚠️ Please choose your Starting Tier and Physical Form before spending CP.');
+            this.openCreationWizardModal();
+            this.renderPointBuy();
+            this.renderBackground();
+            return;
+          }
           this.character.setResourceRank(e.target.value);
           this.recordCharacterEdit(`Updated Resources to ${e.target.value}`, 'ability');
           this.renderPointBuy();
@@ -1585,9 +1652,18 @@ const App = {
       if (!bgResSel.dataset.bound) {
         bgResSel.dataset.bound = 'true';
         bgResSel.addEventListener('change', (e) => {
+          if (this.character && this.character.isCreationSetupPending) {
+            this.showStatusToast('⚠️ Please choose your Starting Tier and Physical Form before spending CP.');
+            this.openCreationWizardModal();
+            this.renderPointBuy();
+            this.renderBackground();
+            return;
+          }
           this.character.setResourceRank(e.target.value);
           this.recordCharacterEdit(`Updated Resources to ${e.target.value}`, 'ability');
-          this.render();
+          this.renderPointBuy();
+          this.renderBackground();
+          this.renderEquipment();
         });
       }
     }
@@ -1782,6 +1858,27 @@ const App = {
     document.getElementById('spent-talents').textContent = pts.breakdown.talents;
     document.getElementById('spent-contacts').textContent = pts.breakdown.contacts;
     document.getElementById('spent-resources').textContent = pts.breakdown.resources;
+
+    const isLocked = !!(this.character && this.character.isCreationSetupPending);
+
+    const stripTierEl = document.getElementById('strip-tier-display');
+    if (stripTierEl) {
+      const tierVal = this.character ? (this.character.pointTier === 'custom' ? `${this.character.pointBudget} CP (Custom)` : `${this.character.pointTier} CP`) : '400 CP';
+      stripTierEl.textContent = isLocked ? `${tierVal} [Setup Pending]` : tierVal;
+      stripTierEl.style.color = isLocked ? '#f59e0b' : 'var(--marvel-gold)';
+    }
+
+    const stripFormEl = document.getElementById('strip-form-display');
+    if (stripFormEl) {
+      stripFormEl.textContent = this.character ? (this.character.formName || 'Mutant') : 'Mutant';
+    }
+
+    const btnWizard = document.getElementById('btn-open-creation-wizard');
+    if (btnWizard) {
+      btnWizard.style.display = isLocked ? 'inline-flex' : 'none';
+    }
+
+    this.updateCPSpendingLockUI(isLocked);
 
     const tierSelect = document.getElementById('point-tier-select');
     if (tierSelect) tierSelect.value = this.character.pointTier;
@@ -3263,6 +3360,11 @@ const App = {
   },
 
   handleAddPower(mouseEvent = null) {
+    if (this.character && this.character.isCreationSetupPending) {
+      this.showStatusToast('⚠️ Please choose your Starting Tier and Physical Form before spending CP.');
+      this.openCreationWizardModal();
+      return;
+    }
     const powerId = document.getElementById('select-power-catalog').value;
     if (!powerId) {
       this.showCustomAlert('Please select a superpower from the dropdown before adding.', 'Select Power', mouseEvent);
@@ -6508,6 +6610,11 @@ const App = {
   },
 
   handleAddTalent(mouseEvent = null) {
+    if (this.character && this.character.isCreationSetupPending) {
+      this.showStatusToast('⚠️ Please choose your Starting Tier and Physical Form before spending CP.');
+      this.openCreationWizardModal();
+      return;
+    }
     const tSel = document.getElementById('select-talent-catalog');
     if (!tSel) return;
     const talentQuery = tSel.value;
@@ -6571,6 +6678,11 @@ const App = {
   },
 
   handleAddContact() {
+    if (this.character && this.character.isCreationSetupPending) {
+      this.showStatusToast('⚠️ Please choose your Starting Tier and Physical Form before spending CP.');
+      this.openCreationWizardModal();
+      return;
+    }
     const name = document.getElementById('input-contact-name').value.trim();
     const role = document.getElementById('input-contact-role').value.trim() || 'Ally';
     if (!name) return;
@@ -8543,6 +8655,7 @@ const App = {
 
     const currentTier = (this.character && this.character.pointTier) ? this.character.pointTier : '400';
     this.character = FASERIPCharacter.createBlankCharacter(currentTier);
+    this.character.isCreationSetupPending = true;
     if (this.powerAdjustment !== undefined) {
       this.character.powerAdjustment = this.powerAdjustment;
     }
@@ -8552,7 +8665,8 @@ const App = {
     this.saveState();
     this.switchTab('main-stats');
     this.render();
-    this.showStatusToast('✨ Fresh character initialized and ready for character creation!');
+    this.showStatusToast('✨ Fresh character initialized. Choose starting Tier and Physical Form to begin.');
+    this.openCreationWizardModal();
   },
 
   exportCharacter() {
@@ -9108,6 +9222,12 @@ const App = {
     const stepNum = preservedIndex + 1;
     const totalSteps = preservedLog.length;
     this.showStatusToast(`⮜ Restored: ${targetEntry.description} (${stepNum}/${totalSteps})`);
+
+    if (preservedIndex === 0) {
+      this.character.isCreationSetupPending = true;
+      this.renderPointBuy();
+      this.openCreationWizardModal();
+    }
   },
 
   handleHistoryRedo() {
@@ -9142,6 +9262,10 @@ const App = {
     this.character.editLog = preservedLog;
     this.character.editHistoryIndex = targetIdx;
 
+    if (targetIdx === 0) {
+      this.character.isCreationSetupPending = true;
+    }
+
     this.saveState();
     this.render();
     this.updateHistoryNavButtons();
@@ -9150,6 +9274,10 @@ const App = {
     const stepNum = targetIdx + 1;
     const totalSteps = preservedLog.length;
     this.showStatusToast(`↺ Rolled back to: "${targetEntry.description}" (${stepNum}/${totalSteps})`);
+
+    if (targetIdx === 0) {
+      this.openCreationWizardModal();
+    }
   },
 
   updateHistoryNavButtons() {
@@ -10071,7 +10199,7 @@ const App = {
       return;
     }
 
-    const currentVer = this.VERSION || '1.4.6';
+    const currentVer = this.VERSION || '1.4.7';
     const localBuildDate = this.BUILD_DATE || '2026-09-23';
     const localCommitSha = this.COMMIT_SHA || '6a15ff5';
     const repoOwner = this.REPO_OWNER || 'captainload';
@@ -10271,6 +10399,197 @@ const App = {
           notes,
           '✅ Program Up to Date'
         );
+      }
+    }
+  },
+
+  /* Character Creation Setup Wizard (Starting Tier & Form) */
+  openCreationWizardModal() {
+    const modal = document.getElementById('modal-character-init');
+    if (!modal) return;
+
+    const nameInput = document.getElementById('init-char-name');
+    if (nameInput) {
+      nameInput.value = this.character ? (this.character.name || 'New Superhero') : 'New Superhero';
+    }
+
+    const tierSelect = document.getElementById('init-tier-select');
+    const customRow = document.getElementById('init-custom-tier-row');
+    const customBudgetInp = document.getElementById('init-custom-budget');
+
+    if (tierSelect && this.character) {
+      const curTier = this.character.pointTier || '400';
+      tierSelect.value = curTier;
+      if (customRow) {
+        customRow.style.display = curTier === 'custom' ? 'flex' : 'none';
+      }
+      if (customBudgetInp) {
+        customBudgetInp.value = this.character.pointBudget || 400;
+      }
+    }
+
+    const formSelect = document.getElementById('init-form-select');
+    if (formSelect && globalThis.PHYSICAL_FORMS) {
+      formSelect.innerHTML = globalThis.PHYSICAL_FORMS.map(f =>
+        `<option value="${f.id}">${f.name} (${f.category || 'Standard'})</option>`
+      ).join('');
+      const curFormKey = (this.character && this.character.formKey) ? this.character.formKey : 'mutant';
+      formSelect.value = curFormKey;
+      this.updateCreationFormPreview(curFormKey);
+    }
+
+    modal.classList.add('open');
+  },
+
+  closeCreationWizardModal() {
+    const modal = document.getElementById('modal-character-init');
+    if (modal) modal.classList.remove('open');
+  },
+
+  updateCreationFormPreview(formId) {
+    const forms = globalThis.PHYSICAL_FORMS || [];
+    const f = forms.find(x => x.id === formId) || forms[0];
+    if (!f) return;
+
+    const nameEl = document.getElementById('init-form-preview-name');
+    const catEl = document.getElementById('init-form-preview-cat');
+    const descEl = document.getElementById('init-form-preview-desc');
+    const rulesEl = document.getElementById('init-form-preview-rules');
+
+    if (nameEl) nameEl.textContent = f.name;
+    if (catEl) catEl.textContent = f.category || f.source || 'Standard';
+    if (descEl) descEl.textContent = f.description || '';
+    if (rulesEl) {
+      let rulesText = '';
+      if (Array.isArray(f.specialRules)) {
+        rulesText = f.specialRules.join(' ');
+      } else if (f.specialRules) {
+        rulesText = f.specialRules;
+      }
+      rulesEl.textContent = rulesText ? `Special: ${rulesText}` : '';
+    }
+  },
+
+  applyCreationWizardSetup() {
+    if (!this.character) return;
+
+    const nameInput = document.getElementById('init-char-name');
+    const heroName = nameInput ? nameInput.value.trim() : '';
+
+    const tierSelect = document.getElementById('init-tier-select');
+    const tier = tierSelect ? tierSelect.value : '400';
+
+    const customBudgetInp = document.getElementById('init-custom-budget');
+    const customBudget = customBudgetInp ? parseInt(customBudgetInp.value, 10) : 400;
+
+    const formSelect = document.getElementById('init-form-select');
+    const formId = formSelect ? formSelect.value : 'mutant';
+
+    if (typeof this.character.applyCreationSetup === 'function') {
+      this.character.applyCreationSetup(tier, formId, customBudget, heroName);
+    } else {
+      if (heroName) this.character.name = heroName;
+      const forms = globalThis.PHYSICAL_FORMS || [];
+      const f = forms.find(x => x.id === formId);
+      if (f) {
+        this.character.formKey = f.id;
+        this.character.formName = f.name;
+        this.character.isSwarmForm = (f.id === 's32_collective_mass' || f.id === 'swarm_collective');
+      }
+      if (tier === 'custom') {
+        this.character.setPointTier('custom', customBudget);
+      } else {
+        this.character.setPointTier(tier);
+      }
+      this.character.isCreationSetupPending = false;
+      this.character.recordEdit(`Creation setup confirmed: ${this.character.name} (${this.character.pointBudget} CP, ${this.character.formName})`, 'creation');
+    }
+
+    const headerNameInp = document.getElementById('header-char-name');
+    if (headerNameInp && heroName) {
+      headerNameInp.value = heroName;
+    }
+
+    this.saveState();
+    this.closeCreationWizardModal();
+    this.render();
+    this.showStatusToast(`✨ Hero creation setup complete: ${this.character.pointBudget} CP budget | ${this.character.formName}`);
+  },
+
+  updateCPSpendingLockUI(isLocked) {
+    // 1. Ability rank dropdowns
+    ['fighting', 'agility', 'strength', 'endurance', 'reason', 'intuition', 'psyche'].forEach(k => {
+      const sel = document.getElementById(`select-rank-${k}`);
+      if (sel) {
+        sel.disabled = isLocked;
+        if (isLocked) {
+          sel.classList.add('cp-spending-locked');
+          sel.title = 'Choose Starting Tier & Physical Form in the setup dialog to spend CP';
+        } else {
+          sel.classList.remove('cp-spending-locked');
+          sel.title = '';
+        }
+      }
+    });
+
+    // 2. Add Power Button
+    const addPowerBtn = document.getElementById('btn-add-power');
+    if (addPowerBtn) {
+      addPowerBtn.disabled = isLocked;
+      if (isLocked) {
+        addPowerBtn.classList.add('cp-spending-locked');
+        addPowerBtn.title = 'Choose Starting Tier & Physical Form in the setup dialog to spend CP';
+      } else {
+        addPowerBtn.classList.remove('cp-spending-locked');
+        addPowerBtn.title = '';
+      }
+    }
+
+    // 3. Add Talent & Add Contact Buttons
+    const addTalentBtn = document.getElementById('btn-add-talent');
+    if (addTalentBtn) {
+      addTalentBtn.disabled = isLocked;
+      if (isLocked) {
+        addTalentBtn.classList.add('cp-spending-locked');
+        addTalentBtn.title = 'Choose Starting Tier & Physical Form in the setup dialog to spend CP';
+      } else {
+        addTalentBtn.classList.remove('cp-spending-locked');
+        addTalentBtn.title = '';
+      }
+    }
+    const addContactBtn = document.getElementById('btn-add-contact');
+    if (addContactBtn) {
+      addContactBtn.disabled = isLocked;
+      if (isLocked) {
+        addContactBtn.classList.add('cp-spending-locked');
+        addContactBtn.title = 'Choose Starting Tier & Physical Form in the setup dialog to spend CP';
+      } else {
+        addContactBtn.classList.remove('cp-spending-locked');
+        addContactBtn.title = '';
+      }
+    }
+
+    // 4. Resources Selectors
+    const resSel = document.getElementById('select-rank-resources');
+    if (resSel) {
+      resSel.disabled = isLocked;
+      if (isLocked) {
+        resSel.classList.add('cp-spending-locked');
+        resSel.title = 'Choose Starting Tier & Physical Form in the setup dialog to spend CP';
+      } else {
+        resSel.classList.remove('cp-spending-locked');
+        resSel.title = '';
+      }
+    }
+    const bgResSel = document.getElementById('background-resource-select');
+    if (bgResSel) {
+      bgResSel.disabled = isLocked;
+      if (isLocked) {
+        bgResSel.classList.add('cp-spending-locked');
+        bgResSel.title = 'Choose Starting Tier & Physical Form in the setup dialog to spend CP';
+      } else {
+        bgResSel.classList.remove('cp-spending-locked');
+        bgResSel.title = '';
       }
     }
   }

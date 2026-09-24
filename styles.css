@@ -541,7 +541,7 @@ body {
 /* Vitals (Health & Karma live bars - Condensed) */
 .vitals-row {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr;
   gap: 8px;
   margin-bottom: 0px;
 }
@@ -1004,10 +1004,26 @@ body {
   gap: 8px;
 }
 
-.point-tier-group {
+.point-tier-group,
+.point-tier-status-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.point-tier-summary {
+  font-size: 9.5pt;
+  color: #cbd5e1;
   display: flex;
   align-items: center;
   gap: 6px;
+}
+
+.cp-spending-locked {
+  opacity: 0.55 !important;
+  pointer-events: none !important;
+  cursor: not-allowed !important;
+  filter: grayscale(40%) !important;
 }
 
 .field-input.compact {

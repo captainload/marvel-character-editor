@@ -122,6 +122,7 @@ class FASERIPCharacter {
     // 400 (Established Hero - Default), 500 (Major Superhero), 600 (World-Class Hero), custom
     this.pointTier = initialData.pointTier || '400';
     this.pointBudget = parseInt(initialData.pointBudget ?? 400);
+    this.isCreationSetupPending = initialData.isCreationSetupPending !== undefined ? !!initialData.isCreationSetupPending : false;
 
     // Physical Form S32 Collective Mass (Swarm) toggle
     this.isSwarmForm = initialData.isSwarmForm || (this.formKey === 'swarm_collective' || this.formKey === 's32_collective_mass');
@@ -895,7 +896,13 @@ class FASERIPCharacter {
   }
 
   updateKarma(delta, reason = '') {
-    this.currentKarma = Math.max(0, this.currentKarma + delta);
+    if (!Array.isArray(this.advancementLog)) {
+      this.advancementLog = [];
+    }
+    const current = (typeof this.currentKarma === 'number' && !isNaN(this.currentKarma))
+      ? this.currentKarma
+      : this.calculateBaseKarma();
+    this.currentKarma = Math.max(0, current + (isNaN(delta) ? 0 : delta));
     this.advancementLog.unshift({
       date: new Date().toLocaleDateString(),
       type: delta >= 0 ? 'karma_gain' : 'karma_spend',
@@ -2352,6 +2359,7 @@ class FASERIPCharacter {
       baseOfOperations: this.baseOfOperations,
       pointTier: this.pointTier,
       pointBudget: this.pointBudget,
+      isCreationSetupPending: this.isCreationSetupPending,
       isSwarmForm: this.isSwarmForm,
       activeSwarmProfile: this.activeSwarmProfile,
       abilities: this.abilities,
@@ -2453,13 +2461,35 @@ class FASERIPCharacter {
     return new FASERIPCharacter(data);
   }
 
+  applyCreationSetup(tier, formKey, customBudget = null, name = null) {
+    if (name && name.trim()) {
+      this.name = name.trim();
+    }
+    const forms = globalThis.PHYSICAL_FORMS || [];
+    const f = forms.find(x => x.id === formKey);
+    if (f) {
+      this.formKey = f.id;
+      this.formName = f.name;
+      this.isSwarmForm = (f.id === 's32_collective_mass' || f.id === 'swarm_collective');
+    }
+    if (tier === 'custom') {
+      const budget = parseInt(customBudget) || 400;
+      this.setPointTier('custom', budget);
+    } else {
+      this.setPointTier(tier || '400');
+    }
+    this.isCreationSetupPending = false;
+    this.recordEdit(`Creation setup confirmed: ${this.name} (${this.pointBudget} CP, ${this.formName})`, 'creation');
+  }
+
   static createBlankCharacter(tier = '400') {
     const char = new FASERIPCharacter({
       name: 'New Superhero',
       realName: '',
-      formKey: 'mutated_human',
-      formName: 'Mutated Human',
+      formKey: 'mutant',
+      formName: 'Mutant (Homo Superior)',
       pointTier: tier,
+      isCreationSetupPending: true,
       abilities: {
         fighting: 'Typical', // 6
         agility: 'Typical', // 6

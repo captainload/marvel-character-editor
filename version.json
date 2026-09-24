@@ -1,7 +1,7 @@
 {
-  "version": "1.4.6",
+  "version": "1.4.7",
   "releaseDate": "2026-09-23",
   "name": "Marvel Super Heroes Character Editor",
   "repo": "https://github.com/captainload/marvel-character-editor",
-  "notes": "Added pop-out functionality for the Rules Cheat Sheet with persistent window size and location memory."
+  "notes": "Added Character Creation Setup wizard (Starting Tier & Form), CP spending locks, stacked vitals row, renamed History & Log tab, and fixed KP hold/click steppers."
 }

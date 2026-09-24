@@ -1,7 +1,7 @@
 {
-  "version": "1.4.7",
+  "version": "1.4.8",
   "releaseDate": "2026-09-23",
   "name": "Marvel Super Heroes Character Editor",
   "repo": "https://github.com/captainload/marvel-character-editor",
-  "notes": "Added Character Creation Setup wizard (Starting Tier & Form), CP spending locks, stacked vitals row, renamed History & Log tab, and fixed KP hold/click steppers."
+  "notes": "Condensed Karma display and combined it on the same row with the CMF Point-Buy (CP) tier and budget breakdown strip."
 }

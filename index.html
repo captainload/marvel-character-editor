@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Marvel Super Heroes (FASERIP) - Character Builder & Editor</title>
-  <link rel="stylesheet" href="styles.css?v=1.4.7">
+  <link rel="stylesheet" href="styles.css?v=1.4.8">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bangers&display=swap" rel="stylesheet">
@@ -141,53 +141,56 @@
           </div>
         </div>
 
-        <!-- Karma Chip (Shows mode badge, spend history, manual adjust, hold steppers, and total KP pool) -->
-        <div class="vital-chip compact vital-chip-karma" id="vital-chip-karma">
-          <div class="vital-left clickable" id="vital-karma-mode-trigger" title="Karma Operating Mode: Click to switch between Session, Advancement, and Test Mode">
-            <div style="display: flex; align-items: center; gap: 5px;">
-              <span class="vital-title">✨ Karma</span>
-              <span class="vital-karma-mode-badge mode-session" id="vital-karma-mode-badge" title="Current Mode: Session Mode (Click to change)">Session</span>
+        <!-- Karma & Point-Buy CP Info Row: Condensed Karma Chip + Point-Buy CP Info on Same Row -->
+        <div class="karma-cp-row" id="karma-cp-row">
+          <!-- Karma Chip (Condensed) -->
+          <div class="vital-chip compact vital-chip-karma" id="vital-chip-karma">
+            <div class="vital-left clickable" id="vital-karma-mode-trigger" title="Karma Operating Mode: Click to switch between Session, Advancement, and Test Mode">
+              <div style="display: flex; align-items: center; gap: 4px;">
+                <span class="vital-title">✨ Karma</span>
+                <span class="vital-karma-mode-badge mode-session" id="vital-karma-mode-badge" title="Current Mode: Session Mode (Click to change)">Session</span>
+              </div>
+            </div>
+            <div class="vital-karma-history">
+              <div class="vital-karma-pill" id="vital-karma-last-roll" title="Last Karma spent on a FEAT roll">
+                <span class="history-pill-label">Roll:</span> <strong id="vital-karma-last-val">--</strong>
+              </div>
+              <div class="vital-karma-pill clickable" id="vital-karma-last-rank" title="Last Karma spent on a Rank Increase (Click to open Advancement)">
+                <span class="history-pill-label">Rank:</span> <strong id="vital-karma-last-rank-val">--</strong>
+              </div>
+            </div>
+            <div class="vital-adjust-box" title="Manual Karma adjustment (+### or -###). Type amount and press Enter or click away to apply.">
+              <div class="vital-manual-wrap">
+                <span class="vital-manual-tag">KIP -/+</span>
+                <input type="text" id="input-karma-adjust" class="vital-manual-input" autocomplete="off" aria-label="Manual Karma adjustment">
+              </div>
+            </div>
+            <div class="vital-steppers">
+              <button type="button" class="icon-btn vital-hold-btn" id="btn-karma-minus1" title="-1 Karma (Hold to auto-decrement)">-1</button>
+              <button type="button" class="icon-btn vital-hold-btn" id="btn-karma-plus1" title="+1 Karma (Hold to auto-increment)">+1</button>
+            </div>
+            <div class="vital-total-box" id="vital-karma-total-box" title="Current total Karma Points (KP)">
+              <span class="total-label">Total:</span>
+              <strong id="vital-karma-cur" class="vital-total-val">100</strong>
+              <span class="vital-unit">KP</span>
             </div>
           </div>
-          <div class="vital-karma-history">
-            <div class="vital-karma-pill" id="vital-karma-last-roll" title="Last Karma spent on a FEAT roll">
-              <span class="history-pill-label">Roll:</span> <strong id="vital-karma-last-val">--</strong>
-            </div>
-            <div class="vital-karma-pill clickable" id="vital-karma-last-rank" title="Last Karma spent on a Rank Increase (Click to open Advancement)">
-              <span class="history-pill-label">Rank:</span> <strong id="vital-karma-last-rank-val">--</strong>
-            </div>
-          </div>
-          <div class="vital-adjust-box" title="Manual Karma adjustment (+### or -###). Type amount and press Enter or click away to apply.">
-            <div class="vital-manual-wrap">
-              <span class="vital-manual-tag">KIP -/+</span>
-              <input type="text" id="input-karma-adjust" class="vital-manual-input" autocomplete="off" aria-label="Manual Karma adjustment">
-            </div>
-          </div>
-          <div class="vital-steppers">
-            <button type="button" class="icon-btn vital-hold-btn" id="btn-karma-minus1" title="-1 Karma (Hold to auto-decrement)">-1</button>
-            <button type="button" class="icon-btn vital-hold-btn" id="btn-karma-plus1" title="+1 Karma (Hold to auto-increment)">+1</button>
-          </div>
-          <div class="vital-total-box" id="vital-karma-total-box" title="Current total Karma Points (KP)">
-            <span class="total-label">Total:</span>
-            <strong id="vital-karma-cur" class="vital-total-val">100</strong>
-            <span class="vital-unit">KP</span>
-          </div>
-        </div>
-      </div>
 
-      <!-- Condensed CMF Point-Buy Budget Configuration Bar -->
-      <div class="point-buy-strip">
-        <div id="point-tier-status-group" class="point-tier-status-group" style="display: flex; align-items: center; gap: 8px;">
-          <div class="point-tier-summary" style="font-size: 9.5pt; color: #cbd5e1; display: flex; align-items: center; gap: 6px;">
-            <span>Tier: <strong id="strip-tier-display" style="color: var(--marvel-gold);">400 CP</strong></span>
-            <span style="opacity: 0.5;">·</span>
-            <span>Form: <strong id="strip-form-display" style="color: #38bdf8;">Mutant</strong></span>
-          </div>
-          <button type="button" class="icon-btn primary compact" id="btn-open-creation-wizard" style="display: none; font-size: 8.5pt; padding: 2px 8px;" title="Set Starting Tier and Physical Form">⚡ Set Tier &amp; Form</button>
-        </div>
+          <!-- Condensed CMF Point-Buy Budget Configuration Bar -->
+          <div class="point-buy-strip" id="point-buy-strip">
+            <div id="point-tier-status-group" class="point-tier-status-group" style="display: flex; align-items: center; gap: 6px;">
+              <div class="point-tier-summary" style="font-size: 9pt; color: #cbd5e1; display: flex; align-items: center; gap: 5px;">
+                <span>Tier: <strong id="strip-tier-display" style="color: var(--marvel-gold);">400 CP</strong></span>
+                <span style="opacity: 0.5;">·</span>
+                <span style="display: flex; align-items: center; gap: 3px;">Form: <strong id="strip-form-display" style="color: #38bdf8; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: inline-block; vertical-align: middle;">Mutant</strong></span>
+              </div>
+              <button type="button" class="icon-btn primary compact" id="btn-open-creation-wizard" style="display: none; font-size: 8pt; padding: 2px 6px;" title="Set Starting Tier and Physical Form">⚡ Set Tier &amp; Form</button>
+            </div>
 
-        <div class="spent-breakdown-text">
-          Spent: <strong id="spent-abilities">42</strong> FASERIP · <strong id="spent-powers">0</strong> Pwr · <strong id="spent-talents">0</strong> Tal · <strong id="spent-contacts">0</strong> Con · <strong id="spent-resources">6</strong> Res
+            <div class="spent-breakdown-text" style="font-size: 8.5pt; color: #cbd5e1; white-space: nowrap;">
+              Spent: <strong id="spent-abilities">42</strong> FASERIP · <strong id="spent-powers">0</strong> Pwr · <strong id="spent-talents">0</strong> Tal · <strong id="spent-contacts">0</strong> Con · <strong id="spent-resources">6</strong> Res
+            </div>
+          </div>
         </div>
       </div>
 
@@ -2885,13 +2888,13 @@
   </div>
 
   <!-- Scripts Loading -->
-  <script src="universal_table.js?v=1.4.7"></script>
-  <script src="data_forms.js?v=1.4.7"></script>
-  <script src="data_powers.js?v=1.4.7"></script>
-  <script src="data_talents.js?v=1.4.7"></script>
-  <script src="data_equipment.js?v=1.4.7"></script>
-  <script src="inventions.js?v=1.4.7"></script>
-  <script src="character_model.js?v=1.4.7"></script>
-  <script src="app.js?v=1.4.7"></script>
+  <script src="universal_table.js?v=1.4.8"></script>
+  <script src="data_forms.js?v=1.4.8"></script>
+  <script src="data_powers.js?v=1.4.8"></script>
+  <script src="data_talents.js?v=1.4.8"></script>
+  <script src="data_equipment.js?v=1.4.8"></script>
+  <script src="inventions.js?v=1.4.8"></script>
+  <script src="character_model.js?v=1.4.8"></script>
+  <script src="app.js?v=1.4.8"></script>
 </body>
 </html>

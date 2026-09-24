@@ -542,8 +542,16 @@ body {
 .vitals-row {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 8px;
+  gap: 6px;
   margin-bottom: 0px;
+}
+
+/* Combined Karma & Point-Buy CP Info Row */
+.karma-cp-row {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+  width: 100%;
 }
 
 .vital-chip.compact {
@@ -943,24 +951,29 @@ body {
   margin-left: 1px;
 }
 
-.vital-karma-history {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.vital-chip.vital-chip-karma {
+  flex: 0 0 auto;
   gap: 6px;
-  min-width: 170px;
+  padding: 3px 8px;
+}
+
+.vital-karma-history {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  min-width: 0;
 }
 
 .vital-karma-pill {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 3px;
   background: rgba(245, 158, 11, 0.08);
   border: 1px solid rgba(245, 158, 11, 0.22);
   border-radius: 4px;
-  padding: 2px 7px;
-  font-size: 9.5pt;
+  padding: 1px 5px;
+  font-size: 8.5pt;
   white-space: nowrap;
   color: var(--text-muted);
 }
@@ -976,9 +989,9 @@ body {
 }
 
 .history-pill-label {
-  font-size: 8pt;
+  font-size: 7.5pt;
   text-transform: uppercase;
-  letter-spacing: 0.3px;
+  letter-spacing: 0.2px;
   color: var(--text-muted);
   opacity: 0.85;
 }
@@ -986,7 +999,7 @@ body {
 .vital-karma-pill strong {
   color: var(--marvel-gold, #f59e0b);
   font-family: var(--font-mono);
-  font-size: 9.5pt;
+  font-size: 8.5pt;
   font-weight: 700;
 }
 
@@ -995,12 +1008,13 @@ body {
   background: #0c1322;
   border: 1px solid var(--border-color);
   border-radius: 5px;
-  padding: 4px 10px;
+  padding: 3px 10px;
   margin-bottom: 0px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  flex-wrap: wrap;
+  flex: 1 1 0;
+  min-width: 0;
   gap: 8px;
 }
 
@@ -1008,15 +1022,17 @@ body {
 .point-tier-status-group {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
+  flex-shrink: 0;
 }
 
 .point-tier-summary {
-  font-size: 9.5pt;
+  font-size: 9pt;
   color: #cbd5e1;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
+  white-space: nowrap;
 }
 
 .cp-spending-locked {
@@ -1033,8 +1049,11 @@ body {
 }
 
 .spent-breakdown-text {
-  font-size: 10pt;
+  font-size: 8.5pt;
   color: #cbd5e1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* FASERIP Abilities Grid */
@@ -2884,7 +2903,18 @@ select.field-input option {
   }
   .vitals-row {
     grid-template-columns: 1fr;
-    gap: 10px;
+    gap: 8px;
+  }
+  .karma-cp-row {
+    flex-direction: column;
+    gap: 6px;
+  }
+  .vital-chip.vital-chip-karma {
+    width: 100%;
+    justify-content: space-between;
+  }
+  .point-buy-strip {
+    width: 100%;
   }
   .modal-box {
     max-width: 96vw;

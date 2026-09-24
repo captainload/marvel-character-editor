@@ -1,7 +1,7 @@
 {
-  "version": "1.5.0",
+  "version": "1.5.1",
   "releaseDate": "2026-09-24",
   "name": "Marvel Super Heroes Character Editor",
   "repo": "https://github.com/captainload/marvel-character-editor",
-  "notes": "Comprehensive audit & canonical overhaul of Rules Cheat Sheet tables (Slam, Stun, Kill, Charging, Escape, Catching, and Bullseye) aligning 100% with official TSR Marvel Super Heroes Advanced Set rules."
+  "notes": "Removed redundant Character Advancement entry from the File menu; renamed Four-Color theme to Slate across theme selector, settings, and stylesheet."
 }

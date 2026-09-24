@@ -4033,10 +4033,11 @@ body.touch-friendly .cheatsheet-popout-btn {
 }
 
 /* ==========================================================================
-   VISUAL THEMES: Four-color (Default), Manilla, Aqua
+   VISUAL THEMES: Slate (Default), Manilla, Aqua
    ========================================================================== */
 
-/* 1. Four-color Theme (Default: Dark Grey with Comic Accents) */
+/* 1. Slate Theme (Default: Dark Slate Grey with Comic Accents) */
+body[data-theme="slate"],
 body[data-theme="four-color"] {
   --bg-main: #181a20;
   --bg-card: #22252e;

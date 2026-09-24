@@ -16,7 +16,7 @@ const App = {
   rollerKarmaSpend: 0,
   rollerPoppedOut: false,
   touchFriendly: false,
-  currentTheme: 'four-color',
+  currentTheme: 'slate',
   storeFilterQuery: '',
   storeFilterCategory: 'all',
   storeAccessFilter: ['all'],
@@ -38,7 +38,7 @@ const App = {
   isWidthWarningDismissed: false,
   powerAdjustment: false,
   activeAdjustmentPowerIndex: null,
-  VERSION: '1.5.0',
+  VERSION: '1.5.1',
   BUILD_DATE: '2026-09-24',
   COMMIT_SHA: '6a15ff5',
   REPO_OWNER: 'captainload',
@@ -951,18 +951,6 @@ const App = {
       });
     }
 
-    const menuItemAdvancement = document.getElementById('menu-item-advancement');
-    if (menuItemAdvancement) {
-      menuItemAdvancement.addEventListener('click', () => {
-        if (fileOptionsMenu) fileOptionsMenu.classList.remove('open');
-        if (this.karmaMode === 'session') {
-          this.promptAdvancementModeSwitch();
-        } else {
-          this.openAdvancementModal();
-        }
-      });
-    }
-
     const menuItemErrata = document.getElementById('menu-item-errata');
     if (menuItemErrata) {
       menuItemErrata.addEventListener('click', () => {
@@ -1239,7 +1227,7 @@ const App = {
 
     // Visual Theme Preference Init & Listeners
     const savedTheme = typeof localStorage !== 'undefined' ? localStorage.getItem('msh_option_theme') : null;
-    this.setTheme(savedTheme || 'four-color');
+    this.setTheme(savedTheme || 'slate');
 
     const themeOpt = document.getElementById('option-theme');
     if (themeOpt) {
@@ -5247,8 +5235,9 @@ const App = {
   setTheme(themeName) {
     let theme = themeName;
     if (theme === 'off-white') theme = 'manilla';
-    const validThemes = ['four-color', 'manilla', 'aqua'];
-    if (!validThemes.includes(theme)) theme = 'four-color';
+    if (theme === 'four-color') theme = 'slate';
+    const validThemes = ['slate', 'manilla', 'aqua'];
+    if (!validThemes.includes(theme)) theme = 'slate';
     this.currentTheme = theme;
 
     if (typeof document !== 'undefined' && document.body) {
@@ -5272,19 +5261,20 @@ const App = {
     const themeMenuStatus = typeof document !== 'undefined' ? document.getElementById('menu-item-theme-status') : null;
     if (themeMenuStatus) {
       const displayNames = {
-        'four-color': 'Four-color',
+        'slate': 'Slate',
+        'four-color': 'Slate',
         'manilla': 'Manilla',
         'aqua': 'Aqua'
       };
-      themeMenuStatus.textContent = displayNames[theme] || 'Four-color';
+      themeMenuStatus.textContent = displayNames[theme] || 'Slate';
     }
 
     // Update flyout menu checkmark indicators & active states
     if (typeof document !== 'undefined') {
-      const checkFourColor = document.getElementById('theme-check-four-color');
+      const checkSlate = document.getElementById('theme-check-slate') || document.getElementById('theme-check-four-color');
       const checkManilla = document.getElementById('theme-check-manilla');
       const checkAqua = document.getElementById('theme-check-aqua');
-      if (checkFourColor) checkFourColor.textContent = theme === 'four-color' ? '✓' : '';
+      if (checkSlate) checkSlate.textContent = (theme === 'slate' || theme === 'four-color') ? '✓' : '';
       if (checkManilla) checkManilla.textContent = theme === 'manilla' ? '✓' : '';
       if (checkAqua) checkAqua.textContent = theme === 'aqua' ? '✓' : '';
 
@@ -5294,7 +5284,7 @@ const App = {
           themeBtns.forEach(btn => {
             const btnVal = btn.getAttribute ? btn.getAttribute('data-theme-val') : null;
             if (btn.classList && typeof btn.classList.toggle === 'function') {
-              btn.classList.toggle('active', btnVal === theme);
+              btn.classList.toggle('active', btnVal === theme || (btnVal === 'slate' && theme === 'four-color') || (btnVal === 'four-color' && theme === 'slate'));
             }
           });
         }
@@ -5307,8 +5297,9 @@ const App = {
   },
 
   cycleTheme() {
-    const order = ['four-color', 'manilla', 'aqua'];
-    const currentIndex = order.indexOf(this.currentTheme || 'four-color');
+    const order = ['slate', 'manilla', 'aqua'];
+    const curTheme = (this.currentTheme === 'four-color') ? 'slate' : (this.currentTheme || 'slate');
+    const currentIndex = order.indexOf(curTheme);
     const nextTheme = order[(currentIndex + 1) % order.length];
     this.setTheme(nextTheme);
   },
@@ -10199,7 +10190,7 @@ const App = {
       return;
     }
 
-    const currentVer = this.VERSION || '1.5.0';
+    const currentVer = this.VERSION || '1.5.1';
     const localBuildDate = this.BUILD_DATE || '2026-09-24';
     const localCommitSha = this.COMMIT_SHA || '6a15ff5';
     const repoOwner = this.REPO_OWNER || 'captainload';

@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Marvel Super Heroes (FASERIP) - Character Builder & Editor</title>
-  <link rel="stylesheet" href="styles.css?v=1.4.9">
+  <link rel="stylesheet" href="styles.css?v=1.5.0">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bangers&display=swap" rel="stylesheet">
@@ -1046,7 +1046,7 @@
                 <td>Agility</td>
                 <td><span class="feat-white">Miss</span> (0 damage)</td>
                 <td><span class="feat-green">Hit</span> (Weapon damage)</td>
-                <td><span class="feat-yellow">Bullseye</span> (Double damage or precise disarm)</td>
+                <td><span class="feat-yellow">Bullseye</span> (Called shot, precise disarm, or pinpoint strike)</td>
                 <td><span class="feat-red">Kill FEAT</span> (Damage + target checks Kill)</td>
               </tr>
               <tr>
@@ -1054,7 +1054,7 @@
                 <td>Agility / Psyche</td>
                 <td><span class="feat-white">Miss</span> (0 damage)</td>
                 <td><span class="feat-green">Hit</span> (Power Rank damage)</td>
-                <td><span class="feat-yellow">Bullseye</span> (Double damage or pinpoint strike)</td>
+                <td><span class="feat-yellow">Bullseye</span> (Pinpoint strike, called shot, or bypass cover)</td>
                 <td><span class="feat-red">Kill / Disintegrate</span> (Damage + Kill check)</td>
               </tr>
               <tr>
@@ -1062,8 +1062,8 @@
                 <td>Agility / Psyche</td>
                 <td><span class="feat-white">Miss</span> (0 damage)</td>
                 <td><span class="feat-green">Hit</span> (Power Rank force damage)</td>
-                <td><span class="feat-yellow">Slam FEAT</span> (Force damage + Slam check)</td>
-                <td><span class="feat-red">Stun FEAT</span> (Force damage + Stun check)</td>
+                <td><span class="feat-yellow">Bullseye / Slam</span> (Pinpoint strike or target checks Slam)</td>
+                <td><span class="feat-red">Stun FEAT</span> (Force damage + target checks Stun)</td>
               </tr>
               <tr>
                 <td><strong>Grappling / Hold</strong></td>
@@ -1077,17 +1077,17 @@
                 <td><strong>Escape from Hold / Pin</strong></td>
                 <td>Strength or Agility</td>
                 <td><span class="feat-white">Held Fast</span> (Cannot break hold)</td>
-                <td><span class="feat-green">Shift Grip</span> (+1CS to next escape roll)</td>
-                <td><span class="feat-yellow">Break Free</span> (Escapes hold; turn ends)</td>
-                <td><span class="feat-red">Reverse Hold</span> (Escapes & places hold on foe!)</td>
+                <td><span class="feat-green">Break Free</span> (Escapes hold; may move up to 1/2 speed)</td>
+                <td><span class="feat-yellow">Clean Escape</span> (Escapes hold cleanly; no penalty)</td>
+                <td><span class="feat-red">Reversal</span> (Escapes hold & immediately places hold on foe!)</td>
               </tr>
               <tr>
                 <td><strong>Charging / Tackle</strong></td>
                 <td>Endurance</td>
-                <td><span class="feat-white">Miss</span> (Charger falls prone)</td>
-                <td><span class="feat-green">Tackle</span> (Str damage + 1 area Slam)</td>
-                <td><span class="feat-yellow">Smash</span> (+1CS Str damage + 2 areas Slam)</td>
-                <td><span class="feat-red">Grand Slam</span> (Damage + 1-10 area Slam & Stun)</td>
+                <td><span class="feat-white">Miss / Recoil</span> (Overshoots; barrier collision recoil)</td>
+                <td><span class="feat-green">Hit</span> (Charge damage: End rank + 1CS/area, max +3CS)</td>
+                <td><span class="feat-yellow">Slam FEAT</span> (Charge damage + target checks Slam)</td>
+                <td><span class="feat-red">Stun FEAT</span> (Charge damage + target checks Stun)</td>
               </tr>
               <tr>
                 <td><strong>Throwing Object / Missile</strong></td>
@@ -1095,15 +1095,15 @@
                 <td><span class="feat-white">Miss</span> (0 damage)</td>
                 <td><span class="feat-green">Hit</span> (Lesser of Str or Material damage)</td>
                 <td><span class="feat-yellow">Bullseye</span> (Pinpoint hit or trip)</td>
-                <td><span class="feat-red">Stun FEAT</span> (Damage + target checks Stun)</td>
+                <td><span class="feat-red">Stun FEAT</span> (Damage + target checks Stun; Edged is Kill)</td>
               </tr>
               <tr>
                 <td><strong>Catching Item / Ally</strong></td>
                 <td>Agility</td>
                 <td><span class="feat-white">Miss / Dropped</span> (Full fall damage)</td>
                 <td><span class="feat-green">Safe Catch</span> (Safely catches up to Str weight)</td>
-                <td><span class="feat-yellow">Intercept & Cushion</span> (Catches weapon/missile)</td>
-                <td><span class="feat-red">Counter-Catch</span> (Catch & redirect in same turn)</td>
+                <td><span class="feat-yellow">Intercept & Cushion</span> (Catches weapon/missile undamaged)</td>
+                <td><span class="feat-red">Secure & Ready</span> (Catch cleanly; ready to throw/redirect next action)</td>
               </tr>
               <tr>
                 <td><strong>Dodging</strong> (1991 Revised Active Defense)</td>
@@ -1146,31 +1146,39 @@
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 10px;">
             <!-- Slam Conditions -->
             <div>
-              <h4>💨 Slam Result Resolution</h4>
-              <p>When an attack inflicts a Slam result, compare attacker's Strength/Damage against the target's Strength/Endurance:</p>
+              <h4>💨 Slam Result Resolution (Player's Book p. 25)</h4>
+              <p>When an attack inflicts a Slam result, the target immediately makes an <span class="feat-green">Endurance FEAT</span>:</p>
               <table class="cheat-table" style="margin-top: 6px;">
                 <thead>
                   <tr>
-                    <th>Relative Power</th>
+                    <th>Endurance FEAT Color</th>
                     <th>Result on Target</th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr>
-                    <td>Attacker &le; Target</td>
-                    <td><span class="feat-white">No Effect</span> or knocked back 1 area</td>
+                    <td><span class="feat-red">Red</span></td>
+                    <td><strong>No Slam:</strong> Target stands ground and resists knockback completely.</td>
                   </tr>
                   <tr>
-                    <td>Attacker &gt; Target by 1 Rank</td>
-                    <td>Knocked back 1-2 areas + knocked prone</td>
+                    <td><span class="feat-yellow">Yellow</span></td>
+                    <td><strong>Stagger:</strong> Knocked back a step or two, but remains on feet in same area.</td>
                   </tr>
                   <tr>
-                    <td>Attacker &gt; Target by 2+ Ranks</td>
-                    <td><strong>Grand Slam:</strong> Knocked back 1-10 (1d10) areas + Stun check!</td>
+                    <td><span class="feat-green">Green</span></td>
+                    <td><strong>1 Area Slam:</strong> Knocked back 1 full area and knocked prone.</td>
+                  </tr>
+                  <tr>
+                    <td><span class="feat-white">White (Failure)</span></td>
+                    <td><strong>Grand Slam:</strong> Hurled back multiple areas based on attacker Strength (1-10 areas) and falls prone!</td>
+                  </tr>
+                  <tr>
+                    <td>Target Strength/Endurance &ge; Attacker Str</td>
+                    <td><em>Immunity:</em> Target cannot be Slammed or Grand Slammed.</td>
                   </tr>
                   <tr>
                     <td>Collision with Barrier</td>
-                    <td>Target takes damage equal to lesser of wall Material rank or 10 damage per remaining area.</td>
+                    <td>Target stops and takes damage equal to lesser of wall Material rank or attacker's Strength.</td>
                   </tr>
                 </tbody>
               </table>
@@ -1178,7 +1186,7 @@
 
             <!-- Stun Conditions -->
             <div>
-              <h4>💫 Stun FEAT Resolution</h4>
+              <h4>💫 Stun FEAT Resolution (Player's Book p. 25)</h4>
               <p>When an attack inflicts a Stun result, the target immediately makes an <span class="feat-green">Endurance FEAT</span>:</p>
               <table class="cheat-table" style="margin-top: 6px;">
                 <thead>
@@ -1194,11 +1202,11 @@
                   </tr>
                   <tr>
                     <td><span class="feat-green">Green</span></td>
-                    <td><strong>Stunned:</strong> Loses next action; drops guard.</td>
+                    <td><strong>Stunned (1-10 rounds):</strong> Unable to take actions; guard drops.</td>
                   </tr>
                   <tr>
                     <td><span class="feat-yellow">Yellow</span></td>
-                    <td><strong>Shaken:</strong> -1CS to all actions for 1 round.</td>
+                    <td><strong>Dazed (1-10 rounds):</strong> Stunned, but may spend 1 Karma per round to act normally!</td>
                   </tr>
                   <tr>
                     <td><span class="feat-red">Red</span></td>
@@ -1212,8 +1220,8 @@
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 10px;">
             <!-- Kill Conditions -->
             <div>
-              <h4>☠️ Kill FEAT Resolution (Lethal Edged / Shooting / Energy)</h4>
-              <p>When an attack achieves a Kill result, the target immediately makes an <span class="feat-green">Endurance FEAT</span>:</p>
+              <h4>☠️ Kill FEAT Resolution (Player's Book p. 25 &amp; 27)</h4>
+              <p>When a lethal attack (Edged, Shooting, Energy) inflicts a Kill result, the target makes an <span class="feat-green">Endurance FEAT</span>:</p>
               <table class="cheat-table" style="margin-top: 6px;">
                 <thead>
                   <tr>
@@ -1223,36 +1231,30 @@
                 </thead>
                 <tbody>
                   <tr>
+                    <td><span class="feat-green">Green</span>, <span class="feat-yellow">Yellow</span>, or <span class="feat-red">Red</span></td>
+                    <td><strong>Flesh Wound / Survived:</strong> Target survives the lethal strike! Suffers normal attack damage only; no mortal wound or bleedout.</td>
+                  </tr>
+                  <tr>
                     <td><span class="feat-white">White (Failure)</span></td>
-                    <td><strong>Mortal Wound:</strong> Health reduced to 0; hero begins <em>Dying</em>!</td>
-                  </tr>
-                  <tr>
-                    <td><span class="feat-green">Green</span></td>
-                    <td><strong>Severe Injury:</strong> Broken bone or severed muscle; double damage or -2CS.</td>
-                  </tr>
-                  <tr>
-                    <td><span class="feat-yellow">Yellow</span></td>
-                    <td><strong>Blood Loss:</strong> Normal damage + 1-10 ongoing damage each turn.</td>
-                  </tr>
-                  <tr>
-                    <td><span class="feat-red">Red</span></td>
-                    <td><strong>Flesh Wound:</strong> Normal attack damage only; no lethal effect.</td>
+                    <td><strong>Mortal Wound:</strong> Target's Health immediately drops to 0, and hero begins <em>Dying</em> (bleeds out at 1 Endurance point per combat round until stabilized).</td>
                   </tr>
                 </tbody>
               </table>
+              <p class="cheat-note" style="margin-top: 6px; font-size: 0.85em; color: #555;"><em>Note:</em> A character with Body Armor or Force Field of equal or higher rank than the attack's damage rank treats any Kill result as a simple blunt attack (no lethal check needed).</p>
             </div>
 
             <!-- Multiple Attacks & Initiative -->
             <div>
-              <h4>⚡ Multi-Attacks, Initiative & Surprise</h4>
+              <h4>⚡ Multi-Attacks, Initiative &amp; Surprise</h4>
               <ul style="padding-left: 20px; line-height: 1.7; color: var(--text-main); margin-top: 6px;">
                 <li><strong>Multiple Attacks in 1 Round:</strong> A hero may attempt multiple strikes by rolling Fighting (melee) or Agility (ranged) before acting:
                   <br>• 2 attacks: Requires a <span class="feat-yellow">Yellow FEAT</span>.
                   <br>• 3 attacks: Requires a <span class="feat-red">Red FEAT</span>.
                   <br>• Failure (<span class="feat-white">White</span>): Fumbles and loses all attacks this turn!
+                  <br>• <em>Modifier &amp; Movement:</em> All attacks suffer a <strong>-1CS penalty</strong> for the round. The hero cannot perform area-to-area movement, but may freely pivot and strike targets in the same area.
                 </li>
-                <li><strong>Team Initiative:</strong> At the start of each round, each team rolls 1d10. High roll acts first.</li>
-                <li><strong>Surprise:</strong> Roll Intuition vs foe's Intuition. Surprised characters cannot Dodge, Evade, or Block on round 1.</li>
+                <li><strong>Team Initiative:</strong> At the start of each round, each team rolls 1d10. High roll acts first. The side with the highest individual modifier (e.g. Martial Arts E, Lightning Reflexes, Intuition) adds it to the team roll.</li>
+                <li><strong>Surprise:</strong> Roll Intuition vs foe's Intuition. Surprised characters cannot act or declare active defenses (Dodge, Evade, Block) on round 1.</li>
               </ul>
             </div>
           </div>
@@ -2897,13 +2899,13 @@
   </div>
 
   <!-- Scripts Loading -->
-  <script src="universal_table.js?v=1.4.9"></script>
-  <script src="data_forms.js?v=1.4.9"></script>
-  <script src="data_powers.js?v=1.4.9"></script>
-  <script src="data_talents.js?v=1.4.9"></script>
-  <script src="data_equipment.js?v=1.4.9"></script>
-  <script src="inventions.js?v=1.4.9"></script>
-  <script src="character_model.js?v=1.4.9"></script>
-  <script src="app.js?v=1.4.9"></script>
+  <script src="universal_table.js?v=1.5.0"></script>
+  <script src="data_forms.js?v=1.5.0"></script>
+  <script src="data_powers.js?v=1.5.0"></script>
+  <script src="data_talents.js?v=1.5.0"></script>
+  <script src="data_equipment.js?v=1.5.0"></script>
+  <script src="inventions.js?v=1.5.0"></script>
+  <script src="character_model.js?v=1.5.0"></script>
+  <script src="app.js?v=1.5.0"></script>
 </body>
 </html>

@@ -350,10 +350,10 @@ const UniversalTableEngine = {
 
       case "charging":
         if (color === "Blue") return { hit: false, fumble: true, desc: "FUBAR! Complete disaster; charging hero crashes violently and suffers full charge damage!" };
-        if (color === "White") return { hit: false, desc: "Miss! Charger continues into adjacent area or crashes." };
+        if (color === "White") return { hit: false, desc: "Miss! Charger overshoots target; suffers recoil if colliding with a barrier." };
         if (color === "Green") return { hit: true, desc: `Hit: ${damageValue} Charge damage` };
-        if (color === "Yellow") return { hit: true, desc: `Slam! (${damageValue} damage, target slammed 1-10 areas)` };
-        if (color === "Red") return { hit: true, desc: `Grand Slam & Stun! (${damageValue} damage, target slammed and stunned)` };
+        if (color === "Yellow") return { hit: true, desc: `Slam FEAT! (${damageValue} damage. Target must make Endurance FEAT vs Slam)` };
+        if (color === "Red") return { hit: true, desc: `Stun FEAT! (${damageValue} damage. Target must make Endurance FEAT vs Stun)` };
         break;
 
       case "grapple":
@@ -386,9 +386,9 @@ const UniversalTableEngine = {
       case "escape":
         if (color === "Blue") return { hit: false, fumble: true, desc: "Autohit! Escape attempt completely fails; opponent gains free automatic strike." };
         if (color === "White") return { hit: false, desc: "Escape failed. Hero remains held or pinned." };
-        if (color === "Green") return { hit: true, desc: "Broke Free! Hero slips out of hold and may take half-speed movement." };
-        if (color === "Yellow") return { hit: true, desc: "Clean Escape! Broke free with advantage; foe at -1CS next turn." };
-        if (color === "Red") return { hit: true, desc: "Reversal! Hero escapes hold and immediately puts foe into a hold." };
+        if (color === "Green") return { hit: true, desc: "Broke Free! Hero breaks out of hold and may take up to half-speed movement." };
+        if (color === "Yellow") return { hit: true, desc: "Clean Escape! Hero cleanly breaks free of hold." };
+        if (color === "Red") return { hit: true, desc: "Reversal! Hero escapes hold and immediately places hold on opponent." };
         break;
 
       case "catch":
@@ -396,7 +396,7 @@ const UniversalTableEngine = {
         if (color === "White") return { hit: false, desc: "Catch failed. Object or character falls past or strikes hero." };
         if (color === "Green") return { hit: true, desc: "Caught safely! Falling ally or thrown item securely caught." };
         if (color === "Yellow") return { hit: true, desc: "Cushioned Catch: Intercepted with superior finesse, zero impact damage." };
-        if (color === "Red") return { hit: true, desc: "Perfect Interception: Caught cleanly; hero may immediately redirect or throw." };
+        if (color === "Red") return { hit: true, desc: "Perfect Interception: Caught cleanly; hero secures item and may redirect or throw on next action." };
         break;
 
       case "block":

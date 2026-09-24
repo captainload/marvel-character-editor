@@ -1,7 +1,7 @@
 {
-  "version": "1.4.9",
+  "version": "1.5.0",
   "releaseDate": "2026-09-24",
   "name": "Marvel Super Heroes Character Editor",
   "repo": "https://github.com/captainload/marvel-character-editor",
-  "notes": "Canonical TSR Marvel Super Heroes (Advanced Set) rules overhaul for defensive combat FEATs: Blocking (Strength / Shield Material) corrected, removing non-canonical off-balance and riposte mechanics."
+  "notes": "Comprehensive audit & canonical overhaul of Rules Cheat Sheet tables (Slam, Stun, Kill, Charging, Escape, Catching, and Bullseye) aligning 100% with official TSR Marvel Super Heroes Advanced Set rules."
 }

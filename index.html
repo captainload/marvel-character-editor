@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Marvel Super Heroes (FASERIP) - Character Builder & Editor</title>
-  <link rel="stylesheet" href="styles.css?v=1.5.1">
+  <link rel="stylesheet" href="styles.css?v=1.5.2">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bangers&display=swap" rel="stylesheet">
@@ -540,6 +540,28 @@
               </div>
             </div>
 
+            <!-- Workshop, Expertise & Prototype Options (TSR Player's Book pp. 41-44) -->
+            <div class="invention-subpanel" style="padding: 10px 14px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-wrap: wrap; gap: 6px;">
+                <strong style="color: var(--marvel-gold); font-size: 10.5pt;" id="inv-workshop-options-title">🏭 Workshop & Expertise Options (Player's Book pp. 41-44)</strong>
+                <span class="meta-tag" id="inv-talent-detected-badge" style="font-size: 9.5pt; color: #a7f3d0; border: 1px solid #10b981;">Hero Talent: Checking...</span>
+              </div>
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px;">
+                <label class="checkbox-label" title="Inventor has a relevant scientific, engineering, or tinkering talent providing a +1CS column shift to Reason FEATs (auto-detected from hero's learned talents)">
+                  <input type="checkbox" id="inv-opt-talent"> 
+                  <span id="inv-opt-talent-label">Relevant Science/Tech Talent (+1CS)</span>
+                </label>
+                <label class="checkbox-label" title="Fully equipped laboratory or machine shop. Working without proper workshop facilities incurs a -1CS penalty and triples build time (Player's Book p. 43)">
+                  <input type="checkbox" id="inv-opt-workshop" checked> 
+                  <span id="inv-opt-workshop-label">Fully Equipped Workshop / Lab</span>
+                </label>
+                <label class="checkbox-label" title="Throw together a rapid field prototype in hours rather than days. Suffers a -1CS Reason penalty and lasts only 1 encounter/scene before burning out (Player's Book p. 43)">
+                  <input type="checkbox" id="inv-opt-kitbash"> 
+                  <span id="inv-opt-kitbash-label">Kit-Bash Prototype (Rush, 1-Scene)</span>
+                </label>
+              </div>
+            </div>
+
             <!-- Feasibility Results Card (Auto-Calculated in Real-Time, Space-Efficient Design) -->
             <div class="feasibility-compact-card" id="inv-feasibility-block">
               <div style="display: flex; justify-content: space-between; align-items: center;">
@@ -564,6 +586,8 @@
                   <span id="inv-power-source" style="font-weight: 600; color: var(--text-main); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 130px;" title="">Micro-Fusion Cell (10 uses)</span>
                 </div>
               </div>
+              <div id="inv-special-req-box" style="font-size: 10pt; margin-top: 6px; padding: 6px 10px; border-radius: 4px; display: none;"></div>
+              <div id="inv-facility-warn-box" style="font-size: 10pt; margin-top: 4px; padding: 4px 8px; border-radius: 4px; display: none;"></div>
               <div id="inv-material-warn" class="material-warn-text" style="font-size: 10pt;"></div>
             </div>
 
@@ -2898,13 +2922,13 @@
   </div>
 
   <!-- Scripts Loading -->
-  <script src="universal_table.js?v=1.5.1"></script>
-  <script src="data_forms.js?v=1.5.1"></script>
-  <script src="data_powers.js?v=1.5.1"></script>
-  <script src="data_talents.js?v=1.5.1"></script>
-  <script src="data_equipment.js?v=1.5.1"></script>
-  <script src="inventions.js?v=1.5.1"></script>
-  <script src="character_model.js?v=1.5.1"></script>
-  <script src="app.js?v=1.5.1"></script>
+  <script src="universal_table.js?v=1.5.2"></script>
+  <script src="data_forms.js?v=1.5.2"></script>
+  <script src="data_powers.js?v=1.5.2"></script>
+  <script src="data_talents.js?v=1.5.2"></script>
+  <script src="data_equipment.js?v=1.5.2"></script>
+  <script src="inventions.js?v=1.5.2"></script>
+  <script src="character_model.js?v=1.5.2"></script>
+  <script src="app.js?v=1.5.2"></script>
 </body>
 </html>

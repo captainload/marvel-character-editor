@@ -12,6 +12,90 @@ if (typeof globalThis.UniversalTableEngine === 'undefined' && typeof require !==
 
 class InventionCreator {
   /**
+   * Official Judge's Book p. 14 Special Requirements Table evaluation.
+   * Items of Remarkable+ require rare alloys, specialized components, or alien tech.
+   */
+  static getSpecialRequirements(effectiveRankNum, materialRankNum, isMagic = false) {
+    const highestRankNum = Math.max(effectiveRankNum || 0, materialRankNum || 0);
+
+    if (isMagic) {
+      if (highestRankNum >= 1000) {
+        return {
+          tier: "Cosmic / Divine",
+          level: "cosmic",
+          requiresSpecial: true,
+          summary: "Cosmic Relic: Requires communion with Elder Gods, Vishanti invocation, or Infinity Gem resonance (Judge's Book p. 14)."
+        };
+      } else if (highestRankNum >= 75) { // Monstrous (75) to Unearthly (100)
+        return {
+          tier: "Eldritch / Otherworldly",
+          level: "exotic",
+          requiresSpecial: true,
+          summary: "Otherworldly Reagents: Requires extradimensional essence, virgin meteor silver, or consecrated daemon vessel (Judge's Book p. 14)."
+        };
+      } else if (highestRankNum >= 50) { // Amazing (50)
+        return {
+          tier: "Sanctum Consecration",
+          level: "advanced",
+          requiresSpecial: true,
+          summary: "Astral Alignment: Requires dedicated Sanctum Sanctorum alignment or planetary astrological conjunction (Judge's Book p. 14)."
+        };
+      } else if (highestRankNum >= 30) { // Remarkable (30) to Incredible (40)
+        return {
+          tier: "Rare Occult Focus",
+          level: "rare",
+          requiresSpecial: true,
+          summary: "Special Reagents: Requires rare alchemical reagents, ancient grimoire verses, or consecrated silver foci (Judge's Book p. 14)."
+        };
+      } else {
+        return {
+          tier: "Standard Reagents",
+          level: "standard",
+          requiresSpecial: false,
+          summary: "Standard ritual components, herbs, and common talisman focus."
+        };
+      }
+    } else {
+      if (highestRankNum >= 1000) {
+        return {
+          tier: "Cosmic / Mythic Materials",
+          level: "cosmic",
+          requiresSpecial: true,
+          summary: "Class 1000+ Materials: Requires True Adamantium (1500°F liquid resin pour) or Wakandan Vibranium sound-dampened forge (Judge's Book p. 14)."
+        };
+      } else if (highestRankNum >= 75) { // Monstrous (75) to Unearthly (100)
+        return {
+          tier: "Exotic / Alien Technology",
+          level: "exotic",
+          requiresSpecial: true,
+          summary: "Monstrous+ Tech: Requires rare trans-uranic alloys, Kree/Skrull alien circuitry, or super-science laboratory (Judge's Book p. 14)."
+        };
+      } else if (highestRankNum >= 50) { // Amazing (50)
+        return {
+          tier: "Advanced Industrial Facilities",
+          level: "advanced",
+          requiresSpecial: true,
+          summary: "Amazing Tech: Requires aerospace-grade facilities, high-yield particle collider, or micro-fusion fabrication (Judge's Book p. 14)."
+        };
+      } else if (highestRankNum >= 30) { // Remarkable (30) to Incredible (40)
+        return {
+          tier: "Special Components Required",
+          level: "rare",
+          requiresSpecial: true,
+          summary: "Remarkable+ Tech: Requires specialized industrial components, military microchips, or rare chemical catalysts (Judge's Book p. 14)."
+        };
+      } else {
+        return {
+          tier: "Standard Workshop Hardware",
+          level: "standard",
+          requiresSpecial: false,
+          summary: "Standard commercial hardware and electronics. No rare components required."
+        };
+      }
+    }
+  }
+
+  /**
    * Calculates engineering feasibility, procurement, blueprint design,
    * build time, and power requirements for custom inventions or Machines of Doom robotics.
    */
@@ -28,6 +112,7 @@ class InventionCreator {
       inventorResourcesRank = "Typical",
       hasRelevantTalent = false,
       hasWorkshop = true,
+      isKitBash = false,
       isPortable = true,
       
       // Hardware Boosts (+1CS difficulty each)
@@ -171,7 +256,8 @@ class InventionCreator {
     const blueprintFeatTarget = effectiveDifficulty.name;
 
     // 3. Construction & Assembly Phase
-    const assemblyShift = hasWorkshop ? 0 : -1;
+    const kitBashShift = isKitBash ? -1 : 0;
+    const assemblyShift = (hasWorkshop ? 0 : -1) + kitBashShift;
     const assemblyFeatTarget = effectiveDifficulty.name;
 
     // 4. Material Integrity & Safety Check
@@ -187,14 +273,27 @@ class InventionCreator {
         : `Material strength (${mRank.name}) is fully adequate to contain power output.`;
     }
 
-    // 5. Construction Time Calculation
+    // 5. Special Requirements Check (Judge's Book p. 14)
+    const specialRequirement = InventionCreator.getSpecialRequirements(effectiveDifficulty.num, mRank.num, isMagic);
+
+    // 6. Construction Time Calculation (Player's Book p. 43)
     let timeMultiplier = 1.0 + (activeBoosts.length * 0.20) - (activeLimits.length * 0.15);
     timeMultiplier = Math.max(0.4, timeMultiplier);
 
     let baseDays = Math.max(1, Math.round(((effectiveDifficulty.num * 2.5) / Math.max(1, rRank.num)) * timeMultiplier));
-    if (!hasWorkshop) baseDays *= 3; // Lacking lab facilities triples build time
+    if (!hasWorkshop) baseDays *= 3; // Lacking lab facilities triples build time per Player's Book p. 43
 
-    // 6. Power Source & Capacity (Machines of Doom Specs vs Arcane Relics)
+    let buildTimeDisplay = "";
+    let estimatedBuildHours = 0;
+    if (isKitBash) {
+      // Kit-bashing rushes a temporary prototype in hours instead of days per Player's Book p. 43
+      estimatedBuildHours = Math.max(1, Math.min(24, Math.round(baseDays * 2)));
+      buildTimeDisplay = `${estimatedBuildHours} Hour${estimatedBuildHours === 1 ? '' : 's'} (Rush Prototype)`;
+    } else {
+      buildTimeDisplay = `${baseDays} Day${baseDays === 1 ? '' : 's'}`;
+    }
+
+    // 7. Power Source & Capacity (Machines of Doom Specs vs Arcane Relics)
     let powerSource = "";
     let charges = "";
 
@@ -217,6 +316,9 @@ class InventionCreator {
         powerSource = "Unbroken Ley Line Conduit / Dedicated Altar Circle";
         charges = "Continuous while within sanctum circle; 0 when severed";
       }
+      if (isKitBash) {
+        charges = "1 Encounter / 1-10 combat rounds (makeshift talisman burns out per Player's Book p. 43)";
+      }
     } else {
       powerSource = "Chemical Battery / Micro-Fusion Cell";
       charges = "10 uses per cell (recharges in 2 hours)";
@@ -234,6 +336,9 @@ class InventionCreator {
       if (limitExternalTether) {
         powerSource = "External High-Voltage Cable / Vehicle Auxiliary Tap";
         charges = "Continuous while tethered; 0 when disconnected";
+      }
+      if (isKitBash) {
+        charges = "1 Encounter / 1-10 combat rounds (prototype burnout risk per Player's Book p. 43)";
       }
     }
 
@@ -255,6 +360,7 @@ class InventionCreator {
       inventorResources: resRank.name,
       hasRelevantTalent,
       hasWorkshop,
+      isKitBash,
       isPortable,
       activeBoosts,
       activeLimits,
@@ -269,6 +375,9 @@ class InventionCreator {
       assemblyFeatTarget,
       assemblyShift,
       estimatedBuildDays: baseDays,
+      estimatedBuildHours,
+      buildTimeDisplay,
+      specialRequirement,
       powerSource,
       charges,
       materialWarning,
@@ -338,17 +447,51 @@ class InventionCreator {
     } else if (stage === 'procurement' || stage === 'resource') {
       // Resource FEATs cannot use Karma per Player's Book p. 18
       const feat = UniversalTableEngine.resolveFEAT(project.inventorResources || 'Typical', roll, project.resourceShift || 0);
-      const isSuccess = (feat.color === 'Green' || feat.color === 'Yellow' || feat.color === 'Red');
+
+      // Determine required color per TSR Player's Book p. 18
+      const resIdx = UniversalTableEngine.getRankIndex(project.inventorResources || 'Typical');
+      const targetIdx = UniversalTableEngine.getRankIndex(project.resourceFeatTarget || 'Typical');
+      const rankDiff = (resIdx >= 0 && targetIdx >= 0) ? (resIdx - targetIdx) : 0;
+
+      let reqColor = 'Green';
+      if (rankDiff >= 3) {
+        reqColor = 'Auto';
+      } else if (rankDiff === 0) {
+        reqColor = 'Yellow';
+      } else if (rankDiff < 0) {
+        reqColor = 'Red';
+      }
+
+      let isSuccess = false;
+      if (reqColor === 'Auto') {
+        isSuccess = true;
+      } else if (reqColor === 'Green') {
+        isSuccess = (feat.color === 'Green' || feat.color === 'Yellow' || feat.color === 'Red');
+      } else if (reqColor === 'Yellow') {
+        isSuccess = (feat.color === 'Yellow' || feat.color === 'Red');
+      } else if (reqColor === 'Red') {
+        isSuccess = (feat.color === 'Red');
+      }
 
       let title = isMagic ? '🧪 Exotic Reagents & Relic Procurement' : '🔩 Resource Procurement Phase';
       let summary = '';
       let retryTitle = isMagic ? 'Requirements to Re-Attempt Reagent Procurement:' : 'Requirements to Re-Attempt Resource Procurement:';
       let retryRequirements = [];
 
-      if (feat.color === 'White') {
-        summary = isMagic
-          ? 'Failed to acquire consecrated reagents or rare dimensional essences needed for the vessel.'
-          : 'Failed to obtain necessary exotic alloys, microchips, and high-yield power cells.';
+      if (!isSuccess) {
+        if (feat.color === 'White') {
+          summary = isMagic
+            ? 'Failed to acquire consecrated reagents or rare dimensional essences needed for the vessel.'
+            : 'Failed to obtain necessary exotic alloys, microchips, and high-yield power cells.';
+        } else if (reqColor === 'Yellow') {
+          summary = isMagic
+            ? `Procurement fell short: Resource rank matches reagent difficulty, requiring a Yellow FEAT per TSR rules (Player's Book p. 18). Rolled ${feat.color}.`
+            : `Procurement fell short: Resource rank matches project cost, requiring a Yellow FEAT per TSR rules (Player's Book p. 18). Rolled ${feat.color}.`;
+        } else {
+          summary = isMagic
+            ? `Procurement fell short: Relic difficulty exceeds Resource rank, requiring a Red FEAT per TSR rules (Player's Book p. 18). Rolled ${feat.color}.`
+            : `Procurement fell short: Project cost exceeds Resource rank, requiring a Red FEAT per TSR rules (Player's Book p. 18). Rolled ${feat.color}.`;
+        }
         retryRequirements = isMagic ? [
           '• No Karma Allowed: Per TSR rules (Player\'s Book p. 18), Karma cannot be spent on Resource checks.',
           '• Celestial Alignment: Wait until the next lunar phase, planetary conjunction, or resource cycle (1 game week) before seeking reagents again.',
@@ -368,8 +511,8 @@ class InventionCreator {
           : '🌟 Surplus high-grade components acquired at optimal cost!';
       } else {
         summary = isMagic
-          ? 'Required consecrated reagents and dimensional catalysts successfully gathered.'
-          : 'Required components and power cells successfully acquired.';
+          ? `Required consecrated reagents and dimensional catalysts successfully gathered (${feat.color} FEAT meets ${reqColor} requirement per Player's Book p. 18).`
+          : `Required components and power cells successfully acquired (${feat.color} FEAT meets ${reqColor} requirement per Player's Book p. 18).`;
       }
 
       return {
@@ -444,7 +587,7 @@ class InventionCreator {
    * Reason blueprint design check, and construction days.
    * STRICTLY BLOCKS unique, non-reproducible artifacts.
    */
-  static reverseEngineerPrebuilt(itemOrId, inventorReasonRank = "Remarkable", inventorResourcesRank = "Typical", hasTalent = true) {
+  static reverseEngineerPrebuilt(itemOrId, inventorReasonRank = "Remarkable", inventorResourcesRank = "Typical", hasTalent = true, hasWorkshop = true) {
     let item = itemOrId;
     if (typeof itemOrId === "string") {
       const catalog = globalThis.PREBUILT_EQUIPMENT_CATALOG || [];
@@ -485,7 +628,7 @@ class InventionCreator {
       inventorReasonRank: inventorReasonRank,
       inventorResourcesRank: inventorResourcesRank,
       hasRelevantTalent: hasTalent,
-      hasWorkshop: true
+      hasWorkshop: hasWorkshop
     });
 
     return {
@@ -510,9 +653,9 @@ class InventionCreator {
    * 3. Reason assembly roll
    */
   static testInventionAssembly(project, rollResource, rollDesign, rollAssembly) {
-    const resResult = UniversalTableEngine.resolveFEAT(project.resourceFeatTarget, rollResource, project.resourceShift);
-    const desResult = UniversalTableEngine.resolveFEAT(project.blueprintFeatTarget, rollDesign, project.blueprintShift);
-    const assResult = UniversalTableEngine.resolveFEAT(project.inventorReason, rollAssembly, project.blueprintShift);
+    const resResult = UniversalTableEngine.resolveFEAT(project.inventorResources || project.resourceFeatTarget, rollResource, project.resourceShift || 0);
+    const desResult = UniversalTableEngine.resolveFEAT(project.inventorReason || project.blueprintFeatTarget, rollDesign, project.blueprintShift || 0);
+    const assResult = UniversalTableEngine.resolveFEAT(project.inventorReason || project.assemblyFeatTarget, rollAssembly, project.assemblyShift || 0);
 
     let status = "Success";
     let message = "Invention assembled successfully and passed bench testing!";

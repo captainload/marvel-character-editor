@@ -1,7 +1,7 @@
 {
-  "version": "1.5.1",
+  "version": "1.5.2",
   "releaseDate": "2026-09-24",
   "name": "Marvel Super Heroes Character Editor",
   "repo": "https://github.com/captainload/marvel-character-editor",
-  "notes": "Removed redundant Character Advancement entry from the File menu; renamed Four-Color theme to Slate across theme selector, settings, and stylesheet."
+  "notes": "Full rules-compliance audit for the Invention Lab: Added Unearthly material strength; auto-detection and toggle for relevant science/mystic talents; full workshop vs improvised facilities (-1CS, 3x build time); Player's Book kit-bashing rush prototype mode (hours build time, -1CS, 1-scene duration); Judge's Book p. 14 Special Requirements Table indicators; and Player's Book p. 18 color thresholds for Resource FEATs."
 }

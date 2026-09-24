@@ -38,7 +38,7 @@ const App = {
   isWidthWarningDismissed: false,
   powerAdjustment: false,
   activeAdjustmentPowerIndex: null,
-  VERSION: '1.5.1',
+  VERSION: '1.5.2',
   BUILD_DATE: '2026-09-24',
   COMMIT_SHA: '6a15ff5',
   REPO_OWNER: 'captainload',
@@ -605,13 +605,20 @@ const App = {
     // Reactive Real-Time Auto-Calculation for Invention Controls
     const invInputIds = [
       'inv-name', 'inv-cat', 'inv-material-rank',
+      'inv-opt-talent', 'inv-opt-workshop', 'inv-opt-kitbash',
       'inv-boost-area', 'inv-boost-piercing', 'inv-boost-overcharge', 'inv-boost-range', 'inv-boost-ai',
       'inv-limit-ammo', 'inv-limit-tether', 'inv-limit-bulky', 'inv-limit-cooldown', 'inv-limit-burnout'
     ];
     invInputIds.forEach(id => {
       const el = document.getElementById(id);
       if (el) {
-        el.addEventListener('change', () => this.handleCalculateInvention());
+        el.addEventListener('change', () => {
+          if (id === 'inv-opt-talent') {
+            if (!el.dataset) el.dataset = {};
+            el.dataset.userInteracted = 'true';
+          }
+          this.handleCalculateInvention();
+        });
         if (el.tagName === 'INPUT' && el.type === 'text') {
           el.addEventListener('input', () => this.handleCalculateInvention());
         }
@@ -1551,6 +1558,7 @@ const App = {
       pane.classList.toggle('active', pane.getAttribute('id') === `tab-pane-${tabKey}`);
     });
     if (tabKey === 'invention' || tabKey === 'inventions') {
+      this.syncInventionTalentAutoDetect();
       this.handleCalculateInvention();
       this.renderKnownBlueprints();
     }
@@ -1680,9 +1688,10 @@ const App = {
     const invMatSel = document.getElementById('inv-material-rank');
     if (invMatSel && globalThis.MATERIAL_STRENGTHS) {
       const prevMat = invMatSel.value;
-      invMatSel.innerHTML = globalThis.MATERIAL_STRENGTHS.slice(0, 10).map(m => 
-        `<option value="${m.rank}">${m.name} (${m.rank} / ${m.num})</option>`
-      ).join('');
+      invMatSel.innerHTML = globalThis.MATERIAL_STRENGTHS.map(m => {
+        const specialTag = (m.num >= 1000) ? ' [Cosmic / Mythic]' : (m.num >= 75 ? ' [Special Reqs]' : '');
+        return `<option value="${m.rank}">${m.name} (${m.rank} / ${m.num})${specialTag}</option>`;
+      }).join('');
       invMatSel.value = prevMat || 'Remarkable';
     }
 
@@ -1817,6 +1826,7 @@ const App = {
     this.renderBackground();
     this.renderCheatSheetTable();
     this.renderKnownBlueprints();
+    this.syncInventionTalentAutoDetect();
   },
 
   renderHeader() {
@@ -5443,9 +5453,75 @@ const App = {
     }).join('');
   },
 
+  detectRelevantInventionTalent(sourceType = 'tech', category = 'Weapon') {
+    const talents = (this.character && Array.isArray(this.character.talents)) ? this.character.talents : [];
+    const isMagic = (sourceType === 'magic');
+
+    if (isMagic) {
+      const match = talents.find(t => {
+        const n = (t.name || '').toLowerCase();
+        const c = (t.category || '').toLowerCase();
+        return n.includes('occult') || n.includes('mystic') || c.includes('mystic');
+      });
+      if (match) {
+        return { hasTalent: true, talentName: match.name };
+      }
+      return { hasTalent: false, talentName: '' };
+    } else {
+      const techKeywords = [
+        'engineering', 'electronics', 'physics', 'chemistry', 'biology',
+        'genetics', 'computers', 'repair / tinkering', 'repair', 'tinkering'
+      ];
+      if (category === 'Weapon') {
+        techKeywords.push('weapon tinkering', 'weapons tinkering', 'weapon specialist');
+      }
+      const match = talents.find(t => {
+        const n = (t.name || '').toLowerCase();
+        const c = (t.category || '').toLowerCase();
+        return techKeywords.some(kw => n.includes(kw)) || c.includes('scientific');
+      });
+      if (match) {
+        return { hasTalent: true, talentName: match.name };
+      }
+      return { hasTalent: false, talentName: '' };
+    }
+  },
+
+  syncInventionTalentAutoDetect(force = false) {
+    const talentChk = document.getElementById('inv-opt-talent');
+    const badge = document.getElementById('inv-talent-detected-badge');
+    if (!talentChk) return;
+
+    const detected = this.detectRelevantInventionTalent(this.invSourceType || 'tech', document.getElementById('inv-cat')?.value || 'Weapon');
+    
+    if (force || !(talentChk.dataset && talentChk.dataset.userInteracted)) {
+      talentChk.checked = detected.hasTalent;
+    }
+
+    if (badge) {
+      if (detected.hasTalent) {
+        badge.textContent = `Hero Talent: ${detected.talentName} (+1CS)`;
+        badge.style.color = '#34d399';
+        badge.style.borderColor = '#10b981';
+      } else {
+        badge.textContent = `Hero Talent: None Detected (+0CS)`;
+        badge.style.color = 'var(--text-muted)';
+        badge.style.borderColor = 'var(--border-color)';
+      }
+    }
+  },
+
   handleCalculateInvention() {
     const rawName = document.getElementById('inv-name')?.value?.trim() || '';
     const fallbackName = (this.invSourceType === 'magic') ? 'Custom Relic' : 'Custom Gadget';
+    const isMagic = (this.invSourceType === 'magic');
+
+    this.syncInventionTalentAutoDetect(false);
+
+    const hasRelevantTalent = !!document.getElementById('inv-opt-talent')?.checked;
+    const hasWorkshop = document.getElementById('inv-opt-workshop') ? document.getElementById('inv-opt-workshop').checked : true;
+    const isKitBash = !!document.getElementById('inv-opt-kitbash')?.checked;
+
     const params = {
       name: rawName || fallbackName,
       category: document.getElementById('inv-cat')?.value || 'Weapon',
@@ -5457,8 +5533,9 @@ const App = {
       materialRank: document.getElementById('inv-material-rank')?.value || 'Remarkable',
       inventorReasonRank: this.character.abilities.reason.rankName,
       inventorResourcesRank: this.character.resources.rankName,
-      hasRelevantTalent: true,
-      hasWorkshop: true,
+      hasRelevantTalent,
+      hasWorkshop,
+      isKitBash,
 
       boostAreaEffect: document.getElementById('inv-boost-area')?.checked || false,
       boostArmorPiercing: document.getElementById('inv-boost-piercing')?.checked || false,
@@ -5484,12 +5561,53 @@ const App = {
     if (diffEl) diffEl.textContent = `${project.effectiveDifficultyRank} (Net: ${project.netShift >= 0 ? '+' : ''}${project.netShift} CS)`;
 
     const daysEl = document.getElementById('inv-build-days');
-    if (daysEl) daysEl.textContent = `${project.estimatedBuildDays} Days`;
+    if (daysEl) daysEl.textContent = project.buildTimeDisplay || `${project.estimatedBuildDays} Days`;
 
     const powerEl = document.getElementById('inv-power-source');
     if (powerEl) {
       powerEl.textContent = `${project.powerSource} (${project.charges})`;
       powerEl.title = `${project.powerSource} (${project.charges})`;
+    }
+
+    // Special Requirements Callout (Judge's Book p. 14)
+    const specBox = document.getElementById('inv-special-req-box');
+    if (specBox && project.specialRequirement) {
+      const sr = project.specialRequirement;
+      if (sr.requiresSpecial) {
+        specBox.style.display = 'block';
+        specBox.style.background = 'rgba(245, 158, 11, 0.15)';
+        specBox.style.border = '1px solid #f59e0b';
+        specBox.style.color = '#fde68a';
+        specBox.innerHTML = `<strong>⚠️ Special Requirements (Judge's Book p. 14):</strong> ${sr.summary}`;
+      } else {
+        specBox.style.display = 'block';
+        specBox.style.background = 'rgba(16, 185, 129, 0.1)';
+        specBox.style.border = '1px solid rgba(16, 185, 129, 0.3)';
+        specBox.style.color = '#a7f3d0';
+        specBox.innerHTML = `✓ <strong>Standard Materials:</strong> ${sr.summary}`;
+      }
+    }
+
+    // Facility & Prototype Warnings
+    const facilBox = document.getElementById('inv-facility-warn-box');
+    if (facilBox) {
+      const warnings = [];
+      if (!project.hasWorkshop) {
+        warnings.push(`⚠️ <strong>Improvised Facilities:</strong> -1CS to FEATs, 3x build time (Player's Book p. 43).`);
+      }
+      if (project.isKitBash) {
+        warnings.push(`⚡ <strong>Kit-Bash Prototype:</strong> Assembled in hours, -1CS Assembly, temporary 1-scene lifespan (Player's Book p. 43).`);
+      }
+      if (warnings.length > 0) {
+        facilBox.style.display = 'block';
+        facilBox.style.background = 'rgba(239, 68, 68, 0.15)';
+        facilBox.style.border = '1px solid #ef4444';
+        facilBox.style.color = '#fca5a5';
+        facilBox.innerHTML = warnings.join('<br>');
+      } else {
+        facilBox.style.display = 'none';
+        facilBox.innerHTML = '';
+      }
     }
 
     const warnEl = document.getElementById('inv-material-warn');
@@ -5512,11 +5630,39 @@ const App = {
     const bpTargetEl = document.getElementById('inv-blueprint-target-text');
     if (bpTargetEl) bpTargetEl.textContent = `${project.blueprintFeatTarget} (${project.blueprintShift >= 0 ? '+' : ''}${project.blueprintShift} CS)`;
 
+    const bpDescEl = document.getElementById('inv-stage-blueprint-desc');
+    if (bpDescEl) {
+      const talentText = project.hasRelevantTalent ? ' +1CS Talent' : '';
+      const noShopText = !project.hasWorkshop ? ' -1CS Improvised' : '';
+      const shiftNotes = (talentText || noShopText) ? ` [${(talentText + noShopText).trim()}]` : '';
+      bpDescEl.innerHTML = `${isMagic ? 'Reason / Occult' : 'Reason'} FEAT vs <span id="inv-blueprint-target-text" style="color: #93c5fd; font-weight: 700;">${project.blueprintFeatTarget}</span> (${project.blueprintShift >= 0 ? '+' : ''}${project.blueprintShift} CS${shiftNotes}, Karma allowed)`;
+    }
+
     const resTargetEl = document.getElementById('inv-resource-target-text');
     if (resTargetEl) resTargetEl.textContent = `${project.resourceFeatTarget} (${project.resourceShift >= 0 ? '+' : ''}${project.resourceShift} CS)`;
 
+    const resDescEl = document.getElementById('inv-stage-resource-desc');
+    if (resDescEl) {
+      const resIdx = UniversalTableEngine.getRankIndex(project.inventorResources);
+      const targetIdx = UniversalTableEngine.getRankIndex(project.resourceFeatTarget);
+      const rankDiff = (resIdx >= 0 && targetIdx >= 0) ? (resIdx - targetIdx) : 0;
+      let reqColorText = 'Green FEAT';
+      if (rankDiff >= 3) reqColorText = 'Automatic';
+      else if (rankDiff === 0) reqColorText = 'Yellow FEAT';
+      else if (rankDiff < 0) reqColorText = 'Red FEAT';
+
+      resDescEl.innerHTML = `Resource FEAT vs <span id="inv-resource-target-text" style="color: #93c5fd; font-weight: 700;">${project.resourceFeatTarget}</span> (${reqColorText}, No Karma per p. 18)`;
+    }
+
     const assTargetEl = document.getElementById('inv-assembly-target-text');
-    if (assTargetEl) assTargetEl.textContent = `${project.assemblyFeatTarget} (${project.estimatedBuildDays} days)`;
+    if (assTargetEl) assTargetEl.textContent = `${project.assemblyFeatTarget} (${project.assemblyShift >= 0 ? '+' : ''}${project.assemblyShift} CS, ${project.buildTimeDisplay})`;
+
+    const assDescEl = document.getElementById('inv-stage-assembly-desc');
+    if (assDescEl) {
+      const facilNote = project.hasWorkshop ? (isMagic ? 'Sanctum' : 'Workshop') : 'Improvised (-1CS)';
+      const kbNote = project.isKitBash ? ', Kit-Bash (-1CS)' : '';
+      assDescEl.innerHTML = `${isMagic ? 'Reason / Occult' : 'Reason'} FEAT vs <span id="inv-assembly-target-text" style="color: #93c5fd; font-weight: 700;">${project.assemblyFeatTarget}</span> (${facilNote}${kbNote}, ${project.buildTimeDisplay})`;
+    }
 
     this.updateInventionStagesUI();
   },
@@ -5650,6 +5796,28 @@ const App = {
       btnAddGear.textContent = isMagic ? '✨ Consecrate Relic into Hero\'s Equipment' : '📦 Add Completed Invention to Hero\'s Equipment';
     }
 
+    // Update Workshop & Expertise Labels
+    const optTitle = document.getElementById('inv-workshop-options-title');
+    if (optTitle) {
+      optTitle.textContent = isMagic ? '✨ Sanctum & Lore Options (Player\'s Book pp. 41-44)' : '🏭 Workshop & Expertise Options (Player\'s Book pp. 41-44)';
+    }
+
+    const optTalentLabel = document.getElementById('inv-opt-talent-label');
+    if (optTalentLabel) {
+      optTalentLabel.textContent = isMagic ? 'Relevant Mystic / Occult Talent (+1CS)' : 'Relevant Science/Tech Talent (+1CS)';
+    }
+
+    const optWorkshopLabel = document.getElementById('inv-opt-workshop-label');
+    if (optWorkshopLabel) {
+      optWorkshopLabel.textContent = isMagic ? 'Consecrated Sanctum / Ritual Circle' : 'Fully Equipped Workshop / Lab';
+    }
+
+    const optKitbashLabel = document.getElementById('inv-opt-kitbash-label');
+    if (optKitbashLabel) {
+      optKitbashLabel.textContent = isMagic ? 'Makeshift Ritual / Improvised Talisman (1-Scene)' : 'Kit-Bash Prototype (Rush, 1-Scene)';
+    }
+
+    this.syncInventionTalentAutoDetect();
     this.handleCalculateInvention();
   },
 
@@ -5662,6 +5830,18 @@ const App = {
 
     const matEl = document.getElementById('inv-material-rank');
     if (matEl) matEl.value = 'Remarkable';
+
+    const shopChk = document.getElementById('inv-opt-workshop');
+    if (shopChk) shopChk.checked = true;
+
+    const kbChk = document.getElementById('inv-opt-kitbash');
+    if (kbChk) kbChk.checked = false;
+
+    const talentChk = document.getElementById('inv-opt-talent');
+    if (talentChk && talentChk.dataset) {
+      delete talentChk.dataset.userInteracted;
+    }
+    this.syncInventionTalentAutoDetect(true);
 
     this.invPowers = [];
     this.invAbilityBoosts = [];
@@ -5710,9 +5890,10 @@ const App = {
     }
 
     if (stage === 'procurement' || stage === 'resource') {
-      const resRankObj = UniversalTableEngine.getRankByName(p.inventorResources);
-      const targetRankObj = UniversalTableEngine.getRankByName(p.resourceFeatTarget);
-      if (resRankObj.index - targetRankObj.index >= 3) {
+      const resIdx = UniversalTableEngine.getRankIndex(p.inventorResources);
+      const targetIdx = UniversalTableEngine.getRankIndex(p.resourceFeatTarget);
+      const rankDiff = (resIdx >= 0 && targetIdx >= 0) ? (resIdx - targetIdx) : 0;
+      if (rankDiff >= 3) {
         const autoPass = {
           passed: true,
           color: 'Green',
@@ -5734,6 +5915,13 @@ const App = {
         return;
       }
 
+      let targetColor = 'Green';
+      if (rankDiff === 0) {
+        targetColor = 'Yellow';
+      } else if (rankDiff < 0) {
+        targetColor = 'Red';
+      }
+
       this.openRoller({
         name: isMagic ? `Reagent Procurement: ${p.name}` : `Invention Procurement: ${p.name}`,
         abilityName: `Resources (${p.inventorResources})`,
@@ -5742,7 +5930,7 @@ const App = {
         actionType: 'invention_stage',
         inventionStage: 'resource',
         project: p,
-        targetColor: (resRankObj.index === targetRankObj.index) ? 'Yellow' : 'Green',
+        targetColor: targetColor,
         damageValue: 0,
         isResourceFEAT: true
       }, mouseEvent);
@@ -5881,7 +6069,12 @@ const App = {
     const pwrNames = (p.powers || []).map(x => `${x.name} [${x.rankName}]`).join(', ') || 'None';
     const bstNames = (p.abilityBoosts || []).map(x => `${x.ability}: ${x.rankName}`).join(', ') || 'None';
     const defaultName = isMagic ? 'Custom Mystic Relic' : 'Custom Invention';
-    const itemName = (p.name && p.name.trim() !== '') ? p.name : defaultName;
+    let itemName = (p.name && p.name.trim() !== '') ? p.name : defaultName;
+    if (p.isKitBash && !itemName.toLowerCase().includes('kit-bash') && !itemName.toLowerCase().includes('prototype')) {
+      itemName += ' (Kit-Bashed Prototype)';
+    }
+
+    const kitBashNote = p.isKitBash ? " [Kit-Bashed Temporary Prototype: lasts 1 encounter/scene then burns out per Player's Book p. 43]" : "";
 
     const item = {
       id: 'inv_' + Date.now(),
@@ -5891,33 +6084,36 @@ const App = {
       damageValue: p.powers && p.powers.length ? p.powers[0].rankValue : 0,
       range: p.activeBoosts.some(b => b.includes('Extended Range')) ? '6 areas' : '3 areas',
       materialStrength: p.materialRank,
+      isKitBash: !!p.isKitBash,
       powers: Array.isArray(p.powers) ? [...p.powers] : [],
       abilityBoosts: Array.isArray(p.abilityBoosts) ? [...p.abilityBoosts] : [],
-      notes: `${isMagic ? 'Mystic Forged Relic' : 'Machines of Doom Invention'}: Powers: ${pwrNames}. Ability Boosts: ${bstNames}. ${isMagic ? 'Forging' : 'Build'} time: ${p.estimatedBuildDays} days. ${isMagic ? 'Mystic Conduit' : 'Power source'}: ${p.powerSource}. Boosts: ${p.activeBoosts.join(', ') || 'None'}. Limits: ${p.activeLimits.join(', ') || 'None'}.`,
+      notes: `${isMagic ? 'Mystic Forged Relic' : 'Machines of Doom Invention'}${kitBashNote}: Powers: ${pwrNames}. Ability Boosts: ${bstNames}. ${isMagic ? 'Forging' : 'Build'} time: ${p.buildTimeDisplay || p.estimatedBuildDays + ' days'}. ${isMagic ? 'Mystic Conduit' : 'Power source'}: ${p.powerSource}. Boosts: ${p.activeBoosts.join(', ') || 'None'}. Limits: ${p.activeLimits.join(', ') || 'None'}.`,
       equipped: true
     };
 
     this.character.equipment.push(item);
 
-    // Automatically add to Known Blueprints Archive
-    this.character.addKnownBlueprint({
-      name: itemName,
-      sourceType: isMagic ? 'magic' : 'tech',
-      origin: 'custom-invention',
-      category: p.category,
-      costRank: p.resourceFeatTarget || 'Typical',
-      resourceRank: p.resourceFeatTarget || 'Typical',
-      materialRank: p.materialRank,
-      blueprintShift: p.blueprintShift || 0,
-      resourceShift: p.resourceShift || 0,
-      assemblyShift: p.assemblyShift || 0,
-      buildDays: p.estimatedBuildDays,
-      powers: Array.isArray(p.powers) ? [...p.powers] : [],
-      abilityBoosts: Array.isArray(p.abilityBoosts) ? [...p.abilityBoosts] : [],
-      activeBoosts: Array.isArray(p.activeBoosts) ? [...p.activeBoosts] : [],
-      activeLimits: Array.isArray(p.activeLimits) ? [...p.activeLimits] : [],
-      notes: `${isMagic ? 'Mystic Forged Relic' : 'Machines of Doom Invention'}: Powers: ${pwrNames}. Ability Boosts: ${bstNames}.`
-    });
+    // Automatically add to Known Blueprints Archive (Only standard non-kitbash inventions create permanent schematics per Player's Book p. 43)
+    if (!p.isKitBash) {
+      this.character.addKnownBlueprint({
+        name: itemName,
+        sourceType: isMagic ? 'magic' : 'tech',
+        origin: 'custom-invention',
+        category: p.category,
+        costRank: p.resourceFeatTarget || 'Typical',
+        resourceRank: p.resourceFeatTarget || 'Typical',
+        materialRank: p.materialRank,
+        blueprintShift: p.blueprintShift || 0,
+        resourceShift: p.resourceShift || 0,
+        assemblyShift: p.assemblyShift || 0,
+        buildDays: p.estimatedBuildDays,
+        powers: Array.isArray(p.powers) ? [...p.powers] : [],
+        abilityBoosts: Array.isArray(p.abilityBoosts) ? [...p.abilityBoosts] : [],
+        activeBoosts: Array.isArray(p.activeBoosts) ? [...p.activeBoosts] : [],
+        activeLimits: Array.isArray(p.activeLimits) ? [...p.activeLimits] : [],
+        notes: `${isMagic ? 'Mystic Forged Relic' : 'Machines of Doom Invention'}: Powers: ${pwrNames}. Ability Boosts: ${bstNames}.`
+      });
+    }
 
     this.saveState();
     this.render();
@@ -5934,8 +6130,12 @@ const App = {
     this.handleCalculateInvention();
     this.updateInventionStagesUI();
 
+    const bpMsg = p.isKitBash
+      ? ' (Temporary jury-rigged prototype not added to permanent Blueprints archive).'
+      : ' Schematic saved to Known Blueprints Archive.';
+
     this.showCustomAlert(
-      `"${item.name}" successfully ${isMagic ? 'consecrated, bound, and equipped' : 'built, calibrated, and installed to Hero\'s Equipment'}! Schematic saved to Known Blueprints Archive.`,
+      `"${item.name}" successfully ${isMagic ? 'consecrated, bound, and equipped' : 'built, calibrated, and installed to Hero\'s Equipment'}!${bpMsg}`,
       isMagic ? '✨ Relic Consecrated' : '🛠️ Invention Assembled',
       mouseEvent
     );
@@ -10190,7 +10390,7 @@ const App = {
       return;
     }
 
-    const currentVer = this.VERSION || '1.5.1';
+    const currentVer = this.VERSION || '1.5.2';
     const localBuildDate = this.BUILD_DATE || '2026-09-24';
     const localCommitSha = this.COMMIT_SHA || '6a15ff5';
     const repoOwner = this.REPO_OWNER || 'captainload';

@@ -63,6 +63,12 @@ const MATERIAL_STRENGTHS = [
     "examples": "Hardened military containment vaults, Sentinel chassis"
   },
   {
+    "name": "Adamantium-Steel / Alien Alloy",
+    "rank": "Unearthly",
+    "num": 100,
+    "examples": "Advanced alien dreadnought hulls, adamantium-steel alloy, Asgardian forge metals"
+  },
+  {
     "name": "True Adamantium",
     "rank": "Class 1000",
     "num": 1000,

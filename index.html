@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Marvel Super Heroes (FASERIP) - Character Builder & Editor</title>
-  <link rel="stylesheet" href="styles.css?v=1.5.15">
+  <link rel="stylesheet" href="styles.css?v=1.5.16">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bangers&display=swap" rel="stylesheet">
@@ -178,15 +178,15 @@
           <!-- Condensed CMF Point-Buy Budget Configuration Bar -->
           <div class="point-buy-strip" id="point-buy-strip">
             <div id="point-tier-status-group" class="point-tier-status-group" style="display: flex; align-items: center; gap: 6px;">
-              <div class="point-tier-summary" style="font-size: 9pt; color: #cbd5e1; display: flex; align-items: center; gap: 5px;">
+              <div class="point-tier-summary" style="font-size: 10pt; color: #cbd5e1; display: flex; align-items: center; gap: 5px;">
                 <span>Tier: <strong id="strip-tier-display" style="color: var(--marvel-gold);">400 CP</strong></span>
                 <span style="opacity: 0.5;">·</span>
                 <span style="display: flex; align-items: center; gap: 3px;">Form: <strong id="strip-form-display" style="color: #38bdf8; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: inline-block; vertical-align: middle;">Mutant</strong></span>
               </div>
-              <button type="button" class="icon-btn primary compact" id="btn-open-creation-wizard" style="display: none; font-size: 8pt; padding: 2px 6px;" title="Set Starting Tier and Physical Form">⚡ Set Tier &amp; Form</button>
+              <button type="button" class="icon-btn primary compact" id="btn-open-creation-wizard" style="display: none; font-size: 10pt; padding: 2px 6px;" title="Set Starting Tier and Physical Form">⚡ Set Tier &amp; Form</button>
             </div>
 
-            <div class="spent-breakdown-text" style="font-size: 8.5pt; color: #cbd5e1; white-space: nowrap;">
+            <div class="spent-breakdown-text" style="font-size: 10pt; color: #cbd5e1; white-space: nowrap;">
               Spent: <strong id="spent-abilities">42</strong> FASERIP · <strong id="spent-powers">0</strong> Pwr · <strong id="spent-talents">0</strong> Tal · <strong id="spent-contacts">0</strong> Con · <strong id="spent-resources">6</strong> Res
             </div>
           </div>
@@ -414,7 +414,7 @@
     <!-- TAB 3: INVENTION LAB (Machines of Doom Expansion) -->
     <section class="tab-pane" id="tab-pane-invention">
       
-      <div class="calc-rule-callout" style="margin-bottom: 8px; padding: 8px 12px; font-size: 9.5pt;">
+      <div class="calc-rule-callout" style="margin-bottom: 8px; padding: 8px 12px; font-size: 10pt;">
         <strong>Machines of Doom Engineering Rules:</strong> Custom gadgets, powered armor, and robotics incorporate multiple UPB powers (+1CS per additional power) and ability boosts (+1CS per boosted stat). Prebuilt rulebook equipment can be reverse-engineered to determine manufacturing specs (unique items like Cap's Shield or Mjolnir are non-reproducible).
       </div>
 
@@ -545,7 +545,7 @@
             <div class="invention-subpanel" style="padding: 8px 12px;">
               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; flex-wrap: wrap; gap: 6px;">
                 <strong style="color: var(--marvel-gold); font-size: 10.5pt;" id="inv-workshop-options-title">🏭 Workshop & Expertise Options (Player's Book pp. 41-44)</strong>
-                <span class="meta-tag" id="inv-talent-detected-badge" style="font-size: 9.5pt; color: #a7f3d0; border: 1px solid #10b981;">Hero Talent: Checking...</span>
+                <span class="meta-tag" id="inv-talent-detected-badge" style="font-size: 10pt; color: #a7f3d0; border: 1px solid #10b981;">Hero Talent: Checking...</span>
               </div>
               <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 8px;">
                 <label class="checkbox-label" title="Inventor has a relevant scientific, engineering, or tinkering talent providing a +1CS column shift to Reason FEATs (auto-detected from hero's learned talents)">
@@ -603,11 +603,11 @@
               <div class="invention-stage-box inv-stage-box" id="inv-stage-box-blueprint" style="border-radius: 6px; padding: 6px 10px; display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap;">
                 <div>
                   <div class="inv-stage-title" style="font-weight: 700; font-size: 10pt;" id="inv-stage-blueprint-title">1. 📐 Blueprint Design FEAT</div>
-                  <div style="font-size: 9.5pt; color: var(--text-muted);" id="inv-stage-blueprint-desc"><span id="inv-stage-blueprint-attr">Reason</span> FEAT vs <span id="inv-blueprint-target-text" style="color: #93c5fd; font-weight: 700;">Remarkable</span> (Karma allowed)</div>
+                  <div style="font-size: 10pt; color: var(--text-muted);" id="inv-stage-blueprint-desc"><span id="inv-stage-blueprint-attr">Reason</span> FEAT vs <span id="inv-blueprint-target-text" style="color: #93c5fd; font-weight: 700;">Remarkable</span> (Karma allowed)</div>
                 </div>
                 <div style="display: flex; align-items: center; gap: 8px;">
-                  <span class="meta-tag" id="inv-stage-blueprint-status" style="font-size: 9.5pt;">Pending</span>
-                  <button type="button" class="icon-btn" id="btn-roll-inv-blueprint" style="padding: 4px 10px; min-height: 32px; font-size: 9.5pt;">🎲 Roll Design</button>
+                  <span class="meta-tag" id="inv-stage-blueprint-status" style="font-size: 10pt;">Pending</span>
+                  <button type="button" class="icon-btn" id="btn-roll-inv-blueprint" style="padding: 4px 10px; min-height: 32px; font-size: 10pt;">🎲 Roll Design</button>
                 </div>
               </div>
 
@@ -615,11 +615,11 @@
               <div class="invention-stage-box inv-stage-box" id="inv-stage-box-resource" style="border-radius: 6px; padding: 6px 10px; display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap;">
                 <div>
                   <div class="inv-stage-title" style="font-weight: 700; font-size: 10pt;" id="inv-stage-resource-title">2. 🔩 Resource Procurement FEAT</div>
-                  <div style="font-size: 9.5pt; color: var(--text-muted);" id="inv-stage-resource-desc">Resource FEAT vs <span id="inv-resource-target-text" style="color: #93c5fd; font-weight: 700;">Remarkable</span> (No Karma per p. 18)</div>
+                  <div style="font-size: 10pt; color: var(--text-muted);" id="inv-stage-resource-desc">Resource FEAT vs <span id="inv-resource-target-text" style="color: #93c5fd; font-weight: 700;">Remarkable</span> (No Karma per p. 18)</div>
                 </div>
                 <div style="display: flex; align-items: center; gap: 8px;">
-                  <span class="meta-tag" id="inv-stage-resource-status" style="font-size: 9.5pt;">Pending</span>
-                  <button type="button" class="icon-btn" id="btn-roll-inv-resource" style="padding: 4px 10px; min-height: 32px; font-size: 9.5pt;">🎲 Roll Resources</button>
+                  <span class="meta-tag" id="inv-stage-resource-status" style="font-size: 10pt;">Pending</span>
+                  <button type="button" class="icon-btn" id="btn-roll-inv-resource" style="padding: 4px 10px; min-height: 32px; font-size: 10pt;">🎲 Roll Resources</button>
                 </div>
               </div>
 
@@ -627,11 +627,11 @@
               <div class="invention-stage-box inv-stage-box" id="inv-stage-box-assembly" style="border-radius: 6px; padding: 6px 10px; display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap;">
                 <div>
                   <div class="inv-stage-title" style="font-weight: 700; font-size: 10pt;" id="inv-stage-assembly-title">3. 🛠️ Assembly & Construction FEAT</div>
-                  <div style="font-size: 9.5pt; color: var(--text-muted);" id="inv-stage-assembly-desc"><span id="inv-stage-assembly-attr">Reason</span> FEAT vs <span id="inv-assembly-target-text" style="color: #93c5fd; font-weight: 700;">Remarkable</span> (<span id="inv-stage-assembly-facil">Requires Workshop</span>)</div>
+                  <div style="font-size: 10pt; color: var(--text-muted);" id="inv-stage-assembly-desc"><span id="inv-stage-assembly-attr">Reason</span> FEAT vs <span id="inv-assembly-target-text" style="color: #93c5fd; font-weight: 700;">Remarkable</span> (<span id="inv-stage-assembly-facil">Requires Workshop</span>)</div>
                 </div>
                 <div style="display: flex; align-items: center; gap: 8px;">
-                  <span class="meta-tag" id="inv-stage-assembly-status" style="font-size: 9.5pt;">Pending</span>
-                  <button type="button" class="icon-btn" id="btn-roll-inv-assembly" style="padding: 4px 10px; min-height: 32px; font-size: 9.5pt;">🎲 Roll Assembly</button>
+                  <span class="meta-tag" id="inv-stage-assembly-status" style="font-size: 10pt;">Pending</span>
+                  <button type="button" class="icon-btn" id="btn-roll-inv-assembly" style="padding: 4px 10px; min-height: 32px; font-size: 10pt;">🎲 Roll Assembly</button>
                 </div>
               </div>
 
@@ -651,7 +651,7 @@
           </div>
 
           <div style="display: flex; flex-direction: column; gap: 8px;">
-            <p style="color: var(--text-muted); font-size: 9.5pt; margin: 0;">
+            <p style="color: var(--text-muted); font-size: 10pt; margin: 0;">
               Select any prebuilt equipment from the official rulebooks to calculate its raw material procurement, blueprint design FEAT, and workshop build time:
             </p>
 
@@ -680,7 +680,7 @@
           </div>
 
           <div style="display: flex; flex-direction: column; gap: 8px;">
-            <div class="calc-rule-callout" style="margin-bottom: 0px; padding: 8px 12px; font-size: 9.5pt;">
+            <div class="calc-rule-callout" style="margin-bottom: 0px; padding: 8px 12px; font-size: 10pt;">
               <strong>Mastered Schematics:</strong> Any device successfully assembled or equipment item reverse-engineered is stored in this archive. Building from a known blueprint <strong>bypasses the Phase 1 Blueprint Design FEAT</strong> automatically!
             </div>
 
@@ -725,7 +725,7 @@
         <div class="card">
           <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
             <span class="card-title" id="talents-card-title">🥋 Talents & Skills (10 CP / 20 CP Starred)</span>
-            <span id="talents-slots-badge" class="meta-tag" style="font-size: 8.5pt;">0 CP</span>
+            <span id="talents-slots-badge" class="meta-tag" style="font-size: 10pt;">0 CP</span>
           </div>
 
           <div style="display: flex; gap: 10px; margin-bottom: 8px;">
@@ -856,13 +856,13 @@
               <select id="background-resource-select" class="field-input" style="min-height: 36px; font-weight: 700; flex: 1;"></select>
               <span class="meta-tag" id="background-resource-val" style="font-size: 11pt; font-weight: 800; color: var(--marvel-gold); min-width: 32px; text-align: center;">6</span>
             </div>
-            <div style="font-size: 9.5pt; color: var(--text-muted); margin-top: 4px;">Standard FASERIP attribute reflecting personal wealth &amp; purchasing power.</div>
+            <div style="font-size: 10pt; color: var(--text-muted); margin-top: 4px;">Standard FASERIP attribute reflecting personal wealth &amp; purchasing power.</div>
           </div>
 
           <!-- Purchasing Rules Overview -->
           <div class="financial-stat-box">
             <span class="financial-stat-label">Purchasing Rules (Player's Book p. 24)</span>
-            <div style="font-size: 9.5pt; color: var(--text-muted); margin-top: 4px; line-height: 1.5;">
+            <div style="font-size: 10pt; color: var(--text-muted); margin-top: 4px; line-height: 1.5;">
               • Items at or below rank: <strong>Automatic purchase</strong> (within reason).<br>
               • Items 1 rank higher: <strong>Yellow Resource FEAT roll</strong>.<br>
               • Items 2 ranks higher: <strong>Red Resource FEAT roll</strong>.<br>
@@ -881,7 +881,7 @@
               <span class="meta-tag" id="edit-log-count-badge">0 Edits</span>
             </div>
             <div style="display: flex; gap: 8px; align-items: center;">
-              <button type="button" class="icon-btn" id="btn-copy-edit-log" style="font-size: 9.5pt; padding: 4px 10px; min-height: 28px;" title="Copy complete edit log to clipboard">📋 Copy Log</button>
+              <button type="button" class="icon-btn" id="btn-copy-edit-log" style="font-size: 10pt; padding: 4px 10px; min-height: 28px;" title="Copy complete edit log to clipboard">📋 Copy Log</button>
             </div>
           </div>
         </div>
@@ -1826,11 +1826,11 @@
           <!-- SECTION: PROGRAM UPDATES & AUTOMATED CHECKING -->
           <div style="font-weight: 700; color: var(--text-main); font-size: 11pt; border-bottom: 1px solid var(--border-color); padding-bottom: 6px; margin-top: 10px; display: flex; justify-content: space-between; align-items: center;">
             <span>🔄 Program Updates &amp; Automated Checking</span>
-            <span class="meta-tag" id="update-version-tag" style="color: var(--marvel-gold); font-size: 9pt;">v1.5.15</span>
+            <span class="meta-tag" id="update-version-tag" style="color: var(--marvel-gold); font-size: 10pt;">v1.5.16</span>
           </div>
 
           <div class="update-settings-panel" style="background: rgba(0, 0, 0, 0.2); border: 1px solid var(--border-color); border-radius: 6px; padding: 12px; display: flex; flex-direction: column; gap: 10px;">
-            <div style="color: var(--text-muted); font-size: 9.5pt; line-height: 1.4;">
+            <div style="color: var(--text-muted); font-size: 10pt; line-height: 1.4;">
               Configure automated update checking:
             </div>
 
@@ -1845,11 +1845,11 @@
 
             <!-- Status Bar & Manual Check Button -->
             <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; padding-top: 8px; border-top: 1px solid rgba(255, 255, 255, 0.08); margin-top: 2px;">
-              <div style="font-size: 9pt; color: var(--text-muted);">
+              <div style="font-size: 10pt; color: var(--text-muted);">
                 <span>Last checked: <strong id="update-last-checked-text" style="color: var(--text-main);">Never</strong></span>
                 <span id="update-status-badge" style="margin-left: 8px; font-weight: 700; color: #4ade80;"></span>
               </div>
-              <button type="button" class="icon-btn" id="btn-check-updates-now" style="font-size: 9.5pt; padding: 4px 12px;">
+              <button type="button" class="icon-btn" id="btn-check-updates-now" style="font-size: 10pt; padding: 4px 12px;">
                 🔄 Check for Updates Now
               </button>
             </div>
@@ -1875,7 +1875,7 @@
           <div id="folder-current-path" style="font-family: monospace; font-size: 11pt; color: var(--accent-blue); word-break: break-all; margin-top: 4px;">
             📁 Documents (System Default)
           </div>
-          <div id="folder-os-hint" style="font-size: 9.5pt; color: var(--text-muted); line-height: 1.45;">
+          <div id="folder-os-hint" style="font-size: 10pt; color: var(--text-muted); line-height: 1.45;">
             Detecting operating system default...
           </div>
         </div>
@@ -1885,7 +1885,7 @@
           <button type="button" class="icon-btn" id="btn-reset-folder-default" style="flex: 1 1 220px; min-height: 40px; font-size: 10pt;" title="Reset character save and load location back to your system Documents folder">🔄 Reset to Default Location</button>
         </div>
 
-        <div style="color: var(--text-muted); font-size: 9.5pt; line-height: 1.45; margin-top: -6px;">
+        <div style="color: var(--text-muted); font-size: 10pt; line-height: 1.45; margin-top: -6px;">
           When selecting a new folder or resetting to default, the editor will offer to copy or move all known saved character files to that location.
         </div>
 
@@ -1893,7 +1893,7 @@
         <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 4px;">
           <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 6px; flex-wrap: wrap; gap: 8px;">
             <strong style="color: var(--text-main); font-size: 10.5pt;">📦 Known Saved Characters (<span id="known-files-count">0</span>)</strong>
-            <button type="button" class="icon-btn" id="btn-move-known-files" style="font-size: 9pt; padding: 4px 10px;" title="Copy all known character files to the active folder">📦 Move All Files to Active Folder</button>
+            <button type="button" class="icon-btn" id="btn-move-known-files" style="font-size: 10pt; padding: 4px 10px;" title="Copy all known character files to the active folder">📦 Move All Files to Active Folder</button>
           </div>
           <div id="known-files-list" style="max-height: 170px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; background: rgba(0, 0, 0, 0.2); border: 1px solid var(--border-color); border-radius: 6px; padding: 8px;">
             <!-- Populated dynamically -->
@@ -1901,7 +1901,7 @@
         </div>
       </div>
       <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 18px;">
-        <div style="font-size: 9pt; color: var(--text-muted);">
+        <div style="font-size: 10pt; color: var(--text-muted);">
           Tip: <strong>"Open Character"</strong> will automatically open from your last save location.
         </div>
         <button type="button" class="icon-btn" id="btn-close-folder-modal-footer">Close</button>
@@ -2276,7 +2276,7 @@
         </div>
       </div>
       <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 18px; border-top: 1px solid var(--border-color);">
-        <span id="modal-opt-surcharge-summary" style="font-size: 9.5pt; color: var(--text-muted);"></span>
+        <span id="modal-opt-surcharge-summary" style="font-size: 10pt; color: var(--text-muted);"></span>
         <div style="display: flex; gap: 8px;">
           <button type="button" class="icon-btn" id="btn-cancel-opt-modal">Cancel</button>
           <button type="button" class="icon-btn primary" id="btn-save-opt-modal">💾 Save Option</button>
@@ -2302,9 +2302,9 @@
         <div class="power-adj-card" style="padding: 10px 14px; border-radius: 6px; background: rgba(15, 23, 42, 0.4); border: 1px solid var(--border-color);">
           <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px;">
             <strong id="modal-trigger-power-name" style="font-size: 12pt; color: var(--text-main);"></strong>
-            <span id="modal-trigger-status-badge" class="meta-tag" style="font-size: 9.5pt;"></span>
+            <span id="modal-trigger-status-badge" class="meta-tag" style="font-size: 10pt;"></span>
           </div>
-          <div id="modal-trigger-power-meta" style="font-size: 9.5pt; color: var(--text-muted); margin-top: 4px;"></div>
+          <div id="modal-trigger-power-meta" style="font-size: 10pt; color: var(--text-muted); margin-top: 4px;"></div>
         </div>
 
         <!-- Section 1: Operational Type -->
@@ -2317,14 +2317,14 @@
               <input type="radio" name="trigger-op-type" value="passive" id="trigger-op-passive" style="margin-top: 3px;">
               <div>
                 <strong>Passive / Continuous Operation</strong>
-                <div style="color: var(--text-muted); font-size: 9pt;">Maintains operation across combat rounds once switched on (e.g. Body Armor, Force Fields, Alternate Forms, Sensory Powers, Flight). Can be switched on/off at will.</div>
+                <div style="color: var(--text-muted); font-size: 10pt;">Maintains operation across combat rounds once switched on (e.g. Body Armor, Force Fields, Alternate Forms, Sensory Powers, Flight). Can be switched on/off at will.</div>
               </div>
             </label>
             <label style="display: flex; align-items: flex-start; gap: 8px; cursor: pointer; font-size: 10pt;">
               <input type="radio" name="trigger-op-type" value="active" id="trigger-op-active" style="margin-top: 3px;">
               <div>
                 <strong>Active / At-Will Action</strong>
-                <div style="color: var(--text-muted); font-size: 9pt;">Requires an active action each time used in combat (e.g. Energy Blasts, Punches, Natural Weapons, Projectiles). Available at all times unless disabled.</div>
+                <div style="color: var(--text-muted); font-size: 10pt;">Requires an active action each time used in combat (e.g. Energy Blasts, Punches, Natural Weapons, Projectiles). Available at all times unless disabled.</div>
               </div>
             </label>
           </div>
@@ -2340,14 +2340,14 @@
               <input type="radio" name="trigger-link-mode" value="default" id="trigger-link-default" style="margin-top: 3px;" checked>
               <div>
                 <strong>Default / Independent</strong>
-                <div style="color: var(--text-muted); font-size: 9pt;">Operates normally and independently of any other superhuman power.</div>
+                <div style="color: var(--text-muted); font-size: 10pt;">Operates normally and independently of any other superhuman power.</div>
               </div>
             </label>
             <label style="display: flex; align-items: flex-start; gap: 8px; cursor: pointer; font-size: 10pt;">
               <input type="radio" name="trigger-link-mode" value="linked" id="trigger-link-linked" style="margin-top: 3px;">
               <div>
                 <strong>Linked to Master Power</strong>
-                <div style="color: var(--text-muted); font-size: 9pt;">State is slaved to another power (e.g., Colossus's Body Armor triggers when Organic Steel activates; Cannonball's Force Field triggers while Rocket Flight is operating).</div>
+                <div style="color: var(--text-muted); font-size: 10pt;">State is slaved to another power (e.g., Colossus's Body Armor triggers when Organic Steel activates; Cannonball's Force Field triggers while Rocket Flight is operating).</div>
               </div>
             </label>
           </div>
@@ -2355,7 +2355,7 @@
           <!-- Sub-panel for Linked Mode -->
           <div id="trigger-linked-details" style="display: none; margin-top: 12px; padding: 10px 12px; background: rgba(0, 0, 0, 0.25); border-radius: 6px; border: 1px solid rgba(168, 85, 247, 0.3);">
             <div style="margin-bottom: 10px;">
-              <label for="trigger-master-select" style="display: block; font-size: 9.5pt; font-weight: 600; margin-bottom: 4px; color: #c084fc;">
+              <label for="trigger-master-select" style="display: block; font-size: 10pt; font-weight: 600; margin-bottom: 4px; color: #c084fc;">
                 Select Master Power:
               </label>
               <select id="trigger-master-select" class="field-input" style="width: 100%; min-height: 32px; font-size: 10pt;">
@@ -2363,23 +2363,23 @@
               </select>
             </div>
             <div style="margin-bottom: 10px;">
-              <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 9.5pt;">
+              <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 10pt;">
                 <input type="checkbox" id="trigger-invert-check">
                 <span><strong>Invert Activation Condition</strong> (Power is shut off while master power operates, e.g. Emma Frost's Diamond Form disables Telepathy)</span>
               </label>
             </div>
             <div>
-              <label for="trigger-condition-input" style="display: block; font-size: 9.5pt; font-weight: 600; margin-bottom: 4px; color: var(--text-muted);">
+              <label for="trigger-condition-input" style="display: block; font-size: 10pt; font-weight: 600; margin-bottom: 4px; color: var(--text-muted);">
                 Activation Condition Description (Optional):
               </label>
-              <input type="text" id="trigger-condition-input" class="field-input" placeholder="e.g. Adrenalin Surge, In Flight, Physical Contact" style="width: 100%; min-height: 30px; font-size: 9.5pt;">
+              <input type="text" id="trigger-condition-input" class="field-input" placeholder="e.g. Adrenalin Surge, In Flight, Physical Contact" style="width: 100%; min-height: 30px; font-size: 10pt;">
             </div>
           </div>
         </div>
 
         <!-- Section 3: Canonical Archetype Presets -->
         <div style="background: rgba(255, 255, 255, 0.02); padding: 10px 12px; border-radius: 6px; border: 1px solid rgba(255, 255, 255, 0.08);">
-          <div style="font-size: 9pt; font-weight: 700; color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase;">
+          <div style="font-size: 10pt; font-weight: 700; color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase;">
             Quick Archetype Presets:
           </div>
           <div style="display: flex; flex-wrap: wrap; gap: 6px;">
@@ -2399,7 +2399,7 @@
         </div>
       </div>
       <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 18px; border-top: 1px solid var(--border-color);">
-        <button type="button" class="icon-btn" id="btn-reset-trigger" style="font-size: 9pt;">↺ Reset to Default</button>
+        <button type="button" class="icon-btn" id="btn-reset-trigger" style="font-size: 10pt;">↺ Reset to Default</button>
         <div style="display: flex; gap: 8px;">
           <button type="button" class="icon-btn" id="btn-cancel-trigger-modal">Cancel</button>
           <button type="button" class="icon-btn primary" id="btn-save-trigger-modal">💾 Save Trigger Config</button>
@@ -2419,7 +2419,7 @@
         <button type="button" class="modal-close" id="btn-close-karma-mode-modal">&times;</button>
       </div>
       <div class="modal-body" style="padding: 16px 20px; display: flex; flex-direction: column; gap: 14px;">
-        <div style="font-size: 9.5pt; color: var(--text-muted); line-height: 1.4;">
+        <div style="font-size: 10pt; color: var(--text-muted); line-height: 1.4;">
           Select how Karma is utilized for your character. Switch between standard live gameplay, trait advancement, or an infinite-KP sandbox for testing and planning.
         </div>
 
@@ -2455,8 +2455,8 @@
             </div>
             <!-- Advancement In-Progress Actions / Summary -->
             <div id="adv-mode-active-strip" style="display: none; margin-top: 8px; padding-top: 8px; border-top: 1px dashed rgba(255,255,255,0.1); justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px;">
-              <span id="adv-mode-changes-summary" style="font-size: 8.5pt; color: var(--marvel-gold); font-weight: 600;">No advancements made in this session yet</span>
-              <button type="button" class="icon-btn compact" id="btn-revert-adv-in-modal" style="font-size: 8.5pt; color: #ef4444; border-color: rgba(239, 68, 68, 0.4);">↺ Revert All Advancements</button>
+              <span id="adv-mode-changes-summary" style="font-size: 10pt; color: var(--marvel-gold); font-weight: 600;">No advancements made in this session yet</span>
+              <button type="button" class="icon-btn compact" id="btn-revert-adv-in-modal" style="font-size: 10pt; color: #ef4444; border-color: rgba(239, 68, 68, 0.4);">↺ Revert All Advancements</button>
             </div>
           </div>
 
@@ -2473,7 +2473,7 @@
             <div class="mode-card-desc">
               Grants <strong>infinite Karma (∞ KP)</strong>. Freely experiment with Karma-boosted rolls or plan trait rank increases without spending real Karma.
             </div>
-            <div style="margin-top: 6px; font-size: 8.5pt; color: #f59e0b; display: flex; align-items: center; gap: 4px;">
+            <div style="margin-top: 6px; font-size: 10pt; color: #f59e0b; display: flex; align-items: center; gap: 4px;">
               <span>⚠️</span>
               <span>When switching away from Test Mode, all test-mode changes will be cleared and your character will revert to their pre-test state.</span>
             </div>
@@ -2481,7 +2481,7 @@
         </div>
       </div>
       <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 18px; border-top: 1px solid var(--border-color);">
-        <button type="button" class="icon-btn" id="btn-open-adv-from-mode" style="display: none; font-size: 9pt;">📈 Open Character Advancement</button>
+        <button type="button" class="icon-btn" id="btn-open-adv-from-mode" style="display: none; font-size: 10pt;">📈 Open Character Advancement</button>
         <div style="display: flex; gap: 8px; margin-left: auto;">
           <button type="button" class="icon-btn" id="btn-cancel-karma-mode">Cancel</button>
           <button type="button" class="icon-btn primary" id="btn-apply-karma-mode">Switch Mode</button>
@@ -2507,16 +2507,16 @@
             <div style="display: flex; align-items: center; gap: 6px;">
               <span id="adv-banner-icon">🔒</span>
               <strong id="adv-banner-title">Session Mode (Locked)</strong>
-              <span id="adv-banner-desc" style="font-size: 8.5pt; opacity: 0.85;">Advancement locked during live play.</span>
+              <span id="adv-banner-desc" style="font-size: 10pt; opacity: 0.85;">Advancement locked during live play.</span>
             </div>
             <div style="display: flex; gap: 6px;">
-              <button type="button" class="icon-btn compact" id="btn-revert-adv-in-advmodal" style="display: none; font-size: 8pt; color: #ef4444; border-color: rgba(239,68,68,0.4);">↺ Revert Changes</button>
-              <button type="button" class="icon-btn compact" id="btn-switch-mode-from-advmodal" style="font-size: 8.5pt;">📈 Switch to Advancement Mode</button>
+              <button type="button" class="icon-btn compact" id="btn-revert-adv-in-advmodal" style="display: none; font-size: 10pt; color: #ef4444; border-color: rgba(239,68,68,0.4);">↺ Revert Changes</button>
+              <button type="button" class="icon-btn compact" id="btn-switch-mode-from-advmodal" style="font-size: 10pt;">📈 Switch to Advancement Mode</button>
             </div>
           </div>
         </div>
 
-        <div style="font-size: 9.5pt; color: var(--text-muted); line-height: 1.4;">
+        <div style="font-size: 10pt; color: var(--text-muted); line-height: 1.4;">
           Per TSR Advanced Set rules (Player's Book p. 19), a hero may spend accumulated Karma to permanently advance an Ability, Power, or Resource rank. Training time equals the number of rank bands added in days.
         </div>
 
@@ -2542,7 +2542,7 @@
 
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
           <div>
-            <label style="display: block; font-weight: 700; font-size: 9.5pt; margin-bottom: 4px; color: var(--text-muted);">
+            <label style="display: block; font-weight: 700; font-size: 10pt; margin-bottom: 4px; color: var(--text-muted);">
               Current Rank:
             </label>
             <div id="adv-current-rank-display" style="padding: 8px 12px; background: rgba(0, 0, 0, 0.3); border: 1px solid var(--border-color); border-radius: 6px; font-weight: 800; font-size: 11pt; color: #fff;">
@@ -2550,7 +2550,7 @@
             </div>
           </div>
           <div>
-            <label for="adv-target-rank-select" style="display: block; font-weight: 700; font-size: 9.5pt; margin-bottom: 4px; color: var(--marvel-gold);">
+            <label for="adv-target-rank-select" style="display: block; font-weight: 700; font-size: 10pt; margin-bottom: 4px; color: var(--marvel-gold);">
               Target New Rank:
             </label>
             <select id="adv-target-rank-select" class="field-input" style="width: 100%; min-height: 38px; font-size: 10.5pt; font-weight: 700;">
@@ -2576,10 +2576,10 @@
         </div>
 
         <div>
-          <label for="adv-custom-notes" style="display: block; font-size: 9pt; font-weight: 600; margin-bottom: 4px; color: var(--text-muted);">
+          <label for="adv-custom-notes" style="display: block; font-size: 10pt; font-weight: 600; margin-bottom: 4px; color: var(--text-muted);">
             Training / Roleplay Notes (Optional):
           </label>
-          <input type="text" id="adv-custom-notes" class="field-input" placeholder="e.g. Danger Room training with Wolverine; Stark lab research" style="width: 100%; min-height: 32px; font-size: 9.5pt;">
+          <input type="text" id="adv-custom-notes" class="field-input" placeholder="e.g. Danger Room training with Wolverine; Stark lab research" style="width: 100%; min-height: 32px; font-size: 10pt;">
         </div>
       </div>
       <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 8px; padding: 12px 18px; border-top: 1px solid var(--border-color);">
@@ -2599,13 +2599,13 @@
         <button type="button" class="modal-close" id="btn-close-char-init-modal">&times;</button>
       </div>
       <div class="modal-body" style="padding: 16px 20px; display: flex; flex-direction: column; gap: 14px;">
-        <div style="font-size: 9.5pt; color: var(--text-muted); line-height: 1.4;">
+        <div style="font-size: 10pt; color: var(--text-muted); line-height: 1.4;">
           Welcome to Hero Creation! Choose your starting Character Point (CP) budget tier and physical form to begin spending points on FASERIP abilities, powers, and talents.
         </div>
 
         <!-- Hero Name Input -->
         <div>
-          <label for="init-char-name" style="display: block; font-weight: 700; font-size: 9.5pt; margin-bottom: 4px; color: var(--text-main);">
+          <label for="init-char-name" style="display: block; font-weight: 700; font-size: 10pt; margin-bottom: 4px; color: var(--text-main);">
             Hero / Codename:
           </label>
           <input type="text" id="init-char-name" class="field-input" placeholder="e.g. Vanguard, Eclipse, Iron Sentinel" style="width: 100%; min-height: 36px; font-size: 10.5pt;">
@@ -2613,7 +2613,7 @@
 
         <!-- Starting Tier Selection -->
         <div>
-          <label for="init-tier-select" style="display: block; font-weight: 700; font-size: 9.5pt; margin-bottom: 4px; color: var(--marvel-gold);">
+          <label for="init-tier-select" style="display: block; font-weight: 700; font-size: 10pt; margin-bottom: 4px; color: var(--marvel-gold);">
             Starting CMF Tier (Point-Buy Budget):
           </label>
           <select id="init-tier-select" class="field-input" style="width: 100%; min-height: 36px; font-size: 10.5pt; font-weight: 700;">
@@ -2629,14 +2629,14 @@
 
         <!-- Custom Tier Budget Input (Shown only when custom selected) -->
         <div id="init-custom-tier-row" style="display: none; align-items: center; gap: 10px; background: rgba(0,0,0,0.25); padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border-color);">
-          <label for="init-custom-budget" style="font-size: 9pt; font-weight: 600; color: var(--text-muted);">Custom CP Budget:</label>
+          <label for="init-custom-budget" style="font-size: 10pt; font-weight: 600; color: var(--text-muted);">Custom CP Budget:</label>
           <input type="number" id="init-custom-budget" class="field-input compact" value="400" min="50" max="2000" style="width: 100px; text-align: center; font-weight: 700;">
-          <span style="font-size: 8.5pt; color: var(--text-muted);">Points allocated for stats, powers, talents &amp; resources.</span>
+          <span style="font-size: 10pt; color: var(--text-muted);">Points allocated for stats, powers, talents &amp; resources.</span>
         </div>
 
         <!-- Physical Form Selection -->
         <div>
-          <label for="init-form-select" style="display: block; font-weight: 700; font-size: 9.5pt; margin-bottom: 4px; color: #38bdf8;">
+          <label for="init-form-select" style="display: block; font-weight: 700; font-size: 10pt; margin-bottom: 4px; color: #38bdf8;">
             Physical Form &amp; Origin:
           </label>
           <select id="init-form-select" class="field-input" style="width: 100%; min-height: 36px; font-size: 10.5pt;">
@@ -2648,10 +2648,10 @@
         <div id="init-form-preview-box" style="background: rgba(56, 189, 248, 0.06); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 6px; padding: 10px 14px;">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
             <strong id="init-form-preview-name" style="color: #38bdf8; font-size: 10pt;">Mutant (Homo Superior)</strong>
-            <span id="init-form-preview-cat" class="meta-tag" style="font-size: 8pt;">Metahuman</span>
+            <span id="init-form-preview-cat" class="meta-tag" style="font-size: 10pt;">Metahuman</span>
           </div>
-          <div id="init-form-preview-desc" style="font-size: 8.5pt; color: #cbd5e1; line-height: 1.4; margin-bottom: 6px;"></div>
-          <div id="init-form-preview-rules" style="font-size: 8pt; color: var(--marvel-gold); line-height: 1.3;"></div>
+          <div id="init-form-preview-desc" style="font-size: 10pt; color: #cbd5e1; line-height: 1.4; margin-bottom: 6px;"></div>
+          <div id="init-form-preview-rules" style="font-size: 10pt; color: var(--marvel-gold); line-height: 1.3;"></div>
         </div>
       </div>
       <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 8px; padding: 12px 18px; border-top: 1px solid var(--border-color);">
@@ -2758,7 +2758,7 @@
       </div>
 
       <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center; padding: 10px 18px;">
-        <div style="font-size: 9pt; color: var(--text-muted);">
+        <div style="font-size: 10pt; color: var(--text-muted);">
           Tip: In the print dialog, select <strong>"Save as PDF"</strong> as your Destination printer for a clean digital document.
         </div>
         <button type="button" class="icon-btn modal-close-btn" id="btn-close-print-preview-footer">Close</button>
@@ -2767,13 +2767,13 @@
   </div>
 
   <!-- Scripts Loading -->
-  <script src="universal_table.js?v=1.5.15"></script>
-  <script src="data_forms.js?v=1.5.15"></script>
-  <script src="data_powers.js?v=1.5.15"></script>
-  <script src="data_talents.js?v=1.5.15"></script>
-  <script src="data_equipment.js?v=1.5.15"></script>
-  <script src="inventions.js?v=1.5.15"></script>
-  <script src="character_model.js?v=1.5.15"></script>
-  <script src="app.js?v=1.5.15"></script>
+  <script src="universal_table.js?v=1.5.16"></script>
+  <script src="data_forms.js?v=1.5.16"></script>
+  <script src="data_powers.js?v=1.5.16"></script>
+  <script src="data_talents.js?v=1.5.16"></script>
+  <script src="data_equipment.js?v=1.5.16"></script>
+  <script src="inventions.js?v=1.5.16"></script>
+  <script src="character_model.js?v=1.5.16"></script>
+  <script src="app.js?v=1.5.16"></script>
 </body>
 </html>

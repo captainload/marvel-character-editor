@@ -47,7 +47,7 @@ const App = {
   set superiorOptionTax(val) {
     this.superiorOptionCost = !!val;
   },
-  VERSION: '1.5.15',
+  VERSION: '1.5.16',
   BUILD_DATE: '2026-09-25',
   COMMIT_SHA: '6a15ff5',
   REPO_OWNER: 'captainload',
@@ -2554,7 +2554,7 @@ const App = {
               <strong style="color: var(--marvel-gold); font-size: 10pt;">⚡ ${unitName}:</strong>
               <span class="power-pool-count" style="font-weight: 700; font-size: 10.5pt; color: #38bdf8;">${curCharge} / ${maxCharge}</span>
             </div>
-            <div class="power-pool-effects-badge" style="font-size: 9pt; font-weight: 600; padding: 2px 8px; border-radius: 4px; background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3);">
+            <div class="power-pool-effects-badge" style="font-size: 10pt; font-weight: 600; padding: 2px 8px; border-radius: 4px; background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3);">
               ${derivedSummary}
             </div>
           </div>
@@ -2563,21 +2563,21 @@ const App = {
           </div>
           <div class="power-pool-controls" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px;">
             <div style="display: flex; gap: 4px; align-items: center;">
-              <button type="button" class="pool-step-btn icon-btn" style="min-height: 28px; padding: 2px 8px; font-size: 9pt;" data-step="-50">-50</button>
-              <button type="button" class="pool-step-btn icon-btn" style="min-height: 28px; padding: 2px 8px; font-size: 9pt;" data-step="-10">-10</button>
-              <button type="button" class="pool-step-btn icon-btn" style="min-height: 28px; padding: 2px 6px; font-size: 9pt;" data-step="-1">-1</button>
+              <button type="button" class="pool-step-btn icon-btn" style="min-height: 28px; padding: 2px 8px; font-size: 10pt;" data-step="-50">-50</button>
+              <button type="button" class="pool-step-btn icon-btn" style="min-height: 28px; padding: 2px 8px; font-size: 10pt;" data-step="-10">-10</button>
+              <button type="button" class="pool-step-btn icon-btn" style="min-height: 28px; padding: 2px 6px; font-size: 10pt;" data-step="-1">-1</button>
             </div>
             <div style="display: flex; align-items: center; gap: 6px;">
               <input type="number" class="field-input pool-direct-input" value="${curCharge}" min="0" max="${maxCharge}" style="width: 80px; text-align: center; font-weight: 700; min-height: 28px; padding: 2px 6px; font-size: 10pt;">
-              <button type="button" class="icon-btn pool-set-btn primary" style="min-height: 28px; padding: 2px 10px; font-size: 9pt;">Set</button>
+              <button type="button" class="icon-btn pool-set-btn primary" style="min-height: 28px; padding: 2px 10px; font-size: 10pt;">Set</button>
             </div>
             <div style="display: flex; gap: 4px; align-items: center;">
-              <button type="button" class="pool-step-btn icon-btn" style="min-height: 28px; padding: 2px 6px; font-size: 9pt;" data-step="1">+1</button>
-              <button type="button" class="pool-step-btn icon-btn" style="min-height: 28px; padding: 2px 8px; font-size: 9pt;" data-step="10">+10</button>
-              <button type="button" class="pool-step-btn icon-btn" style="min-height: 28px; padding: 2px 8px; font-size: 9pt;" data-step="50">+50</button>
+              <button type="button" class="pool-step-btn icon-btn" style="min-height: 28px; padding: 2px 6px; font-size: 10pt;" data-step="1">+1</button>
+              <button type="button" class="pool-step-btn icon-btn" style="min-height: 28px; padding: 2px 8px; font-size: 10pt;" data-step="10">+10</button>
+              <button type="button" class="pool-step-btn icon-btn" style="min-height: 28px; padding: 2px 8px; font-size: 10pt;" data-step="50">+50</button>
             </div>
           </div>
-          ${p.pool.decayRate ? `<div style="font-size: 8.5pt; color: var(--text-muted); margin-top: 4px;">⏱️ Bleed-off: ${p.pool.decayRate}</div>` : ''}
+          ${p.pool.decayRate ? `<div style="font-size: 10pt; color: var(--text-muted); margin-top: 4px;">⏱️ Bleed-off: ${p.pool.decayRate}</div>` : ''}
         `;
 
         poolDiv.querySelectorAll('.pool-step-btn').forEach(btn => {
@@ -3756,8 +3756,8 @@ const App = {
       const isChecked = idx === 0 ? 'checked' : '';
       const subChoiceHtml = c.subChoiceList ? `
         <div class="power-option-subchoice-box" id="new-power-subchoice-box-${c.key}" style="display: ${idx === 0 ? 'block' : 'none'}; margin-top: 6px;">
-          <label style="font-size: 9pt; color: var(--text-main); font-weight: 600;">Specialization / Focus:
-            <select class="field-input new-power-subchoice-select" style="font-size: 9.5pt; padding: 2px 8px; margin-left: 6px; display: inline-block; width: auto; max-width: 260px;">
+          <label style="font-size: 10pt; color: var(--text-main); font-weight: 600;">Specialization / Focus:
+            <select class="field-input new-power-subchoice-select" style="font-size: 10pt; padding: 2px 8px; margin-left: 6px; display: inline-block; width: auto; max-width: 260px;">
               ${c.subChoiceList.map(sc => `<option value="${sc}">${sc}</option>`).join('')}
             </select>
           </label>
@@ -3770,9 +3770,9 @@ const App = {
           <div style="flex: 1;">
             <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
               <strong style="color: var(--text-main); font-size: 10pt;">${c.label}</strong>
-              ${c.isSuperior ? (this.superiorOptionCost ? `<span class="meta-tag tag-option-superior" style="font-size: 8.5pt;">★ Superior Option (+${surchargeAmount} CP if chosen manually)</span>` : `<span class="meta-tag" style="font-size: 8.5pt; color: #38bdf8; border-color: rgba(56, 189, 248, 0.4);">★ Superior Option (0 CP Surcharge)</span>`) : '<span class="meta-tag" style="font-size: 8.5pt;">Standard (0 CP Surcharge)</span>'}
+              ${c.isSuperior ? (this.superiorOptionCost ? `<span class="meta-tag tag-option-superior" style="font-size: 10pt;">★ Superior Option (+${surchargeAmount} CP if chosen manually)</span>` : `<span class="meta-tag" style="font-size: 10pt; color: #38bdf8; border-color: rgba(56, 189, 248, 0.4);">★ Superior Option (0 CP Surcharge)</span>`) : '<span class="meta-tag" style="font-size: 10pt;">Standard (0 CP Surcharge)</span>'}
             </div>
-            <div style="font-size: 9pt; color: var(--text-muted); margin-top: 2px;">${c.description}</div>
+            <div style="font-size: 10pt; color: var(--text-muted); margin-top: 2px;">${c.description}</div>
             ${subChoiceHtml}
           </div>
         </label>
@@ -3783,22 +3783,22 @@ const App = {
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 8px;">
         <div>
           <strong style="font-size: 10.5pt; color: var(--marvel-gold);">⚙️ Power Manifestation &amp; Option: ${optDef.label}</strong>
-          <div style="font-size: 9pt; color: var(--text-muted); margin-top: 1px;">Canonical choice required when obtaining this power. Choose manually or roll random manifestation on the canonical subtable.</div>
+          <div style="font-size: 10pt; color: var(--text-muted); margin-top: 1px;">Canonical choice required when obtaining this power. Choose manually or roll random manifestation on the canonical subtable.</div>
         </div>
         ${optDef.canRoll ? `
-          <button type="button" class="icon-btn" id="btn-roll-new-power-manifestation" style="font-size: 9pt; padding: 4px 10px; background: #1e3a8a; border-color: #3b82f6;" title="Roll d100 on subtable. Accepting roll incurs 0 CP surcharge even for superior options.">
+          <button type="button" class="icon-btn" id="btn-roll-new-power-manifestation" style="font-size: 10pt; padding: 4px 10px; background: #1e3a8a; border-color: #3b82f6;" title="Roll d100 on subtable. Accepting roll incurs 0 CP surcharge even for superior options.">
             🎲 Roll Random Manifestation (0 CP Surcharge)
           </button>
         ` : ''}
       </div>
 
-      <div id="new-power-option-roll-result" style="display: none; margin-bottom: 10px; padding: 8px 12px; border-radius: 6px; background: rgba(30, 58, 138, 0.4); border: 1px solid #3b82f6; font-size: 9.5pt;"></div>
+      <div id="new-power-option-roll-result" style="display: none; margin-bottom: 10px; padding: 8px 12px; border-radius: 6px; background: rgba(30, 58, 138, 0.4); border: 1px solid #3b82f6; font-size: 10pt;"></div>
 
       <div class="power-options-list" style="display: flex; flex-direction: column; gap: 8px;">
         ${choicesHtml}
       </div>
 
-      <div id="new-power-option-summary" style="margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--border-color); font-size: 9.5pt; color: var(--text-muted);">
+      <div id="new-power-option-summary" style="margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--border-color); font-size: 10pt; color: var(--text-muted);">
         <span id="new-power-cost-breakdown"></span>
       </div>
     `;
@@ -3966,8 +3966,8 @@ const App = {
       const isChecked = c.key === this.modalOptionSelectedKey ? 'checked' : '';
       const subChoiceHtml = c.subChoiceList ? `
         <div class="power-option-subchoice-box" id="modal-subchoice-box-${c.key}" style="display: ${c.key === this.modalOptionSelectedKey ? 'block' : 'none'}; margin-top: 6px;">
-          <label style="font-size: 9pt; color: var(--text-main); font-weight: 600;">Specialization / Focus:
-            <select class="field-input modal-subchoice-select" style="font-size: 9.5pt; padding: 2px 8px; margin-left: 6px; display: inline-block; width: auto; max-width: 260px;">
+          <label style="font-size: 10pt; color: var(--text-main); font-weight: 600;">Specialization / Focus:
+            <select class="field-input modal-subchoice-select" style="font-size: 10pt; padding: 2px 8px; margin-left: 6px; display: inline-block; width: auto; max-width: 260px;">
               ${c.subChoiceList.map(sc => `<option value="${sc}" ${sc === this.modalOptionSubChoice ? 'selected' : ''}>${sc}</option>`).join('')}
             </select>
           </label>
@@ -3975,8 +3975,8 @@ const App = {
       ` : '';
 
       const superiorTag = isTaxActive
-        ? `<span class="meta-tag tag-option-superior" style="font-size: 8.5pt;">★ Superior Option (+${surchargeAmount} CP if chosen manually)</span>`
-        : `<span class="meta-tag" style="font-size: 8.5pt; color: #38bdf8; border-color: rgba(56, 189, 248, 0.4);">★ Superior Option (0 CP Surcharge)</span>`;
+        ? `<span class="meta-tag tag-option-superior" style="font-size: 10pt;">★ Superior Option (+${surchargeAmount} CP if chosen manually)</span>`
+        : `<span class="meta-tag" style="font-size: 10pt; color: #38bdf8; border-color: rgba(56, 189, 248, 0.4);">★ Superior Option (0 CP Surcharge)</span>`;
 
       choicesHtml += `
         <label class="power-option-choice-card" style="display: flex; align-items: flex-start; gap: 10px; padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 6px; cursor: pointer; background: rgba(0,0,0,0.2);">
@@ -3984,9 +3984,9 @@ const App = {
           <div style="flex: 1;">
             <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
               <strong style="color: var(--text-main); font-size: 10pt;">${c.label}</strong>
-              ${c.isSuperior ? superiorTag : '<span class="meta-tag" style="font-size: 8.5pt;">Standard (0 CP Surcharge)</span>'}
+              ${c.isSuperior ? superiorTag : '<span class="meta-tag" style="font-size: 10pt;">Standard (0 CP Surcharge)</span>'}
             </div>
-            <div style="font-size: 9pt; color: var(--text-muted); margin-top: 2px;">${c.description}</div>
+            <div style="font-size: 10pt; color: var(--text-muted); margin-top: 2px;">${c.description}</div>
             ${subChoiceHtml}
           </div>
         </label>
@@ -3995,15 +3995,15 @@ const App = {
 
     contentArea.innerHTML = `
       <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
-        <span style="font-size: 9.5pt; color: var(--text-main); font-weight: 600;">Select Manifestation or Roll on Subtable:</span>
+        <span style="font-size: 10pt; color: var(--text-main); font-weight: 600;">Select Manifestation or Roll on Subtable:</span>
         ${optDef.canRoll ? `
-          <button type="button" class="icon-btn" id="btn-roll-modal-power-manifestation" style="font-size: 9pt; padding: 4px 10px; background: #1e3a8a; border-color: #3b82f6;">
+          <button type="button" class="icon-btn" id="btn-roll-modal-power-manifestation" style="font-size: 10pt; padding: 4px 10px; background: #1e3a8a; border-color: #3b82f6;">
             🎲 Roll Random Manifestation (0 CP Surcharge)
           </button>
         ` : ''}
       </div>
 
-      <div id="modal-opt-roll-result" style="display: none; padding: 8px 12px; border-radius: 6px; background: rgba(30, 58, 138, 0.4); border: 1px solid #3b82f6; font-size: 9.5pt;"></div>
+      <div id="modal-opt-roll-result" style="display: none; padding: 8px 12px; border-radius: 6px; background: rgba(30, 58, 138, 0.4); border: 1px solid #3b82f6; font-size: 10pt;"></div>
 
       <div class="power-options-list" style="display: flex; flex-direction: column; gap: 8px;">
         ${choicesHtml}
@@ -4094,7 +4094,7 @@ const App = {
 
     let surchargeDisplay = `+${effectiveNewSurcharge} CP`;
     if (!isTaxActive && curChoice?.isSuperior && this.modalOptionMethod === 'chosen') {
-      surchargeDisplay = `+0 CP <span style="color: #38bdf8; font-size: 8.5pt;">(House Rule Disabled)</span>`;
+      surchargeDisplay = `+0 CP <span style="color: #38bdf8; font-size: 10pt;">(House Rule Disabled)</span>`;
     }
 
     const methodNote = this.modalOptionMethod === 'rolled' ? ' [Dice Rolled: 0 CP Surcharge]' : '';
@@ -6891,8 +6891,8 @@ const App = {
           </div>
           ${allowsSpec ? `
             <div style="margin: 6px 0; display: flex; align-items: center; gap: 8px;">
-              <span class="talent-spec-label" style="font-size: 8.5pt;">Specialty:</span>
-              <input type="text" class="field-input inline-spec-input" data-spec-idx="${idx}" value="${t.specialization ? t.specialization.replace(/"/g, '&quot;') : ''}" placeholder="${t.specPlaceholder ? t.specPlaceholder.replace(/"/g, '&quot;') : 'Enter specialization...'}" style="min-height: 28px; font-size: 9pt; padding: 2px 8px; flex: 1;">
+              <span class="talent-spec-label" style="font-size: 10pt;">Specialty:</span>
+              <input type="text" class="field-input inline-spec-input" data-spec-idx="${idx}" value="${t.specialization ? t.specialization.replace(/"/g, '&quot;') : ''}" placeholder="${t.specPlaceholder ? t.specPlaceholder.replace(/"/g, '&quot;') : 'Enter specialization...'}" style="min-height: 28px; font-size: 10pt; padding: 2px 8px; flex: 1;">
             </div>
           ` : ''}
           <div style="color: var(--text-muted); font-size: 10pt; line-height: 1.4;">${t.description}</div>
@@ -9018,7 +9018,7 @@ const App = {
         if (powerDetails.speed) detailBadges.push(`<span>⚡ <strong>Speed:</strong> ${powerDetails.speed}</span>`);
 
         const detailsBar = detailBadges.length > 0 ? `
-          <div class="power-stats-badges" style="display: flex; gap: 8px 14px; flex-wrap: wrap; margin: 10px 0 14px 0; padding: 8px 12px; background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 6px; font-size: 9.5pt;">
+          <div class="power-stats-badges" style="display: flex; gap: 8px 14px; flex-wrap: wrap; margin: 10px 0 14px 0; padding: 8px 12px; background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 6px; font-size: 10pt;">
             ${detailBadges.join('<span style="opacity: 0.35;">|</span>')}
           </div>
         ` : '';
@@ -9036,22 +9036,22 @@ const App = {
             const isTaxActive = !!(this.superiorOptionCost || (this.character && this.character.superiorOptionCost));
             const surchargeBadge = c.isSuperior
               ? (isTaxActive
-                  ? `<span style="background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.4); padding: 1px 6px; border-radius: 4px; font-size: 8.5pt; font-weight: 600;">+100% (2× Base)</span>`
-                  : `<span style="color: #38bdf8; font-size: 8.5pt; font-weight: 600;">0 CP (Rule Off)</span>`)
-              : `<span style="color: var(--rank-green, #10b981); font-size: 8.5pt; font-weight: 600;">0 CP (Standard)</span>`;
+                  ? `<span style="background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.4); padding: 1px 6px; border-radius: 4px; font-size: 10pt; font-weight: 600;">+100% (2× Base)</span>`
+                  : `<span style="color: #38bdf8; font-size: 10pt; font-weight: 600;">0 CP (Rule Off)</span>`)
+              : `<span style="color: var(--rank-green, #10b981); font-size: 10pt; font-weight: 600;">0 CP (Standard)</span>`;
             
             const subChoices = (c.subChoiceList && c.subChoiceList.length)
-              ? `<div style="font-size: 8.5pt; color: var(--text-dim, #94a3b8); margin-top: 4px;"><strong>Choices:</strong> ${c.subChoiceList.join(', ')}</div>`
+              ? `<div style="font-size: 10pt; color: var(--text-dim, #94a3b8); margin-top: 4px;"><strong>Choices:</strong> ${c.subChoiceList.join(', ')}</div>`
               : '';
 
             return `
               <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.07);">
-                ${hasRoll ? `<td style="padding: 6px 8px; font-family: var(--font-mono); font-size: 9pt; color: var(--marvel-gold); white-space: nowrap;">${rollRange}</td>` : ''}
-                <td style="padding: 6px 8px; font-weight: 600; font-size: 9.5pt; vertical-align: top;">
+                ${hasRoll ? `<td style="padding: 6px 8px; font-family: var(--font-mono); font-size: 10pt; color: var(--marvel-gold); white-space: nowrap;">${rollRange}</td>` : ''}
+                <td style="padding: 6px 8px; font-weight: 600; font-size: 10pt; vertical-align: top;">
                   ${c.label}
-                  ${c.rankShift ? ` <span style="color: var(--marvel-gold); font-size: 8.5pt;">(+${c.rankShift}CS)</span>` : ''}
+                  ${c.rankShift ? ` <span style="color: var(--marvel-gold); font-size: 10pt;">(+${c.rankShift}CS)</span>` : ''}
                 </td>
-                <td style="padding: 6px 8px; font-size: 9pt; color: var(--text-muted); vertical-align: top;">
+                <td style="padding: 6px 8px; font-size: 10pt; color: var(--text-muted); vertical-align: top;">
                   ${c.description || ''}
                   ${subChoices}
                 </td>
@@ -9068,12 +9068,12 @@ const App = {
                 <strong style="color: var(--marvel-gold); font-size: 10.5pt; display: flex; align-items: center; gap: 6px;">
                   🎲 Manifestation Options: ${optDef.label || 'Power Configuration'}
                 </strong>
-                ${hasRoll ? `<span style="font-size: 8.5pt; color: var(--text-dim, #94a3b8);">(Random d100 roll or player choice)</span>` : ''}
+                ${hasRoll ? `<span style="font-size: 10pt; color: var(--text-dim, #94a3b8);">(Random d100 roll or player choice)</span>` : ''}
               </div>
               <div style="overflow-x: auto;">
                 <table style="width: 100%; border-collapse: collapse; text-align: left;">
                   <thead>
-                    <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.15); font-size: 8.5pt; color: var(--text-dim, #94a3b8); text-transform: uppercase; letter-spacing: 0.5px;">
+                    <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.15); font-size: 10pt; color: var(--text-dim, #94a3b8); text-transform: uppercase; letter-spacing: 0.5px;">
                       ${hasRoll ? `<th style="padding: 4px 8px; width: 65px;">d100</th>` : ''}
                       <th style="padding: 4px 8px; width: 28%;">Manifestation</th>
                       <th style="padding: 4px 8px;">Rules Effect</th>
@@ -9163,7 +9163,7 @@ const App = {
             ${t.description || 'Provides specialized proficiency and +1CS column shift to relevant FEATs.'}
           </div>
           ${t.allowsSpecialization ? `
-            <div style="margin-top: 10px; padding: 8px 10px; background: rgba(56, 189, 248, 0.08); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 6px; font-size: 9.5pt;">
+            <div style="margin-top: 10px; padding: 8px 10px; background: rgba(56, 189, 248, 0.08); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 6px; font-size: 10pt;">
               <strong style="color: #38bdf8;">Specialization Note:</strong> This talent may be acquired multiple times, provided each acquisition designates a unique specialization (e.g., <em>${t.specPlaceholder || 'specific field'}</em>).
             </div>
           ` : ''}
@@ -9533,7 +9533,7 @@ const App = {
 
     if (listEl) {
       if (files.length === 0) {
-        listEl.innerHTML = '<span style="color: var(--text-dim); text-align: center; padding: 12px; font-size: 9.5pt;">No saved character files recorded yet. Any characters you save or load will automatically appear here.</span>';
+        listEl.innerHTML = '<span style="color: var(--text-dim); text-align: center; padding: 12px; font-size: 10pt;">No saved character files recorded yet. Any characters you save or load will automatically appear here.</span>';
       } else {
         listEl.innerHTML = files.map((f, i) => {
           const dateStr = f.timestamp ? new Date(f.timestamp).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Saved Hero';
@@ -9542,11 +9542,11 @@ const App = {
               <div style="display: flex; align-items: center; gap: 8px; min-width: 0;">
                 <span style="font-size: 11pt;">🦸</span>
                 <div style="min-width: 0;">
-                  <strong style="color: var(--text-main); font-size: 9.5pt; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${f.name || 'Hero'}</strong>
-                  <span style="color: var(--text-dim); font-size: 8.5pt;">${f.fileName} &bull; ${dateStr}</span>
+                  <strong style="color: var(--text-main); font-size: 10pt; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${f.name || 'Hero'}</strong>
+                  <span style="color: var(--text-dim); font-size: 10pt;">${f.fileName} &bull; ${dateStr}</span>
                 </div>
               </div>
-              <button type="button" class="icon-btn" style="padding: 2px 8px; font-size: 8.5pt;" data-download-known="${i}" title="Download a copy of this character file">⬇️ Save</button>
+              <button type="button" class="icon-btn" style="padding: 2px 8px; font-size: 10pt;" data-download-known="${i}" title="Download a copy of this character file">⬇️ Save</button>
             </div>
           `;
         }).join('');

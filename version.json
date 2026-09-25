@@ -1,7 +1,7 @@
 {
-  "version": "1.5.15",
+  "version": "1.5.16",
   "releaseDate": "2026-09-25",
   "name": "Marvel Super Heroes Character Editor",
   "repo": "https://github.com/captainload/marvel-character-editor",
-  "notes": "Added default character save/load location to user's Documents folder (across Windows, macOS, and Linux) with last save location memory, plus 'Set load/save folder' in the main menu with interactive folder browsing, reset to default, and automated character migration."
+  "notes": "Enforced 10pt minimum font size across all application interface text, modal dialogs, buttons, badges, and controls."
 }

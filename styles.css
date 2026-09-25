@@ -600,12 +600,12 @@ body {
   border: 1px solid var(--border-color);
   border-radius: 4px;
   padding: 1px 6px;
-  font-size: 8.5pt;
+  font-size: 10pt;
   white-space: nowrap;
 }
 
 .vital-stat-pill .pill-label {
-  font-size: 7.5pt;
+  font-size: 10pt;
   text-transform: uppercase;
   color: var(--text-muted);
   font-weight: 700;
@@ -616,7 +616,7 @@ body {
   font-family: var(--font-mono);
   font-weight: 700;
   color: #fff;
-  font-size: 9pt;
+  font-size: 10pt;
 }
 
 .vital-stat-pill-total strong {
@@ -642,7 +642,7 @@ body {
 }
 
 .adjust-field-label {
-  font-size: 8pt;
+  font-size: 10pt;
   font-weight: 700;
   text-transform: uppercase;
   color: var(--text-muted);
@@ -663,7 +663,7 @@ body {
 }
 
 .vital-total-box .total-label {
-  font-size: 7.5pt;
+  font-size: 10pt;
   font-weight: 800;
   text-transform: uppercase;
   color: var(--text-muted);
@@ -678,7 +678,7 @@ body {
 }
 
 .vital-total-box .vital-unit {
-  font-size: 8pt;
+  font-size: 10pt;
   color: var(--text-muted);
   font-weight: 700;
 }
@@ -744,7 +744,7 @@ body {
 /* Quick Vitals Reset Button */
 .vital-reset-btn {
   padding: 2px 7px;
-  font-size: 8pt;
+  font-size: 10pt;
   font-weight: 700;
   height: 26px;
   border-radius: 4px;
@@ -793,7 +793,7 @@ body {
 .vital-manual-tag {
   background: rgba(255, 255, 255, 0.08);
   color: var(--text-muted);
-  font-size: 7.5pt;
+  font-size: 10pt;
   font-weight: 800;
   padding: 0 4px;
   height: 100%;
@@ -813,7 +813,7 @@ body {
   background: transparent;
   color: #fff;
   text-align: center;
-  font-size: 9pt;
+  font-size: 10pt;
   font-weight: 700;
   font-family: var(--font-mono);
   outline: none;
@@ -837,7 +837,7 @@ body {
 }
 
 .vital-karma-mode-badge {
-  font-size: 7.5pt;
+  font-size: 10pt;
   font-weight: 700;
   text-transform: uppercase;
   padding: 1px 5px;
@@ -893,7 +893,7 @@ body {
   color: var(--text-main);
 }
 .mode-tag {
-  font-size: 7.5pt;
+  font-size: 10pt;
   font-weight: 700;
   padding: 1px 6px;
   border-radius: 4px;
@@ -913,7 +913,7 @@ body {
   color: #f59e0b;
 }
 .mode-card-desc {
-  font-size: 9pt;
+  font-size: 10pt;
   color: var(--text-muted);
   line-height: 1.4;
 }
@@ -922,7 +922,7 @@ body {
 .adv-modal-banner {
   padding: 8px 12px;
   border-radius: 6px;
-  font-size: 9pt;
+  font-size: 10pt;
   display: flex;
   align-items: center;
   margin-bottom: 2px;
@@ -945,7 +945,7 @@ body {
 }
 
 .vital-unit {
-  font-size: 8.5pt;
+  font-size: 10pt;
   font-weight: 600;
   color: var(--text-muted);
   margin-left: 1px;
@@ -973,7 +973,7 @@ body {
   border: 1px solid rgba(245, 158, 11, 0.22);
   border-radius: 4px;
   padding: 1px 5px;
-  font-size: 8.5pt;
+  font-size: 10pt;
   white-space: nowrap;
   color: var(--text-muted);
 }
@@ -989,7 +989,7 @@ body {
 }
 
 .history-pill-label {
-  font-size: 7.5pt;
+  font-size: 10pt;
   text-transform: uppercase;
   letter-spacing: 0.2px;
   color: var(--text-muted);
@@ -999,7 +999,7 @@ body {
 .vital-karma-pill strong {
   color: var(--marvel-gold, #f59e0b);
   font-family: var(--font-mono);
-  font-size: 8.5pt;
+  font-size: 10pt;
   font-weight: 700;
 }
 
@@ -1027,7 +1027,7 @@ body {
 }
 
 .point-tier-summary {
-  font-size: 9pt;
+  font-size: 10pt;
   color: #cbd5e1;
   display: flex;
   align-items: center;
@@ -1049,7 +1049,7 @@ body {
 }
 
 .spent-breakdown-text {
-  font-size: 8.5pt;
+  font-size: 10pt;
   color: #cbd5e1;
   white-space: nowrap;
   overflow: hidden;
@@ -2166,7 +2166,7 @@ select.field-input option {
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 6px;
-  font-size: 9.5pt;
+  font-size: 10pt;
   transition: all 0.15s ease;
 }
 .known-file-row:hover {
@@ -2453,7 +2453,7 @@ body[data-theme="aqua"] #options-modal .option-control-header {
   width: auto;
   min-width: 44px;
   padding: 0 6px;
-  font-size: 8.5pt;
+  font-size: 10pt;
   font-weight: 700;
   color: #94a3b8;
   background: rgba(239, 68, 68, 0.12);
@@ -2472,7 +2472,7 @@ body[data-theme="aqua"] #options-modal .option-control-header {
   align-items: center;
   justify-content: flex-start;
   padding: 1px 2px;
-  font-size: 8.5pt;
+  font-size: 10pt;
   margin-top: -2px;
   margin-bottom: 2px;
 }
@@ -3054,7 +3054,7 @@ body[data-theme="aqua"] .cheatsheet-tabs-bar {
   }
   .nav-tab-btn {
     flex: 0 0 auto;
-    font-size: 9.5pt;
+    font-size: 10pt;
     padding: 5px 7px;
   }
   .dense-grid-2 {
@@ -3087,7 +3087,7 @@ body[data-theme="aqua"] .cheatsheet-tabs-bar {
 @media (max-width: 600px) {
   .nav-tab-btn {
     flex: 0 0 auto;
-    font-size: 9pt;
+    font-size: 10pt;
     padding: 4px 6px;
   }
   .equipment-table th:nth-child(2), .equipment-table td:nth-child(2),
@@ -3106,7 +3106,7 @@ body[data-theme="aqua"] .cheatsheet-tabs-bar {
 /* Roller Dice KP Badge */
 .dice-kp-badge {
   color: var(--marvel-gold, #f59e0b);
-  font-size: 0.82em;
+  font-size: 10pt;
   font-weight: 700;
   margin-left: 6px;
   background: rgba(245, 158, 11, 0.12);
@@ -3496,7 +3496,7 @@ input[type=number],
   color: #38bdf8;
   border: 1px solid rgba(56, 189, 248, 0.4);
   font-weight: 600;
-  font-size: 9.5pt;
+  font-size: 10pt;
   padding: 2px 8px;
   border-radius: 4px;
   display: inline-flex;
@@ -3572,7 +3572,7 @@ input[type=number],
 .power-rank-select {
   padding: 2px 8px;
   border-radius: 4px;
-  font-size: 9.5pt;
+  font-size: 10pt;
   font-weight: 700;
   text-align: center;
   color: #fff;
@@ -3602,7 +3602,7 @@ input[type=number],
   gap: 4px;
   padding: 2px 9px;
   min-height: 26px;
-  font-size: 9pt;
+  font-size: 10pt;
   font-weight: 700;
   border-radius: 20px;
   cursor: pointer;
@@ -3634,7 +3634,7 @@ input[type=number],
   color: #f97316;
   border: 1px solid rgba(249, 115, 22, 0.4);
   font-weight: 600;
-  font-size: 9pt;
+  font-size: 10pt;
   padding: 2px 7px;
   border-radius: 4px;
 }
@@ -3643,7 +3643,7 @@ input[type=number],
   color: #c084fc;
   border: 1px solid rgba(168, 85, 247, 0.4);
   font-weight: 600;
-  font-size: 9pt;
+  font-size: 10pt;
   padding: 2px 7px;
   border-radius: 4px;
 }
@@ -3652,7 +3652,7 @@ input[type=number],
   color: #ef4444;
   border: 1.5px solid #ef4444;
   font-weight: 700;
-  font-size: 9pt;
+  font-size: 10pt;
   padding: 2px 8px;
   border-radius: 4px;
   animation: pulse-neutralized 2s infinite ease-in-out;
@@ -3667,7 +3667,7 @@ input[type=number],
   color: #22c55e;
   border: 1px solid rgba(34, 197, 94, 0.4);
   font-weight: 600;
-  font-size: 9pt;
+  font-size: 10pt;
   padding: 2px 7px;
   border-radius: 4px;
 }
@@ -3676,7 +3676,7 @@ input[type=number],
   color: #94a3b8;
   border: 1px solid rgba(148, 163, 184, 0.3);
   font-weight: 600;
-  font-size: 9pt;
+  font-size: 10pt;
   padding: 2px 7px;
   border-radius: 4px;
 }
@@ -3701,7 +3701,7 @@ input[type=number],
   border: 1px solid var(--border-color);
   border-radius: 6px;
   cursor: pointer;
-  font-size: 9pt;
+  font-size: 10pt;
   color: var(--text-main);
   transition: all 0.2s;
 }
@@ -3817,14 +3817,14 @@ input[type=number],
 }
 
 .talent-spec-label {
-  font-size: 9pt;
+  font-size: 10pt;
   font-weight: 600;
   color: #38bdf8;
   white-space: nowrap;
 }
 
 .talent-spec-hint {
-  font-size: 8.5pt;
+  font-size: 10pt;
   color: var(--text-muted);
   margin-top: 4px;
 }
@@ -3953,7 +3953,7 @@ body.touch-friendly .vital-steppers button {
 body.touch-friendly .vital-reset-btn {
   padding: 4px 10px;
   min-height: 36px;
-  font-size: 9.5pt;
+  font-size: 10pt;
   border-radius: 5px;
 }
 
@@ -3964,7 +3964,7 @@ body.touch-friendly .vital-manual-wrap {
 }
 
 body.touch-friendly .vital-manual-tag {
-  font-size: 9pt;
+  font-size: 10pt;
   padding: 0 8px;
 }
 
@@ -6978,7 +6978,7 @@ body[data-theme="aqua"] .karma-no-spend-warn {
 }
 
 .power-menu-caret {
-  font-size: 0.8em;
+  font-size: 10pt;
   color: var(--text-muted);
   transition: transform 0.15s ease;
 }
@@ -7072,7 +7072,7 @@ body[data-theme="aqua"] .karma-no-spend-warn {
   color: #38bdf8 !important;
   border-color: rgba(56, 189, 248, 0.4) !important;
   background: rgba(56, 189, 248, 0.1) !important;
-  font-size: 8pt !important;
+  font-size: 10pt !important;
   padding: 2px 8px !important;
   min-height: 22px !important;
   line-height: 1.2;
@@ -7086,7 +7086,7 @@ body[data-theme="aqua"] .karma-no-spend-warn {
 }
 
 .edit-log-current-pill {
-  font-size: 7.5pt;
+  font-size: 10pt;
   font-weight: 700;
   text-transform: uppercase;
   padding: 2px 6px;
@@ -7112,12 +7112,12 @@ body[data-theme="aqua"] .karma-no-spend-warn {
 
 .edit-log-time {
   color: var(--text-dim);
-  font-size: 9pt;
+  font-size: 10pt;
   font-family: var(--font-mono);
 }
 
 .edit-log-badge {
-  font-size: 8.5pt;
+  font-size: 10pt;
   padding: 1px 6px;
   border-radius: 3px;
   font-weight: 700;
@@ -7404,7 +7404,7 @@ body[data-theme="aqua"] .vital-manual-input {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 9.5pt;
+  font-size: 10pt;
   font-weight: 600;
   color: var(--text-main);
   cursor: pointer;
@@ -7418,7 +7418,7 @@ body[data-theme="aqua"] .vital-manual-input {
 }
 
 .print-hint-text {
-  font-size: 9pt;
+  font-size: 10pt;
   color: var(--text-muted);
 }
 
@@ -7442,7 +7442,7 @@ body[data-theme="aqua"] .vital-manual-input {
   background: #ffffff;
   color: #0f172a;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-  font-size: 8.5pt;
+  font-size: 10pt;
   line-height: 1.35;
   padding: 24px 28px;
   border-radius: 4px;
@@ -7461,7 +7461,7 @@ body[data-theme="aqua"] .vital-manual-input {
   background: #0f172a;
   color: #ffffff;
   font-family: var(--font-display), Impact, sans-serif;
-  font-size: 9.5pt;
+  font-size: 10pt;
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.75px;
@@ -7830,7 +7830,7 @@ body[data-theme="aqua"] .vital-manual-input {
 }
 
 .power-pool-effects-badge {
-  font-size: 9pt;
+  font-size: 10pt;
   font-weight: 600;
   padding: 2px 8px;
   border-radius: 4px;
@@ -7867,7 +7867,7 @@ body[data-theme="aqua"] .vital-manual-input {
 .pool-step-btn {
   min-height: 28px;
   padding: 2px 8px;
-  font-size: 9pt;
+  font-size: 10pt;
   font-weight: 700;
 }
 

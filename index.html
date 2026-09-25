@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Marvel Super Heroes (FASERIP) - Character Builder & Editor</title>
-  <link rel="stylesheet" href="styles.css?v=1.5.14">
+  <link rel="stylesheet" href="styles.css?v=1.5.15">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bangers&display=swap" rel="stylesheet">
@@ -47,10 +47,9 @@
           <div id="file-options-menu" class="dropdown-menu">
             <button type="button" class="dropdown-item" id="menu-item-new">📄 New Character</button>
             <button type="button" class="dropdown-item" id="menu-item-save">💾 Save Character (.msh)</button>
-            <label class="dropdown-item" style="cursor: pointer; margin-bottom: 0;">
-              📂 Open Character (.msh)
-              <input type="file" id="import-file-input" accept=".msh,.json" style="display: none;">
-            </label>
+            <button type="button" class="dropdown-item" id="menu-item-open">📂 Open Character (.msh)</button>
+            <input type="file" id="import-file-input" accept=".msh,.json" style="display: none;">
+            <button type="button" class="dropdown-item" id="menu-item-set-folder">📁 Set Load/Save Folder...</button>
             <button type="button" class="dropdown-item" id="menu-item-print-preview">🖨️ Print Preview &amp; PDF Export...</button>
             <div class="dropdown-divider"></div>
             <button type="button" class="dropdown-item" id="menu-item-touch-toggle">📱 Touch Controls: <strong id="menu-item-touch-status">OFF</strong></button>
@@ -1715,6 +1714,7 @@
     </div>
   </div>
 
+
   <!-- MODAL: APPLICATION PREFERENCES & OPTIONS -->
   <div id="options-modal" class="modal-overlay">
     <div class="modal-box">
@@ -1826,7 +1826,7 @@
           <!-- SECTION: PROGRAM UPDATES & AUTOMATED CHECKING -->
           <div style="font-weight: 700; color: var(--text-main); font-size: 11pt; border-bottom: 1px solid var(--border-color); padding-bottom: 6px; margin-top: 10px; display: flex; justify-content: space-between; align-items: center;">
             <span>🔄 Program Updates &amp; Automated Checking</span>
-            <span class="meta-tag" id="update-version-tag" style="color: var(--marvel-gold); font-size: 9pt;">v1.5.14</span>
+            <span class="meta-tag" id="update-version-tag" style="color: var(--marvel-gold); font-size: 9pt;">v1.5.15</span>
           </div>
 
           <div class="update-settings-panel" style="background: rgba(0, 0, 0, 0.2); border: 1px solid var(--border-color); border-radius: 6px; padding: 12px; display: flex; flex-direction: column; gap: 10px;">
@@ -1855,6 +1855,56 @@
             </div>
           </div>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: CONFIGURE CHARACTER LOAD & SAVE FOLDER -->
+  <div id="modal-load-save-folder" class="modal-overlay">
+    <div class="modal-box">
+      <div class="modal-header">
+        <span class="modal-title">📁 Configure Character Load &amp; Save Folder</span>
+        <button type="button" class="modal-close" id="btn-close-folder-modal-x">&times;</button>
+      </div>
+      <div class="modal-body" style="padding: 16px 20px; display: flex; flex-direction: column; gap: 16px;">
+        <div class="folder-location-card">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+            <strong style="color: var(--text-main); font-size: 11pt;">Active Character Folder:</strong>
+            <span id="folder-status-badge" class="meta-tag" style="background: rgba(16, 185, 129, 0.15); color: #34d399; font-weight: 700;">Documents (System Default)</span>
+          </div>
+          <div id="folder-current-path" style="font-family: monospace; font-size: 11pt; color: var(--accent-blue); word-break: break-all; margin-top: 4px;">
+            📁 Documents (System Default)
+          </div>
+          <div id="folder-os-hint" style="font-size: 9.5pt; color: var(--text-muted); line-height: 1.45;">
+            Detecting operating system default...
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+          <button type="button" class="icon-btn primary" id="btn-browse-folder" style="flex: 1 1 220px; min-height: 40px; font-size: 10pt; font-weight: 600;">📁 Browse &amp; Select Folder...</button>
+          <button type="button" class="icon-btn" id="btn-reset-folder-default" style="flex: 1 1 220px; min-height: 40px; font-size: 10pt;" title="Reset character save and load location back to your system Documents folder">🔄 Reset to Default Location</button>
+        </div>
+
+        <div style="color: var(--text-muted); font-size: 9.5pt; line-height: 1.45; margin-top: -6px;">
+          When selecting a new folder or resetting to default, the editor will offer to copy or move all known saved character files to that location.
+        </div>
+
+        <!-- Known Character Files Section -->
+        <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 4px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 6px; flex-wrap: wrap; gap: 8px;">
+            <strong style="color: var(--text-main); font-size: 10.5pt;">📦 Known Saved Characters (<span id="known-files-count">0</span>)</strong>
+            <button type="button" class="icon-btn" id="btn-move-known-files" style="font-size: 9pt; padding: 4px 10px;" title="Copy all known character files to the active folder">📦 Move All Files to Active Folder</button>
+          </div>
+          <div id="known-files-list" style="max-height: 170px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; background: rgba(0, 0, 0, 0.2); border: 1px solid var(--border-color); border-radius: 6px; padding: 8px;">
+            <!-- Populated dynamically -->
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 18px;">
+        <div style="font-size: 9pt; color: var(--text-muted);">
+          Tip: <strong>"Open Character"</strong> will automatically open from your last save location.
+        </div>
+        <button type="button" class="icon-btn" id="btn-close-folder-modal-footer">Close</button>
       </div>
     </div>
   </div>
@@ -2717,13 +2767,13 @@
   </div>
 
   <!-- Scripts Loading -->
-  <script src="universal_table.js?v=1.5.14"></script>
-  <script src="data_forms.js?v=1.5.14"></script>
-  <script src="data_powers.js?v=1.5.14"></script>
-  <script src="data_talents.js?v=1.5.14"></script>
-  <script src="data_equipment.js?v=1.5.14"></script>
-  <script src="inventions.js?v=1.5.14"></script>
-  <script src="character_model.js?v=1.5.14"></script>
-  <script src="app.js?v=1.5.14"></script>
+  <script src="universal_table.js?v=1.5.15"></script>
+  <script src="data_forms.js?v=1.5.15"></script>
+  <script src="data_powers.js?v=1.5.15"></script>
+  <script src="data_talents.js?v=1.5.15"></script>
+  <script src="data_equipment.js?v=1.5.15"></script>
+  <script src="inventions.js?v=1.5.15"></script>
+  <script src="character_model.js?v=1.5.15"></script>
+  <script src="app.js?v=1.5.15"></script>
 </body>
 </html>

@@ -47,11 +47,14 @@ const App = {
   set superiorOptionTax(val) {
     this.superiorOptionCost = !!val;
   },
-  VERSION: '1.5.14',
+  VERSION: '1.5.15',
   BUILD_DATE: '2026-09-25',
   COMMIT_SHA: '6a15ff5',
   REPO_OWNER: 'captainload',
   REPO_NAME: 'marvel-character-editor',
+  currentDirectoryHandle: null,
+  lastSaveDirectoryHandle: null,
+  saveFolderName: null,
   updateSettings: {
     onStartup: true,
     lastChecked: null,
@@ -103,6 +106,7 @@ const App = {
     this.updateHistoryNavButtons();
     this.renderEditLog();
     this.initEasterEgg();
+    this.initSaveDirectoryHandle();
 
     // Auto-restore Cheat Sheet popout if it was popped out when client closed
     if (typeof localStorage !== 'undefined') {
@@ -991,6 +995,54 @@ const App = {
         if (fileOptionsMenu) fileOptionsMenu.classList.remove('open');
         this.exportCharacter();
       });
+    }
+
+    const menuItemOpen = document.getElementById('menu-item-open');
+    if (menuItemOpen) {
+      menuItemOpen.addEventListener('click', () => {
+        if (fileOptionsMenu) fileOptionsMenu.classList.remove('open');
+        this.openCharacterFile();
+      });
+    }
+
+    const menuItemSetFolder = document.getElementById('menu-item-set-folder');
+    if (menuItemSetFolder) {
+      menuItemSetFolder.addEventListener('click', () => {
+        if (fileOptionsMenu) fileOptionsMenu.classList.remove('open');
+        this.openLoadSaveFolderModal();
+      });
+    }
+
+    const btnBrowseFolder = document.getElementById('btn-browse-folder');
+    if (btnBrowseFolder) {
+      btnBrowseFolder.addEventListener('click', () => this.browseAndSetSaveDirectory());
+    }
+
+    const btnResetFolderDefault = document.getElementById('btn-reset-folder-default');
+    if (btnResetFolderDefault) {
+      btnResetFolderDefault.addEventListener('click', () => this.resetSaveDirectoryToDefault(true));
+    }
+
+    const btnMoveKnownFiles = document.getElementById('btn-move-known-files');
+    if (btnMoveKnownFiles) {
+      btnMoveKnownFiles.addEventListener('click', async () => {
+        const dir = await this.getEffectiveDirectoryHandle();
+        if (dir && typeof dir !== 'string') {
+          await this.moveKnownFilesToDirectory(dir);
+        } else {
+          await this.resetSaveDirectoryToDefault(true);
+        }
+      });
+    }
+
+    const btnCloseFolderX = document.getElementById('btn-close-folder-modal-x');
+    if (btnCloseFolderX) {
+      btnCloseFolderX.addEventListener('click', () => this.closeLoadSaveFolderModal());
+    }
+
+    const btnCloseFolderFooter = document.getElementById('btn-close-folder-modal-footer');
+    if (btnCloseFolderFooter) {
+      btnCloseFolderFooter.addEventListener('click', () => this.closeLoadSaveFolderModal());
     }
 
     const menuItemPrint = document.getElementById('menu-item-print-preview');
@@ -9206,43 +9258,578 @@ const App = {
     this.openCreationWizardModal();
   },
 
-  exportCharacter() {
-    const jsonStr = JSON.stringify(this.character.toJSON(), null, 2);
+  // ==========================================
+  // FILE & FOLDER MANAGEMENT ENGINE
+  // ==========================================
+
+  openFolderDB() {
+    return new Promise((resolve) => {
+      if (typeof indexedDB === 'undefined') return resolve(null);
+      try {
+        const req = indexedDB.open('msh_file_system_db', 1);
+        req.onupgradeneeded = (e) => {
+          const db = e.target.result;
+          if (!db.objectStoreNames.contains('handles')) {
+            db.createObjectStore('handles');
+          }
+        };
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => resolve(null);
+      } catch (e) {
+        resolve(null);
+      }
+    });
+  },
+
+  async saveStoredDirectoryHandle(handle) {
+    try {
+      const db = await this.openFolderDB();
+      if (!db) return;
+      const tx = db.transaction('handles', 'readwrite');
+      tx.objectStore('handles').put(handle, 'save_load_directory');
+      await new Promise((res) => {
+        tx.oncomplete = res;
+        tx.onerror = res;
+      });
+    } catch (e) {
+      console.warn('Could not store directory handle in IndexedDB:', e);
+    }
+  },
+
+  async getStoredDirectoryHandle() {
+    try {
+      const db = await this.openFolderDB();
+      if (!db) return null;
+      const tx = db.transaction('handles', 'readonly');
+      const req = tx.objectStore('handles').get('save_load_directory');
+      const handle = await new Promise((res) => {
+        req.onsuccess = () => res(req.result);
+        req.onerror = () => res(null);
+      });
+      return handle || null;
+    } catch (e) {
+      console.warn('Could not retrieve directory handle from IndexedDB:', e);
+      return null;
+    }
+  },
+
+  async clearStoredDirectoryHandle() {
+    try {
+      const db = await this.openFolderDB();
+      if (!db) return;
+      const tx = db.transaction('handles', 'readwrite');
+      tx.objectStore('handles').delete('save_load_directory');
+      await new Promise((res) => {
+        tx.oncomplete = res;
+        tx.onerror = res;
+      });
+    } catch (e) {
+      console.warn('Could not clear directory handle from IndexedDB:', e);
+    }
+  },
+
+  async initSaveDirectoryHandle() {
+    try {
+      const handle = await this.getStoredDirectoryHandle();
+      if (handle) {
+        this.currentDirectoryHandle = handle;
+        this.lastSaveDirectoryHandle = handle;
+        this.saveFolderName = handle.name || (typeof localStorage !== 'undefined' ? localStorage.getItem('msh_save_folder_name') : null) || 'Custom Folder';
+      } else if (typeof localStorage !== 'undefined') {
+        this.saveFolderName = localStorage.getItem('msh_save_folder_name') || null;
+      }
+    } catch (e) {}
+
+    // Register active hero into known character registry
+    if (this.character && this.character.name) {
+      this.getKnownCharacterFiles();
+    }
+  },
+
+  getDetectedOS() {
+    if (typeof navigator === 'undefined') return 'Windows';
+    const ua = navigator.userAgent || '';
+    const plat = navigator.platform || '';
+    if (/Win/i.test(plat) || /Windows/i.test(ua)) return 'Windows';
+    if (/Mac/i.test(plat) || /Macintosh/i.test(ua)) return 'macOS';
+    if (/Linux/i.test(plat) || /Linux/i.test(ua)) return 'Linux';
+    return 'Desktop OS';
+  },
+
+  async getEffectiveDirectoryHandle() {
+    if (this.currentDirectoryHandle) {
+      try {
+        if (typeof this.currentDirectoryHandle.queryPermission === 'function') {
+          const perm = await this.currentDirectoryHandle.queryPermission({ mode: 'readwrite' });
+          if (perm === 'granted' || perm === 'prompt') {
+            return this.currentDirectoryHandle;
+          }
+        } else {
+          return this.currentDirectoryHandle;
+        }
+      } catch (e) {}
+    }
+    if (this.lastSaveDirectoryHandle) {
+      return this.lastSaveDirectoryHandle;
+    }
+    // Default well-known directory keyword: 'documents' (Windows Documents, macOS ~/Documents, Linux ~/Documents)
+    return 'documents';
+  },
+
+  getKnownCharacterFiles() {
+    let list = [];
+    try {
+      if (typeof localStorage !== 'undefined') {
+        const raw = localStorage.getItem('msh_known_character_files');
+        if (raw) list = JSON.parse(raw);
+      }
+    } catch (e) {}
+    if (!Array.isArray(list)) list = [];
+
+    // Ensure active hero in memory is represented
+    if (this.character && this.character.name) {
+      const cleanName = (this.character.name || 'Hero').replace(/[/\\?%*:|"<>]/g, '_').trim();
+      const fileName = `${cleanName.replace(/\s+/g, '_')}_FASERIP.msh`;
+      const exists = list.some(x => x.fileName === fileName || (x.name && x.name.toLowerCase() === this.character.name.toLowerCase()));
+      if (!exists) {
+        list.push({
+          id: this.character.id || Date.now(),
+          name: this.character.name,
+          fileName: fileName,
+          data: this.character.toJSON(),
+          timestamp: Date.now()
+        });
+        try {
+          if (typeof localStorage !== 'undefined') {
+            localStorage.setItem('msh_known_character_files', JSON.stringify(list));
+          }
+        } catch (e) {}
+      }
+    }
+    return list;
+  },
+
+  registerKnownCharacterFile(item) {
+    if (!item || !item.fileName) return;
+    const list = this.getKnownCharacterFiles();
+    const idx = list.findIndex(x => x.fileName === item.fileName || (x.name && item.name && x.name.toLowerCase() === item.name.toLowerCase()));
+    if (idx >= 0) {
+      list[idx] = { ...list[idx], ...item, timestamp: Date.now() };
+    } else {
+      list.push({ ...item, timestamp: Date.now() });
+    }
+    try {
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem('msh_known_character_files', JSON.stringify(list));
+      }
+    } catch (e) {
+      console.warn('Could not save known character files to localStorage:', e);
+    }
+  },
+
+  async scanDirectoryForCharacters(dirHandle) {
+    if (!dirHandle || typeof dirHandle.values !== 'function') return;
+    try {
+      for await (const entry of dirHandle.values()) {
+        if (entry.kind === 'file' && (entry.name.endsWith('.msh') || entry.name.endsWith('.json'))) {
+          try {
+            const file = await entry.getFile();
+            const text = await file.text();
+            const parsed = JSON.parse(text);
+            if (parsed && (parsed.abilities || parsed.name || parsed.faserip || parsed.vitals)) {
+              this.registerKnownCharacterFile({
+                name: parsed.name || entry.name.replace(/\.[^/.]+$/, ''),
+                fileName: entry.name,
+                data: parsed,
+                timestamp: file.lastModified || Date.now()
+              });
+            }
+          } catch (e) {}
+        }
+      }
+    } catch (e) {
+      console.warn('Could not scan directory for character files:', e);
+    }
+  },
+
+  async moveKnownFilesToDirectory(dirHandle) {
+    const knownFiles = this.getKnownCharacterFiles();
+    if (!knownFiles || knownFiles.length === 0) {
+      this.showStatusToast('No known character files to move.');
+      return;
+    }
+    let successCount = 0;
+    for (const item of knownFiles) {
+      try {
+        const fileName = item.fileName || `${(item.name || 'Hero').replace(/\s+/g, '_')}_FASERIP.msh`;
+        const fileHandle = await dirHandle.getFileHandle(fileName, { create: true });
+        const writable = await fileHandle.createWritable();
+        const content = typeof item.data === 'string' ? item.data : JSON.stringify(item.data, null, 2);
+        await writable.write(content);
+        await writable.close();
+        successCount++;
+      } catch (err) {
+        console.warn('Failed writing file to directory handle:', item.fileName, err);
+      }
+    }
+    this.showCustomAlert(
+      `Successfully copied ${successCount} character file(s) into "<strong>${dirHandle.name || 'Selected Folder'}</strong>"!`,
+      '📁 Files Transferred'
+    );
+    this.renderLoadSaveFolderModal();
+  },
+
+  openLoadSaveFolderModal() {
+    const modal = document.getElementById('modal-load-save-folder');
+    if (!modal) return;
+    modal.classList.add('open');
+    this.renderLoadSaveFolderModal();
+  },
+
+  closeLoadSaveFolderModal() {
+    const modal = document.getElementById('modal-load-save-folder');
+    if (modal) modal.classList.remove('open');
+  },
+
+  renderLoadSaveFolderModal() {
+    const pathEl = document.getElementById('folder-current-path');
+    const badgeEl = document.getElementById('folder-status-badge');
+    const hintEl = document.getElementById('folder-os-hint');
+    const countEl = document.getElementById('known-files-count');
+    const listEl = document.getElementById('known-files-list');
+
+    const osName = this.getDetectedOS();
+    let osHintText = '';
+    if (osName === 'Windows') {
+      osHintText = 'Windows detected: Default save/load location resolves to your <strong>Documents</strong> folder (<code>%USERPROFILE%\\Documents</code>).';
+    } else if (osName === 'macOS') {
+      osHintText = 'macOS detected: Default save/load location resolves to your <strong>Documents</strong> folder (<code>~/Documents</code>).';
+    } else if (osName === 'Linux') {
+      osHintText = 'Linux detected: Default save/load location resolves to your <strong>Documents</strong> folder (<code>~/Documents</code>).';
+    } else {
+      osHintText = 'Default save/load location resolves to your operating system\'s standard <strong>Documents</strong> directory.';
+    }
+    if (hintEl) hintEl.innerHTML = osHintText;
+
+    const customName = this.saveFolderName || (typeof localStorage !== 'undefined' ? localStorage.getItem('msh_save_folder_name') : null);
+    if (customName) {
+      if (pathEl) pathEl.innerHTML = `📁 <strong>${customName}</strong>`;
+      if (badgeEl) {
+        badgeEl.textContent = 'Custom Location';
+        badgeEl.style.background = 'rgba(56, 189, 248, 0.15)';
+        badgeEl.style.color = '#38bdf8';
+      }
+    } else {
+      if (pathEl) pathEl.innerHTML = `📁 Documents (System Default)`;
+      if (badgeEl) {
+        badgeEl.textContent = 'Documents (System Default)';
+        badgeEl.style.background = 'rgba(16, 185, 129, 0.15)';
+        badgeEl.style.color = '#34d399';
+      }
+    }
+
+    const files = this.getKnownCharacterFiles();
+    if (countEl) countEl.textContent = String(files.length);
+
+    if (listEl) {
+      if (files.length === 0) {
+        listEl.innerHTML = '<span style="color: var(--text-dim); text-align: center; padding: 12px; font-size: 9.5pt;">No saved character files recorded yet. Any characters you save or load will automatically appear here.</span>';
+      } else {
+        listEl.innerHTML = files.map((f, i) => {
+          const dateStr = f.timestamp ? new Date(f.timestamp).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Saved Hero';
+          return `
+            <div class="known-file-row">
+              <div style="display: flex; align-items: center; gap: 8px; min-width: 0;">
+                <span style="font-size: 11pt;">🦸</span>
+                <div style="min-width: 0;">
+                  <strong style="color: var(--text-main); font-size: 9.5pt; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${f.name || 'Hero'}</strong>
+                  <span style="color: var(--text-dim); font-size: 8.5pt;">${f.fileName} &bull; ${dateStr}</span>
+                </div>
+              </div>
+              <button type="button" class="icon-btn" style="padding: 2px 8px; font-size: 8.5pt;" data-download-known="${i}" title="Download a copy of this character file">⬇️ Save</button>
+            </div>
+          `;
+        }).join('');
+
+        // Wire download buttons
+        listEl.querySelectorAll('[data-download-known]').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const idx = parseInt(btn.getAttribute('data-download-known'), 10);
+            const target = files[idx];
+            if (target) {
+              const content = typeof target.data === 'string' ? target.data : JSON.stringify(target.data, null, 2);
+              const blob = new Blob([content], { type: 'application/json' });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = target.fileName || 'Hero_FASERIP.msh';
+              document.body.appendChild(a);
+              a.click();
+              document.body.removeChild(a);
+              URL.revokeObjectURL(url);
+              this.showStatusToast(`💾 Exported "${target.name}"!`);
+            }
+          });
+        });
+      }
+    }
+  },
+
+  async browseAndSetSaveDirectory() {
+    if (typeof window !== 'undefined' && window.showDirectoryPicker) {
+      try {
+        const startDir = await this.getEffectiveDirectoryHandle();
+        const handle = await window.showDirectoryPicker({
+          startIn: startDir,
+          mode: 'readwrite'
+        });
+        if (handle) {
+          this.currentDirectoryHandle = handle;
+          this.lastSaveDirectoryHandle = handle;
+          this.saveFolderName = handle.name;
+          if (typeof localStorage !== 'undefined') {
+            localStorage.setItem('msh_save_folder_name', handle.name);
+          }
+          await this.saveStoredDirectoryHandle(handle);
+          await this.scanDirectoryForCharacters(handle);
+          this.renderLoadSaveFolderModal();
+
+          const knownFiles = this.getKnownCharacterFiles();
+          if (knownFiles.length > 0) {
+            const confirmed = await this.showCustomConfirm(
+              `Folder set to "${handle.name}"!\n\nWould you like to copy/move all ${knownFiles.length} known character file(s) to this new folder now?`,
+              '📁 Move Character Files?'
+            );
+            if (confirmed) {
+              await this.moveKnownFilesToDirectory(handle);
+            }
+          } else {
+            this.showStatusToast(`📁 Save/load folder set to "${handle.name}"`);
+          }
+        }
+      } catch (err) {
+        if (err.name === 'AbortError') return; // User cancelled
+        console.warn('showDirectoryPicker failed:', err);
+        this.showCustomAlert('Could not access folder: ' + err.message, 'Folder Access Error');
+      }
+    } else {
+      const folderInput = prompt(
+        'Enter preferred folder name or path for your character saves:',
+        this.saveFolderName || 'Documents/MarvelCharacters'
+      );
+      if (folderInput) {
+        this.saveFolderName = folderInput.trim();
+        if (typeof localStorage !== 'undefined') {
+          localStorage.setItem('msh_save_folder_name', this.saveFolderName);
+        }
+        this.renderLoadSaveFolderModal();
+        const knownFiles = this.getKnownCharacterFiles();
+        if (knownFiles.length > 0) {
+          const confirmed = await this.showCustomConfirm(
+            `Location set to "${this.saveFolderName}".\n\nWould you like to download all ${knownFiles.length} known character file(s) now?`,
+            '📁 Save All Characters?'
+          );
+          if (confirmed) {
+            for (const item of knownFiles) {
+              const content = typeof item.data === 'string' ? item.data : JSON.stringify(item.data, null, 2);
+              const blob = new Blob([content], { type: 'application/json' });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = item.fileName;
+              document.body.appendChild(a);
+              a.click();
+              document.body.removeChild(a);
+              URL.revokeObjectURL(url);
+            }
+            this.showStatusToast(`📦 Downloaded ${knownFiles.length} character file(s)!`);
+          }
+        }
+      }
+    }
+  },
+
+  async resetSaveDirectoryToDefault(offerToMove = true) {
+    const knownFiles = this.getKnownCharacterFiles();
+    let moveConfirmed = false;
+    if (offerToMove && knownFiles.length > 0) {
+      moveConfirmed = await this.showCustomConfirm(
+        `Reset character save/load location back to your system Documents folder.\n\nWould you like to move (copy) all ${knownFiles.length} known saved character file(s) to your Documents folder now?`,
+        '🔄 Reset to Default Location?'
+      );
+    }
+
+    this.currentDirectoryHandle = null;
+    this.lastSaveDirectoryHandle = null;
+    this.saveFolderName = null;
+    if (typeof localStorage !== 'undefined') {
+      localStorage.removeItem('msh_save_folder_name');
+    }
+    await this.clearStoredDirectoryHandle();
+    this.renderLoadSaveFolderModal();
+
+    if (moveConfirmed) {
+      if (typeof window !== 'undefined' && window.showDirectoryPicker) {
+        try {
+          const docHandle = await window.showDirectoryPicker({
+            startIn: 'documents',
+            mode: 'readwrite'
+          });
+          if (docHandle) {
+            await this.moveKnownFilesToDirectory(docHandle);
+            this.showStatusToast('✅ Moved all character files to your Documents folder!');
+          }
+        } catch (err) {
+          if (err.name !== 'AbortError') {
+            console.warn('Failed opening documents picker:', err);
+          }
+        }
+      } else {
+        for (const item of knownFiles) {
+          const content = typeof item.data === 'string' ? item.data : JSON.stringify(item.data, null, 2);
+          const blob = new Blob([content], { type: 'application/json' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = item.fileName;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+        }
+        this.showStatusToast('📦 Saved character files to your Documents folder!');
+      }
+    } else {
+      this.showStatusToast('🔄 Save/load folder reset to system Documents folder.');
+    }
+  },
+
+  async openCharacterFile() {
+    if (typeof window !== 'undefined' && window.showOpenFilePicker) {
+      try {
+        const startDir = await this.getEffectiveDirectoryHandle();
+        const [fileHandle] = await window.showOpenFilePicker({
+          startIn: startDir,
+          multiple: false,
+          types: [{
+            description: 'Marvel Super Heroes Character File (*.msh, *.json)',
+            accept: { 'application/json': ['.msh', '.json'] }
+          }]
+        });
+        if (fileHandle) {
+          const file = await fileHandle.getFile();
+          await this.loadCharacterFromFile(file);
+          return;
+        }
+      } catch (err) {
+        if (err.name === 'AbortError') return; // User cancelled
+        console.warn('showOpenFilePicker failed, falling back to input:', err);
+      }
+    }
+    // Fallback to file input
+    const input = document.getElementById('import-file-input');
+    if (input) {
+      input.value = '';
+      input.click();
+    }
+  },
+
+  async loadCharacterFromFile(file) {
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const data = JSON.parse(text);
+      this.character = FASERIPCharacter.fromJSON(data);
+      this.karmaMode = 'session';
+      this.advancementSnapshot = null;
+      this.testModeSnapshot = null;
+      if (!this.character.editLog || this.character.editLog.length === 0) {
+        this.character.recordEdit(`Imported character: ${this.character.name}`, 'initial');
+      }
+      this.saveState();
+      this.render();
+      this.updateHistoryNavButtons();
+      this.renderEditLog();
+
+      // Register into known characters
+      this.registerKnownCharacterFile({
+        name: this.character.name,
+        fileName: file.name || `${(this.character.name || 'Hero').replace(/\s+/g, '_')}_FASERIP.msh`,
+        data: this.character.toJSON(),
+        timestamp: file.lastModified || Date.now()
+      });
+
+      this.showCustomAlert(`Successfully imported "${this.character.name}"!`, '📁 Character Loaded');
+    } catch (err) {
+      this.showCustomAlert('Failed to load .msh character file: ' + err.message, '⚠️ Load Error');
+    }
+  },
+
+  importCharacter(event) {
+    const file = event && event.target && event.target.files ? event.target.files[0] : null;
+    if (!file) return;
+    this.loadCharacterFromFile(file);
+    if (event.target) event.target.value = '';
+  },
+
+  async exportCharacter() {
+    const char = this.character;
+    if (!char) return;
+    const jsonStr = JSON.stringify(char.toJSON(), null, 2);
+    const cleanName = (char.name || 'Hero').replace(/[/\\?%*:|"<>]/g, '_').trim() || 'Hero';
+    const fileName = `${cleanName.replace(/\s+/g, '_')}_FASERIP.msh`;
+
+    if (typeof window !== 'undefined' && window.showSaveFilePicker) {
+      try {
+        const startDir = await this.getEffectiveDirectoryHandle();
+        const fileHandle = await window.showSaveFilePicker({
+          suggestedName: fileName,
+          startIn: startDir,
+          types: [{
+            description: 'Marvel Super Heroes Character File (*.msh, *.json)',
+            accept: { 'application/json': ['.msh', '.json'] }
+          }]
+        });
+        if (fileHandle) {
+          const writable = await fileHandle.createWritable();
+          await writable.write(jsonStr);
+          await writable.close();
+
+          // Register in known character files
+          this.registerKnownCharacterFile({
+            name: char.name,
+            fileName: fileHandle.name || fileName,
+            data: char.toJSON(),
+            timestamp: Date.now()
+          });
+
+          this.showStatusToast(`💾 Saved "${char.name}" to ${(this.saveFolderName || 'Documents')}!`);
+          return;
+        }
+      } catch (err) {
+        if (err.name === 'AbortError') return; // User cancelled save dialog
+        console.warn('showSaveFilePicker failed, falling back to download:', err);
+      }
+    }
+
+    // Fallback browser download
     const blob = new Blob([jsonStr], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${(this.character.name || 'Hero').replace(/\s+/g, '_')}_FASERIP.msh`;
+    a.download = fileName;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-  },
 
-  importCharacter(event) {
-    const file = event.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      try {
-        const data = JSON.parse(e.target.result);
-        this.character = FASERIPCharacter.fromJSON(data);
-        this.karmaMode = 'session';
-        this.advancementSnapshot = null;
-        this.testModeSnapshot = null;
-        if (!this.character.editLog || this.character.editLog.length === 0) {
-          this.character.recordEdit(`Imported character: ${this.character.name}`, 'initial');
-        }
-        this.saveState();
-        this.render();
-        this.updateHistoryNavButtons();
-        this.renderEditLog();
-        this.showCustomAlert(`Successfully imported "${this.character.name}"!`, '📁 Character Loaded');
-      } catch (err) {
-        this.showCustomAlert('Failed to load .msh character file: ' + err.message, '⚠️ Load Error');
-      }
-    };
-    reader.readAsText(file);
+    this.registerKnownCharacterFile({
+      name: char.name,
+      fileName: fileName,
+      data: char.toJSON(),
+      timestamp: Date.now()
+    });
+    this.showStatusToast(`💾 Saved "${char.name}" to Downloads/Documents!`);
   },
 
   openPrintPreview() {

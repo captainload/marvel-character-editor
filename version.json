@@ -1,7 +1,7 @@
 {
-  "version": "1.5.14",
+  "version": "1.5.15",
   "releaseDate": "2026-09-25",
   "name": "Marvel Super Heroes Character Editor",
   "repo": "https://github.com/captainload/marvel-character-editor",
-  "notes": "Added comprehensive Help & Feature Guide (help.html) accessible from the File / Options menu, detailing core features, character creation workflows, and deep dual support for vanilla TSR MSHRPG and Classic Marvel Forever (CMF)."
+  "notes": "Added default character save/load location to user's Documents folder (across Windows, macOS, and Linux) with last save location memory, plus 'Set load/save folder' in the main menu with interactive folder browsing, reset to default, and automated character migration."
 }

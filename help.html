@@ -538,7 +538,7 @@
         <button type="button" class="nav-btn" onclick="window.print()">🖨️ Print / Save as PDF</button>
       </div>
       <div style="font-size: 12px; color: var(--text-muted);">
-        Marvel Super Heroes (FASERIP) Suite • <strong>Version 1.5.14</strong>
+        Marvel Super Heroes (FASERIP) Suite • <strong>Version 1.5.15</strong>
       </div>
     </div>
 
@@ -1048,8 +1048,9 @@
               Manage your character archives and tailor the application interface to your preferences via <strong>📁 File / Options ▾</strong>:
             </p>
             <ul class="feature-list">
-              <li><strong>Save Character (.msh):</strong> Exports your complete hero sheet, powers, inventions, known blueprints, equipped gear, and history log to a portable <code>.msh</code> JSON file.</li>
-              <li><strong>Open Character (.msh):</strong> Imports any saved hero file with full backward compatibility and automated schema migration.</li>
+              <li><strong>Save Character (.msh):</strong> Exports your complete hero sheet, powers, inventions, known blueprints, equipped gear, and history log to a portable <code>.msh</code> JSON file. Defaults to your system Documents folder or last saved location.</li>
+              <li><strong>Open Character (.msh):</strong> Imports any saved hero file with full backward compatibility and automated schema migration. Automatically defaults to your last save location.</li>
+              <li><strong>Set Load/Save Folder:</strong> Select <strong>File / Options ▾ &rarr; Set Load/Save Folder...</strong> to configure your active directory. Defaults to your system Documents folder in Windows (<code>%USERPROFILE%\Documents</code>), macOS, and Linux. You can browse your local file tree to select any custom folder, and the application will offer to copy or move all known character files to your chosen location. Includes a <em>Reset to Default Location</em> button with automated character migration.</li>
               <li><strong>Undo / Redo History Navigation:</strong> Use the <code>⮜</code> and <code>⮞</code> arrows in the top tab bar to step backward or forward through your edits.</li>
               <li><strong>Visual Color Themes:</strong>
                 <br>• <strong>Slate (Default):</strong> High-contrast dark comic theme with Marvel Red and Gold accents.
@@ -1108,7 +1109,7 @@
       <p>
         Marvel Super Heroes Roleplaying Game (MSHRPG / FASERIP) &copy; TSR, Inc. / Marvel Entertainment.<br>
         Classic Marvel Forever (CMF) enhancements &copy; Classic Marvel Forever community.<br>
-        Application Suite v1.5.14 &bull; Built with pure offline web technologies.
+        Application Suite v1.5.15 &bull; Built with pure offline web technologies.
       </p>
     </footer>
 

@@ -47,7 +47,7 @@ const App = {
   set superiorOptionTax(val) {
     this.superiorOptionCost = !!val;
   },
-  VERSION: '1.5.13',
+  VERSION: '1.5.14',
   BUILD_DATE: '2026-09-25',
   COMMIT_SHA: '6a15ff5',
   REPO_OWNER: 'captainload',
@@ -1007,6 +1007,13 @@ const App = {
         if (fileOptionsMenu) fileOptionsMenu.classList.remove('open');
         const optModal = document.getElementById('options-modal');
         if (optModal) optModal.classList.add('open');
+      });
+    }
+
+    const menuItemHelp = document.getElementById('menu-item-help');
+    if (menuItemHelp) {
+      menuItemHelp.addEventListener('click', () => {
+        if (fileOptionsMenu) fileOptionsMenu.classList.remove('open');
       });
     }
 
@@ -8869,6 +8876,10 @@ const App = {
         } catch (e) {}
       }
     });
+  },
+
+  openHelpGuide() {
+    window.open('help.html', '_blank');
   },
 
   openCheatSheet() {

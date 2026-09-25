@@ -1,7 +1,7 @@
 {
-  "version": "1.5.13",
+  "version": "1.5.14",
   "releaseDate": "2026-09-25",
   "name": "Marvel Super Heroes Character Editor",
   "repo": "https://github.com/captainload/marvel-character-editor",
-  "notes": "Reduced whitespace throughout the Invention Lab tab and streamlined Reverse-Engineering so equipment dropdown, preview button, Reverse-Engineer action, and cancel buttons align cleanly on a single row."
+  "notes": "Added comprehensive Help & Feature Guide (help.html) accessible from the File / Options menu, detailing core features, character creation workflows, and deep dual support for vanilla TSR MSHRPG and Classic Marvel Forever (CMF)."
 }

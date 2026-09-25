@@ -1,0 +1,1143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Marvel Super Heroes Character Editor — Help & User Guide</title>
+  <style>
+    :root {
+      --bg-main: #0b0f19;
+      --bg-card: #151d30;
+      --bg-card-hover: #1c2742;
+      --border-color: #2a3756;
+      --accent-red: #e11d48;
+      --accent-gold: #f59e0b;
+      --accent-blue: #38bdf8;
+      --accent-green: #10b981;
+      --accent-purple: #a855f7;
+      --text-main: #f1f5f9;
+      --text-muted: #94a3b8;
+      --text-dim: #64748b;
+      --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: var(--bg-main);
+      color: var(--text-main);
+      font-family: var(--font-family);
+      line-height: 1.6;
+      padding: 24px 16px;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    /* Top Action Bar */
+    .top-action-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .nav-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 14px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      color: var(--text-main);
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .nav-btn:hover {
+      background: var(--bg-card-hover);
+      border-color: var(--accent-blue);
+      color: #fff;
+    }
+    .nav-btn.primary {
+      background: #1e3a8a;
+      border-color: #3b82f6;
+      color: #93c5fd;
+    }
+    .nav-btn.primary:hover {
+      background: #2563eb;
+      color: #fff;
+    }
+
+    /* Header & Hero */
+    header {
+      background: linear-gradient(135deg, #1e1b4b 0%, #0f172a 100%);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 32px 24px;
+      margin-bottom: 24px;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4);
+      position: relative;
+      overflow: hidden;
+    }
+
+    header::before {
+      content: "FASERIP";
+      position: absolute;
+      right: -10px;
+      bottom: -20px;
+      font-size: 90px;
+      font-weight: 900;
+      color: rgba(255, 255, 255, 0.03);
+      letter-spacing: 6px;
+      pointer-events: none;
+    }
+
+    .badge-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 10px;
+      border-radius: 9999px;
+      font-size: 11.5px;
+      font-weight: 600;
+      letter-spacing: 0.3px;
+      text-transform: uppercase;
+    }
+    .badge-red { background: rgba(225, 29, 72, 0.2); color: #fb7185; border: 1px solid rgba(225, 29, 72, 0.4); }
+    .badge-gold { background: rgba(245, 158, 11, 0.2); color: #fcd34d; border: 1px solid rgba(245, 158, 11, 0.4); }
+    .badge-blue { background: rgba(56, 189, 248, 0.2); color: #7dd3fc; border: 1px solid rgba(56, 189, 248, 0.4); }
+    .badge-green { background: rgba(16, 185, 129, 0.2); color: #6ee7b7; border: 1px solid rgba(16, 185, 129, 0.4); }
+    .badge-purple { background: rgba(168, 85, 247, 0.2); color: #d8b4fe; border: 1px solid rgba(168, 85, 247, 0.4); }
+
+    h1 {
+      font-size: 28px;
+      font-weight: 800;
+      color: #fff;
+      margin-bottom: 8px;
+      letter-spacing: -0.5px;
+    }
+
+    p.subtitle {
+      color: var(--text-muted);
+      font-size: 14.5px;
+      max-width: 950px;
+      line-height: 1.55;
+    }
+
+    /* Stats & Feature Highlights Banner */
+    .stats-banner {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+    .stat-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 14px 16px;
+      text-align: center;
+    }
+    .stat-card .num {
+      font-size: 20px;
+      font-weight: 800;
+      color: #fff;
+    }
+    .stat-card .label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    /* Search & Filter Toolbar */
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 14px 18px;
+      margin-bottom: 24px;
+      position: sticky;
+      top: 12px;
+      z-index: 100;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+    }
+
+    .search-box {
+      flex: 1;
+      min-width: 260px;
+      position: relative;
+    }
+    .search-box input {
+      width: 100%;
+      background: #0b0f19;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 10px 14px 10px 36px;
+      color: #fff;
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .search-box input:focus {
+      border-color: var(--accent-blue);
+    }
+    .search-icon {
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted);
+      font-size: 14px;
+    }
+
+    .filters {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .filter-btn {
+      background: #0b0f19;
+      border: 1px solid var(--border-color);
+      color: var(--text-muted);
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 12.5px;
+      cursor: pointer;
+      font-weight: 500;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+    .filter-btn:hover, .filter-btn.active {
+      background: var(--accent-red);
+      color: #fff;
+      border-color: var(--accent-red);
+    }
+
+    /* Content Layout */
+    .main-layout {
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      gap: 24px;
+      align-items: start;
+    }
+
+    @media (max-width: 900px) {
+      .main-layout {
+        grid-template-columns: 1fr;
+      }
+      .toc-sidebar {
+        display: none;
+      }
+    }
+
+    /* Table of Contents Sidebar */
+    .toc-sidebar {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 16px;
+      position: sticky;
+      top: 90px;
+      max-height: calc(100vh - 120px);
+      overflow-y: auto;
+    }
+    .toc-title {
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--accent-gold);
+      margin-bottom: 12px;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 6px;
+    }
+    .toc-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .toc-link {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 13px;
+      display: block;
+      padding: 4px 8px;
+      border-radius: 4px;
+      transition: all 0.15s;
+    }
+    .toc-link:hover {
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--accent-blue);
+    }
+
+    /* Topic Cards */
+    .topic-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 24px;
+      margin-bottom: 24px;
+      scroll-margin-top: 100px;
+      transition: border-color 0.2s;
+    }
+    .topic-card:hover {
+      border-color: #3b82f6;
+    }
+
+    .topic-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      padding-bottom: 12px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+
+    .topic-title {
+      font-size: 20px;
+      font-weight: 700;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .topic-category-tag {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      padding: 3px 8px;
+      border-radius: 4px;
+      background: rgba(56, 189, 248, 0.15);
+      color: var(--accent-blue);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+    }
+
+    .topic-body {
+      font-size: 14px;
+      line-height: 1.68;
+      color: #cbd5e1;
+    }
+    .topic-body p {
+      margin-bottom: 12px;
+    }
+    .topic-body h3 {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--accent-gold);
+      margin: 18px 0 8px 0;
+    }
+    .topic-body h4 {
+      font-size: 14.5px;
+      font-weight: 600;
+      color: #93c5fd;
+      margin: 14px 0 6px 0;
+    }
+
+    /* Callout Boxes */
+    .callout {
+      border-radius: 8px;
+      padding: 14px 16px;
+      margin: 14px 0;
+      font-size: 13.5px;
+      line-height: 1.6;
+    }
+    .callout-info {
+      background: rgba(30, 58, 138, 0.25);
+      border: 1px solid rgba(59, 130, 246, 0.4);
+      color: #bfdbfe;
+    }
+    .callout-gold {
+      background: rgba(180, 83, 9, 0.2);
+      border: 1px solid rgba(245, 158, 11, 0.4);
+      color: #fde68a;
+    }
+    .callout-green {
+      background: rgba(6, 78, 59, 0.25);
+      border: 1px solid rgba(16, 185, 129, 0.4);
+      color: #a7f3d0;
+    }
+    .callout-purple {
+      background: rgba(88, 28, 135, 0.25);
+      border: 1px solid rgba(168, 85, 247, 0.4);
+      color: #e9d5ff;
+    }
+
+    /* Tables */
+    .data-table-wrapper {
+      overflow-x: auto;
+      margin: 14px 0;
+      border-radius: 6px;
+      border: 1px solid var(--border-color);
+    }
+    table.data-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 13px;
+    }
+    table.data-table th {
+      background: #0f172a;
+      color: #93c5fd;
+      padding: 10px 12px;
+      font-weight: 600;
+      border-bottom: 1px solid var(--border-color);
+    }
+    table.data-table td {
+      padding: 8px 12px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      color: #e2e8f0;
+    }
+    table.data-table tr:last-child td {
+      border-bottom: none;
+    }
+    table.data-table tr:hover td {
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    /* Comparison Grids */
+    .comparison-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 14px;
+      margin: 14px 0;
+    }
+    .comparison-box {
+      background: #0b0f19;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 14px;
+    }
+    .comparison-box-title {
+      font-weight: 700;
+      font-size: 14px;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    /* Feature Lists */
+    ul.feature-list {
+      list-style-type: none;
+      margin: 8px 0 14px 0;
+      padding-left: 0;
+    }
+    ul.feature-list li {
+      position: relative;
+      padding-left: 22px;
+      margin-bottom: 8px;
+    }
+    ul.feature-list li::before {
+      content: "✓";
+      position: absolute;
+      left: 0;
+      top: 0;
+      color: var(--accent-green);
+      font-weight: bold;
+    }
+
+    /* Step Numbers */
+    ol.step-list {
+      margin: 10px 0 14px 20px;
+    }
+    ol.step-list li {
+      margin-bottom: 8px;
+      padding-left: 4px;
+    }
+
+    /* Footer */
+    footer {
+      text-align: center;
+      padding: 24px 0;
+      margin-top: 40px;
+      border-top: 1px solid var(--border-color);
+      color: var(--text-dim);
+      font-size: 13px;
+    }
+
+    /* Print Styles */
+    @media print {
+      body {
+        background: #fff;
+        color: #000;
+        padding: 0;
+      }
+      .top-action-bar, .toolbar, .toc-sidebar {
+        display: none !important;
+      }
+      .main-layout {
+        grid-template-columns: 1fr;
+      }
+      .topic-card {
+        background: #fff;
+        border: 1px solid #ccc;
+        color: #000;
+        break-inside: avoid;
+        page-break-inside: avoid;
+      }
+      .topic-title, h1, h3, h4 {
+        color: #000 !important;
+      }
+      .callout {
+        background: #f8fafc;
+        border: 1px solid #94a3b8;
+        color: #000 !important;
+      }
+      table.data-table th {
+        background: #e2e8f0;
+        color: #000;
+      }
+      table.data-table td {
+        color: #000;
+        border-bottom: 1px solid #ccc;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+
+    <!-- Top Action Bar -->
+    <div class="top-action-bar">
+      <div class="nav-links">
+        <a href="index.html" class="nav-btn primary">⮜ Back to Character Editor</a>
+        <a href="msh_rules_errata_report.html" target="_blank" class="nav-btn">⚖️ Rules Errata Report</a>
+        <button type="button" class="nav-btn" onclick="window.print()">🖨️ Print / Save as PDF</button>
+      </div>
+      <div style="font-size: 12px; color: var(--text-muted);">
+        Marvel Super Heroes (FASERIP) Suite • <strong>Version 1.5.14</strong>
+      </div>
+    </div>
+
+    <!-- Header & Hero -->
+    <header>
+      <div class="badge-bar">
+        <span class="badge badge-red">TSR Classic MSHRPG</span>
+        <span class="badge badge-gold">Classic Marvel Forever (CMF)</span>
+        <span class="badge badge-blue">Complete User Manual</span>
+        <span class="badge badge-green">FASERIP Engine</span>
+        <span class="badge badge-purple">Invention &amp; Armory Lab</span>
+      </div>
+      <h1>Marvel Super Heroes Character Editor — Help &amp; Feature Guide</h1>
+      <p class="subtitle">
+        An all-in-one companion for the Marvel Super Heroes Roleplaying Game. This comprehensive guide outlines the system's core capabilities, workflow shortcuts, point-buy math, and deep dual support for both canonical TSR rules and Classic Marvel Forever (CMF) enhancements.
+      </p>
+    </header>
+
+    <!-- Stats & Highlight Counters -->
+    <div class="stats-banner">
+      <div class="stat-card">
+        <div class="num" style="color: #38bdf8;">Dual Engine</div>
+        <div class="label">Vanilla TSR &amp; CMF Support</div>
+      </div>
+      <div class="stat-card">
+        <div class="num" style="color: #f59e0b;">22 Ranks</div>
+        <div class="label">Expanded Action Matrix</div>
+      </div>
+      <div class="stat-card">
+        <div class="num" style="color: #10b981;">3-Phase</div>
+        <div class="label">Machines of Doom Inventions</div>
+      </div>
+      <div class="stat-card">
+        <div class="num" style="color: #a855f7;">100% Offline</div>
+        <div class="label">Zero Dependencies / Pure Local</div>
+      </div>
+    </div>
+
+    <!-- Sticky Search & Filter Toolbar -->
+    <div class="toolbar">
+      <div class="search-box">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="searchInput" placeholder="Filter help topics or search keywords (e.g., CMF, Point-Buy, Inventions, Karma, Blueprints)...">
+      </div>
+      <div class="filters">
+        <button type="button" class="filter-btn active" data-filter="all">All Topics</button>
+        <button type="button" class="filter-btn" data-filter="rules">Vanilla vs. CMF</button>
+        <button type="button" class="filter-btn" data-filter="creation">Character Creation</button>
+        <button type="button" class="filter-btn" data-filter="combat">Combat &amp; Roller</button>
+        <button type="button" class="filter-btn" data-filter="powers">Powers &amp; Stunts</button>
+        <button type="button" class="filter-btn" data-filter="inventions">Invention Lab</button>
+        <button type="button" class="filter-btn" data-filter="equipment">Equipment &amp; Store</button>
+        <button type="button" class="filter-btn" data-filter="settings">Preferences &amp; Files</button>
+      </div>
+    </div>
+
+    <!-- Main Content Layout with Sidebar -->
+    <div class="main-layout">
+      <!-- Table of Contents Sidebar -->
+      <aside class="toc-sidebar">
+        <div class="toc-title">Table of Contents</div>
+        <ul class="toc-list">
+          <li><a href="#topic-overview" class="toc-link">1. System Overview</a></li>
+          <li><a href="#topic-rules-comparison" class="toc-link">2. Vanilla TSR vs. CMF</a></li>
+          <li><a href="#topic-point-buy" class="toc-link">3. CMF Point-Buy Engine</a></li>
+          <li><a href="#topic-main-stats" class="toc-link">4. FASERIP Abilities &amp; Vitals</a></li>
+          <li><a href="#topic-dice-roller" class="toc-link">5. Universal Action Table Roller</a></li>
+          <li><a href="#topic-powers" class="toc-link">6. Powers Catalog &amp; Stunts</a></li>
+          <li><a href="#topic-inventions" class="toc-link">7. Machines of Doom Inventions</a></li>
+          <li><a href="#topic-equipment" class="toc-link">8. Equipment Armory &amp; Store</a></li>
+          <li><a href="#topic-talents" class="toc-link">9. Talents, Contacts &amp; Karma</a></li>
+          <li><a href="#topic-cheatsheet" class="toc-link">10. Rules Cheat Sheet &amp; Pop-out</a></li>
+          <li><a href="#topic-files-themes" class="toc-link">11. File Management &amp; Themes</a></li>
+          <li><a href="#topic-print" class="toc-link">12. Print Preview &amp; PDF Export</a></li>
+        </ul>
+      </aside>
+
+      <!-- Topic Articles -->
+      <main class="content-area">
+
+        <!-- Topic 1: System Overview -->
+        <article class="topic-card" id="topic-overview" data-category="rules creation">
+          <div class="topic-header">
+            <h2 class="topic-title"><span>🌟</span> 1. System Overview &amp; Architecture</h2>
+            <span class="topic-category-tag">Overview</span>
+          </div>
+          <div class="topic-body">
+            <p>
+              The <strong>Marvel Super Heroes Character Editor</strong> is a dedicated tabletop RPG workstation engineered specifically for TSR's classic <em>Marvel Super Heroes Roleplaying Game</em> (Advanced and Basic sets) and the community-standard <em>Classic Marvel Forever (CMF)</em> rules modifications.
+            </p>
+            <p>
+              The application runs entirely within any modern web browser with zero external framework dependencies. All calculations, state transitions, dice rolls, and equipment catalogs operate 100% locally on your machine, ensuring full offline capability, zero latency, and persistent local storage.
+            </p>
+            <div class="callout callout-info">
+              <strong>Key Design Objective:</strong> Provide a unified digital workspace that honors the nostalgic 1980s TSR FASERIP rulebooks while equipping modern Game Masters and players with rapid point-buy budgets, automated Universal Action Table resolution, invention crafting, and clean printable character sheets.
+            </div>
+          </div>
+        </article>
+
+        <!-- Topic 2: Vanilla TSR vs. CMF -->
+        <article class="topic-card" id="topic-rules-comparison" data-category="rules">
+          <div class="topic-header">
+            <h2 class="topic-title"><span>⚖️</span> 2. Vanilla TSR MSHRPG vs. Classic Marvel Forever (CMF)</h2>
+            <span class="topic-category-tag">Rules Comparison</span>
+          </div>
+          <div class="topic-body">
+            <p>
+              The program provides comprehensive, first-class support for both <strong>Vanilla TSR MSHRPG</strong> (canonical 1986 Advanced Set / 1984 Basic Set) and <strong>Classic Marvel Forever (CMF)</strong>. You can switch between these modes seamlessly at any time via <strong>File / Options ▾ → Preferences &amp; Options</strong> or directly from the <strong>Rules Cheat Sheet</strong>.
+            </p>
+
+            <h3>Side-by-Side System Comparison</h3>
+            <div class="data-table-wrapper">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Feature</th>
+                    <th>Vanilla TSR Rulebooks (1986)</th>
+                    <th>Classic Marvel Forever (CMF)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><strong>Rank Progression</strong></td>
+                    <td><strong>18 Canonical Ranks:</strong> Shift 0 up to Beyond</td>
+                    <td><strong>22 Expanded Ranks:</strong> Adds Fantastic (35), Spectacular (45), Sensational (60), Awesome (90)</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Universal Action Table</strong></td>
+                    <td><strong>4-Color Matrix:</strong> White (Failure), Green (Standard), Yellow (Remarkable), Red (Spectacular)</td>
+                    <td><strong>5-Color Matrix:</strong> Adds <strong>Dark Blue Fumble</strong> (01-10 down to 01-01) for critical weapon/power malfunctions</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Character Creation</strong></td>
+                    <td>Random dice generation or fixed archetype templates</td>
+                    <td><strong>Flexible Point-Buy:</strong> Tier budgets (400, 600, 800, 1000, 1200, 1500 CP) with point-by-point purchasing</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Ground Movement</strong></td>
+                    <td>15 Rank brackets</td>
+                    <td>21 Rank brackets with precise miles-per-hour and areas-per-round speed benchmarks</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Air / Flight Movement</strong></td>
+                    <td>17 Rank brackets</td>
+                    <td>21 Rank brackets spanning Mach speeds, orbital velocities, and sub-light flight</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Material Strengths</strong></td>
+                    <td>13 Canonical materials (Cloth up to Adamantium)</td>
+                    <td>19 Expanded materials (adds Hard Wood, Super-Heavy Steel, Crystallized Adamantium, etc.)</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Tactical Area Division</strong></td>
+                    <td>Standard 132-foot areas</td>
+                    <td>Supports Standard (132 ft), Quadrant (33 ft), Six Subareas (22 ft), and Eight Subareas (16.5 ft)</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="comparison-grid">
+              <div class="comparison-box">
+                <div class="comparison-box-title" style="color: #60a5fa;">
+                  <span>📘 Vanilla TSR Strengths</span>
+                  <span class="badge badge-blue">Canonical</span>
+                </div>
+                <ul class="feature-list">
+                  <li>Pure 1986 Advanced Set Player's Book &amp; Judge's Book rules parity.</li>
+                  <li>Original 4-color threshold bands for players wanting authentic retro table rolls.</li>
+                  <li>Original 13-grade material strength chart.</li>
+                  <li>Standard 15/17 movement speed steps.</li>
+                </ul>
+              </div>
+              <div class="comparison-box">
+                <div class="comparison-box-title" style="color: #f59e0b;">
+                  <span>⚡ CMF Enhanced Strengths</span>
+                  <span class="badge badge-gold">Community Standard</span>
+                </div>
+                <ul class="feature-list">
+                  <li>Bridges large power gaps between Remarkable (30) and Incredible (40), and Amazing (50) and Monstrous (75).</li>
+                  <li>Dark Blue Fumbles introduce high-stakes blunder and weapon jam drama.</li>
+                  <li>Precise point-buy balance prevents power discrepancies in campaign play.</li>
+                  <li>19-material chart covers everyday building materials and cosmic shielding.</li>
+                </ul>
+              </div>
+            </div>
+
+            <h3>How to Switch Rulesets</h3>
+            <ol class="step-list">
+              <li>Click <strong>📁 File / Options ▾</strong> in the top header and select <strong>⚙️ Preferences &amp; Options...</strong></li>
+              <li>Under <strong>Universal Action Table Mode</strong>, toggle between:
+                <br>• <code>Modified CMF (22 Ranks - Default)</code>
+                <br>• <code>Standard TSR (18 Ranks)</code>
+              </li>
+              <li>Click <strong>Save &amp; Close</strong>. The dice roller, Universal Action Table matrix, combat maneuvers, and cheat sheet instantly re-render according to your selection.</li>
+            </ol>
+          </div>
+        </article>
+
+        <!-- Topic 3: CMF Point-Buy Engine -->
+        <article class="topic-card" id="topic-point-buy" data-category="creation">
+          <div class="topic-header">
+            <h2 class="topic-title"><span>💰</span> 3. CMF Point-Buy Engine &amp; Budget Accounting</h2>
+            <span class="topic-category-tag">Character Creation</span>
+          </div>
+          <div class="topic-body">
+            <p>
+              The editor features an interactive, automated <strong>Classic Marvel Forever Point-Buy Engine</strong>. Rather than relying on swingy random dice rolls, players build heroes according to balanced Character Point (CP) budgets.
+            </p>
+
+            <h3>Standard CP Budget Tiers</h3>
+            <ul class="feature-list">
+              <li><strong>400 CP — Street-Level / City Defender:</strong> Vigilantes, martial artists, and neighborhood heroes (e.g., Daredevil, Luke Cage, Spider-Man).</li>
+              <li><strong>600 CP — Experienced Super Hero:</strong> Seasoned mutants and national champions (e.g., Captain America, Wolverine, Cyclops).</li>
+              <li><strong>800 CP — Major Team Member:</strong> Frontline powerhouse heroes (e.g., Iron Man, Storm, Colossus).</li>
+              <li><strong>1000 CP — Heavyweight / World Class:</strong> Elite Avengers and godlike champions (e.g., Thor, Hulk, Silver Surfer).</li>
+              <li><strong>1200 / 1500 CP — Cosmic / Herald:</strong> Cosmic guardians and heralds of the universe.</li>
+              <li><strong>Custom CP:</strong> Enter any custom budget for homebrew campaigns or one-shot adventures.</li>
+            </ul>
+
+            <h3>Cost Accounting Formula</h3>
+            <div class="data-table-wrapper">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Category</th>
+                    <th>Point-Buy Cost Formula</th>
+                    <th>Notes &amp; Rulebook Citations</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><strong>Primary Abilities (FASERIP)</strong></td>
+                    <td><strong>1 CP per Rank Number</strong></td>
+                    <td>Feeble (2) = 2 CP, Good (10) = 10 CP, Excellent (20) = 20 CP, Remarkable (30) = 30 CP, Amazing (50) = 50 CP.</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Secondary Vitals (Health &amp; Karma)</strong></td>
+                    <td><strong>0 CP (Derived Automatically)</strong></td>
+                    <td>Health = Fighting + Agility + Strength + Endurance.<br>Karma = Reason + Intuition + Psyche.</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Standard Superpowers</strong></td>
+                    <td><strong>10 CP Base + Rank Number CP</strong></td>
+                    <td>e.g., Body Armor at Remarkable (30) costs 10 Base + 30 Rank = <strong>40 CP</strong>.</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Starred (Heavyweight) Powers</strong></td>
+                    <td><strong>20 CP Base + 2x Rank Number CP</strong></td>
+                    <td>Per TSR Player's Book p. 19 &amp; UPB p. 16–19, heavyweight powers (Alter Ego, Energy Mastery, Power Simulation, etc.) count as two powers and cost 2x.</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Superior Option Tax (House Rule)</strong></td>
+                    <td><strong>Toggleable in Preferences</strong></td>
+                    <td>Optional surcharge for superior power choices. When disabled by the GM, superior options incur zero penalty.</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Talents</strong></td>
+                    <td><strong>10 CP Standard / 20 CP Starred (*)</strong></td>
+                    <td>Standard talents cost 10 CP. Heavyweight professional or combat masteries cost 20 CP.</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Contacts</strong></td>
+                    <td><strong>5 CP each</strong></td>
+                    <td>Resourceful allies, superhero teams, government agencies, and personal confidants.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="callout callout-green">
+              <strong>Real-Time Budget Indicator:</strong> The header displays a live CP meter (e.g., <code>385 / 400 CP (15 CP Rem.)</code>). If your hero exceeds their tier budget, the badge turns warning-red with a clear accounting breakdown.
+            </div>
+          </div>
+        </article>
+
+        <!-- Topic 4: FASERIP Abilities & Vitals -->
+        <article class="topic-card" id="topic-main-stats" data-category="combat">
+          <div class="topic-header">
+            <h2 class="topic-title"><span>📊</span> 4. FASERIP Abilities, Vitals &amp; Combat Maneuvers</h2>
+            <span class="topic-category-tag">Main Stats</span>
+          </div>
+          <div class="topic-body">
+            <p>
+              The <strong>Main Stats &amp; Actions Tab</strong> provides command over your character's primary attributes and active vitals:
+            </p>
+            <ul class="feature-list">
+              <li><strong>The 7 Primary Abilities:</strong> Fighting (F), Agility (A), Strength (S), Endurance (E), Reason (R), Intuition (I), and Psyche (P).</li>
+              <li><strong>Column Shift Steppers:</strong> Adjust temporary combat modifiers (+1 CS, -2 CS) for environmental hazards, spells, or tactical positioning.</li>
+              <li><strong>Live Health &amp; Karma Trackers:</strong> Dedicated rapid-click and accelerating stepper buttons (+1, +5, +10) let you adjust vitals during fast-paced combat rounds. Includes full recovery and quick-heal buttons.</li>
+              <li><strong>Karma Modes:</strong> Switch between Standard TSR, CMF Option, and House Rule pool caps.</li>
+            </ul>
+
+            <h3>Calculated Combat &amp; Defense Table</h3>
+            <p>
+              Every character automatically calculates their exact damage ratings, attack ability columns, and defense maneuvers:
+            </p>
+            <div class="data-table-wrapper">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Maneuver</th>
+                    <th>Governing Ability</th>
+                    <th>Damage / Effect Resolution</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><strong>Blunt Attacks (Punches / Clubs)</strong></td>
+                    <td>Fighting (or Agility for thrown)</td>
+                    <td>Inflicts Strength rank damage; checks for Stun/Slam on Yellow/Red.</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Edged Attacks (Swords / Claws)</strong></td>
+                    <td>Fighting</td>
+                    <td>Inflicts weapon or Strength damage; checks for Kill/Stun.</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Shooting Attacks</strong></td>
+                    <td>Agility</td>
+                    <td>Inflicts weapon damage rank; checks for Bullseye on Red.</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Dodging &amp; Evading</strong></td>
+                    <td>Agility</td>
+                    <td>Applies negative column shifts to enemy attack rolls.</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Blocking</strong></td>
+                    <td>Endurance / Shield Material</td>
+                    <td>Absorbs incoming blunt or physical damage equal to rank.</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Grappling &amp; Escaping</strong></td>
+                    <td>Strength</td>
+                    <td>Establishes holds or breaks free from opponent pins.</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Charging</strong></td>
+                    <td>Endurance</td>
+                    <td>Combines movement speed and body mass for devastating impact.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </article>
+
+        <!-- Topic 5: Universal Action Table Roller -->
+        <article class="topic-card" id="topic-dice-roller" data-category="combat">
+          <div class="topic-header">
+            <h2 class="topic-title"><span>🎲</span> 5. Universal Action Table Roller &amp; FEAT Resolution</h2>
+            <span class="topic-category-tag">Dice Roller</span>
+          </div>
+          <div class="topic-body">
+            <p>
+              The integrated <strong>Universal Action Table Dice Roller</strong> automates FEAT resolution according to official TSR/CMF rules. You can trigger rolls from any ability card, combat maneuver row, or open the roller independently.
+            </p>
+            <ul class="feature-list">
+              <li><strong>d100 Engine:</strong> True random roll generation with animated visual feedback.</li>
+              <li><strong>Dynamic Color Band Matching:</strong> Instantly evaluates the roll against the active rank column:
+                <br>• <span style="color: #60a5fa; font-weight: 600;">Dark Blue:</span> Fumble / Blunder / Weapon Mishap (CMF mode).
+                <br>• <span style="color: #cbd5e1; font-weight: 600;">White:</span> Failure.
+                <br>• <span style="color: #34d399; font-weight: 600;">Green:</span> Standard Success.
+                <br>• <span style="color: #fbbf24; font-weight: 600;">Yellow:</span> Remarkable Success (special effects trigger).
+                <br>• <span style="color: #f87171; font-weight: 600;">Red:</span> Spectacular Success (maximum impact / critical triumph).
+              </li>
+              <li><strong>Column Shift Steppers:</strong> Apply temporary buffs or penalties (-3 to +3 CS and custom) with real-time recalculation of percentile thresholds.</li>
+              <li><strong>Karma Spending Stepper:</strong> Spend available character Karma point-by-point to adjust the roll upward into the next color band!</li>
+              <li><strong>Pop-out Multi-Window Mode:</strong> Click the <strong>↗ Pop Out</strong> button to detach the roller into an independent browser window for dual-monitor or tablet tabletop setups.</li>
+            </ul>
+          </div>
+        </article>
+
+        <!-- Topic 6: Powers Catalog & Stunts -->
+        <article class="topic-card" id="topic-powers" data-category="powers">
+          <div class="topic-header">
+            <h2 class="topic-title"><span>⚡</span> 6. Superpowers Catalog, Power Stunts &amp; Rules Inspector</h2>
+            <span class="topic-category-tag">Powers Tab</span>
+          </div>
+          <div class="topic-body">
+            <p>
+              The <strong>Powers Tab</strong> contains the complete superpower library drawn directly from the <em>Ultimate Powers Book (UPB)</em> and the Advanced Set <em>Player's Book</em>:
+            </p>
+            <ul class="feature-list">
+              <li><strong>Instant Search &amp; Filter:</strong> Filter by name, code, or power categories (Physical Enhancement, Energy Emission, Matter Control, Mental Powers, Magic, Body Alterations, Sensory, Defense, etc.).</li>
+              <li><strong>Power Options &amp; Sub-Powers:</strong> Many powers (e.g., Elemental Control, Teleportation, Power Simulation) feature configurable variants and sub-powers.</li>
+              <li><strong>Power Stunts:</strong> Record acquired or attempted stunts, track Karma investment, and mark mastered maneuvers.</li>
+              <li><strong>Built-In Rules Inspector (?):</strong> Click the question mark icon on any power card or dropdown to open a rich modal displaying the verbatim TSR rules text, canonical range, duration, target limits, and area of effect.</li>
+            </ul>
+          </div>
+        </article>
+
+        <!-- Topic 7: Machines of Doom Invention Lab -->
+        <article class="topic-card" id="topic-inventions" data-category="inventions">
+          <div class="topic-header">
+            <h2 class="topic-title"><span>🔬</span> 7. Machines of Doom — Advanced Invention Lab</h2>
+            <span class="topic-category-tag">Invention Lab</span>
+          </div>
+          <div class="topic-body">
+            <p>
+              The <strong>Invention Lab Tab</strong> implements the official TSR Advanced Set <em>Machines of Doom</em> invention rules with complete fidelity. Creators can design custom gadgets, mystical artifacts, vehicles, armor, or reverse-engineer rulebook equipment:
+            </p>
+
+            <h3>The 3-Phase Invention Workflow</h3>
+            <ol class="step-list">
+              <li><strong>Phase 1: Blueprint Design FEAT</strong> — The inventor rolls Reason (plus applicable scientific/mystical talents) against the project's target complexity rank. Success drafts a functional blueprint!</li>
+              <li><strong>Phase 2: Resource Procurement FEAT</strong> — The creator rolls Resources against the raw material rank. Success acquires all necessary exotic alloys, arcane reagents, and microcircuits.</li>
+              <li><strong>Phase 3: Workshop Assembly FEAT</strong> — The creator rolls Reason in their workshop over the calculated build duration (in days/weeks). Success produces the completed device!</li>
+            </ol>
+
+            <h3>Invention Source Types: Tech vs. Magic</h3>
+            <p>
+              Toggle between <strong>Tech Invention</strong> and <strong>Magic / Mystical Artifact</strong>. The interface dynamically updates terminology, hardware boosts, resource components, and category options:
+            </p>
+            <ul class="feature-list">
+              <li><strong>Tech Devices:</strong> Weapons, Armor, Vehicles, Sensors, Exoskeletons, and <em>Consumable (gadget, ammo, etc.)</em>.</li>
+              <li><strong>Magic Inventions:</strong> Talismans, Amulets, Enchanted Weapons, Mystic Armor, and <em>Consumable (rune, potion, etc)</em>.</li>
+            </ul>
+
+            <h3>Hardware Boosts &amp; Limitations</h3>
+            <p>
+              Customize your device with over 10 mechanical modifiers:
+              <br>• <strong>Boosts:</strong> Expanded Capability (+1 Power), Overload Surge, Remote Control, Concealed Chassis.
+              <br>• <strong>Limitations:</strong> Fragile Chassis, Fuel/Power Dependency, Burnout Chance, Feedback Jolt, Finite Charges.
+            </p>
+
+            <h3>Reverse-Engineering Rulebook Equipment</h3>
+            <p>
+              Select any prebuilt equipment from the official rulebooks in Section 2. The engine instantly computes its raw material procurement intensity, blueprint design difficulty, and workshop build time. With one click, you can reverse-engineer it directly into your <strong>Mastered Schematics Archive</strong>!
+            </p>
+
+            <div class="callout callout-gold">
+              <strong>Mastered Schematics Benefit:</strong> Any device previously built or successfully reverse-engineered is stored in your character's Known Blueprints Archive. Building from a known blueprint <strong>automatically bypasses the Phase 1 Blueprint Design FEAT</strong>!
+            </div>
+          </div>
+        </article>
+
+        <!-- Topic 8: Equipment Armory & Store -->
+        <article class="topic-card" id="topic-equipment" data-category="equipment">
+          <div class="topic-header">
+            <h2 class="topic-title"><span>🎒</span> 8. Equipment Armory, Prebuilt Store &amp; Procurement</h2>
+            <span class="topic-category-tag">Equipment</span>
+          </div>
+          <div class="topic-body">
+            <p>
+              The <strong>Equipment Tab</strong> equips your hero with standard, military, and exotic gear from published TSR sourcebooks:
+            </p>
+            <ul class="feature-list">
+              <li><strong>Prebuilt Equipment Store:</strong> Browse hundreds of catalog items divided into Weapons (Guns, Blades, Blunt), Armor &amp; Vests, Electronics &amp; Sensors, Vehicles, Survival Gear, and Special Materials.</li>
+              <li><strong>Automated Procurement Rolls:</strong> Click "Procure" on any store item. The modal compares the item's Cost Rank against your hero's Resources rank, displaying Universal Table thresholds and rolling a procurement FEAT.</li>
+              <li><strong>Equipped Status &amp; Encumbrance:</strong> Toggle equipped/unequipped status. Equipped weapons automatically register on your Main Stats combat attack table.</li>
+              <li><strong>Custom Gear Builder:</strong> Create bespoke weapons, armor, or utility items with custom damage ranks, range brackets, and rules text.</li>
+            </ul>
+          </div>
+        </article>
+
+        <!-- Topic 9: Talents, Contacts & Karma Advancement -->
+        <article class="topic-card" id="topic-talents" data-category="creation">
+          <div class="topic-header">
+            <h2 class="topic-title"><span>🥋</span> 9. Talents, Contacts &amp; Character Advancement</h2>
+            <span class="topic-category-tag">Talents &amp; Contacts</span>
+          </div>
+          <div class="topic-body">
+            <p>
+              Heroes are defined as much by their mortal skills and relationships as their superpowers:
+            </p>
+            <ul class="feature-list">
+              <li><strong>Talents Catalog:</strong> Organized by category (Fighting Masteries, Martial Arts, Weapon Skills, Professional / Vocational, Scientific Specialties, Occult, and Other).</li>
+              <li><strong>Inline Specialization:</strong> For talents with choices (e.g., Weapons Specialist or Scientific Specialty), enter your custom focus directly inline.</li>
+              <li><strong>Contacts Manager:</strong> Maintain your hero's rolodex of trusted allies, superhero groups, law enforcement contacts, and informant networks.</li>
+              <li><strong>Karma-Driven Character Advancement:</strong> Click <strong>📈 Advancement</strong> in the top header. The modal implements official TSR rules for spending earned Karma to permanently raise primary ability ranks, acquire new powers, or learn additional talents.</li>
+            </ul>
+          </div>
+        </article>
+
+        <!-- Topic 10: Rules Cheat Sheet & Pop-out -->
+        <article class="topic-card" id="topic-cheatsheet" data-category="combat rules">
+          <div class="topic-header">
+            <h2 class="topic-title"><span>📖</span> 10. Rules Cheat Sheet &amp; Reference Suite</h2>
+            <span class="topic-category-tag">Cheat Sheet</span>
+          </div>
+          <div class="topic-body">
+            <p>
+              Click <strong>📖 Cheat Sheet</strong> in the top header to open a multi-tab quick-reference console designed for instantaneous tabletop lookups during live play:
+            </p>
+            <ul class="feature-list">
+              <li><strong>Combat Maneuvers Tab:</strong> Full rules text, trigger requirements, and consequences for Charging, Escaping, Grappling, Dodging, Evading, Blocking, and Catching.</li>
+              <li><strong>Movement Tab:</strong> Canonical Ground and Flight speed charts showing miles-per-hour and tactical areas-per-round across all ranks. Dynamically toggles between CMF (21 ranks) and Standard (15/17 ranks).</li>
+              <li><strong>Action Table Matrix Tab:</strong> The complete Universal Action Table matrix showing exact percentile thresholds for every rank.</li>
+              <li><strong>Material Strengths Tab:</strong> Comprehensive list of materials from cloth and glass to vibrant vibranium and adamantium. Synchronized with active ruleset mode.</li>
+              <li><strong>Area Division Rules:</strong> Quick reference for standard 132-foot areas, 33-foot quadrants, six 22-foot subareas, or eight 16.5-foot tactical sub-grids.</li>
+              <li><strong>Persistent Multi-Window Pop-out:</strong> Detach the Cheat Sheet into an independent floating window. Enable <em>Remember Cheat Sheet Pop-out Across Sessions</em> in Preferences to automatically restore the window on startup!</li>
+            </ul>
+          </div>
+        </article>
+
+        <!-- Topic 11: File Management & Themes -->
+        <article class="topic-card" id="topic-files-themes" data-category="settings">
+          <div class="topic-header">
+            <h2 class="topic-title"><span>📁</span> 11. File Management, Themes &amp; Preferences</h2>
+            <span class="topic-category-tag">File Operations</span>
+          </div>
+          <div class="topic-body">
+            <p>
+              Manage your character archives and tailor the application interface to your preferences via <strong>📁 File / Options ▾</strong>:
+            </p>
+            <ul class="feature-list">
+              <li><strong>Save Character (.msh):</strong> Exports your complete hero sheet, powers, inventions, known blueprints, equipped gear, and history log to a portable <code>.msh</code> JSON file.</li>
+              <li><strong>Open Character (.msh):</strong> Imports any saved hero file with full backward compatibility and automated schema migration.</li>
+              <li><strong>Undo / Redo History Navigation:</strong> Use the <code>⮜</code> and <code>⮞</code> arrows in the top tab bar to step backward or forward through your edits.</li>
+              <li><strong>Visual Color Themes:</strong>
+                <br>• <strong>Slate (Default):</strong> High-contrast dark comic theme with Marvel Red and Gold accents.
+                <br>• <strong>Manilla:</strong> Clean, soft light stationery palette with crisp dark typography.
+                <br>• <strong>Aqua:</strong> Radiant oceanic theme featuring cyans, sea greens, and deep navy tones.
+              </li>
+              <li><strong>Touch-Friendly Mode:</strong> Enlarges interactive buttons, steppers, and inputs for tablets and touchscreens.</li>
+              <li><strong>Sticky Navigation:</strong> Pins the hero header and tabs to the top of the screen during scrolling.</li>
+              <li><strong>Automated Updates:</strong> Checks the GitHub repository for new program releases with one-click notifications.</li>
+            </ul>
+          </div>
+        </article>
+
+        <!-- Topic 12: Print Preview & PDF Export -->
+        <article class="topic-card" id="topic-print" data-category="settings">
+          <div class="topic-header">
+            <h2 class="topic-title"><span>🖨️</span> 12. Print Preview &amp; PDF Export</h2>
+            <span class="topic-category-tag">Printing &amp; PDF</span>
+          </div>
+          <div class="topic-body">
+            <p>
+              Select <strong>🖨️ Print Preview &amp; PDF Export...</strong> from the <strong>📁 File / Options ▾</strong> menu to generate an authentic, print-optimized character sheet:
+            </p>
+            <ul class="feature-list">
+              <li><strong>Clean Page Layout:</strong> Automatically paginates abilities, vitals, powers, combat maneuvers, equipment, and talents into crisp, ink-friendly sections.</li>
+              <li><strong>Save as PDF:</strong> In the browser print dialog, select <strong>"Save as PDF"</strong> as your destination printer for a clean digital document to share with your gaming group.</li>
+              <li><strong>Physical Tabletop Ready:</strong> Formatted specifically for standard Letter (8.5&times;11") and A4 printer paper.</li>
+            </ul>
+          </div>
+        </article>
+
+      </main>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+      <p>
+        Marvel Super Heroes Roleplaying Game (MSHRPG / FASERIP) &copy; TSR, Inc. / Marvel Entertainment.<br>
+        Classic Marvel Forever (CMF) enhancements &copy; Classic Marvel Forever community.<br>
+        Application Suite v1.5.14 &bull; Built with pure offline web technologies.
+      </p>
+    </footer>
+
+  </div>
+
+  <script>
+    // Live Search & Category Filtering
+    document.addEventListener('DOMContentLoaded', () => {
+      const searchInput = document.getElementById('searchInput');
+      const filterBtns = document.querySelectorAll('.filter-btn');
+      const cards = document.querySelectorAll('.topic-card');
+
+      let currentFilter = 'all';
+      let searchQuery = '';
+
+      function applyFilterAndSearch() {
+        const query = searchQuery.toLowerCase().trim();
+
+        cards.forEach(card => {
+          const cardCategory = card.getAttribute('data-category') || '';
+          const cardText = card.textContent.toLowerCase();
+
+          const matchesCategory = (currentFilter === 'all') || cardCategory.includes(currentFilter);
+          const matchesSearch = !query || cardText.includes(query);
+
+          if (matchesCategory && matchesSearch) {
+            card.style.display = 'block';
+          } else {
+            card.style.display = 'none';
+          }
+        });
+      }
+
+      if (searchInput) {
+        searchInput.addEventListener('input', (e) => {
+          searchQuery = e.target.value;
+          applyFilterAndSearch();
+        });
+      }
+
+      filterBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+          filterBtns.forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          currentFilter = btn.getAttribute('data-filter') || 'all';
+          applyFilterAndSearch();
+        });
+      });
+    });
+  </script>
+</body>
+</html>

@@ -5586,9 +5586,10 @@ body[data-theme="manilla"] .universal-table-view tr:hover td {
   background: inherit !important;
 }
 
-/* Also ensure Universal Table rank name column in Manilla is solid black */
+/* Also ensure Universal Table and Cheat Sheet rank name column in Manilla is solid black */
 body[data-theme="manilla"] .universal-table-view td:first-child,
-body[data-theme="manilla"] .universal-table-view .rank-name-cell {
+body[data-theme="manilla"] .universal-table-view .rank-name-cell,
+body[data-theme="manilla"] .cheat-table .rank-name-cell {
   color: #000000 !important;
   font-weight: 800 !important;
 }

@@ -38,7 +38,7 @@ const App = {
   isWidthWarningDismissed: false,
   powerAdjustment: false,
   activeAdjustmentPowerIndex: null,
-  VERSION: '1.5.3',
+  VERSION: '1.5.4',
   BUILD_DATE: '2026-09-24',
   COMMIT_SHA: '6a15ff5',
   REPO_OWNER: 'captainload',
@@ -1574,6 +1574,8 @@ const App = {
     });
     if (tabKey === 'table') {
       this.renderCheatSheetTable();
+    } else if (tabKey === 'materials') {
+      this.renderCheatSheetMaterials();
     }
   },
 
@@ -1837,6 +1839,7 @@ const App = {
     this.renderTalents();
     this.renderBackground();
     this.renderCheatSheetTable();
+    this.renderCheatSheetMaterials();
     this.renderKnownBlueprints();
     this.syncInventionTalentAutoDetect();
   },
@@ -5209,6 +5212,7 @@ const App = {
 
     this.populateDropdowns();
     this.renderCheatSheetTable();
+    this.renderCheatSheetMaterials();
     this.render();
     this.updateRollerPreview();
     this.saveState();
@@ -7029,6 +7033,45 @@ const App = {
     }
   },
 
+  renderCheatSheetMaterials() {
+    const tbody = (typeof this.getCheatSheetEl === 'function')
+      ? this.getCheatSheetEl('cheatsheet-materials-body')
+      : document.getElementById('cheatsheet-materials-body');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+
+    const badge = (typeof this.getCheatSheetEl === 'function')
+      ? this.getCheatSheetEl('cheat-materials-scheme-badge')
+      : document.getElementById('cheat-materials-scheme-badge');
+
+    const isCMF = (this.universalTableMode === 'cmf');
+    if (badge) {
+      badge.textContent = isCMF ? 'CMF Scheme (22 Ranks)' : 'Standard TSR Scheme (18 Ranks)';
+    }
+
+    const matList = (typeof getMaterialStrengths === 'function')
+      ? getMaterialStrengths()
+      : (globalThis.MATERIAL_STRENGTHS || []);
+
+    matList.forEach(m => {
+      const rObj = (typeof UniversalTableEngine !== 'undefined' && UniversalTableEngine.getRankByName)
+        ? UniversalTableEngine.getRankByName(m.rank)
+        : null;
+      const rankColor = rObj ? rObj.color : '#38bdf8';
+
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td class="rank-name-cell" style="font-weight: 700; color: ${rankColor};">${m.rank}</td>
+        <td style="font-weight: 600; text-align: center;">${m.num}</td>
+        <td>
+          <strong style="color: var(--text-main);">${m.name}</strong>
+          <div style="font-size: 0.88em; color: var(--text-muted, #94a3b8); margin-top: 2px;">${m.examples}</div>
+        </td>
+      `;
+      tbody.appendChild(tr);
+    });
+  },
+
   /* Roller Window & Dialog Logic */
   getRollerBox() {
     if (this.rollerPopoutWindow && !this.rollerPopoutWindow.closed) {
@@ -8479,6 +8522,8 @@ const App = {
 
     if (this.activeCheatTab === 'table') {
       this.renderCheatSheetTable();
+    } else if (this.activeCheatTab === 'materials') {
+      this.renderCheatSheetMaterials();
     }
     try {
       pop.focus();
@@ -8533,6 +8578,8 @@ const App = {
     }
     if (this.activeCheatTab === 'table') {
       this.renderCheatSheetTable();
+    } else if (this.activeCheatTab === 'materials') {
+      this.renderCheatSheetMaterials();
     }
     this.showStatusToast('↘ Rules Cheat Sheet docked back into main window');
   },
@@ -8602,6 +8649,11 @@ const App = {
     }
     const modal = document.getElementById('cheatsheet-modal');
     if (modal) modal.classList.add('open');
+    if (this.activeCheatTab === 'table') {
+      this.renderCheatSheetTable();
+    } else if (this.activeCheatTab === 'materials') {
+      this.renderCheatSheetMaterials();
+    }
   },
 
   showHelpModal(type, queryKey) {

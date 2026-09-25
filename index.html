@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Marvel Super Heroes (FASERIP) - Character Builder & Editor</title>
-  <link rel="stylesheet" href="styles.css?v=1.5.3">
+  <link rel="stylesheet" href="styles.css?v=1.5.4">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bangers&display=swap" rel="stylesheet">
@@ -1706,64 +1706,113 @@
 
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
             <div>
-              <table class="cheat-table">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                <h4 style="margin: 0;">Material Strength Table</h4>
+                <span id="cheat-materials-scheme-badge" style="font-size: 0.85em; font-weight: 600; padding: 2px 8px; border-radius: 4px; background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3);">CMF Scheme (22 Ranks)</span>
+              </div>
+              <table class="cheat-table" style="margin-top: 4px;">
                 <thead>
                   <tr>
-                    <th>Material Rank</th>
-                    <th>Value</th>
-                    <th>Common Materials & Barriers</th>
+                    <th style="width: 25%;">Material Rank</th>
+                    <th style="width: 15%; text-align: center;">Value</th>
+                    <th>Common Materials &amp; Barriers</th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody id="cheatsheet-materials-body">
                   <tr>
-                    <td><strong>Feeble</strong></td>
-                    <td>2</td>
-                    <td>Cloth, paper, standard window glass, cardboard.</td>
+                    <td class="rank-name-cell" style="font-weight: 700; color: #64748b;">Shift 0</td>
+                    <td style="font-weight: 600; text-align: center;">0</td>
+                    <td><strong>Tissue Paper / Gossamer</strong><div style="font-size: 0.88em; color: var(--text-muted, #94a3b8); margin-top: 2px;">Tissue paper, cellophane, fragile glass filaments, gossamer silk</div></td>
                   </tr>
                   <tr>
-                    <td><strong>Poor</strong></td>
-                    <td>4</td>
-                    <td>Plaster, drywall, thin plywood, aluminum foil.</td>
+                    <td class="rank-name-cell" style="font-weight: 700; color: #94a3b8;">Feeble</td>
+                    <td style="font-weight: 600; text-align: center;">2</td>
+                    <td><strong>Cloth / Paper / Glass</strong><div style="font-size: 0.88em; color: var(--text-muted, #94a3b8); margin-top: 2px;">Paper, cotton cloth, cardboard, thin window glass, brush</div></td>
                   </tr>
                   <tr>
-                    <td><strong>Typical</strong></td>
-                    <td>6</td>
-                    <td>Hardwood, heavy plastic, bullet-resistant glass.</td>
+                    <td class="rank-name-cell" style="font-weight: 700; color: #a1a1aa;">Poor</td>
+                    <td style="font-weight: 600; text-align: center;">4</td>
+                    <td><strong>Pliable Plastic / Wood</strong><div style="font-size: 0.88em; color: var(--text-muted, #94a3b8); margin-top: 2px;">Normal plastics, crystal, soft pine wood, lead, drywall, hard rubber</div></td>
                   </tr>
                   <tr>
-                    <td><strong>Good</strong></td>
-                    <td>10</td>
-                    <td>Brick masonry, soft stone, solid aluminum, asphalt.</td>
+                    <td class="rank-name-cell" style="font-weight: 700; color: #10b981;">Typical</td>
+                    <td style="font-weight: 600; text-align: center;">6</td>
+                    <td><strong>Dense Wood / Soft Metal</strong><div style="font-size: 0.88em; color: var(--text-muted, #94a3b8); margin-top: 2px;">Rubber, oak, dense bone, soft metals (gold, brass, copper), ice, adobe, computer chips</div></td>
                   </tr>
                   <tr>
-                    <td><strong>Excellent</strong></td>
-                    <td>20</td>
-                    <td>Poured concrete, granite, wrought iron, bronze.</td>
+                    <td class="rank-name-cell" style="font-weight: 700; color: #059669;">Good</td>
+                    <td style="font-weight: 600; text-align: center;">10</td>
+                    <td><strong>Concrete / Brick / Tough Polymer</strong><div style="font-size: 0.88em; color: var(--text-muted, #94a3b8); margin-top: 2px;">Exterior brick walls, aluminum, light machinery pieces, asphalt, high-strength plastics</div></td>
                   </tr>
                   <tr>
-                    <td><strong>Remarkable</strong></td>
-                    <td>30</td>
-                    <td>Reinforced concrete, structural steel I-beams.</td>
+                    <td class="rank-name-cell" style="font-weight: 700; color: #0284c7;">Excellent</td>
+                    <td style="font-weight: 600; text-align: center;">20</td>
+                    <td><strong>Solid Concrete / Iron / Bulletproof Glass</strong><div style="font-size: 0.88em; color: var(--text-muted, #94a3b8); margin-top: 2px;">Solid concrete, Beta cloth, iron, bulletproof glass</div></td>
                   </tr>
                   <tr>
-                    <td><strong>Incredible</strong></td>
-                    <td>40</td>
-                    <td>Hardened titanium alloy, bank vault doors, military armor.</td>
+                    <td class="rank-name-cell" style="font-weight: 700; color: #2563eb;">Remarkable</td>
+                    <td style="font-weight: 600; text-align: center;">30</td>
+                    <td><strong>Tempered Steel / Reinforced Concrete</strong><div style="font-size: 0.88em; color: var(--text-muted, #94a3b8); margin-top: 2px;">Reinforced concrete, structural steel I-beams, bank safe doors</div></td>
                   </tr>
                   <tr>
-                    <td><strong>Amazing</strong></td>
-                    <td>50</td>
-                    <td>Super-alloys, crystalline diamond, high-tech composite armor.</td>
+                    <td class="rank-name-cell" style="font-weight: 700; color: #4f46e5;">Fantastic</td>
+                    <td style="font-weight: 600; text-align: center;">35</td>
+                    <td><strong>Hardened Alloy Steel</strong><div style="font-size: 0.88em; color: var(--text-muted, #94a3b8); margin-top: 2px;">Hardened alloy steel, surgical combat cutlery, specialized cybernetic plating</div></td>
                   </tr>
                   <tr>
-                    <td><strong>Monstrous</strong></td>
-                    <td>75</td>
-                    <td>Vibranium (Wakandan), carbonadium, alien starship hull.</td>
+                    <td class="rank-name-cell" style="font-weight: 700; color: #7c3aed;">Incredible</td>
+                    <td style="font-weight: 600; text-align: center;">40</td>
+                    <td><strong>Solid Stone / Vibranium / Tank Armor</strong><div style="font-size: 0.88em; color: var(--text-muted, #94a3b8); margin-top: 2px;">Solid stone, Wakandan Vibranium, volcanic rock, military tank armor</div></td>
                   </tr>
                   <tr>
-                    <td><strong>Unearthly</strong></td>
-                    <td>100</td>
-                    <td>True Adamantium, Asgardian uru metal (Mjolnir).</td>
+                    <td class="rank-name-cell" style="font-weight: 700; color: #8b5cf6;">Spectacular</td>
+                    <td style="font-weight: 600; text-align: center;">45</td>
+                    <td><strong>Super-Heavy Alloys / Titanium</strong><div style="font-size: 0.88em; color: var(--text-muted, #94a3b8); margin-top: 2px;">Structural Titanium, super-heavy ballistic alloys, cyborg endoskeletons</div></td>
+                  </tr>
+                  <tr>
+                    <td class="rank-name-cell" style="font-weight: 700; color: #9333ea;">Amazing</td>
+                    <td style="font-weight: 600; text-align: center;">50</td>
+                    <td><strong>Super-Alloy / Gemstones / Granite</strong><div style="font-size: 0.88em; color: var(--text-muted, #94a3b8); margin-top: 2px;">Granite, gemstones, high-strength steel, Shield Helicarrier bulkhead</div></td>
+                  </tr>
+                  <tr>
+                    <td class="rank-name-cell" style="font-weight: 700; color: #c026d3;">Sensational</td>
+                    <td style="font-weight: 600; text-align: center;">60</td>
+                    <td><strong>Osmium Steel / Heavy Plate</strong><div style="font-size: 0.88em; color: var(--text-muted, #94a3b8); margin-top: 2px;">Osmium steel, high-density armor plate, custom exo-frames</div></td>
+                  </tr>
+                  <tr>
+                    <td class="rank-name-cell" style="font-weight: 700; color: #ea580c;">Monstrous</td>
+                    <td style="font-weight: 600; text-align: center;">75</td>
+                    <td><strong>Diamond / Pure Osmium / Secondary Adamantium</strong><div style="font-size: 0.88em; color: var(--text-muted, #94a3b8); margin-top: 2px;">Diamond, pure Osmium, Secondary Adamantium, Sentinel chassis</div></td>
+                  </tr>
+                  <tr>
+                    <td class="rank-name-cell" style="font-weight: 700; color: #d97706;">Awesome</td>
+                    <td style="font-weight: 600; text-align: center;">90</td>
+                    <td><strong>Iridium / Exotic Alien Alloy</strong><div style="font-size: 0.88em; color: var(--text-muted, #94a3b8); margin-top: 2px;">Iridium, advanced alien alloys, Kree/Skrull starship hulls</div></td>
+                  </tr>
+                  <tr>
+                    <td class="rank-name-cell" style="font-weight: 700; color: #e11d48;">Unearthly</td>
+                    <td style="font-weight: 600; text-align: center;">100</td>
+                    <td><strong>Adamantium-Steel / Enchanted Metal</strong><div style="font-size: 0.88em; color: var(--text-muted, #94a3b8); margin-top: 2px;">Adamantium-steel alloy, enchanted Asgardian mystic elements, alien dreadnoughts</div></td>
+                  </tr>
+                  <tr>
+                    <td class="rank-name-cell" style="font-weight: 700; color: #b45309;">Class 1000</td>
+                    <td style="font-weight: 600; text-align: center;">1000</td>
+                    <td><strong>Pure True Adamantium</strong><div style="font-size: 0.88em; color: var(--text-muted, #94a3b8); margin-top: 2px;">Wolverine's skeleton, Ultron outer shell (virtually indestructible)</div></td>
+                  </tr>
+                  <tr>
+                    <td class="rank-name-cell" style="font-weight: 700; color: #b45309;">Class 1000</td>
+                    <td style="font-weight: 600; text-align: center;">1000</td>
+                    <td><strong>Vibranium (Wakandan)</strong><div style="font-size: 0.88em; color: var(--text-muted, #94a3b8); margin-top: 2px;">Captain America's Shield, absorbs all kinetic impact</div></td>
+                  </tr>
+                  <tr>
+                    <td class="rank-name-cell" style="font-weight: 700; color: #92400e;">Class 3000</td>
+                    <td style="font-weight: 600; text-align: center;">3000</td>
+                    <td><strong>Uru Metal</strong><div style="font-size: 0.88em; color: var(--text-muted, #94a3b8); margin-top: 2px;">Mjolnir (enchanted Asgardian mystic metal)</div></td>
+                  </tr>
+                  <tr>
+                    <td class="rank-name-cell" style="font-weight: 700; color: #78350f;">Class 5000</td>
+                    <td style="font-weight: 600; text-align: center;">5000</td>
+                    <td><strong>Cosmic / Celestial Material</strong><div style="font-size: 0.88em; color: var(--text-muted, #94a3b8); margin-top: 2px;">Galactus construct, Celestial armor, Cosmic Cube casing</div></td>
                   </tr>
                 </tbody>
               </table>
@@ -2922,13 +2971,13 @@
   </div>
 
   <!-- Scripts Loading -->
-  <script src="universal_table.js?v=1.5.3"></script>
-  <script src="data_forms.js?v=1.5.3"></script>
-  <script src="data_powers.js?v=1.5.3"></script>
-  <script src="data_talents.js?v=1.5.3"></script>
-  <script src="data_equipment.js?v=1.5.3"></script>
-  <script src="inventions.js?v=1.5.3"></script>
-  <script src="character_model.js?v=1.5.3"></script>
-  <script src="app.js?v=1.5.3"></script>
+  <script src="universal_table.js?v=1.5.4"></script>
+  <script src="data_forms.js?v=1.5.4"></script>
+  <script src="data_powers.js?v=1.5.4"></script>
+  <script src="data_talents.js?v=1.5.4"></script>
+  <script src="data_equipment.js?v=1.5.4"></script>
+  <script src="inventions.js?v=1.5.4"></script>
+  <script src="character_model.js?v=1.5.4"></script>
+  <script src="app.js?v=1.5.4"></script>
 </body>
 </html>

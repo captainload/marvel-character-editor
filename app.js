@@ -40,8 +40,8 @@ const App = {
   isWidthWarningDismissed: false,
   powerAdjustment: false,
   activeAdjustmentPowerIndex: null,
-  VERSION: '1.5.9',
-  BUILD_DATE: '2026-09-24',
+  VERSION: '1.5.10',
+  BUILD_DATE: '2026-09-25',
   COMMIT_SHA: '6a15ff5',
   REPO_OWNER: 'captainload',
   REPO_NAME: 'marvel-character-editor',
@@ -2423,7 +2423,7 @@ const App = {
         <div class="card-header">
           <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
             ${powerTitleHtml}
-            <button type="button" class="help-circle-btn" title="View details and rules for ${p.name}" data-power-name="${p.name}">?</button>
+            <button type="button" class="help-circle-btn power-help-btn" title="View details and rules for ${(p.name || '').replace(/"/g, '&quot;')}" data-power-name="${(p.name || '').replace(/"/g, '&quot;')}">?</button>
             ${badgeHtml}
             ${operationalBadgeHtml}
             ${adjustedBadgeHtml}
@@ -2662,9 +2662,13 @@ const App = {
 
       card.appendChild(stuntsDiv);
 
-      card.querySelector('[data-power-name]').addEventListener('click', () => {
-        this.showHelpModal('power', p.name);
-      });
+      const powerHelpBtn = card.querySelector('.power-help-btn') || card.querySelector('[data-power-name]');
+      if (powerHelpBtn) {
+        powerHelpBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          this.showHelpModal('power', p.code || p.id || p.name);
+        });
+      }
 
       // Power Menu Toggle
       const menuToggleBtn = card.querySelector(`[data-power-menu-toggle="${idx}"]`);
@@ -6738,7 +6742,7 @@ const App = {
         card.innerHTML = `
           <div class="attack-header">
             <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
-              <button type="button" class="help-circle-btn" data-help-talent="${t.name}" title="View details for ${t.name}">?</button>
+              <button type="button" class="help-circle-btn talent-help-btn" data-help-talent="${(t.name || '').replace(/"/g, '&quot;')}" title="View details for ${(t.name || '').replace(/"/g, '&quot;')}">?</button>
               <strong style="color: #38bdf8; font-size: 11pt;">${t.name}${isStarred ? '*' : ''}</strong>
               ${isStarred ? `<span class="meta-tag tag-starred" title="Starred Talent (20 CP)">★</span>` : ''}
             </div>
@@ -6756,9 +6760,13 @@ const App = {
           <div style="color: var(--text-muted); font-size: 10pt; line-height: 1.4;">${t.description}</div>
         `;
 
-        card.querySelector('[data-help-talent]').addEventListener('click', () => {
-          this.showHelpModal('talent', t.talentId || t.name);
-        });
+        const talentHelpBtn = card.querySelector('.talent-help-btn') || card.querySelector('[data-help-talent]');
+        if (talentHelpBtn) {
+          talentHelpBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.showHelpModal('talent', t.talentId || t.id || t.name);
+          });
+        }
 
         if (allowsSpec) {
           const specInput = card.querySelector('.inline-spec-input');
@@ -8835,9 +8843,13 @@ const App = {
     const q = String(queryKey || '').toLowerCase().trim();
 
     if (type === 'power') {
-      const powers = (typeof globalThis.MSH_POWERS !== 'undefined' && globalThis.MSH_POWERS.length)
+      const standardPowers = (typeof globalThis.MSH_POWERS !== 'undefined' && globalThis.MSH_POWERS.length)
         ? globalThis.MSH_POWERS
         : (globalThis.POWERS_CATALOG || []);
+      const powers = [
+        ...standardPowers,
+        ...((typeof globalThis.MSH_NPC_PRESET_POWERS !== 'undefined' && globalThis.MSH_NPC_PRESET_POWERS.length) ? globalThis.MSH_NPC_PRESET_POWERS : [])
+      ];
       const p = powers.find(x => (x.id && x.id.toLowerCase() === q) || (x.code && x.code.toLowerCase() === q)) ||
                 powers.find(x => x.name && x.name.toLowerCase() === q) ||
                 powers.find(x => x.name && x.name.toLowerCase().includes(q)) ||
@@ -8976,7 +8988,7 @@ const App = {
       }
     } else if (type === 'talent') {
       const talents = globalThis.MSH_TALENTS || [];
-      const t = talents.find(x => x.id && x.id.toLowerCase() === q) ||
+      const t = talents.find(x => (x.id && x.id.toLowerCase() === q) || (x.talentId && x.talentId.toLowerCase() === q)) ||
                 talents.find(x => x.name && x.name.toLowerCase() === q) ||
                 talents.find(x => x.name && x.name.toLowerCase().includes(q)) ||
                 talents.find(x => x.name && q.includes(x.name.toLowerCase()));

@@ -1,7 +1,7 @@
 {
-  "version": "1.5.9",
-  "releaseDate": "2026-09-24",
+  "version": "1.5.10",
+  "releaseDate": "2026-09-25",
   "name": "Marvel Super Heroes Character Editor",
   "repo": "https://github.com/captainload/marvel-character-editor",
-  "notes": "Added persistent pop-out window state restoration for the Rules Cheat Sheet: automatically re-opens the pop-out window on client launch if it was popped out when closed, with browser popup blocker resilience and preference option toggle."
+  "notes": "Fixed missing closing div in Preferences & Options modal that trapped subsequent modal overlays (Help Rules Reference and Rulebook Equipment Store) in hidden state, and reinforced Power and Talent help description triggers and catalog lookups."
 }

@@ -1,7 +1,7 @@
 {
-  "version": "1.5.6",
+  "version": "1.5.7",
   "releaseDate": "2026-09-24",
   "name": "Marvel Super Heroes Character Editor",
   "repo": "https://github.com/captainload/marvel-character-editor",
-  "notes": "Widened Preferences modal by 25%, reduced vertical whitespace in Preferences and Rules Cheat Sheet headers, reduced Cheat Sheet font size by 2 pp, and made Cheat Sheet tabs persistent."
+  "notes": "Refined Preferences & Options modal: streamlined update checks to execution and manual, removed Theme Palette label, and aligned option control headers in consistent bright white typography."
 }

@@ -38,16 +38,13 @@ const App = {
   isWidthWarningDismissed: false,
   powerAdjustment: false,
   activeAdjustmentPowerIndex: null,
-  VERSION: '1.5.6',
+  VERSION: '1.5.7',
   BUILD_DATE: '2026-09-24',
   COMMIT_SHA: '6a15ff5',
   REPO_OWNER: 'captainload',
   REPO_NAME: 'marvel-character-editor',
   updateSettings: {
     onStartup: true,
-    onFile: true,
-    scheduled: false,
-    intervalMinutes: 60,
     lastChecked: null,
     lastKnownRemoteVersion: null
   },
@@ -1120,32 +1117,6 @@ const App = {
       chkUpdateStartup.addEventListener('change', (e) => {
         this.updateSettings.onStartup = e.target.checked;
         this.saveUpdateSettings();
-      });
-    }
-
-    const chkUpdateFile = document.getElementById('option-update-on-file');
-    if (chkUpdateFile) {
-      chkUpdateFile.addEventListener('change', (e) => {
-        this.updateSettings.onFile = e.target.checked;
-        this.saveUpdateSettings();
-      });
-    }
-
-    const chkUpdateScheduled = document.getElementById('option-update-scheduled');
-    if (chkUpdateScheduled) {
-      chkUpdateScheduled.addEventListener('change', (e) => {
-        this.updateSettings.scheduled = e.target.checked;
-        this.saveUpdateSettings();
-        this.setupUpdateSchedule();
-      });
-    }
-
-    const selUpdateInterval = document.getElementById('option-update-interval');
-    if (selUpdateInterval) {
-      selUpdateInterval.addEventListener('change', (e) => {
-        this.updateSettings.intervalMinutes = parseInt(e.target.value, 10) || 60;
-        this.saveUpdateSettings();
-        this.setupUpdateSchedule();
       });
     }
 
@@ -8959,9 +8930,6 @@ const App = {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    if (this.updateSettings && this.updateSettings.onFile) {
-      this.checkForUpdates({ trigger: 'file_save', silent: true });
-    }
   },
 
   importCharacter(event) {
@@ -8983,9 +8951,6 @@ const App = {
         this.updateHistoryNavButtons();
         this.renderEditLog();
         this.showCustomAlert(`Successfully imported "${this.character.name}"!`, '📁 Character Loaded');
-        if (this.updateSettings && this.updateSettings.onFile) {
-          this.checkForUpdates({ trigger: 'file_load', silent: true });
-        }
       } catch (err) {
         this.showCustomAlert('Failed to load .msh character file: ' + err.message, '⚠️ Load Error');
       }
@@ -10383,17 +10348,10 @@ const App = {
     const chkStartup = document.getElementById('option-update-on-startup');
     if (chkStartup) chkStartup.checked = !!this.updateSettings.onStartup;
 
-    const chkFile = document.getElementById('option-update-on-file');
-    if (chkFile) chkFile.checked = !!this.updateSettings.onFile;
-
-    const chkScheduled = document.getElementById('option-update-scheduled');
-    if (chkScheduled) chkScheduled.checked = !!this.updateSettings.scheduled;
-
-    const selInterval = document.getElementById('option-update-interval');
-    if (selInterval) selInterval.value = String(this.updateSettings.intervalMinutes || 60);
+    const verTag = document.getElementById('update-version-tag');
+    if (verTag) verTag.textContent = `v${this.VERSION}`;
 
     this.updateLastCheckedUI();
-    this.setupUpdateSchedule();
   },
 
   saveUpdateSettings() {
@@ -10406,14 +10364,6 @@ const App = {
     if (this.updateScheduleTimer) {
       clearInterval(this.updateScheduleTimer);
       this.updateScheduleTimer = null;
-    }
-
-    if (this.updateSettings && this.updateSettings.scheduled) {
-      const mins = parseInt(this.updateSettings.intervalMinutes, 10) || 60;
-      const ms = Math.max(5, mins) * 60 * 1000;
-      this.updateScheduleTimer = setInterval(() => {
-        this.checkForUpdates({ trigger: 'schedule', silent: true });
-      }, ms);
     }
   },
 

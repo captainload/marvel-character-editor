@@ -2134,6 +2134,26 @@ select.field-input option {
   padding: 18px 20px;
 }
 
+#options-modal .option-control-header {
+  color: #ffffff;
+  font-size: 11pt;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+}
+
+#options-modal label.option-control-header {
+  display: block;
+  margin-bottom: 6px;
+}
+
+body[data-theme="manilla"] #options-modal .option-control-header {
+  color: #000000;
+}
+
+body[data-theme="aqua"] #options-modal .option-control-header {
+  color: #f0fdfa;
+}
+
 #options-modal .modal-body::-webkit-scrollbar {
   width: 8px;
 }

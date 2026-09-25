@@ -1,7 +1,7 @@
 {
-  "version": "1.5.4",
+  "version": "1.5.5",
   "releaseDate": "2026-09-24",
   "name": "Marvel Super Heroes Character Editor",
   "repo": "https://github.com/captainload/marvel-character-editor",
-  "notes": "Synchronized Rules Cheat Sheet Material Strength table with the Invention Lab: dynamically renders all 22-rank CMF materials (including Fantastic, Spectacular, Sensational, Awesome, Shift 0, and Class 5000) when CMF mode is active, and switches to canonical TSR materials when standard mode is active. Fully reactive to table mode toggles and popout window."
+  "notes": "Added 'Eight Subareas Rule (8 subareas of 16.5 ft each)' to Tactical Movement Area Division options in Preferences and Rules Cheat Sheet."
 }

@@ -38,7 +38,7 @@ const App = {
   isWidthWarningDismissed: false,
   powerAdjustment: false,
   activeAdjustmentPowerIndex: null,
-  VERSION: '1.5.4',
+  VERSION: '1.5.5',
   BUILD_DATE: '2026-09-24',
   COMMIT_SHA: '6a15ff5',
   REPO_OWNER: 'captainload',
@@ -5233,10 +5233,15 @@ const App = {
       if (descEl) {
         descEl.innerHTML = '<strong>Six Subareas Rule Active:</strong> Each standard 132-foot area square is subdivided into <strong>6 subareas of 22 feet</strong> (2&times;3 sub-grid, equivalent to 1 hex or 22 ft per 1 second of sprint). Provides maximum tactical granularity for battle-mats and miniatures.';
       }
+    } else if (this.areaDivisionRule === 'eight') {
+      titleEl.textContent = 'Eight Subareas Rule: 8 Subareas of 16.5 Feet (16.5 ft / subarea)';
+      if (descEl) {
+        descEl.innerHTML = '<strong>Eight Subareas Rule Active:</strong> Each standard 132-foot area square is subdivided into <strong>8 subareas of 16.5 feet</strong> (2&times;4 sub-grid, 16.5 ft / 5.5 yards each). Ideal for high-precision miniature battle-mats, tight indoor corridors, and micro-tactics. Standard 1 area moves traverse 8 subareas.';
+      }
     } else {
       titleEl.textContent = 'Standard Full Areas: 1 Area = 132 Feet (Default TSR Rules)';
       if (descEl) {
-        descEl.innerHTML = '<strong>Standard Rule Active:</strong> 1 Area is 132 feet across (approx. 44 yards / 1 city block width). Standard movement and combat ranges apply.';
+        descEl.innerHTML = '<strong>Standard Rule Active:</strong> 1 Area is 132 feet across (approx. 44 yards / 1 city block width). Standard movement and combat ranges apply. To adjust between Quarter Area (33 ft quadrants), Six Subareas (22 ft squares), or Eight Subareas (16.5 ft subareas), open <strong>File/Options &rarr; Application Preferences</strong>.';
       }
     }
   },

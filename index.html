@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Marvel Super Heroes (FASERIP) - Character Builder & Editor</title>
-  <link rel="stylesheet" href="styles.css?v=1.5.5">
+  <link rel="stylesheet" href="styles.css?v=1.5.6">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bangers&display=swap" rel="stylesheet">
@@ -1014,14 +1014,14 @@
           <button type="button" class="modal-close" id="btn-cheatsheet-close">&times;</button>
         </div>
       </div>
+      <div class="cheatsheet-tabs-bar" id="cheatsheet-tabs-bar">
+        <button class="icon-btn active" id="cheat-tab-btn-combat" onclick="App.switchCheatTab('combat')">⚔️ Combat FEATs</button>
+        <button class="icon-btn" id="cheat-tab-btn-table" onclick="App.switchCheatTab('table')">🎲 Universal Table Matrix</button>
+        <button class="icon-btn" id="cheat-tab-btn-movement" onclick="App.switchCheatTab('movement')">🏃 Movement & Speed</button>
+        <button class="icon-btn" id="cheat-tab-btn-health" onclick="App.switchCheatTab('health')">❤️ Health & Recovery</button>
+        <button class="icon-btn" id="cheat-tab-btn-materials" onclick="App.switchCheatTab('materials')">🛡️ Materials & Modifiers</button>
+      </div>
       <div class="modal-body">
-        <div style="display: flex; gap: 8px; border-bottom: 1px solid var(--border-color); margin-bottom: 14px; flex-wrap: wrap;">
-          <button class="icon-btn active" id="cheat-tab-btn-combat" onclick="App.switchCheatTab('combat')">⚔️ Combat FEATs</button>
-          <button class="icon-btn" id="cheat-tab-btn-table" onclick="App.switchCheatTab('table')">🎲 Universal Table Matrix</button>
-          <button class="icon-btn" id="cheat-tab-btn-movement" onclick="App.switchCheatTab('movement')">🏃 Movement & Speed</button>
-          <button class="icon-btn" id="cheat-tab-btn-health" onclick="App.switchCheatTab('health')">❤️ Health & Recovery</button>
-          <button class="icon-btn" id="cheat-tab-btn-materials" onclick="App.switchCheatTab('materials')">🛡️ Materials & Modifiers</button>
-        </div>
 
         <!-- Cheat Section: Combat -->
         <div id="cheat-section-combat" class="cheatsheet-section">
@@ -2973,13 +2973,13 @@
   </div>
 
   <!-- Scripts Loading -->
-  <script src="universal_table.js?v=1.5.5"></script>
-  <script src="data_forms.js?v=1.5.5"></script>
-  <script src="data_powers.js?v=1.5.5"></script>
-  <script src="data_talents.js?v=1.5.5"></script>
-  <script src="data_equipment.js?v=1.5.5"></script>
-  <script src="inventions.js?v=1.5.5"></script>
-  <script src="character_model.js?v=1.5.5"></script>
-  <script src="app.js?v=1.5.5"></script>
+  <script src="universal_table.js?v=1.5.6"></script>
+  <script src="data_forms.js?v=1.5.6"></script>
+  <script src="data_powers.js?v=1.5.6"></script>
+  <script src="data_talents.js?v=1.5.6"></script>
+  <script src="data_equipment.js?v=1.5.6"></script>
+  <script src="inventions.js?v=1.5.6"></script>
+  <script src="character_model.js?v=1.5.6"></script>
+  <script src="app.js?v=1.5.6"></script>
 </body>
 </html>

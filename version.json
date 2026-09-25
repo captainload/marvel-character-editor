@@ -1,7 +1,7 @@
 {
-  "version": "1.5.5",
+  "version": "1.5.6",
   "releaseDate": "2026-09-24",
   "name": "Marvel Super Heroes Character Editor",
   "repo": "https://github.com/captainload/marvel-character-editor",
-  "notes": "Added 'Eight Subareas Rule (8 subareas of 16.5 ft each)' to Tactical Movement Area Division options in Preferences and Rules Cheat Sheet."
+  "notes": "Widened Preferences modal by 25%, reduced vertical whitespace in Preferences and Rules Cheat Sheet headers, reduced Cheat Sheet font size by 2 pp, and made Cheat Sheet tabs persistent."
 }

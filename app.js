@@ -38,7 +38,7 @@ const App = {
   isWidthWarningDismissed: false,
   powerAdjustment: false,
   activeAdjustmentPowerIndex: null,
-  VERSION: '1.5.5',
+  VERSION: '1.5.6',
   BUILD_DATE: '2026-09-24',
   COMMIT_SHA: '6a15ff5',
   REPO_OWNER: 'captainload',
@@ -8446,6 +8446,18 @@ const App = {
         resize: none !important;
         display: flex !important;
         flex-direction: column !important;
+      }
+      .modal-box.cheatsheet-modal-box .modal-header {
+        padding: 6px 18px !important;
+        flex-shrink: 0 !important;
+      }
+      .modal-box.cheatsheet-modal-box .modal-title {
+        font-size: 1.3rem !important;
+        line-height: 1.2 !important;
+      }
+      .modal-box.cheatsheet-modal-box .cheatsheet-tabs-bar {
+        flex-shrink: 0 !important;
+        padding: 6px 18px !important;
       }
       .modal-box.cheatsheet-modal-box .modal-body {
         flex: 1 !important;

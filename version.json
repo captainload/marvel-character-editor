@@ -1,7 +1,7 @@
 {
-  "version": "1.5.12",
+  "version": "1.5.13",
   "releaseDate": "2026-09-25",
   "name": "Marvel Super Heroes Character Editor",
   "repo": "https://github.com/captainload/marvel-character-editor",
-  "notes": "Added 'Consumable (rune, potion, etc)' for Magic inventions and 'Consumable (gadget, ammo, etc.)' for Tech inventions to the Device Category list. Reordered the Invention Lab tab layout so Known Blueprints Archive appears below Reverse-Engineering."
+  "notes": "Reduced whitespace throughout the Invention Lab tab and streamlined Reverse-Engineering so equipment dropdown, preview button, Reverse-Engineer action, and cancel buttons align cleanly on a single row."
 }

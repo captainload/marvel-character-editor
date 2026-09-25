@@ -1340,6 +1340,43 @@ body {
   border-color: #38bdf8;
 }
 
+/* Invention Lab Spacing & Whitespace Optimizations */
+#tab-pane-invention .card {
+  padding: 12px 14px;
+}
+#tab-pane-invention .card-header {
+  margin-bottom: 10px;
+  padding-bottom: 6px;
+}
+#tab-pane-invention .invention-subpanel {
+  padding: 8px 10px;
+}
+#tab-pane-invention .boosts-limits-grid {
+  padding: 8px 10px;
+  gap: 8px;
+}
+#tab-pane-invention .boosts-limits-grid .checkbox-label {
+  min-height: 24px;
+}
+#tab-pane-invention .feasibility-compact-card {
+  padding: 6px 10px;
+  gap: 4px;
+}
+#tab-pane-invention .feasibility-pill {
+  padding: 3px 6px;
+}
+#tab-pane-invention .inv-workflow-container {
+  padding: 8px 10px;
+  gap: 8px;
+}
+#tab-pane-invention .inv-stage-box {
+  padding: 6px 8px;
+}
+#tab-pane-invention .known-blueprint-item {
+  padding: 8px 10px;
+  gap: 6px;
+}
+
 .bp-title {
   color: var(--text-main);
 }

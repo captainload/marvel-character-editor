@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Marvel Super Heroes (FASERIP) - Character Builder & Editor</title>
-  <link rel="stylesheet" href="styles.css?v=1.5.12">
+  <link rel="stylesheet" href="styles.css?v=1.5.13">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bangers&display=swap" rel="stylesheet">
@@ -414,11 +414,11 @@
     <!-- TAB 3: INVENTION LAB (Machines of Doom Expansion) -->
     <section class="tab-pane" id="tab-pane-invention">
       
-      <div class="calc-rule-callout" style="margin-bottom: 12px;">
+      <div class="calc-rule-callout" style="margin-bottom: 8px; padding: 8px 12px; font-size: 9.5pt;">
         <strong>Machines of Doom Engineering Rules:</strong> Custom gadgets, powered armor, and robotics incorporate multiple UPB powers (+1CS per additional power) and ability boosts (+1CS per boosted stat). Prebuilt rulebook equipment can be reverse-engineered to determine manufacturing specs (unique items like Cap's Shield or Mjolnir are non-reproducible).
       </div>
 
-      <div style="display: flex; flex-direction: column; gap: 18px;">
+      <div style="display: flex; flex-direction: column; gap: 10px;">
         
         <!-- Section 1: Custom Inventions & Robotics -->
         <div class="card">
@@ -436,13 +436,13 @@
             </div>
           </div>
 
-          <div style="display: flex; flex-direction: column; gap: 14px;">
+          <div style="display: flex; flex-direction: column; gap: 10px;">
             <div>
               <span class="field-label" id="inv-name-label">Invention / Device Name:</span>
               <input type="text" id="inv-name" class="field-input" value="" placeholder="Enter device or artifact name...">
             </div>
 
-            <div style="display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px;">
+            <div style="display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px;">
               <div style="min-width: 0;">
                 <span class="field-label">Device Category:</span>
                 <select id="inv-cat" class="field-input">
@@ -462,10 +462,10 @@
             </div>
 
             <!-- Multi-Power & Ability Boosts Grid (Full Width Side-by-Side) -->
-            <div style="display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px;">
+            <div style="display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px;">
               <!-- Multi-Power Interface -->
               <div class="invention-subpanel">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-wrap: wrap; gap: 6px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; flex-wrap: wrap; gap: 6px;">
                   <div style="display: flex; align-items: center; gap: 8px;">
                     <strong class="inv-section-title-gold">⚡ Embedded Superhuman Powers</strong>
                     <span class="meta-tag" id="inv-power-count-badge" style="font-size: 10pt;">0 Powers</span>
@@ -481,14 +481,14 @@
                   <button type="button" class="icon-btn primary" id="btn-add-inv-power" style="padding: 4px 10px; min-height: 40px; font-size: 10pt;" title="Add power to invention">➕ Add</button>
                 </div>
                 <!-- Added Powers List -->
-                <div id="inv-added-powers-list" style="display: flex; flex-direction: column; gap: 6px; margin-top: 10px;">
+                <div id="inv-added-powers-list" style="display: flex; flex-direction: column; gap: 4px; margin-top: 6px;">
                   <span style="font-size: 10pt; color: var(--text-dim);">No powers added yet. Select a power and rank above to include in device.</span>
                 </div>
               </div>
 
               <!-- Ability Boosts Section (Battlesuits, Exoskeletons, Drugs, Cybernetics) -->
               <div class="invention-subpanel">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-wrap: wrap; gap: 6px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; flex-wrap: wrap; gap: 6px;">
                   <div style="display: flex; align-items: center; gap: 8px;">
                     <strong style="color: #38bdf8;">💪 Ability Enhancements & Boosts</strong>
                     <span class="meta-tag" id="inv-boost-count-badge" style="font-size: 10pt;">0 Boosts</span>
@@ -512,7 +512,7 @@
                   <button type="button" class="icon-btn" id="btn-add-inv-boost" style="padding: 4px 10px; min-height: 40px; font-size: 10pt; background: #0284c7; border-color: #38bdf8; color: #fff;" title="Add ability boost to device">➕ Add</button>
                 </div>
                 <!-- Added Boosts List -->
-                <div id="inv-added-boosts-list" style="display: flex; flex-direction: column; gap: 6px; margin-top: 10px;">
+                <div id="inv-added-boosts-list" style="display: flex; flex-direction: column; gap: 4px; margin-top: 6px;">
                   <span style="font-size: 10pt; color: var(--text-dim);">No ability boosts added. (Optional: enhance Strength, Agility, etc.)</span>
                 </div>
               </div>
@@ -542,12 +542,12 @@
             </div>
 
             <!-- Workshop, Expertise & Prototype Options (TSR Player's Book pp. 41-44) -->
-            <div class="invention-subpanel" style="padding: 10px 14px;">
-              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-wrap: wrap; gap: 6px;">
+            <div class="invention-subpanel" style="padding: 8px 12px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; flex-wrap: wrap; gap: 6px;">
                 <strong style="color: var(--marvel-gold); font-size: 10.5pt;" id="inv-workshop-options-title">🏭 Workshop & Expertise Options (Player's Book pp. 41-44)</strong>
                 <span class="meta-tag" id="inv-talent-detected-badge" style="font-size: 9.5pt; color: #a7f3d0; border: 1px solid #10b981;">Hero Talent: Checking...</span>
               </div>
-              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px;">
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 8px;">
                 <label class="checkbox-label" title="Inventor has a relevant scientific, engineering, or tinkering talent providing a +1CS column shift to Reason FEATs (auto-detected from hero's learned talents)">
                   <input type="checkbox" id="inv-opt-talent"> 
                   <span id="inv-opt-talent-label">Relevant Science/Tech Talent (+1CS)</span>
@@ -593,50 +593,50 @@
             </div>
 
             <!-- Interactive 3-Stage Invention FEAT Workflow -->
-            <div class="inv-workflow-container" style="border-radius: 6px; padding: 14px; display: flex; flex-direction: column; gap: 12px;">
+            <div class="inv-workflow-container" style="border-radius: 6px; padding: 10px 12px; display: flex; flex-direction: column; gap: 8px;">
               <div style="display: flex; justify-content: space-between; align-items: center;">
                 <strong class="inv-process-heading" style="font-size: 11pt;" id="inv-process-title">🛠️ Invention Process: 3 Required FEATs</strong>
                 <span class="meta-tag" id="inv-process-summary-badge" style="font-size: 10pt;">0 / 3 Passed</span>
               </div>
 
               <!-- Stage 1: Blueprint Design FEAT -->
-              <div class="invention-stage-box inv-stage-box" id="inv-stage-box-blueprint" style="border-radius: 6px; padding: 10px; display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap;">
+              <div class="invention-stage-box inv-stage-box" id="inv-stage-box-blueprint" style="border-radius: 6px; padding: 6px 10px; display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap;">
                 <div>
-                  <div class="inv-stage-title" style="font-weight: 700; font-size: 10.5pt;" id="inv-stage-blueprint-title">1. 📐 Blueprint Design FEAT</div>
-                  <div style="font-size: 10pt; color: var(--text-muted);" id="inv-stage-blueprint-desc"><span id="inv-stage-blueprint-attr">Reason</span> FEAT vs <span id="inv-blueprint-target-text" style="color: #93c5fd; font-weight: 700;">Remarkable</span> (Karma allowed)</div>
+                  <div class="inv-stage-title" style="font-weight: 700; font-size: 10pt;" id="inv-stage-blueprint-title">1. 📐 Blueprint Design FEAT</div>
+                  <div style="font-size: 9.5pt; color: var(--text-muted);" id="inv-stage-blueprint-desc"><span id="inv-stage-blueprint-attr">Reason</span> FEAT vs <span id="inv-blueprint-target-text" style="color: #93c5fd; font-weight: 700;">Remarkable</span> (Karma allowed)</div>
                 </div>
                 <div style="display: flex; align-items: center; gap: 8px;">
-                  <span class="meta-tag" id="inv-stage-blueprint-status" style="font-size: 10pt;">Pending</span>
-                  <button type="button" class="icon-btn" id="btn-roll-inv-blueprint" style="padding: 4px 10px; min-height: 34px; font-size: 10pt;">🎲 Roll Design</button>
+                  <span class="meta-tag" id="inv-stage-blueprint-status" style="font-size: 9.5pt;">Pending</span>
+                  <button type="button" class="icon-btn" id="btn-roll-inv-blueprint" style="padding: 4px 10px; min-height: 32px; font-size: 9.5pt;">🎲 Roll Design</button>
                 </div>
               </div>
 
               <!-- Stage 2: Resource Procurement FEAT -->
-              <div class="invention-stage-box inv-stage-box" id="inv-stage-box-resource" style="border-radius: 6px; padding: 10px; display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap;">
+              <div class="invention-stage-box inv-stage-box" id="inv-stage-box-resource" style="border-radius: 6px; padding: 6px 10px; display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap;">
                 <div>
-                  <div class="inv-stage-title" style="font-weight: 700; font-size: 10.5pt;" id="inv-stage-resource-title">2. 🔩 Resource Procurement FEAT</div>
-                  <div style="font-size: 10pt; color: var(--text-muted);" id="inv-stage-resource-desc">Resource FEAT vs <span id="inv-resource-target-text" style="color: #93c5fd; font-weight: 700;">Remarkable</span> (No Karma per p. 18)</div>
+                  <div class="inv-stage-title" style="font-weight: 700; font-size: 10pt;" id="inv-stage-resource-title">2. 🔩 Resource Procurement FEAT</div>
+                  <div style="font-size: 9.5pt; color: var(--text-muted);" id="inv-stage-resource-desc">Resource FEAT vs <span id="inv-resource-target-text" style="color: #93c5fd; font-weight: 700;">Remarkable</span> (No Karma per p. 18)</div>
                 </div>
                 <div style="display: flex; align-items: center; gap: 8px;">
-                  <span class="meta-tag" id="inv-stage-resource-status" style="font-size: 10pt;">Pending</span>
-                  <button type="button" class="icon-btn" id="btn-roll-inv-resource" style="padding: 4px 10px; min-height: 34px; font-size: 10pt;">🎲 Roll Resources</button>
+                  <span class="meta-tag" id="inv-stage-resource-status" style="font-size: 9.5pt;">Pending</span>
+                  <button type="button" class="icon-btn" id="btn-roll-inv-resource" style="padding: 4px 10px; min-height: 32px; font-size: 9.5pt;">🎲 Roll Resources</button>
                 </div>
               </div>
 
               <!-- Stage 3: Assembly & Construction FEAT -->
-              <div class="invention-stage-box inv-stage-box" id="inv-stage-box-assembly" style="border-radius: 6px; padding: 10px; display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap;">
+              <div class="invention-stage-box inv-stage-box" id="inv-stage-box-assembly" style="border-radius: 6px; padding: 6px 10px; display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap;">
                 <div>
-                  <div class="inv-stage-title" style="font-weight: 700; font-size: 10.5pt;" id="inv-stage-assembly-title">3. 🛠️ Assembly & Construction FEAT</div>
-                  <div style="font-size: 10pt; color: var(--text-muted);" id="inv-stage-assembly-desc"><span id="inv-stage-assembly-attr">Reason</span> FEAT vs <span id="inv-assembly-target-text" style="color: #93c5fd; font-weight: 700;">Remarkable</span> (<span id="inv-stage-assembly-facil">Requires Workshop</span>)</div>
+                  <div class="inv-stage-title" style="font-weight: 700; font-size: 10pt;" id="inv-stage-assembly-title">3. 🛠️ Assembly & Construction FEAT</div>
+                  <div style="font-size: 9.5pt; color: var(--text-muted);" id="inv-stage-assembly-desc"><span id="inv-stage-assembly-attr">Reason</span> FEAT vs <span id="inv-assembly-target-text" style="color: #93c5fd; font-weight: 700;">Remarkable</span> (<span id="inv-stage-assembly-facil">Requires Workshop</span>)</div>
                 </div>
                 <div style="display: flex; align-items: center; gap: 8px;">
-                  <span class="meta-tag" id="inv-stage-assembly-status" style="font-size: 10pt;">Pending</span>
-                  <button type="button" class="icon-btn" id="btn-roll-inv-assembly" style="padding: 4px 10px; min-height: 34px; font-size: 10pt;">🎲 Roll Assembly</button>
+                  <span class="meta-tag" id="inv-stage-assembly-status" style="font-size: 9.5pt;">Pending</span>
+                  <button type="button" class="icon-btn" id="btn-roll-inv-assembly" style="padding: 4px 10px; min-height: 32px; font-size: 9.5pt;">🎲 Roll Assembly</button>
                 </div>
               </div>
 
               <!-- Stage 4: Installation Button -->
-              <button class="icon-btn" id="btn-add-invention-to-gear" style="margin-top: 4px; background: #065f46; border-color: #059669; color: #fff; min-height: 42px; opacity: 0.5; cursor: not-allowed; font-size: 10pt;" title="Complete all 3 FEATs above to fabricate and install">
+              <button class="icon-btn" id="btn-add-invention-to-gear" style="margin-top: 2px; background: #065f46; border-color: #059669; color: #fff; min-height: 38px; opacity: 0.5; cursor: not-allowed; font-size: 10pt;" title="Complete all 3 FEATs above to fabricate and install">
                 📦 Add Completed Invention to Hero's Equipment
               </button>
             </div>
@@ -650,26 +650,20 @@
             <span class="card-title">🔍 Reverse-Engineer Rulebook Equipment</span>
           </div>
 
-          <div style="display: flex; flex-direction: column; gap: 14px;">
-            <p style="color: var(--text-muted);">
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            <p style="color: var(--text-muted); font-size: 9.5pt; margin: 0;">
               Select any prebuilt equipment from the official rulebooks to calculate its raw material procurement, blueprint design FEAT, and workshop build time:
             </p>
 
-            <div>
-              <span class="field-label">Select Rulebook Equipment:</span>
-              <div style="display: flex; gap: 8px; align-items: center; min-width: 0; max-width: 100%;">
-                <select id="select-reverse-engineer-item" class="field-input" style="min-height: 44px; flex: 1; min-width: 0; max-width: 100%;"></select>
-                <button type="button" class="help-circle-btn" id="btn-preview-rev-item" title="View details of selected equipment">?</button>
-                <button type="button" class="icon-btn" id="btn-clear-reverse-engineer" title="Cancel selection and reset reverse-engineering analysis" style="padding: 4px 10px; min-height: 44px; font-size: 11pt;">✕</button>
-              </div>
-            </div>
-
             <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
-              <button class="icon-btn primary" id="btn-calc-reverse-engineer" style="flex: 1; min-height: 40px; font-size: 10pt;">🔬 Reverse-Engineer Item</button>
-              <button type="button" class="icon-btn" id="btn-cancel-reverse-engineer" style="min-height: 40px; font-size: 10pt;" title="Cancel equipment selection and reset analysis">✕ Cancel Selection</button>
+              <select id="select-reverse-engineer-item" class="field-input" style="flex: 1 1 240px; min-width: 180px; min-height: 38px;"></select>
+              <button type="button" class="help-circle-btn" id="btn-preview-rev-item" title="View details of selected equipment" style="min-height: 38px; width: 38px;">?</button>
+              <button class="icon-btn primary" id="btn-calc-reverse-engineer" style="min-height: 38px; padding: 4px 14px; font-size: 10pt; white-space: nowrap;">🔬 Reverse-Engineer</button>
+              <button type="button" class="icon-btn" id="btn-cancel-reverse-engineer" style="min-height: 38px; padding: 4px 12px; font-size: 10pt; white-space: nowrap;" title="Cancel equipment selection and reset analysis">✕ Cancel</button>
+              <button type="button" class="icon-btn" id="btn-clear-reverse-engineer" style="display: none;" title="Cancel selection" aria-hidden="true">✕</button>
             </div>
 
-            <div id="reverse-engineer-result-box" class="invention-subpanel" style="padding: 14px; min-height: 120px; display: flex; flex-direction: column; justify-content: center;">
+            <div id="reverse-engineer-result-box" class="invention-subpanel" style="padding: 10px 12px; min-height: 80px; display: flex; flex-direction: column; justify-content: center;">
               <span style="color: var(--text-dim); text-align: center;">Select an item above to analyze manufacturing specifications.</span>
             </div>
           </div>
@@ -685,13 +679,13 @@
             <input type="text" id="filter-known-blueprints" placeholder="🔍 Filter blueprints..." style="font-size: 10pt; padding: 4px 10px; border-radius: 4px; border: 1px solid var(--border-color); background: var(--bg-main); color: var(--text-main); width: 180px;">
           </div>
 
-          <div style="display: flex; flex-direction: column; gap: 10px;">
-            <div class="calc-rule-callout" style="margin-bottom: 0px; font-size: 10pt;">
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            <div class="calc-rule-callout" style="margin-bottom: 0px; padding: 8px 12px; font-size: 9.5pt;">
               <strong>Mastered Schematics:</strong> Any device successfully assembled or equipment item reverse-engineered is stored in this archive. Building from a known blueprint <strong>bypasses the Phase 1 Blueprint Design FEAT</strong> automatically!
             </div>
 
             <!-- Blueprints List Container -->
-            <div id="known-blueprints-container" style="display: flex; flex-direction: column; gap: 8px;">
+            <div id="known-blueprints-container" style="display: flex; flex-direction: column; gap: 6px;">
               <span style="color: var(--text-dim); text-align: center; padding: 12px; font-size: 10pt;">No known blueprints yet. Complete a custom invention or reverse-engineer equipment above to master schematics.</span>
             </div>
           </div>
@@ -1831,7 +1825,7 @@
           <!-- SECTION: PROGRAM UPDATES & AUTOMATED CHECKING -->
           <div style="font-weight: 700; color: var(--text-main); font-size: 11pt; border-bottom: 1px solid var(--border-color); padding-bottom: 6px; margin-top: 10px; display: flex; justify-content: space-between; align-items: center;">
             <span>🔄 Program Updates &amp; Automated Checking</span>
-            <span class="meta-tag" id="update-version-tag" style="color: var(--marvel-gold); font-size: 9pt;">v1.5.12</span>
+            <span class="meta-tag" id="update-version-tag" style="color: var(--marvel-gold); font-size: 9pt;">v1.5.13</span>
           </div>
 
           <div class="update-settings-panel" style="background: rgba(0, 0, 0, 0.2); border: 1px solid var(--border-color); border-radius: 6px; padding: 12px; display: flex; flex-direction: column; gap: 10px;">
@@ -2722,13 +2716,13 @@
   </div>
 
   <!-- Scripts Loading -->
-  <script src="universal_table.js?v=1.5.12"></script>
-  <script src="data_forms.js?v=1.5.12"></script>
-  <script src="data_powers.js?v=1.5.12"></script>
-  <script src="data_talents.js?v=1.5.12"></script>
-  <script src="data_equipment.js?v=1.5.12"></script>
-  <script src="inventions.js?v=1.5.12"></script>
-  <script src="character_model.js?v=1.5.12"></script>
-  <script src="app.js?v=1.5.12"></script>
+  <script src="universal_table.js?v=1.5.13"></script>
+  <script src="data_forms.js?v=1.5.13"></script>
+  <script src="data_powers.js?v=1.5.13"></script>
+  <script src="data_talents.js?v=1.5.13"></script>
+  <script src="data_equipment.js?v=1.5.13"></script>
+  <script src="inventions.js?v=1.5.13"></script>
+  <script src="character_model.js?v=1.5.13"></script>
+  <script src="app.js?v=1.5.13"></script>
 </body>
 </html>

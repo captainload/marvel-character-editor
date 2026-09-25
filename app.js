@@ -10,6 +10,8 @@ const App = {
   activeCheatTab: 'combat',
   cheatsheetPopoutWindow: null,
   cheatsheetPoppedOut: false,
+  cheatsheetAutoPopout: true,
+  isClientUnloading: false,
   cheatsheetPlaceholder: null,
   activeRoller: null,
   rollerShift: 0,
@@ -38,7 +40,7 @@ const App = {
   isWidthWarningDismissed: false,
   powerAdjustment: false,
   activeAdjustmentPowerIndex: null,
-  VERSION: '1.5.8',
+  VERSION: '1.5.9',
   BUILD_DATE: '2026-09-24',
   COMMIT_SHA: '6a15ff5',
   REPO_OWNER: 'captainload',
@@ -94,6 +96,16 @@ const App = {
     this.updateHistoryNavButtons();
     this.renderEditLog();
     this.initEasterEgg();
+
+    // Auto-restore Cheat Sheet popout if it was popped out when client closed
+    if (typeof localStorage !== 'undefined') {
+      const wasPoppedOut = (localStorage.getItem('msh_cheatsheet_popped_out') === 'true');
+      if (wasPoppedOut && this.cheatsheetAutoPopout) {
+        setTimeout(() => {
+          this.restoreCheatSheetPopoutOnStartup();
+        }, 300);
+      }
+    }
 
     // Prompt Character Creation Setup Wizard if hero setup is pending
     if (this.character && this.character.isCreationSetupPending) {
@@ -742,6 +754,20 @@ const App = {
         const active = e.target.checked;
         if (document.body) document.body.classList.toggle('sticky-header-active', active);
         if (typeof localStorage !== 'undefined') localStorage.setItem('msh_option_sticky_header', active ? 'true' : 'false');
+      });
+    }
+
+    // Cheat Sheet Auto-Popout Preference Init & Listener
+    const autoPopoutOpt = document.getElementById('option-cheatsheet-auto-popout');
+    const savedAutoPopout = typeof localStorage !== 'undefined' ? localStorage.getItem('msh_cheatsheet_auto_popout') : null;
+    this.cheatsheetAutoPopout = savedAutoPopout !== 'false'; // default to true
+    if (autoPopoutOpt) {
+      autoPopoutOpt.checked = this.cheatsheetAutoPopout;
+      autoPopoutOpt.addEventListener('change', (e) => {
+        this.cheatsheetAutoPopout = e.target.checked;
+        if (typeof localStorage !== 'undefined') {
+          localStorage.setItem('msh_cheatsheet_auto_popout', this.cheatsheetAutoPopout ? 'true' : 'false');
+        }
       });
     }
 
@@ -8369,16 +8395,16 @@ const App = {
     }
   },
 
-  popoutCheatSheet() {
+  popoutCheatSheet(isAutoStartup = false) {
     const modal = document.getElementById('cheatsheet-modal');
     const modalBox = document.querySelector('.modal-box.cheatsheet-modal-box');
-    if (!modalBox) return;
+    if (!modalBox) return false;
 
     if (this.isCheatSheetPoppedOut()) {
       try {
         this.cheatsheetPopoutWindow.focus();
       } catch (e) {}
-      return;
+      return true;
     }
 
     const savedGeo = this.getCheatSheetPopoutGeometry();
@@ -8418,12 +8444,17 @@ const App = {
     }
 
     if (!pop || pop.closed || typeof pop.closed === 'undefined') {
-      this.showStatusToast('⚠️ Pop-out window blocked by browser. Please allow popups for this site.');
-      return;
+      if (!isAutoStartup) {
+        this.showStatusToast('⚠️ Pop-out window blocked by browser. Please allow popups for this site.');
+      }
+      return false;
     }
 
     this.cheatsheetPopoutWindow = pop;
     this.cheatsheetPoppedOut = true;
+    try {
+      localStorage.setItem('msh_cheatsheet_popped_out', 'true');
+    } catch (e) {}
 
     if (modal) {
       modal.classList.remove('open');
@@ -8588,6 +8619,11 @@ const App = {
       }
       this.cheatsheetPopoutWindow = null;
       this.cheatsheetPoppedOut = false;
+      if (!this.isClientUnloading) {
+        try {
+          localStorage.setItem('msh_cheatsheet_popped_out', 'false');
+        } catch (e) {}
+      }
       modalBox.style.width = '';
       modalBox.style.height = '';
       modalBox.style.position = '';
@@ -8625,7 +8661,10 @@ const App = {
       pop.focus();
     } catch (e) {}
 
-    this.showStatusToast('↗ Rules Cheat Sheet popped out into separate window');
+    if (!isAutoStartup) {
+      this.showStatusToast('↗ Rules Cheat Sheet popped out into separate window');
+    }
+    return true;
   },
 
   dockCheatSheet(keepOpenInPage = true) {
@@ -8638,6 +8677,11 @@ const App = {
     }
     this.cheatsheetPopoutWindow = null;
     this.cheatsheetPoppedOut = false;
+    if (!this.isClientUnloading) {
+      try {
+        localStorage.setItem('msh_cheatsheet_popped_out', 'false');
+      } catch (e) {}
+    }
 
     const modalBox = document.querySelector('.modal-box.cheatsheet-modal-box');
     if (this.cheatsheetPlaceholder && this.cheatsheetPlaceholder.parentNode && modalBox) {
@@ -8731,7 +8775,9 @@ const App = {
     window.addEventListener('beforeunload', () => {
       if (this.cheatsheetPopoutWindow && !this.cheatsheetPopoutWindow.closed) {
         try {
+          this.isClientUnloading = true;
           this.saveCheatSheetPopoutGeometry();
+          localStorage.setItem('msh_cheatsheet_popped_out', 'true');
           this.cheatsheetPopoutWindow.close();
         } catch (e) {}
       }
@@ -8745,6 +8791,13 @@ const App = {
       } catch (e) {}
       return;
     }
+
+    const wasPoppedOut = (typeof localStorage !== 'undefined' && localStorage.getItem('msh_cheatsheet_popped_out') === 'true');
+    if (wasPoppedOut && this.cheatsheetAutoPopout !== false) {
+      this.popoutCheatSheet();
+      return;
+    }
+
     const modal = document.getElementById('cheatsheet-modal');
     if (modal) modal.classList.add('open');
     if (this.activeCheatTab === 'table') {
@@ -8753,6 +8806,20 @@ const App = {
       this.renderCheatSheetMaterials();
     } else if (this.activeCheatTab === 'movement') {
       this.renderCheatSheetMovement();
+    }
+  },
+
+  restoreCheatSheetPopoutOnStartup() {
+    if (this.isCheatSheetPoppedOut()) return;
+
+    const success = this.popoutCheatSheet(true);
+    if (success && this.isCheatSheetPoppedOut()) {
+      this.showStatusToast('↗ Rules Cheat Sheet auto-restored in separate window');
+    } else {
+      // Browser popup blocker prevented automatic popout on startup without user gesture
+      this.showStatusToast('↗ Rules Cheat Sheet was popped out last session. Click to pop out', 8000, () => {
+        this.popoutCheatSheet();
+      });
     }
   },
 
@@ -9746,7 +9813,7 @@ const App = {
     }
   },
 
-  showStatusToast(message) {
+  showStatusToast(message, duration = 2400, actionCallback = null) {
     if (typeof document === 'undefined') return;
     let toast = document.getElementById('app-status-toast');
     if (!toast) {
@@ -9770,13 +9837,27 @@ const App = {
       document.body.appendChild(toast);
     }
     toast.textContent = message;
+    if (typeof actionCallback === 'function') {
+      toast.style.cursor = 'pointer';
+      toast.onclick = (e) => {
+        e.stopPropagation();
+        try {
+          actionCallback();
+        } catch (err) {}
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(10px)';
+      };
+    } else {
+      toast.style.cursor = 'default';
+      toast.onclick = null;
+    }
     toast.style.opacity = '1';
     toast.style.transform = 'translateY(0)';
     if (this._toastTimer) clearTimeout(this._toastTimer);
     this._toastTimer = setTimeout(() => {
       toast.style.opacity = '0';
       toast.style.transform = 'translateY(10px)';
-    }, 2400);
+    }, duration);
   },
 
   initEasterEgg() {

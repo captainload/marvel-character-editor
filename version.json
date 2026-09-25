@@ -1,7 +1,7 @@
 {
-  "version": "1.5.8",
+  "version": "1.5.9",
   "releaseDate": "2026-09-24",
   "name": "Marvel Super Heroes Character Editor",
   "repo": "https://github.com/captainload/marvel-character-editor",
-  "notes": "Synchronized Rules Cheat Sheet Movement & Speed tables with active Universal Table scheme (expanded 22-rank CMF speeds vs standard 18-rank TSR), updated cheat sheet header button to 'Close pop-up [X]' with red close icon, and removed bottom modal footer close bar."
+  "notes": "Added persistent pop-out window state restoration for the Rules Cheat Sheet: automatically re-opens the pop-out window on client launch if it was popped out when closed, with browser popup blocker resilience and preference option toggle."
 }

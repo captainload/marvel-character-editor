@@ -1,7 +1,7 @@
 {
-  "version": "1.5.10",
+  "version": "1.5.11",
   "releaseDate": "2026-09-25",
   "name": "Marvel Super Heroes Character Editor",
   "repo": "https://github.com/captainload/marvel-character-editor",
-  "notes": "Fixed missing closing div in Preferences & Options modal that trapped subsequent modal overlays (Help Rules Reference and Rulebook Equipment Store) in hidden state, and reinforced Power and Talent help description triggers and catalog lookups."
+  "notes": "Added optional 'Superior Option' Tax house rule toggle under Preferences & Options. When disabled, superior power manifestations and options cost 0 CP surcharge to the character's CP budget, while remaining reversible and dynamically calculated across power cards, rank selections, and option modals."
 }

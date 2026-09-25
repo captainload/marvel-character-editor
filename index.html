@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Marvel Super Heroes (FASERIP) - Character Builder & Editor</title>
-  <link rel="stylesheet" href="styles.css?v=1.5.10">
+  <link rel="stylesheet" href="styles.css?v=1.5.11">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bangers&display=swap" rel="stylesheet">
@@ -1788,6 +1788,16 @@
             </div>
           </label>
 
+          <label class="checkbox-label" style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer;">
+            <input type="checkbox" id="option-superior-option-cost" style="margin-top: 3px;">
+            <div>
+              <strong class="option-control-header">Enable "Superior Option" Tax / Surcharge House Rule</strong>
+              <div style="color: var(--text-muted); font-size: 10pt; margin-top: 2px; line-height: 1.4;">
+                When enabled, choosing a superior power manifestation or sub-option manually (instead of rolling on the random d100 subtable) adds a +100% base unlock CP surcharge (+10 CP, or +20 CP for starred powers). When disabled, superior options incur 0 CP surcharge.
+              </div>
+            </div>
+          </label>
+
           <div>
             <label for="option-universal-table" class="option-control-header" style="cursor: pointer;">Universal Action Table &amp; Rank System</label>
             <select id="option-universal-table" class="field-input" style="min-height: 40px;">
@@ -1820,7 +1830,7 @@
           <!-- SECTION: PROGRAM UPDATES & AUTOMATED CHECKING -->
           <div style="font-weight: 700; color: var(--text-main); font-size: 11pt; border-bottom: 1px solid var(--border-color); padding-bottom: 6px; margin-top: 10px; display: flex; justify-content: space-between; align-items: center;">
             <span>🔄 Program Updates &amp; Automated Checking</span>
-            <span class="meta-tag" id="update-version-tag" style="color: var(--marvel-gold); font-size: 9pt;">v1.5.10</span>
+            <span class="meta-tag" id="update-version-tag" style="color: var(--marvel-gold); font-size: 9pt;">v1.5.11</span>
           </div>
 
           <div class="update-settings-panel" style="background: rgba(0, 0, 0, 0.2); border: 1px solid var(--border-color); border-radius: 6px; padding: 12px; display: flex; flex-direction: column; gap: 10px;">
@@ -2711,13 +2721,13 @@
   </div>
 
   <!-- Scripts Loading -->
-  <script src="universal_table.js?v=1.5.10"></script>
-  <script src="data_forms.js?v=1.5.10"></script>
-  <script src="data_powers.js?v=1.5.10"></script>
-  <script src="data_talents.js?v=1.5.10"></script>
-  <script src="data_equipment.js?v=1.5.10"></script>
-  <script src="inventions.js?v=1.5.10"></script>
-  <script src="character_model.js?v=1.5.10"></script>
-  <script src="app.js?v=1.5.10"></script>
+  <script src="universal_table.js?v=1.5.11"></script>
+  <script src="data_forms.js?v=1.5.11"></script>
+  <script src="data_powers.js?v=1.5.11"></script>
+  <script src="data_talents.js?v=1.5.11"></script>
+  <script src="data_equipment.js?v=1.5.11"></script>
+  <script src="inventions.js?v=1.5.11"></script>
+  <script src="character_model.js?v=1.5.11"></script>
+  <script src="app.js?v=1.5.11"></script>
 </body>
 </html>

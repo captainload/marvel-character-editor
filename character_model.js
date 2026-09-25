@@ -354,6 +354,11 @@ class FASERIPCharacter {
     this.lastKarmaSpentOnRoll = initialData.lastKarmaSpentOnRoll || null;
     this.lastKarmaSpentOnRankIncrease = initialData.lastKarmaSpentOnRankIncrease || null;
 
+    // Superior Option Tax / CP Surcharge House Rule (per-character preference, default: false)
+    this.superiorOptionCost = initialData.superiorOptionCost !== undefined 
+      ? !!initialData.superiorOptionCost 
+      : (initialData.superiorOptionTax !== undefined ? !!initialData.superiorOptionTax : false);
+
     // Karma Ledger & Advancement History
     this.advancementLog = Array.isArray(initialData.advancementLog) ? [...initialData.advancementLog] : [];
     if (!this.lastKarmaSpentOnRankIncrease && this.advancementLog.length > 0) {
@@ -375,6 +380,14 @@ class FASERIPCharacter {
     this.editHistoryIndex = typeof initialData.editHistoryIndex === 'number' ? initialData.editHistoryIndex : (this.editLog.length - 1);
 
     this.syncRanksToActiveScheme();
+  }
+
+  get superiorOptionTax() {
+    return !!this.superiorOptionCost;
+  }
+
+  set superiorOptionTax(val) {
+    this.superiorOptionCost = !!val;
   }
 
   addKnownBlueprint(bpData) {
@@ -1419,7 +1432,8 @@ class FASERIPCharacter {
       const isExp = !!(p.isExceptional || p.isStarred);
       const baseCost = isExp ? 20 : 10;
       const rankMultiplier = isExp ? 2 : 1;
-      const surcharge = (p.optionSurcharge !== undefined) ? parseInt(p.optionSurcharge || 0) : 0;
+      const isTaxActive = !!(this.superiorOptionCost || this.superiorOptionTax);
+      const surcharge = (isTaxActive && p.optionSurcharge !== undefined) ? parseInt(p.optionSurcharge || 0) : 0;
       powersTotal += baseCost + (p.rankValue * rankMultiplier) + surcharge;
     });
 
@@ -2445,6 +2459,7 @@ class FASERIPCharacter {
       knownBlueprints: this.knownBlueprints || [],
       advancementLog: this.advancementLog,
       karmicSuccess: this.karmicSuccess,
+      superiorOptionCost: this.superiorOptionCost,
       lastKarmaSpentOnRoll: this.lastKarmaSpentOnRoll,
       lastKarmaSpentOnRankIncrease: this.lastKarmaSpentOnRankIncrease,
       editLog: this.editLog,

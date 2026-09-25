@@ -40,7 +40,14 @@ const App = {
   isWidthWarningDismissed: false,
   powerAdjustment: false,
   activeAdjustmentPowerIndex: null,
-  VERSION: '1.5.10',
+  superiorOptionCost: false,
+  get superiorOptionTax() {
+    return !!this.superiorOptionCost;
+  },
+  set superiorOptionTax(val) {
+    this.superiorOptionCost = !!val;
+  },
+  VERSION: '1.5.11',
   BUILD_DATE: '2026-09-25',
   COMMIT_SHA: '6a15ff5',
   REPO_OWNER: 'captainload',
@@ -840,6 +847,28 @@ const App = {
         this.showStatusToast(e.target.checked 
           ? '✨ Karmic Success house rule ENABLED (refund up to 20 KP on Blue shift)' 
           : 'Karmic Success house rule disabled');
+      });
+    }
+
+    // Superior Option Tax / Surcharge House Rule Preference Init & Listeners
+    const supOptEl = document.getElementById('option-superior-option-cost') || document.getElementById('option-superior-option-tax');
+    const savedSupOpt = typeof localStorage !== 'undefined' 
+      ? (localStorage.getItem('msh_option_superior_option_tax') ?? localStorage.getItem('msh_option_superior_option_cost')) 
+      : null;
+    this.superiorOptionCost = (savedSupOpt === 'true');
+    if (this.character && this.character.superiorOptionCost !== undefined && savedSupOpt === null) {
+      this.superiorOptionCost = !!this.character.superiorOptionCost;
+    }
+    if (this.character) {
+      this.character.superiorOptionCost = this.superiorOptionCost;
+    }
+    if (supOptEl) {
+      supOptEl.checked = this.superiorOptionCost;
+      supOptEl.addEventListener('change', (e) => {
+        this.setSuperiorOptionCost(e.target.checked);
+        this.showStatusToast(e.target.checked 
+          ? '⚡ Superior Option Tax house rule ENABLED (+100% Base CP surcharge for superior choices)' 
+          : 'Superior Option Tax house rule disabled (0 CP surcharge for superior choices)');
       });
     }
 
@@ -2287,7 +2316,8 @@ const App = {
       const isExp = isStarredPower || !!p.isExceptional;
       const baseCost = isExp ? 20 : 10;
       const rankMult = isExp ? 2 : 1;
-      const surcharge = p.optionSurcharge || 0;
+      const isTaxActive = !!(this.superiorOptionCost || (this.character && this.character.superiorOptionCost));
+      const surcharge = (isTaxActive && p.optionSurcharge) ? p.optionSurcharge : 0;
       const cpCost = baseCost + (p.rankValue * rankMult) + surcharge;
 
       const activeRanks = (typeof UniversalTableEngine !== 'undefined' && UniversalTableEngine.ranks)
@@ -2344,8 +2374,10 @@ const App = {
         const subText = p.optionSubChoice ? ` (${p.optionSubChoice})` : '';
         if (p.optionAcquisitionMethod === 'rolled') {
           optionBadgeHtml = `<span class="meta-tag tag-power-option" title="Rolled Manifestation (0 CP Surcharge) - Click to configure">🎲 ${choiceName}${subText}</span>`;
-        } else if (p.optionSurcharge > 0) {
+        } else if (p.optionSurcharge > 0 && isTaxActive) {
           optionBadgeHtml = `<span class="meta-tag tag-power-option tag-option-superior" title="Superior Option (+${p.optionSurcharge} CP Surcharge) - Click to configure">⚡ ${choiceName}${subText}</span>`;
+        } else if (curChoice?.isSuperior || p.isSuperiorOption) {
+          optionBadgeHtml = `<span class="meta-tag tag-power-option" title="Superior Option (House Rule Surcharge Disabled: 0 CP) - Click to configure">⚡ ${choiceName}${subText}</span>`;
         } else {
           optionBadgeHtml = `<span class="meta-tag tag-power-option" title="Configured Option - Click to configure">⚙️ ${choiceName}${subText}</span>`;
         }
@@ -2714,7 +2746,8 @@ const App = {
           const res = this.character.setPowerRank(p.id, newRankName);
           if (res) {
             const isExpPwr = !!(p.isExceptional || p.isStarred);
-            const newCost = (isExpPwr ? 20 : 10) + (res.newRankValue * (isExpPwr ? 2 : 1)) + (p.optionSurcharge || 0);
+            const isTaxActive = !!(this.superiorOptionCost || (this.character && this.character.superiorOptionCost));
+            const newCost = (isExpPwr ? 20 : 10) + (res.newRankValue * (isExpPwr ? 2 : 1)) + ((isTaxActive && p.optionSurcharge) ? p.optionSurcharge : 0);
             this.recordCharacterEdit(`Changed ${p.name} rank: ${res.oldRankName} (${res.oldRankValue}) ➔ ${res.newRankName} (${res.newRankValue}) [${newCost} CP]`, 'power');
             this.saveState();
             this.render();
@@ -3488,7 +3521,8 @@ const App = {
     if (!p) return;
     const isStarredPower = !!p.isStarred;
     const isExp = isStarredPower || !!p.isExceptional;
-    const cpRefund = (isExp ? 20 : 10) + (p.rankValue * (isExp ? 2 : 1)) + (p.optionSurcharge || 0);
+    const isTaxActive = !!(this.superiorOptionCost || (this.character && this.character.superiorOptionCost));
+    const cpRefund = (isExp ? 20 : 10) + (p.rankValue * (isExp ? 2 : 1)) + ((isTaxActive && p.optionSurcharge) ? p.optionSurcharge : 0);
 
     const confirmed = await this.showCustomConfirm(
       `Remove power "${p.name}" (${p.rankName})?\n\nRemoving this power will refund ${cpRefund} Character Points (CP) to your budget, and this removal will be noted in your Character Log.`,
@@ -3677,7 +3711,7 @@ const App = {
           <div style="flex: 1;">
             <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
               <strong style="color: var(--text-main); font-size: 10pt;">${c.label}</strong>
-              ${c.isSuperior ? `<span class="meta-tag tag-option-superior" style="font-size: 8.5pt;">★ Superior Option (+${surchargeAmount} CP if chosen manually)</span>` : '<span class="meta-tag" style="font-size: 8.5pt;">Standard (0 CP Surcharge)</span>'}
+              ${c.isSuperior ? (this.superiorOptionCost ? `<span class="meta-tag tag-option-superior" style="font-size: 8.5pt;">★ Superior Option (+${surchargeAmount} CP if chosen manually)</span>` : `<span class="meta-tag" style="font-size: 8.5pt; color: #38bdf8; border-color: rgba(56, 189, 248, 0.4);">★ Superior Option (0 CP Surcharge)</span>`) : '<span class="meta-tag" style="font-size: 8.5pt;">Standard (0 CP Surcharge)</span>'}
             </div>
             <div style="font-size: 9pt; color: var(--text-muted); margin-top: 2px;">${c.description}</div>
             ${subChoiceHtml}
@@ -3787,7 +3821,8 @@ const App = {
     const rankCP = rankVal * (isExp ? 2 : 1);
     let surcharge = 0;
 
-    if (this.newPowerOptionMethod === 'chosen' && curChoice?.isSuperior) {
+    const isTaxActive = !!(this.superiorOptionCost || (this.character && this.character.superiorOptionCost));
+    if (this.newPowerOptionMethod === 'chosen' && curChoice?.isSuperior && isTaxActive) {
       surcharge = isExp ? 20 : 10;
     }
 
@@ -3795,9 +3830,12 @@ const App = {
 
     const breakdownEl = document.getElementById('new-power-cost-breakdown');
     if (breakdownEl) {
-      const surchargeText = surcharge > 0 
-        ? `<strong style="color: var(--marvel-gold); font-weight: 700;">+${surcharge} CP (2× Unlock Surcharge)</strong>` 
-        : '<strong style="color: #22c55e;">+0 CP</strong>';
+      let surchargeText = '<strong style="color: #22c55e;">+0 CP</strong>';
+      if (curChoice?.isSuperior && this.newPowerOptionMethod === 'chosen' && !isTaxActive) {
+        surchargeText = '<strong style="color: #38bdf8;">+0 CP (House Rule Disabled)</strong>';
+      } else if (surcharge > 0) {
+        surchargeText = `<strong style="color: var(--marvel-gold); font-weight: 700;">+${surcharge} CP (2× Unlock Surcharge)</strong>`;
+      }
       const methodBadge = this.newPowerOptionMethod === 'rolled' 
         ? '<span class="badge-yellow" style="margin-left: 6px;">🎲 Rolled Manifestation (No Surcharge)</span>' 
         : '';
@@ -3843,8 +3881,11 @@ const App = {
     const curChoice = optDef.choices.find(c => c.key === power.selectedOption);
     const curLabel = curChoice ? curChoice.label : (power.selectedOption || 'Standard');
     const curSub = power.optionSubChoice ? ` (${power.optionSubChoice})` : '';
+    const isTaxActive = !!(this.superiorOptionCost || (this.character && this.character.superiorOptionCost));
+    const effectiveSurcharge = isTaxActive ? (power.optionSurcharge || 0) : 0;
+    const surchargeNote = (!isTaxActive && power.optionSurcharge) ? '+0 CP (Rule Off)' : `+${effectiveSurcharge} CP`;
     if (statusEl) {
-      statusEl.innerHTML = `<span style="color: var(--marvel-gold);">Active: ${curLabel}${curSub} [${power.optionAcquisitionMethod || 'chosen'}, +${power.optionSurcharge || 0} CP]</span>`;
+      statusEl.innerHTML = `<span style="color: var(--marvel-gold);">Active: ${curLabel}${curSub} [${power.optionAcquisitionMethod || 'chosen'}, ${surchargeNote}]</span>`;
     }
 
     this.renderModalPowerOptionsContent(optDef, power);
@@ -3859,6 +3900,7 @@ const App = {
 
     const isExp = !!(power.isExceptional || power.isStarred);
     const surchargeAmount = isExp ? 20 : 10;
+    const isTaxActive = !!(this.superiorOptionCost || (this.character && this.character.superiorOptionCost));
 
     let choicesHtml = '';
     optDef.choices.forEach(c => {
@@ -3873,13 +3915,17 @@ const App = {
         </div>
       ` : '';
 
+      const superiorTag = isTaxActive
+        ? `<span class="meta-tag tag-option-superior" style="font-size: 8.5pt;">★ Superior Option (+${surchargeAmount} CP if chosen manually)</span>`
+        : `<span class="meta-tag" style="font-size: 8.5pt; color: #38bdf8; border-color: rgba(56, 189, 248, 0.4);">★ Superior Option (0 CP Surcharge)</span>`;
+
       choicesHtml += `
         <label class="power-option-choice-card" style="display: flex; align-items: flex-start; gap: 10px; padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 6px; cursor: pointer; background: rgba(0,0,0,0.2);">
           <input type="radio" name="modal-power-option-radio" value="${c.key}" style="margin-top: 3px;" ${isChecked}>
           <div style="flex: 1;">
             <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
               <strong style="color: var(--text-main); font-size: 10pt;">${c.label}</strong>
-              ${c.isSuperior ? `<span class="meta-tag tag-option-superior" style="font-size: 8.5pt;">★ Superior Option (+${surchargeAmount} CP if chosen manually)</span>` : '<span class="meta-tag" style="font-size: 8.5pt;">Standard (0 CP Surcharge)</span>'}
+              ${c.isSuperior ? superiorTag : '<span class="meta-tag" style="font-size: 8.5pt;">Standard (0 CP Surcharge)</span>'}
             </div>
             <div style="font-size: 9pt; color: var(--text-muted); margin-top: 2px;">${c.description}</div>
             ${subChoiceHtml}
@@ -3976,8 +4022,10 @@ const App = {
       newSurcharge = isExp ? 20 : 10;
     }
 
-    const oldSurcharge = power.optionSurcharge || 0;
-    const diff = newSurcharge - oldSurcharge;
+    const isTaxActive = !!(this.superiorOptionCost || (this.character && this.character.superiorOptionCost));
+    const effectiveNewSurcharge = isTaxActive ? newSurcharge : 0;
+    const effectiveOldSurcharge = isTaxActive ? (power.optionSurcharge || 0) : 0;
+    const diff = effectiveNewSurcharge - effectiveOldSurcharge;
     let diffText = 'No CP cost change';
     if (diff > 0) {
       diffText = `<strong style="color: var(--marvel-gold);">+${diff} CP additional surcharge</strong>`;
@@ -3985,8 +4033,13 @@ const App = {
       diffText = `<strong style="color: #22c55e;">${diff} CP refund</strong>`;
     }
 
+    let surchargeDisplay = `+${effectiveNewSurcharge} CP`;
+    if (!isTaxActive && curChoice?.isSuperior && this.modalOptionMethod === 'chosen') {
+      surchargeDisplay = `+0 CP <span style="color: #38bdf8; font-size: 8.5pt;">(House Rule Disabled)</span>`;
+    }
+
     const methodNote = this.modalOptionMethod === 'rolled' ? ' [Dice Rolled: 0 CP Surcharge]' : '';
-    summaryEl.innerHTML = `New Surcharge: <strong>+${newSurcharge} CP</strong>${methodNote} | Net Impact: ${diffText}`;
+    summaryEl.innerHTML = `New Surcharge: <strong>${surchargeDisplay}</strong>${methodNote} | Net Impact: ${diffText}`;
   },
 
   savePowerOptionsModal() {
@@ -5195,6 +5248,27 @@ const App = {
     const docRollerCheck = document.getElementById('roller-check-karmic-success');
     if (docRollerCheck) docRollerCheck.checked = this.karmicSuccess;
     this.saveState();
+  },
+
+  setSuperiorOptionCost(enabled) {
+    this.superiorOptionCost = !!enabled;
+    if (this.character) {
+      this.character.superiorOptionCost = this.superiorOptionCost;
+      if (this.character.calculateDefenses) {
+        this.character.calculateDefenses();
+      }
+    }
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem('msh_option_superior_option_tax', this.superiorOptionCost ? 'true' : 'false');
+    }
+    const opt = document.getElementById('option-superior-option-cost') || document.getElementById('option-superior-option-tax');
+    if (opt) opt.checked = this.superiorOptionCost;
+    this.saveState();
+    this.render();
+  },
+
+  setSuperiorOptionTax(enabled) {
+    this.setSuperiorOptionCost(enabled);
   },
 
   setUniversalTableMode(mode, save = true) {
@@ -8891,8 +8965,11 @@ const App = {
               const match = optDef.rollTable.find(([min, max, key]) => key === c.key);
               if (match) rollRange = match[0] === match[1] ? `${match[0]}` : `${match[0]}–${match[1]}`;
             }
+            const isTaxActive = !!(this.superiorOptionCost || (this.character && this.character.superiorOptionCost));
             const surchargeBadge = c.isSuperior
-              ? `<span style="background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.4); padding: 1px 6px; border-radius: 4px; font-size: 8.5pt; font-weight: 600;">+100% (2× Base)</span>`
+              ? (isTaxActive
+                  ? `<span style="background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.4); padding: 1px 6px; border-radius: 4px; font-size: 8.5pt; font-weight: 600;">+100% (2× Base)</span>`
+                  : `<span style="color: #38bdf8; font-size: 8.5pt; font-weight: 600;">0 CP (Rule Off)</span>`)
               : `<span style="color: var(--rank-green, #10b981); font-size: 8.5pt; font-weight: 600;">0 CP (Standard)</span>`;
             
             const subChoices = (c.subChoiceList && c.subChoiceList.length)
@@ -9099,6 +9176,9 @@ const App = {
     this.character.isCreationSetupPending = true;
     if (this.powerAdjustment !== undefined) {
       this.character.powerAdjustment = this.powerAdjustment;
+    }
+    if (this.superiorOptionCost !== undefined) {
+      this.character.superiorOptionCost = this.superiorOptionCost;
     }
     this.karmaMode = 'session';
     this.advancementSnapshot = null;

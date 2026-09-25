@@ -38,7 +38,7 @@ const App = {
   isWidthWarningDismissed: false,
   powerAdjustment: false,
   activeAdjustmentPowerIndex: null,
-  VERSION: '1.5.2',
+  VERSION: '1.5.3',
   BUILD_DATE: '2026-09-24',
   COMMIT_SHA: '6a15ff5',
   REPO_OWNER: 'captainload',
@@ -765,7 +765,7 @@ const App = {
     const tableOpt = document.getElementById('option-universal-table');
     const cheatTableOpt = document.getElementById('cheat-table-mode-select');
     const savedTableMode = typeof localStorage !== 'undefined' ? localStorage.getItem('msh_option_universal_table') : null;
-    this.universalTableMode = (savedTableMode === 'cmf') ? 'cmf' : 'standard';
+    this.universalTableMode = (savedTableMode === 'standard') ? 'standard' : 'cmf';
     if (typeof UniversalTableEngine !== 'undefined' && UniversalTableEngine.setTableMode) {
       UniversalTableEngine.setTableMode(this.universalTableMode);
     }
@@ -1593,9 +1593,10 @@ const App = {
     ['fighting', 'agility', 'strength', 'endurance', 'reason', 'intuition', 'psyche'].forEach(k => {
       const sel = document.getElementById(`select-rank-${k}`);
       if (sel) {
-        const prevVal = sel.value;
         sel.innerHTML = rankOptionsHtml;
-        if (prevVal) sel.value = prevVal;
+        if (this.character && this.character.abilities && this.character.abilities[k]) {
+          sel.value = this.character.abilities[k].rankName;
+        }
         if (!sel.dataset.bound) {
           sel.dataset.bound = 'true';
           sel.addEventListener('change', (e) => {
@@ -1617,9 +1618,10 @@ const App = {
     // Resources Selectors (Main Stats)
     const resSel = document.getElementById('select-rank-resources');
     if (resSel) {
-      const prevVal = resSel.value;
       resSel.innerHTML = rankOptionsHtml;
-      if (prevVal) resSel.value = prevVal;
+      if (this.character && this.character.resources) {
+        resSel.value = this.character.resources.rankName;
+      }
       if (!resSel.dataset.bound) {
         resSel.dataset.bound = 'true';
         resSel.addEventListener('change', (e) => {
@@ -1642,9 +1644,10 @@ const App = {
     // Resources Selectors (Background Tab)
     const bgResSel = document.getElementById('background-resource-select');
     if (bgResSel) {
-      const prevVal = bgResSel.value;
       bgResSel.innerHTML = rankOptionsHtml;
-      if (prevVal) bgResSel.value = prevVal;
+      if (this.character && this.character.resources) {
+        bgResSel.value = this.character.resources.rankName;
+      }
       if (!bgResSel.dataset.bound) {
         bgResSel.dataset.bound = 'true';
         bgResSel.addEventListener('change', (e) => {
@@ -1686,13 +1689,22 @@ const App = {
 
     // Inventions Material & Power Dropdowns
     const invMatSel = document.getElementById('inv-material-rank');
-    if (invMatSel && globalThis.MATERIAL_STRENGTHS) {
+    const matList = (typeof getMaterialStrengths === 'function')
+      ? getMaterialStrengths()
+      : (globalThis.MATERIAL_STRENGTHS || []);
+    if (invMatSel && matList.length > 0) {
       const prevMat = invMatSel.value;
-      invMatSel.innerHTML = globalThis.MATERIAL_STRENGTHS.map(m => {
+      invMatSel.innerHTML = matList.map(m => {
         const specialTag = (m.num >= 1000) ? ' [Cosmic / Mythic]' : (m.num >= 75 ? ' [Special Reqs]' : '');
         return `<option value="${m.rank}">${m.name} (${m.rank} / ${m.num})${specialTag}</option>`;
       }).join('');
-      invMatSel.value = prevMat || 'Remarkable';
+      let matched = matList.find(m => m.rank === prevMat);
+      if (!matched && prevMat) {
+        const prevObj = UniversalTableEngine.getRankByName(prevMat);
+        const mapped = UniversalTableEngine.getRankByNum(prevObj.num);
+        matched = matList.find(m => m.rank === mapped.name);
+      }
+      invMatSel.value = matched ? matched.rank : (matList[6]?.rank || 'Remarkable');
     }
 
     this.renderInvPowerDropdown();
@@ -2255,7 +2267,9 @@ const App = {
     }
 
     this.character.powers.forEach((p, idx) => {
-      const pRank = UniversalTableEngine.getRankByName(p.rankName);
+      const pRank = (typeof UniversalTableEngine !== 'undefined')
+        ? UniversalTableEngine.getRankByNum(p.rankValue)
+        : UniversalTableEngine.getRankByName(p.rankName);
       const isOperating = this.character.isPowerOperating ? this.character.isPowerOperating(p.id) : true;
       const isDisabled = !!p.isDisabled;
       const opType = p.operationalType || 'passive';
@@ -2279,7 +2293,7 @@ const App = {
 
       const rankSelectOptionsHtml = activeRanks.map(r => {
         const costForRank = baseCost + (r.num * rankMult) + surcharge;
-        const isSelected = r.name.toLowerCase() === p.rankName.toLowerCase();
+        const isSelected = r.name.toLowerCase() === pRank.name.toLowerCase();
         return `<option value="${r.name}" ${isSelected ? 'selected' : ''}>${r.name} (${r.num}) - ${costForRank} CP</option>`;
       }).join('');
 
@@ -5177,7 +5191,7 @@ const App = {
   },
 
   setUniversalTableMode(mode, save = true) {
-    this.universalTableMode = (mode === 'cmf') ? 'cmf' : 'standard';
+    this.universalTableMode = (mode === 'standard') ? 'standard' : 'cmf';
     if (typeof UniversalTableEngine !== 'undefined' && UniversalTableEngine.setTableMode) {
       UniversalTableEngine.setTableMode(this.universalTableMode);
     }
@@ -5189,10 +5203,15 @@ const App = {
     const cheatTableOpt = (typeof this.getCheatSheetEl === 'function') ? this.getCheatSheetEl('cheat-table-mode-select') : document.getElementById('cheat-table-mode-select');
     if (cheatTableOpt) cheatTableOpt.value = this.universalTableMode;
 
+    if (this.character && typeof this.character.syncRanksToActiveScheme === 'function') {
+      this.character.syncRanksToActiveScheme();
+    }
+
     this.populateDropdowns();
     this.renderCheatSheetTable();
     this.render();
     this.updateRollerPreview();
+    this.saveState();
   },
 
   updateAreaDivisionDisplay() {

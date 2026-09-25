@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Marvel Super Heroes (FASERIP) - Character Builder & Editor</title>
-  <link rel="stylesheet" href="styles.css?v=1.5.2">
+  <link rel="stylesheet" href="styles.css?v=1.5.3">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bangers&display=swap" rel="stylesheet">
@@ -1290,8 +1290,8 @@
             <div style="display: flex; align-items: center; gap: 8px;">
               <span style="font-size: 10pt; color: var(--text-muted); font-weight: 700;">Table Mode:</span>
               <select id="cheat-table-mode-select" class="field-input" style="min-height: 30px; padding: 2px 8px; font-size: 10pt; width: auto;">
+                <option value="cmf" selected>Modified CMF (22 Ranks - Default)</option>
                 <option value="standard">Standard TSR (18 Ranks)</option>
-                <option value="cmf">Modified CMF (22 Ranks)</option>
               </select>
             </div>
           </div>
@@ -1970,13 +1970,13 @@
           <div>
             <span class="field-label" style="margin-bottom: 6px; color: var(--text-muted);">Universal Action Table &amp; Rank System:</span>
             <select id="option-universal-table" class="field-input" style="min-height: 40px;">
+              <option value="cmf" selected>Modified CMF Universal Table &amp; Ranks (Default: 22 Expanded Ranks: +Fantastic, Spectacular, Sensational, Awesome)</option>
               <option value="standard">Standard TSR Universal Table (Canonical 18 Ranks)</option>
-              <option value="cmf">Modified CMF Universal Table &amp; Ranks (22 Expanded Ranks: +Fantastic, Spectacular, Sensational, Awesome)</option>
             </select>
             <div style="color: var(--text-muted); font-size: 10pt; margin-top: 6px; line-height: 1.5;">
-              Choose between the official TSR rulebook table or the Classic Marvel Forever modified table:
+              Choose between the Classic Marvel Forever modified table (default) or the canonical TSR rulebook table:
+              <br>• <strong>Modified CMF (Default):</strong> Expanded 22 ranks with 4 intermediate steps: <em>Fantastic (35)</em>, <em>Spectacular (45)</em>, <em>Sensational (60)</em>, and <em>Awesome (90)</em>, plus adjusted percentile thresholds, dark blue fumble/blunder ranges, and expanded material strengths.
               <br>• <strong>Standard TSR:</strong> Canonical 18 ranks (Shift 0 to Beyond) from the Advanced Set and 1991 Revised Box.
-              <br>• <strong>Modified CMF:</strong> Expanded 22 ranks with 4 intermediate steps: <em>Fantastic (35)</em>, <em>Spectacular (45)</em>, <em>Sensational (60)</em>, and <em>Awesome (90)</em>, plus adjusted percentile thresholds and dark blue fumble/blunder ranges.
             </div>
           </div>
 
@@ -2922,13 +2922,13 @@
   </div>
 
   <!-- Scripts Loading -->
-  <script src="universal_table.js?v=1.5.2"></script>
-  <script src="data_forms.js?v=1.5.2"></script>
-  <script src="data_powers.js?v=1.5.2"></script>
-  <script src="data_talents.js?v=1.5.2"></script>
-  <script src="data_equipment.js?v=1.5.2"></script>
-  <script src="inventions.js?v=1.5.2"></script>
-  <script src="character_model.js?v=1.5.2"></script>
-  <script src="app.js?v=1.5.2"></script>
+  <script src="universal_table.js?v=1.5.3"></script>
+  <script src="data_forms.js?v=1.5.3"></script>
+  <script src="data_powers.js?v=1.5.3"></script>
+  <script src="data_talents.js?v=1.5.3"></script>
+  <script src="data_equipment.js?v=1.5.3"></script>
+  <script src="inventions.js?v=1.5.3"></script>
+  <script src="character_model.js?v=1.5.3"></script>
+  <script src="app.js?v=1.5.3"></script>
 </body>
 </html>

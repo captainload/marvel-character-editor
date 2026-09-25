@@ -7,7 +7,7 @@
  * Sorted alphabetically by item name.
  */
 
-const MATERIAL_STRENGTHS = [
+const STANDARD_MATERIAL_STRENGTHS = [
   {
     "name": "Cloth / Soft Organic",
     "rank": "Feeble",
@@ -87,6 +87,132 @@ const MATERIAL_STRENGTHS = [
     "examples": "Mjolnir (enchanted Asgardian mystic metal)"
   }
 ];
+
+const CMF_MATERIAL_STRENGTHS = [
+  {
+    "name": "Tissue Paper / Gossamer",
+    "rank": "Shift 0",
+    "num": 0,
+    "examples": "Tissue paper, cellophane, fragile glass filaments, gossamer silk"
+  },
+  {
+    "name": "Cloth / Paper / Glass",
+    "rank": "Feeble",
+    "num": 2,
+    "examples": "Paper, cotton cloth, cardboard, thin window glass, brush"
+  },
+  {
+    "name": "Pliable Plastic / Wood",
+    "rank": "Poor",
+    "num": 4,
+    "examples": "Normal plastics, crystal, soft pine wood, lead, drywall, hard rubber"
+  },
+  {
+    "name": "Dense Wood / Soft Metal",
+    "rank": "Typical",
+    "num": 6,
+    "examples": "Rubber, oak, dense bone, soft metals (gold, brass, copper), ice, adobe, computer chips"
+  },
+  {
+    "name": "Concrete / Brick / Tough Polymer",
+    "rank": "Good",
+    "num": 10,
+    "examples": "Exterior brick walls, aluminum, light machinery pieces, asphalt, high-strength plastics"
+  },
+  {
+    "name": "Solid Concrete / Iron / Bulletproof Glass",
+    "rank": "Excellent",
+    "num": 20,
+    "examples": "Solid concrete, Beta cloth, iron, bulletproof glass"
+  },
+  {
+    "name": "Tempered Steel / Reinforced Concrete",
+    "rank": "Remarkable",
+    "num": 30,
+    "examples": "Reinforced concrete, structural steel I-beams, bank safe doors"
+  },
+  {
+    "name": "Hardened Alloy Steel",
+    "rank": "Fantastic",
+    "num": 35,
+    "examples": "Hardened alloy steel, surgical combat cutlery, specialized cybernetic plating"
+  },
+  {
+    "name": "Solid Stone / Vibranium / Tank Armor",
+    "rank": "Incredible",
+    "num": 40,
+    "examples": "Solid stone, Wakandan Vibranium, volcanic rock, military tank armor"
+  },
+  {
+    "name": "Super-Heavy Alloys / Titanium",
+    "rank": "Spectacular",
+    "num": 45,
+    "examples": "Structural Titanium, super-heavy ballistic alloys, cyborg endoskeletons"
+  },
+  {
+    "name": "Super-Alloy / Gemstones / Granite",
+    "rank": "Amazing",
+    "num": 50,
+    "examples": "Granite, gemstones, high-strength steel, Shield Helicarrier bulkhead"
+  },
+  {
+    "name": "Osmium Steel / Heavy Plate",
+    "rank": "Sensational",
+    "num": 60,
+    "examples": "Osmium steel, high-density armor plate, custom exo-frames"
+  },
+  {
+    "name": "Diamond / Pure Osmium / Secondary Adamantium",
+    "rank": "Monstrous",
+    "num": 75,
+    "examples": "Diamond, pure Osmium, Secondary Adamantium, Sentinel chassis"
+  },
+  {
+    "name": "Iridium / Exotic Alien Alloy",
+    "rank": "Awesome",
+    "num": 90,
+    "examples": "Iridium, advanced alien alloys, Kree/Skrull starship hulls"
+  },
+  {
+    "name": "Adamantium-Steel / Enchanted Metal",
+    "rank": "Unearthly",
+    "num": 100,
+    "examples": "Adamantium-steel alloy, enchanted Asgardian mystic elements, alien dreadnoughts"
+  },
+  {
+    "name": "True Adamantium",
+    "rank": "Class 1000",
+    "num": 1000,
+    "examples": "Wolverine's skeleton, Ultron outer shell (virtually indestructible)"
+  },
+  {
+    "name": "Vibranium (Wakandan)",
+    "rank": "Class 1000",
+    "num": 1000,
+    "examples": "Captain America's Shield, absorbs all kinetic impact"
+  },
+  {
+    "name": "Uru Metal",
+    "rank": "Class 3000",
+    "num": 3000,
+    "examples": "Mjolnir (enchanted Asgardian mystic metal)"
+  },
+  {
+    "name": "Cosmic / Celestial Material",
+    "rank": "Class 5000",
+    "num": 5000,
+    "examples": "Galactus construct, Celestial armor, Cosmic Cube casing"
+  }
+];
+
+function getMaterialStrengths() {
+  if (typeof UniversalTableEngine !== 'undefined' && UniversalTableEngine.tableMode === 'standard') {
+    return STANDARD_MATERIAL_STRENGTHS;
+  }
+  return CMF_MATERIAL_STRENGTHS;
+}
+
+const MATERIAL_STRENGTHS = CMF_MATERIAL_STRENGTHS;
 
 const PREBUILT_EQUIPMENT_CATALOG = [
   {
@@ -10017,11 +10143,21 @@ for (const eq of PREBUILT_EQUIPMENT_CATALOG) {
 }
 
 if (typeof globalThis !== 'undefined') {
-  globalThis.MATERIAL_STRENGTHS = MATERIAL_STRENGTHS;
+  globalThis.STANDARD_MATERIAL_STRENGTHS = STANDARD_MATERIAL_STRENGTHS;
+  globalThis.CMF_MATERIAL_STRENGTHS = CMF_MATERIAL_STRENGTHS;
+  globalThis.MATERIAL_STRENGTHS = CMF_MATERIAL_STRENGTHS;
+  globalThis.getMaterialStrengths = getMaterialStrengths;
   globalThis.PREBUILT_EQUIPMENT_CATALOG = PREBUILT_EQUIPMENT_CATALOG;
   globalThis.EQUIPMENT_BY_ID = EQUIPMENT_BY_ID;
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { MATERIAL_STRENGTHS, PREBUILT_EQUIPMENT_CATALOG, EQUIPMENT_BY_ID };
+  module.exports = {
+    STANDARD_MATERIAL_STRENGTHS,
+    CMF_MATERIAL_STRENGTHS,
+    MATERIAL_STRENGTHS,
+    getMaterialStrengths,
+    PREBUILT_EQUIPMENT_CATALOG,
+    EQUIPMENT_BY_ID
+  };
 }

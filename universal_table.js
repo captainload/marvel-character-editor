@@ -108,28 +108,28 @@ const CMF_TABLE = {
 };
 
 // Default active exports (mutable references for legacy compatibility)
-let RANKS = STANDARD_RANKS;
-let UNIVERSAL_TABLE = STANDARD_TABLE;
+let RANKS = CMF_RANKS;
+let UNIVERSAL_TABLE = CMF_TABLE;
 
 const UniversalTableEngine = {
-  activeMode: 'standard', // 'standard' | 'cmf'
+  activeMode: 'cmf', // 'cmf' (default) | 'standard'
   get tableMode() { return this.activeMode; },
-  ranks: STANDARD_RANKS,
-  table: STANDARD_TABLE,
+  ranks: CMF_RANKS,
+  table: CMF_TABLE,
 
   setTableMode(mode) {
-    if (mode === 'cmf') {
-      this.activeMode = 'cmf';
-      this.ranks = CMF_RANKS;
-      this.table = CMF_TABLE;
-      RANKS = CMF_RANKS;
-      UNIVERSAL_TABLE = CMF_TABLE;
-    } else {
+    if (mode === 'standard') {
       this.activeMode = 'standard';
       this.ranks = STANDARD_RANKS;
       this.table = STANDARD_TABLE;
       RANKS = STANDARD_RANKS;
       UNIVERSAL_TABLE = STANDARD_TABLE;
+    } else {
+      this.activeMode = 'cmf';
+      this.ranks = CMF_RANKS;
+      this.table = CMF_TABLE;
+      RANKS = CMF_RANKS;
+      UNIVERSAL_TABLE = CMF_TABLE;
     }
     if (typeof globalThis !== 'undefined') {
       globalThis.RANKS = RANKS;
@@ -164,7 +164,12 @@ const UniversalTableEngine = {
 
   getRankIndex(name) {
     const rank = this.getRankByName(name);
-    return this.ranks.indexOf(rank);
+    let idx = this.ranks.indexOf(rank);
+    if (idx === -1 && rank) {
+      const mapped = this.getRankByNum(rank.num);
+      idx = this.ranks.indexOf(mapped);
+    }
+    return idx;
   },
 
   getRankByNum(num) {

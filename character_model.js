@@ -373,6 +373,8 @@ class FASERIPCharacter {
     // Character Edit Log & Timeline Navigation
     this.editLog = Array.isArray(initialData.editLog) ? [...initialData.editLog] : [];
     this.editHistoryIndex = typeof initialData.editHistoryIndex === 'number' ? initialData.editHistoryIndex : (this.editLog.length - 1);
+
+    this.syncRanksToActiveScheme();
   }
 
   addKnownBlueprint(bpData) {
@@ -439,12 +441,13 @@ class FASERIPCharacter {
       rankName = r.name;
       rankValue = r.num;
     } else if (typeof rankInput === 'object' && rankInput !== null) {
-      rankName = rankInput.rankName || rankInput.name || 'Typical';
-      rankValue = rankInput.rankValue ?? rankInput.num ?? UniversalTableEngine.getRankByName(rankName).num;
+      rankValue = rankInput.rankValue ?? rankInput.num ?? UniversalTableEngine.getRankByName(rankInput.rankName || rankInput.name || 'Typical').num;
+      const rObj = (typeof UniversalTableEngine !== 'undefined') ? UniversalTableEngine.getRankByNum(rankValue) : null;
+      rankName = rObj ? rObj.name : (rankInput.rankName || rankInput.name || 'Typical');
     } else if (typeof rankInput === 'number') {
-      const found = RANKS.find(r => r.num === rankInput) || UniversalTableEngine.getRankByName('Typical');
-      rankName = found.name;
-      rankValue = found.num;
+      const found = (typeof UniversalTableEngine !== 'undefined') ? UniversalTableEngine.getRankByNum(rankInput) : RANKS.find(r => r.num === rankInput);
+      rankName = found ? found.name : 'Typical';
+      rankValue = rankInput;
     }
     return {
       rankName: rankName,
@@ -453,6 +456,58 @@ class FASERIPCharacter {
       baseRankValue: rankValue,
       tempModifier: 0
     };
+  }
+
+  syncRanksToActiveScheme() {
+    if (typeof UniversalTableEngine === 'undefined') return;
+
+    // Sync primary abilities
+    for (const key of ['fighting', 'agility', 'strength', 'endurance', 'reason', 'intuition', 'psyche']) {
+      if (this.abilities && this.abilities[key]) {
+        const ab = this.abilities[key];
+        const rankObj = UniversalTableEngine.getRankByNum(ab.rankValue);
+        ab.rankName = rankObj.name;
+        if (ab.baseRankValue !== undefined) {
+          const baseObj = UniversalTableEngine.getRankByNum(ab.baseRankValue);
+          ab.baseRankName = baseObj.name;
+        }
+      }
+    }
+
+    // Swarm individual profile abilities
+    if (this.individualAbilities) {
+      for (const key of ['fighting', 'agility', 'strength', 'endurance', 'reason', 'intuition', 'psyche']) {
+        if (this.individualAbilities[key]) {
+          const ab = this.individualAbilities[key];
+          const rankObj = UniversalTableEngine.getRankByNum(ab.rankValue);
+          ab.rankName = rankObj.name;
+          if (ab.baseRankValue !== undefined) {
+            const baseObj = UniversalTableEngine.getRankByNum(ab.baseRankValue);
+            ab.baseRankName = baseObj.name;
+          }
+        }
+      }
+    }
+
+    // Sync resources
+    if (this.resources && this.resources.rankValue !== undefined) {
+      const resObj = UniversalTableEngine.getRankByNum(this.resources.rankValue);
+      this.resources.rankName = resObj.name;
+      if (this.resources.baseRankValue !== undefined) {
+        const baseResObj = UniversalTableEngine.getRankByNum(this.resources.baseRankValue);
+        this.resources.baseRankName = baseResObj.name;
+      }
+    }
+
+    // Sync powers
+    if (Array.isArray(this.powers)) {
+      this.powers.forEach(p => {
+        if (p.rankValue !== undefined) {
+          const pRankObj = UniversalTableEngine.getRankByNum(p.rankValue);
+          p.rankName = pRankObj.name;
+        }
+      });
+    }
   }
 
   getActiveAbilities() {
@@ -465,8 +520,12 @@ class FASERIPCharacter {
     const activeAbs = {};
     for (const key of ['fighting', 'agility', 'strength', 'endurance', 'reason', 'intuition', 'psyche']) {
       if (baseAbs && baseAbs[key]) {
+        const activeRankObj = (typeof UniversalTableEngine !== 'undefined')
+          ? UniversalTableEngine.getRankByNum(baseAbs[key].rankValue)
+          : { name: baseAbs[key].rankName, num: baseAbs[key].rankValue };
         activeAbs[key] = {
           ...baseAbs[key],
+          rankName: activeRankObj.name,
           bonusFromPower: 0,
           isBoosted: false
         };
@@ -2093,15 +2152,21 @@ class FASERIPCharacter {
       let actionType = 'energy';
       let abilityName = 'Agility';
 
-      let pRankName = p.rankName;
       let pRankValue = p.rankValue;
+      let pRankName = (typeof UniversalTableEngine !== 'undefined')
+        ? UniversalTableEngine.getRankByNum(pRankValue).name
+        : p.rankName;
       if (p.adjustments) {
         if (p.adjustments.aspectA?.key === 'intensity') {
-          pRankName = p.adjustments.aspectA.adjustedRank;
           pRankValue = p.adjustments.aspectA.adjustedRankValue;
+          pRankName = (typeof UniversalTableEngine !== 'undefined')
+            ? UniversalTableEngine.getRankByNum(pRankValue).name
+            : p.adjustments.aspectA.adjustedRank;
         } else if (p.adjustments.aspectB?.key === 'intensity') {
-          pRankName = p.adjustments.aspectB.adjustedRank;
           pRankValue = p.adjustments.aspectB.adjustedRankValue;
+          pRankName = (typeof UniversalTableEngine !== 'undefined')
+            ? UniversalTableEngine.getRankByNum(pRankValue).name
+            : p.adjustments.aspectB.adjustedRank;
         }
       }
 

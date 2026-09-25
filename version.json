@@ -1,7 +1,7 @@
 {
-  "version": "1.5.2",
+  "version": "1.5.3",
   "releaseDate": "2026-09-24",
   "name": "Marvel Super Heroes Character Editor",
   "repo": "https://github.com/captainload/marvel-character-editor",
-  "notes": "Full rules-compliance audit for the Invention Lab: Added Unearthly material strength; auto-detection and toggle for relevant science/mystic talents; full workshop vs improvised facilities (-1CS, 3x build time); Player's Book kit-bashing rush prototype mode (hours build time, -1CS, 1-scene duration); Judge's Book p. 14 Special Requirements Table indicators; and Player's Book p. 18 color thresholds for Resource FEATs."
+  "notes": "Adopted the official Classic Marvel Forever (CMF) 22-rank expanded scheme as the application default with full settings toggle to standard TSR scheme. Character rank totals (rank values) are strictly preserved across mode switches while active rank names dynamically map to the active scheme brackets. Added CMF Netbook p. 17 material strengths database with auto-syncing Invention Lab and character systems."
 }

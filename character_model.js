@@ -121,7 +121,9 @@ class FASERIPCharacter {
     // Tiers: 150 (Skilled Human), 200 (Street Vigilante), 300 (Costumed Adventurer),
     // 400 (Established Hero - Default), 500 (Major Superhero), 600 (World-Class Hero), custom
     this.pointTier = initialData.pointTier || '400';
-    this.pointBudget = parseInt(initialData.pointBudget ?? 400);
+    this.cpAdjustment = parseInt(initialData.cpAdjustment ?? 0);
+    this.basePointBudget = parseInt(initialData.basePointBudget ?? (initialData.pointBudget !== undefined ? initialData.pointBudget : this.getBaseTierBudget(this.pointTier)));
+    this.pointBudget = parseInt(initialData.pointBudget !== undefined && initialData.cpAdjustment === undefined ? initialData.pointBudget : Math.round(this.basePointBudget * (1 + this.cpAdjustment / 100)));
     this.isCreationSetupPending = initialData.isCreationSetupPending !== undefined ? !!initialData.isCreationSetupPending : false;
 
     // Physical Form S32 Collective Mass (Swarm) toggle
@@ -1446,6 +1448,8 @@ class FASERIPCharacter {
 
     return {
       budget: this.pointBudget,
+      baseBudget: this.basePointBudget || this.pointBudget,
+      cpAdjustment: this.cpAdjustment || 0,
       tier: this.pointTier,
       totalSpent,
       remaining,
@@ -1514,57 +1518,111 @@ class FASERIPCharacter {
     };
   }
 
-  setPointTier(tier, customBudget = null) {
-    this.pointTier = String(tier);
+  getBaseTierBudget(tier = this.pointTier) {
     switch (String(tier).toLowerCase()) {
       case '150':
       case 'tier_150':
       case 'skilled_human':
-        this.pointBudget = 150;
+        return 150;
+      case '200':
+      case 'tier_200':
+      case 'street_vigilante':
+      case 'street':
+        return 200;
+      case '300':
+      case 'tier_300':
+      case 'costumed_adventurer':
+        return 300;
+      case '400':
+      case 'tier_400':
+      case 'established_hero':
+      case 'standard':
+        return 400;
+      case '500':
+      case 'tier_500':
+      case 'major_superhero':
+      case 'high_powered':
+        return 500;
+      case '600':
+      case 'tier_600':
+      case 'world_class_hero':
+      case 'cosmic':
+        return 600;
+      case 'custom':
+        return this.basePointBudget || 400;
+      default: {
+        const parsed = parseInt(tier);
+        return (!isNaN(parsed) && parsed > 0) ? parsed : (this.basePointBudget || 400);
+      }
+    }
+  }
+
+  setCpAdjustment(percent) {
+    const p = Math.max(-25, Math.min(50, parseInt(percent) || 0));
+    this.cpAdjustment = p;
+    if (!this.basePointBudget) {
+      this.basePointBudget = this.getBaseTierBudget(this.pointTier);
+    }
+    this.pointBudget = Math.round(this.basePointBudget * (1 + p / 100));
+    return this.pointBudget;
+  }
+
+  setPointTier(tier, customBudget = null) {
+    this.pointTier = String(tier);
+    let base = 400;
+    switch (String(tier).toLowerCase()) {
+      case '150':
+      case 'tier_150':
+      case 'skilled_human':
+        base = 150;
         break;
       case '200':
       case 'tier_200':
       case 'street_vigilante':
       case 'street':
-        this.pointBudget = 200;
+        base = 200;
         break;
       case '300':
       case 'tier_300':
       case 'costumed_adventurer':
-        this.pointBudget = 300;
+        base = 300;
         break;
       case '400':
       case 'tier_400':
       case 'established_hero':
       case 'standard':
-        this.pointBudget = 400;
+        base = 400;
         break;
       case '500':
       case 'tier_500':
       case 'major_superhero':
       case 'high_powered':
-        this.pointBudget = 500;
+        base = 500;
         break;
       case '600':
       case 'tier_600':
       case 'world_class_hero':
       case 'cosmic':
-        this.pointBudget = 600;
+        base = 600;
         break;
       case 'custom':
         if (customBudget !== null && customBudget !== undefined) {
-          this.pointBudget = parseInt(customBudget);
+          base = parseInt(customBudget);
+        } else if (this.basePointBudget) {
+          base = this.basePointBudget;
         }
         break;
       default: {
         const parsed = parseInt(tier);
         if (!isNaN(parsed) && parsed > 0) {
-          this.pointBudget = parsed;
+          base = parsed;
         } else {
-          this.pointBudget = 400;
+          base = 400;
         }
       }
     }
+    this.basePointBudget = base;
+    this.pointBudget = Math.round(base * (1 + (this.cpAdjustment || 0) / 100));
   }
 
   setAbilityRank(abilityKey, rankName) {
@@ -2438,6 +2496,8 @@ class FASERIPCharacter {
       baseOfOperations: this.baseOfOperations,
       pointTier: this.pointTier,
       pointBudget: this.pointBudget,
+      basePointBudget: this.basePointBudget || this.pointBudget,
+      cpAdjustment: this.cpAdjustment || 0,
       isCreationSetupPending: this.isCreationSetupPending,
       isSwarmForm: this.isSwarmForm,
       activeSwarmProfile: this.activeSwarmProfile,
@@ -2541,7 +2601,7 @@ class FASERIPCharacter {
     return new FASERIPCharacter(data);
   }
 
-  applyCreationSetup(tier, formKey, customBudget = null, name = null) {
+  applyCreationSetup(tier, formKey, customBudget = null, name = null, cpAdjustment = null) {
     if (name && name.trim()) {
       this.name = name.trim();
     }
@@ -2551,6 +2611,9 @@ class FASERIPCharacter {
       this.formKey = f.id;
       this.formName = f.name;
       this.isSwarmForm = (f.id === 's32_collective_mass' || f.id === 'swarm_collective');
+    }
+    if (cpAdjustment !== null && cpAdjustment !== undefined) {
+      this.cpAdjustment = Math.max(-25, Math.min(50, parseInt(cpAdjustment) || 0));
     }
     if (tier === 'custom') {
       const budget = parseInt(customBudget) || 400;

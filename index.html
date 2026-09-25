@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Marvel Super Heroes (FASERIP) - Character Builder & Editor</title>
-  <link rel="stylesheet" href="styles.css?v=1.5.16">
+  <link rel="stylesheet" href="styles.css?v=1.5.17">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bangers&display=swap" rel="stylesheet">
@@ -30,7 +30,7 @@
       </div>
 
       <!-- CMF Point-Buy Budget Indicator -->
-      <div class="point-buy-badge" id="point-buy-badge" title="Classic Marvel Forever Point-Buy (CP Used / Total Budget)">
+      <div class="point-buy-badge clickable" id="point-buy-badge" title="Click to view full CP Breakdown and adjust Starting CP Slider" style="cursor: pointer;">
         <span>CP Used:</span>
         <span class="point-numbers"><span id="header-points-spent">48</span> / <span id="header-points-budget">550</span></span>
         <span style="color: var(--text-muted);">(<span id="header-points-remaining" style="color: #38bdf8; font-weight:700;">502</span> left)</span>
@@ -177,17 +177,19 @@
 
           <!-- Condensed CMF Point-Buy Budget Configuration Bar -->
           <div class="point-buy-strip" id="point-buy-strip">
-            <div id="point-tier-status-group" class="point-tier-status-group" style="display: flex; align-items: center; gap: 6px;">
+            <div id="point-tier-status-group" class="point-tier-status-group clickable" style="display: flex; align-items: center; gap: 6px; cursor: pointer;" title="Click to view CP Usage Breakdown and adjust Starting CP Slider">
               <div class="point-tier-summary" style="font-size: 10pt; color: #cbd5e1; display: flex; align-items: center; gap: 5px;">
                 <span>Tier: <strong id="strip-tier-display" style="color: var(--marvel-gold);">400 CP</strong></span>
+                <span id="strip-cp-adjust-badge" class="meta-tag" style="display: none; font-size: 10pt; padding: 1px 6px; font-weight: 700;">±0%</span>
                 <span style="opacity: 0.5;">·</span>
                 <span style="display: flex; align-items: center; gap: 3px;">Form: <strong id="strip-form-display" style="color: #38bdf8; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: inline-block; vertical-align: middle;">Mutant</strong></span>
               </div>
               <button type="button" class="icon-btn primary compact" id="btn-open-creation-wizard" style="display: none; font-size: 10pt; padding: 2px 6px;" title="Set Starting Tier and Physical Form">⚡ Set Tier &amp; Form</button>
             </div>
 
-            <div class="spent-breakdown-text" style="font-size: 10pt; color: #cbd5e1; white-space: nowrap;">
-              Spent: <strong id="spent-abilities">42</strong> FASERIP · <strong id="spent-powers">0</strong> Pwr · <strong id="spent-talents">0</strong> Tal · <strong id="spent-contacts">0</strong> Con · <strong id="spent-resources">6</strong> Res
+            <div class="spent-breakdown-text clickable" id="spent-breakdown-summary" title="Click to view full CP Breakdown and adjust Starting CP" style="font-size: 10pt; color: #cbd5e1; white-space: nowrap; cursor: pointer; display: flex; align-items: center; gap: 8px;">
+              <span>Spent: <strong id="spent-abilities">42</strong> FASERIP · <strong id="spent-powers">0</strong> Pwr · <strong id="spent-talents">0</strong> Tal · <strong id="spent-contacts">0</strong> Con · <strong id="spent-resources">6</strong> Res</span>
+              <button type="button" class="icon-btn compact" id="btn-open-cp-breakdown" style="padding: 2px 8px; font-size: 10pt; margin-left: 4px;" title="Open Character Point Breakdown and Starting CP Slider">📊 Breakdown &amp; Slider</button>
             </div>
           </div>
         </div>
@@ -1826,7 +1828,7 @@
           <!-- SECTION: PROGRAM UPDATES & AUTOMATED CHECKING -->
           <div style="font-weight: 700; color: var(--text-main); font-size: 11pt; border-bottom: 1px solid var(--border-color); padding-bottom: 6px; margin-top: 10px; display: flex; justify-content: space-between; align-items: center;">
             <span>🔄 Program Updates &amp; Automated Checking</span>
-            <span class="meta-tag" id="update-version-tag" style="color: var(--marvel-gold); font-size: 10pt;">v1.5.16</span>
+            <span class="meta-tag" id="update-version-tag" style="color: var(--marvel-gold); font-size: 10pt;">v1.5.17</span>
           </div>
 
           <div class="update-settings-panel" style="background: rgba(0, 0, 0, 0.2); border: 1px solid var(--border-color); border-radius: 6px; padding: 12px; display: flex; flex-direction: column; gap: 10px;">
@@ -1905,6 +1907,136 @@
           Tip: <strong>"Open Character"</strong> will automatically open from your last save location.
         </div>
         <button type="button" class="icon-btn" id="btn-close-folder-modal-footer">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: CHARACTER POINT (CP) USAGE BREAKDOWN & STARTING BUDGET SLIDER -->
+  <div id="modal-cp-breakdown" class="modal-overlay">
+    <div class="modal-box cp-modal-box">
+      <div class="modal-header">
+        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+          <span class="modal-title">📊 CP Budget &amp; Usage Breakdown</span>
+          <span id="cp-modal-tier-badge" class="meta-tag" style="color: var(--marvel-gold); font-size: 10pt; font-weight: 700;">400 CP Base</span>
+        </div>
+        <button type="button" class="modal-close" id="btn-close-cp-modal-x">&times;</button>
+      </div>
+      <div class="modal-body" style="padding: 16px 20px; display: flex; flex-direction: column; gap: 14px;">
+        
+        <!-- SECTION 1: STARTING CP SLIDER & BUDGET CARD -->
+        <div class="cp-slider-card">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+            <div>
+              <strong style="color: var(--text-main); font-size: 11pt;">⚡ Starting CP Adjustment Slider</strong>
+              <div style="color: var(--text-muted); font-size: 10pt; margin-top: 2px;">
+                Scale starting CP budget from <strong>-25%</strong> to <strong>+50%</strong> of base tier.
+              </div>
+            </div>
+            <div id="cp-slider-readout" class="cp-slider-readout">
+              <span id="cp-slider-pct-badge" class="meta-tag" style="background: rgba(56, 189, 248, 0.2); color: #38bdf8; font-size: 10pt; font-weight: 800;">±0% (400 CP)</span>
+            </div>
+          </div>
+
+          <!-- Slider Range Control -->
+          <div class="cp-slider-control-row" style="margin-top: 6px; display: flex; align-items: center; gap: 12px;">
+            <span style="font-size: 10pt; font-weight: 700; color: #ef4444; width: 45px;">-25%</span>
+            <input type="range" id="cp-budget-slider" min="-25" max="50" step="1" value="0" style="flex: 1; cursor: pointer; accent-color: var(--marvel-gold);" aria-label="Starting CP adjustment slider">
+            <span style="font-size: 10pt; font-weight: 700; color: #22c55e; width: 45px; text-align: right;">+50%</span>
+          </div>
+
+          <!-- Quick Presets -->
+          <div style="display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-top: 4px;">
+            <span style="font-size: 10pt; color: var(--text-muted); margin-right: 4px;">Quick Presets:</span>
+            <button type="button" class="icon-btn compact cp-preset-btn" data-pct="-25">-25% (Min)</button>
+            <button type="button" class="icon-btn compact cp-preset-btn" data-pct="-10">-10%</button>
+            <button type="button" class="icon-btn compact cp-preset-btn active" data-pct="0">0% (Standard)</button>
+            <button type="button" class="icon-btn compact cp-preset-btn" data-pct="10">+10%</button>
+            <button type="button" class="icon-btn compact cp-preset-btn" data-pct="25">+25%</button>
+            <button type="button" class="icon-btn compact cp-preset-btn" data-pct="50">+50% (Max)</button>
+          </div>
+          
+          <div id="cp-slider-calculation-detail" style="font-size: 10pt; color: var(--text-muted); margin-top: 4px; border-top: 1px solid rgba(255, 255, 255, 0.08); padding-top: 8px;">
+            Base Tier: <strong id="cp-detail-base-tier" style="color: var(--marvel-gold);">400 CP</strong> · Adjustment: <strong id="cp-detail-adjust-val" style="color: #38bdf8;">+0 CP (0%)</strong> · Total Starting Budget: <strong id="cp-detail-effective-budget" style="color: #4ade80;">400 CP</strong>
+          </div>
+        </div>
+
+        <!-- SECTION 2: OVERALL CP USAGE SUMMARY & PROGRESS BAR -->
+        <div class="cp-summary-card">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 8px;">
+            <div style="display: flex; gap: 16px; align-items: baseline; flex-wrap: wrap;">
+              <div>
+                <span style="color: var(--text-muted); font-size: 10pt;">Total Budget:</span>
+                <strong id="cp-modal-total-budget" style="font-family: var(--font-mono); font-size: 11.5pt; color: var(--marvel-gold); margin-left: 4px;">400 CP</strong>
+              </div>
+              <div>
+                <span style="color: var(--text-muted); font-size: 10pt;">Total Spent:</span>
+                <strong id="cp-modal-total-spent" style="font-family: var(--font-mono); font-size: 11.5pt; color: var(--text-main); margin-left: 4px;">48 CP</strong>
+              </div>
+              <div>
+                <span style="color: var(--text-muted); font-size: 10pt;">Remaining:</span>
+                <strong id="cp-modal-remaining" style="font-family: var(--font-mono); font-size: 11.5pt; color: #38bdf8; margin-left: 4px;">352 CP</strong>
+              </div>
+            </div>
+            <div id="cp-modal-budget-status" class="meta-tag" style="font-size: 10pt; font-weight: 700; color: #4ade80; background: rgba(74, 222, 128, 0.15);">Under Budget</div>
+          </div>
+
+          <!-- Progress Bar -->
+          <div class="cp-modal-progress-bg" style="height: 10px; background: rgba(0, 0, 0, 0.4); border-radius: 5px; overflow: hidden; border: 1px solid var(--border-color);">
+            <div id="cp-modal-progress-fill" style="height: 100%; width: 12%; background: linear-gradient(90deg, #10b981, #06b6d4); transition: width 0.3s ease;"></div>
+          </div>
+        </div>
+
+        <!-- SECTION 3: CATEGORY-BY-CATEGORY BREAKDOWN -->
+        <div class="cp-breakdown-table-container">
+          <table class="cp-breakdown-table" style="width: 100%; border-collapse: collapse; font-size: 10pt;">
+            <thead>
+              <tr style="border-bottom: 1.5px solid var(--border-color); text-align: left; color: var(--text-muted);">
+                <th style="padding: 8px 10px;">Category</th>
+                <th style="padding: 8px 10px;">Allocation Details</th>
+                <th style="padding: 8px 10px; text-align: right;">CP Spent</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.06);">
+                <td style="padding: 8px 10px; font-weight: 700; color: var(--text-main);">💪 FASERIP Primary Abilities</td>
+                <td style="padding: 8px 10px; color: var(--text-muted);">Fighting, Agility, Strength, Endurance, Reason, Intuition, Psyche</td>
+                <td style="padding: 8px 10px; text-align: right; font-family: var(--font-mono); font-weight: 700; color: var(--marvel-gold);"><span id="cp-modal-cat-abilities">42</span> CP</td>
+              </tr>
+              <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.06);">
+                <td style="padding: 8px 10px; font-weight: 700; color: var(--text-main);">⚡ Superhuman Powers</td>
+                <td style="padding: 8px 10px; color: var(--text-muted);">Power unlocks, rank intensities, and superior option surcharges</td>
+                <td style="padding: 8px 10px; text-align: right; font-family: var(--font-mono); font-weight: 700; color: var(--marvel-gold);"><span id="cp-modal-cat-powers">0</span> CP</td>
+              </tr>
+              <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.06);">
+                <td style="padding: 8px 10px; font-weight: 700; color: var(--text-main);">🥋 Special Talents</td>
+                <td style="padding: 8px 10px; color: var(--text-muted);">Free form slots vs purchased talent slots (10 CP each)</td>
+                <td style="padding: 8px 10px; text-align: right; font-family: var(--font-mono); font-weight: 700; color: var(--marvel-gold);"><span id="cp-modal-cat-talents">0</span> CP</td>
+              </tr>
+              <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.06);">
+                <td style="padding: 8px 10px; font-weight: 700; color: var(--text-main);">🤝 Contacts &amp; Allies</td>
+                <td style="padding: 8px 10px; color: var(--text-muted);">Free form contacts vs additional contacts purchased (5 CP each)</td>
+                <td style="padding: 8px 10px; text-align: right; font-family: var(--font-mono); font-weight: 700; color: var(--marvel-gold);"><span id="cp-modal-cat-contacts">0</span> CP</td>
+              </tr>
+              <tr>
+                <td style="padding: 8px 10px; font-weight: 700; color: var(--text-main);">💰 Starting Resources</td>
+                <td style="padding: 8px 10px; color: var(--text-muted);">Personal wealth &amp; purchasing power rank allocation</td>
+                <td style="padding: 8px 10px; text-align: right; font-family: var(--font-mono); font-weight: 700; color: var(--marvel-gold);"><span id="cp-modal-cat-resources">6</span> CP</td>
+              </tr>
+            </tbody>
+            <tfoot>
+              <tr style="border-top: 2px solid var(--border-color); font-weight: 800;">
+                <td style="padding: 10px; color: var(--text-main);">TOTAL CP ALLOCATED</td>
+                <td style="padding: 10px; color: var(--text-muted);">Across all 5 FASERIP character systems</td>
+                <td style="padding: 10px; text-align: right; font-family: var(--font-mono); font-size: 11pt; color: #4ade80;"><strong id="cp-modal-cat-total">48</strong> CP</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+
+      </div>
+      <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 18px;">
+        <button type="button" class="icon-btn" id="btn-cp-modal-change-tier" title="Open Creation Wizard to change base tier or physical form">⚡ Change Base Tier &amp; Form...</button>
+        <button type="button" class="icon-btn" id="btn-close-cp-modal-footer">Close</button>
       </div>
     </div>
   </div>
@@ -2634,6 +2766,24 @@
           <span style="font-size: 10pt; color: var(--text-muted);">Points allocated for stats, powers, talents &amp; resources.</span>
         </div>
 
+        <!-- Starting CP Adjustment Slider in Creation Wizard -->
+        <div style="background: rgba(0,0,0,0.25); padding: 10px 14px; border-radius: 6px; border: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 8px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px;">
+            <label for="wizard-cp-slider" style="font-size: 10pt; font-weight: 700; color: var(--text-main);">
+              Starting CP Slider (-25% to +50%):
+            </label>
+            <span id="wizard-cp-slider-readout" class="meta-tag" style="font-size: 10pt; color: #38bdf8; font-weight: 800;">±0% (400 CP)</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <span style="font-size: 10pt; font-weight: 700; color: #ef4444;">-25%</span>
+            <input type="range" id="wizard-cp-slider" min="-25" max="50" step="1" value="0" style="flex: 1; cursor: pointer; accent-color: var(--marvel-gold);" aria-label="Starting CP adjustment slider">
+            <span style="font-size: 10pt; font-weight: 700; color: #22c55e;">+50%</span>
+          </div>
+          <div style="font-size: 10pt; color: var(--text-muted);">
+            Scale starting budget up or down relative to base tier.
+          </div>
+        </div>
+
         <!-- Physical Form Selection -->
         <div>
           <label for="init-form-select" style="display: block; font-weight: 700; font-size: 10pt; margin-bottom: 4px; color: #38bdf8;">
@@ -2767,13 +2917,13 @@
   </div>
 
   <!-- Scripts Loading -->
-  <script src="universal_table.js?v=1.5.16"></script>
-  <script src="data_forms.js?v=1.5.16"></script>
-  <script src="data_powers.js?v=1.5.16"></script>
-  <script src="data_talents.js?v=1.5.16"></script>
-  <script src="data_equipment.js?v=1.5.16"></script>
-  <script src="inventions.js?v=1.5.16"></script>
-  <script src="character_model.js?v=1.5.16"></script>
-  <script src="app.js?v=1.5.16"></script>
+  <script src="universal_table.js?v=1.5.17"></script>
+  <script src="data_forms.js?v=1.5.17"></script>
+  <script src="data_powers.js?v=1.5.17"></script>
+  <script src="data_talents.js?v=1.5.17"></script>
+  <script src="data_equipment.js?v=1.5.17"></script>
+  <script src="inventions.js?v=1.5.17"></script>
+  <script src="character_model.js?v=1.5.17"></script>
+  <script src="app.js?v=1.5.17"></script>
 </body>
 </html>

@@ -1,7 +1,7 @@
 {
-  "version": "1.5.16",
+  "version": "1.5.17",
   "releaseDate": "2026-09-25",
   "name": "Marvel Super Heroes Character Editor",
   "repo": "https://github.com/captainload/marvel-character-editor",
-  "notes": "Enforced 10pt minimum font size across all application interface text, modal dialogs, buttons, badges, and controls."
+  "notes": "Added interactive Character Point (CP) breakdown pop-up modal, starting CP budget scaling slider (-25% to +50%), and intuitive green active indicator for touch controls."
 }

@@ -538,7 +538,7 @@
         <button type="button" class="nav-btn" onclick="window.print()">🖨️ Print / Save as PDF</button>
       </div>
       <div style="font-size: 12px; color: var(--text-muted);">
-        Marvel Super Heroes (FASERIP) Suite • <strong>Version 1.5.16</strong>
+        Marvel Super Heroes (FASERIP) Suite • <strong>Version 1.5.17</strong>
       </div>
     </div>
 
@@ -811,8 +811,20 @@
             </div>
 
             <div class="callout callout-green">
-              <strong>Real-Time Budget Indicator:</strong> The header displays a live CP meter (e.g., <code>385 / 400 CP (15 CP Rem.)</code>). If your hero exceeds their tier budget, the badge turns warning-red with a clear accounting breakdown.
+              <strong>Real-Time Budget Indicator &amp; Breakdown Pop-up:</strong> The header displays a live CP meter (e.g., <code>385 / 400 CP (15 CP Rem.)</code>). Clicking either the <strong>CP Used</strong> badge or the <strong>Tier display</strong> in the header ribbon (or the <strong>Breakdown</strong> button in the point-buy toolbar) immediately summons the <strong>Character Point Breakdown &amp; Budget Adjuster</strong> pop-up dialog.
             </div>
+
+            <h3>Interactive CP Breakdown &amp; Starting CP Slider (-25% to +50%)</h3>
+            <p>
+              The <strong>CP Breakdown &amp; Budget Adjuster</strong> dialog provides comprehensive accounting visibility and flexible campaign budget tuning:
+            </p>
+            <ul class="feature-list">
+              <li><strong>Itemized Category Breakdown:</strong> See exact points spent across Abilities, Powers, Talents, Contacts, and Resources in a clear summary table with spent percentages.</li>
+              <li><strong>Visual Progress Meter:</strong> A real-time progress bar shows capacity utilization and turns warning-red if your build exceeds available CP.</li>
+              <li><strong>Starting CP Budget Slider (-25% to +50%):</strong> Scale your starting CP budget from <strong>-25% up to +50%</strong> (in 5% increments) relative to your selected tier's base budget. Whether crafting a gritty low-powered campaign (-25% to -10%) or a high-powered epic (+10% to +50%), the slider dynamically recalculates your total budget and remaining points in real time.</li>
+              <li><strong>Quick Presets:</strong> Instant one-click adjustments for <strong>-25% (Gritty/Challenging)</strong>, <strong>-10%</strong>, <strong>Default (0%)</strong>, <strong>+10%</strong>, <strong>+25%</strong>, and <strong>+50% (High Powered)</strong>.</li>
+              <li><strong>Creation Wizard Integration:</strong> The same Starting CP Slider is also accessible directly inside the <strong>Character Creation Wizard</strong> during initial tier selection, ensuring heroes start with custom campaign-tailored budgets from the very beginning.</li>
+            </ul>
           </div>
         </article>
 
@@ -1057,7 +1069,7 @@
                 <br>• <strong>Manilla:</strong> Clean, soft light stationery palette with crisp dark typography.
                 <br>• <strong>Aqua:</strong> Radiant oceanic theme featuring cyans, sea greens, and deep navy tones.
               </li>
-              <li><strong>Touch-Friendly Mode:</strong> Enlarges interactive buttons, steppers, and inputs for tablets and touchscreens.</li>
+              <li><strong>Touch-Friendly Mode:</strong> Enlarges interactive buttons, steppers, and inputs for tablets and touchscreens. The File menu displays an intuitive vibrant green <strong>(ON)</strong> indicator when active.</li>
               <li><strong>Sticky Navigation:</strong> Pins the hero header and tabs to the top of the screen during scrolling.</li>
               <li><strong>Automated Updates:</strong> Checks the GitHub repository for new program releases with one-click notifications.</li>
               <li><strong>Embedded Surprise:</strong> A hidden secret awaits curious players somewhere in the interface—which can be discovered simply by mousehovering somewhere briefly (see Section 13).</li>
@@ -1109,7 +1121,7 @@
       <p>
         Marvel Super Heroes Roleplaying Game (MSHRPG / FASERIP) &copy; TSR, Inc. / Marvel Entertainment.<br>
         Classic Marvel Forever (CMF) enhancements &copy; Classic Marvel Forever community.<br>
-        Application Suite v1.5.16 &bull; Built with pure offline web technologies.
+        Application Suite v1.5.17 &bull; Built with pure offline web technologies.
       </p>
     </footer>
 

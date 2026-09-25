@@ -47,7 +47,7 @@ const App = {
   set superiorOptionTax(val) {
     this.superiorOptionCost = !!val;
   },
-  VERSION: '1.5.11',
+  VERSION: '1.5.12',
   BUILD_DATE: '2026-09-25',
   COMMIT_SHA: '6a15ff5',
   REPO_OWNER: 'captainload',
@@ -5582,6 +5582,9 @@ const App = {
       if (category === 'Weapon') {
         techKeywords.push('weapon tinkering', 'weapons tinkering', 'weapon specialist');
       }
+      if (category === 'Consumable') {
+        techKeywords.push('chemistry', 'pharmaceuticals', 'alchemy', 'medicine');
+      }
       const match = talents.find(t => {
         const n = (t.name || '').toLowerCase();
         const c = (t.category || '').toLowerCase();
@@ -5817,6 +5820,7 @@ const App = {
           <option value="Propulsion">Flying Carpet / Portal Talisman</option>
           <option value="Utility">Scrying Glass / Warding Amulet</option>
           <option value="Cybernetics">Eldritch Graft / Infused Flesh</option>
+          <option value="Consumable">Consumable (rune, potion, etc)</option>
         `;
       } else {
         catSelect.innerHTML = `
@@ -5826,6 +5830,7 @@ const App = {
           <option value="Propulsion">Propulsion / Vehicle</option>
           <option value="Utility">Sensory / Utility Device</option>
           <option value="Cybernetics">Cybernetic Enhancement / Implant</option>
+          <option value="Consumable">Consumable (gadget, ammo, etc.)</option>
         `;
       }
       catSelect.value = curVal || 'Weapon';
@@ -6609,7 +6614,7 @@ const App = {
     if (displayed.length === 0) {
       container.innerHTML = `
         <span style="color: var(--text-dim); text-align: center; padding: 12px; font-size: 10pt;">
-          ${filterText ? 'No blueprints matching search.' : 'No known blueprints yet. Complete a custom invention or reverse-engineer equipment below to master schematics.'}
+          ${filterText ? 'No blueprints matching search.' : 'No known blueprints yet. Complete a custom invention or reverse-engineer equipment above to master schematics.'}
         </span>
       `;
       return;

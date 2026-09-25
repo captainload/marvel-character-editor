@@ -1,7 +1,7 @@
 {
-  "version": "1.5.11",
+  "version": "1.5.12",
   "releaseDate": "2026-09-25",
   "name": "Marvel Super Heroes Character Editor",
   "repo": "https://github.com/captainload/marvel-character-editor",
-  "notes": "Added optional 'Superior Option' Tax house rule toggle under Preferences & Options. When disabled, superior power manifestations and options cost 0 CP surcharge to the character's CP budget, while remaining reversible and dynamically calculated across power cards, rank selections, and option modals."
+  "notes": "Added 'Consumable (rune, potion, etc)' for Magic inventions and 'Consumable (gadget, ammo, etc.)' for Tech inventions to the Device Category list. Reordered the Invention Lab tab layout so Known Blueprints Archive appears below Reverse-Engineering."
 }

@@ -102,7 +102,7 @@ class InventionCreator {
   static calculateProject(params = {}) {
     const {
       name = "Custom Invention",
-      category = "Weapon", // Weapon, Battlesuit, Robot/Drone, Propulsion, Utility, Cybernetics
+      category = "Weapon", // Weapon, Battlesuit, Robot/Drone, Propulsion, Utility, Cybernetics, Consumable
       powers = [], // Array of { name, rankName, rankValue, id, code }
       abilityBoosts = [], // Array of { ability, mode: 'set'|'bonus', rankName, rankValue, cs }
       targetPowerName = "Energy Blast",

@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Marvel Super Heroes (FASERIP) - Character Builder & Editor</title>
-  <link rel="stylesheet" href="styles.css?v=1.5.11">
+  <link rel="stylesheet" href="styles.css?v=1.5.12">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bangers&display=swap" rel="stylesheet">
@@ -452,6 +452,7 @@
                   <option value="Propulsion">Propulsion / Vehicle</option>
                   <option value="Utility">Sensory / Utility Device</option>
                   <option value="Cybernetics">Cybernetic Enhancement / Implant</option>
+                  <option value="Consumable">Consumable (gadget, ammo, etc.)</option>
                 </select>
               </div>
               <div style="min-width: 0;">
@@ -643,30 +644,8 @@
           </div>
         </div>
 
-        <!-- Section 2: Known Blueprints & Schematics Archive -->
-        <div class="card" id="card-known-blueprints">
-          <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
-            <div style="display: flex; align-items: center; gap: 8px;">
-              <span class="card-title">📐 Known Blueprints & Schematics Archive</span>
-              <span class="meta-tag" id="known-blueprints-count-badge" style="font-size: 10pt;">0 Blueprints</span>
-            </div>
-            <input type="text" id="filter-known-blueprints" placeholder="🔍 Filter blueprints..." style="font-size: 10pt; padding: 4px 10px; border-radius: 4px; border: 1px solid var(--border-color); background: var(--bg-main); color: var(--text-main); width: 180px;">
-          </div>
-
-          <div style="display: flex; flex-direction: column; gap: 10px;">
-            <div class="calc-rule-callout" style="margin-bottom: 0px; font-size: 10pt;">
-              <strong>Mastered Schematics:</strong> Any device successfully assembled or equipment item reverse-engineered is stored in this archive. Building from a known blueprint <strong>bypasses the Phase 1 Blueprint Design FEAT</strong> automatically!
-            </div>
-
-            <!-- Blueprints List Container -->
-            <div id="known-blueprints-container" style="display: flex; flex-direction: column; gap: 8px;">
-              <span style="color: var(--text-dim); text-align: center; padding: 12px; font-size: 10pt;">No known blueprints yet. Complete a custom invention or reverse-engineer equipment below to master schematics.</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Section 3: Prebuilt Equipment Reverse-Engineering -->
-        <div class="card">
+        <!-- Section 2: Prebuilt Equipment Reverse-Engineering -->
+        <div class="card" id="card-reverse-engineer">
           <div class="card-header">
             <span class="card-title">🔍 Reverse-Engineer Rulebook Equipment</span>
           </div>
@@ -692,6 +671,28 @@
 
             <div id="reverse-engineer-result-box" class="invention-subpanel" style="padding: 14px; min-height: 120px; display: flex; flex-direction: column; justify-content: center;">
               <span style="color: var(--text-dim); text-align: center;">Select an item above to analyze manufacturing specifications.</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 3: Known Blueprints & Schematics Archive -->
+        <div class="card" id="card-known-blueprints">
+          <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span class="card-title">📐 Known Blueprints & Schematics Archive</span>
+              <span class="meta-tag" id="known-blueprints-count-badge" style="font-size: 10pt;">0 Blueprints</span>
+            </div>
+            <input type="text" id="filter-known-blueprints" placeholder="🔍 Filter blueprints..." style="font-size: 10pt; padding: 4px 10px; border-radius: 4px; border: 1px solid var(--border-color); background: var(--bg-main); color: var(--text-main); width: 180px;">
+          </div>
+
+          <div style="display: flex; flex-direction: column; gap: 10px;">
+            <div class="calc-rule-callout" style="margin-bottom: 0px; font-size: 10pt;">
+              <strong>Mastered Schematics:</strong> Any device successfully assembled or equipment item reverse-engineered is stored in this archive. Building from a known blueprint <strong>bypasses the Phase 1 Blueprint Design FEAT</strong> automatically!
+            </div>
+
+            <!-- Blueprints List Container -->
+            <div id="known-blueprints-container" style="display: flex; flex-direction: column; gap: 8px;">
+              <span style="color: var(--text-dim); text-align: center; padding: 12px; font-size: 10pt;">No known blueprints yet. Complete a custom invention or reverse-engineer equipment above to master schematics.</span>
             </div>
           </div>
         </div>
@@ -1830,7 +1831,7 @@
           <!-- SECTION: PROGRAM UPDATES & AUTOMATED CHECKING -->
           <div style="font-weight: 700; color: var(--text-main); font-size: 11pt; border-bottom: 1px solid var(--border-color); padding-bottom: 6px; margin-top: 10px; display: flex; justify-content: space-between; align-items: center;">
             <span>🔄 Program Updates &amp; Automated Checking</span>
-            <span class="meta-tag" id="update-version-tag" style="color: var(--marvel-gold); font-size: 9pt;">v1.5.11</span>
+            <span class="meta-tag" id="update-version-tag" style="color: var(--marvel-gold); font-size: 9pt;">v1.5.12</span>
           </div>
 
           <div class="update-settings-panel" style="background: rgba(0, 0, 0, 0.2); border: 1px solid var(--border-color); border-radius: 6px; padding: 12px; display: flex; flex-direction: column; gap: 10px;">
@@ -2721,13 +2722,13 @@
   </div>
 
   <!-- Scripts Loading -->
-  <script src="universal_table.js?v=1.5.11"></script>
-  <script src="data_forms.js?v=1.5.11"></script>
-  <script src="data_powers.js?v=1.5.11"></script>
-  <script src="data_talents.js?v=1.5.11"></script>
-  <script src="data_equipment.js?v=1.5.11"></script>
-  <script src="inventions.js?v=1.5.11"></script>
-  <script src="character_model.js?v=1.5.11"></script>
-  <script src="app.js?v=1.5.11"></script>
+  <script src="universal_table.js?v=1.5.12"></script>
+  <script src="data_forms.js?v=1.5.12"></script>
+  <script src="data_powers.js?v=1.5.12"></script>
+  <script src="data_talents.js?v=1.5.12"></script>
+  <script src="data_equipment.js?v=1.5.12"></script>
+  <script src="inventions.js?v=1.5.12"></script>
+  <script src="character_model.js?v=1.5.12"></script>
+  <script src="app.js?v=1.5.12"></script>
 </body>
 </html>

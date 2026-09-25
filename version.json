@@ -1,7 +1,7 @@
 {
-  "version": "1.5.7",
+  "version": "1.5.8",
   "releaseDate": "2026-09-24",
   "name": "Marvel Super Heroes Character Editor",
   "repo": "https://github.com/captainload/marvel-character-editor",
-  "notes": "Refined Preferences & Options modal: streamlined update checks to execution and manual, removed Theme Palette label, and aligned option control headers in consistent bright white typography."
+  "notes": "Synchronized Rules Cheat Sheet Movement & Speed tables with active Universal Table scheme (expanded 22-rank CMF speeds vs standard 18-rank TSR), updated cheat sheet header button to 'Close pop-up [X]' with red close icon, and removed bottom modal footer close bar."
 }

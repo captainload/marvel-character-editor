@@ -450,6 +450,102 @@ const UniversalTableEngine = {
   }
 };
 
+// 3. Movement & Speed Reference Data (Ground & Air)
+// CMF Expanded Scheme (22 Ranks - from Classic Marvel Forever Alternate Ranks Speed Chart)
+const CMF_GROUND_MOVEMENT = [
+  { rank: "Shift 0", num: 0, areas: 0, mph: 0, feetTurn: "0 ft", feetSec: "0 fps", notes: "Immobilized, paralyzed, unconscious." },
+  { rank: "Feeble", num: 2, areas: 1, mph: 15, feetTurn: "132 ft", feetSec: "22 fps", notes: "Injured crawl or slow elder walk." },
+  { rank: "Poor", num: 4, areas: 2, mph: 30, feetTurn: "264 ft", feetSec: "44 fps", notes: "Normal human brisk run / steady jog." },
+  { rank: "Typical", num: 6, areas: 3, mph: 45, feetTurn: "396 ft", feetSec: "66 fps", notes: "Normal human all-out sprint; Olympic sprinter." },
+  { rank: "Good", num: 10, areas: 4, mph: 60, feetTurn: "528 ft", feetSec: "88 fps", notes: "Peak human athlete sprint (Captain America)." },
+  { rank: "Excellent", num: 20, areas: 5, mph: 75, feetTurn: "660 ft", feetSec: "110 fps", notes: "Enhanced runner; highway car speed." },
+  { rank: "Remarkable", num: 30, areas: 6, mph: 90, feetTurn: "792 ft", feetSec: "132 fps", notes: "Superhuman sprinting (Spider-Man, Wolverine sprint)." },
+  { rank: "Fantastic", num: 35, areas: 7, mph: 105, feetTurn: "924 ft", feetSec: "154 fps", notes: "Low super-speed; express train pace." },
+  { rank: "Incredible", num: 40, areas: 8, mph: 120, feetTurn: "1,056 ft", feetSec: "176 fps", notes: "Super-speed runner; high-speed commuter train." },
+  { rank: "Spectacular", num: 45, areas: 9, mph: 135, feetTurn: "1,188 ft", feetSec: "198 fps", notes: "High velocity runner; sports car cruising speed." },
+  { rank: "Amazing", num: 50, areas: 10, mph: 150, feetTurn: "1,320 ft", feetSec: "220 fps", notes: "High-velocity speedster; bullet train speed." },
+  { rank: "Sensational", num: 60, areas: 12, mph: 180, feetTurn: "1,584 ft", feetSec: "264 fps", notes: "Supercharged speedster; professional race car velocity." },
+  { rank: "Monstrous", num: 75, areas: 14, mph: 210, feetTurn: "1,848 ft", feetSec: "308 fps", notes: "Formula 1 top speed on land." },
+  { rank: "Awesome", num: 90, areas: 16, mph: 240, feetTurn: "2,112 ft", feetSec: "352 fps", notes: "Blistering hyper-runner; dragster velocity." },
+  { rank: "Unearthly", num: 100, areas: 20, mph: 300, feetTurn: "2,640 ft", feetSec: "440 fps", notes: "Supersonic threshold baseline (Quicksilver)." },
+  { rank: "Shift X", num: 150, areas: 32, mph: 480, feetTurn: "4,224 ft", feetSec: "704 fps", notes: "Super-speed runner crossing districts in seconds." },
+  { rank: "Shift Y", num: 250, areas: 40, mph: 600, feetTurn: "5,280 ft", feetSec: "880 fps", notes: "Transonic speed on land." },
+  { rank: "Shift Z", num: 500, areas: 50, mph: 750, feetTurn: "6,600 ft", feetSec: "1,100 fps", notes: "Supersonic Mach 1 ground sprint." },
+  { rank: "Class 1000", num: 1000, areas: 100, mph: 1500, feetTurn: "13,200 ft", feetSec: "2,200 fps", notes: "Mach 2 supersonic dash!" },
+  { rank: "Class 3000", num: 3000, areas: 150, mph: 2250, feetTurn: "19,800 ft", feetSec: "3,300 fps", notes: "Mach 3 hypersonic sprint!" },
+  { rank: "Class 5000", num: 5000, areas: 200, mph: 3000, feetTurn: "26,400 ft", feetSec: "4,400 fps", notes: "Mach 4 hypersonic sprint!" }
+];
+
+const STANDARD_GROUND_MOVEMENT = [
+  { rank: "Shift 0", num: 0, areas: 0, mph: 0, feetTurn: "0 ft", feetSec: "0 fps", notes: "Immobilized, paralyzed, unconscious." },
+  { rank: "Feeble", num: 2, areas: 1, mph: 15, feetTurn: "132 ft", feetSec: "22 fps", notes: "Injured crawl or slow elder walk." },
+  { rank: "Poor", num: 4, areas: 2, mph: 30, feetTurn: "264 ft", feetSec: "44 fps", notes: "Normal human brisk run / steady jog." },
+  { rank: "Typical", num: 6, areas: 3, mph: 45, feetTurn: "396 ft", feetSec: "66 fps", notes: "Normal human all-out sprint; Olympic sprinter." },
+  { rank: "Good", num: 10, areas: 4, mph: 60, feetTurn: "528 ft", feetSec: "88 fps", notes: "Peak human athlete sprint (Captain America)." },
+  { rank: "Excellent", num: 20, areas: 5, mph: 75, feetTurn: "660 ft", feetSec: "110 fps", notes: "Enhanced runner; highway car speed." },
+  { rank: "Remarkable", num: 30, areas: 6, mph: 90, feetTurn: "792 ft", feetSec: "132 fps", notes: "Superhuman sprinting (Spider-Man, Wolverine sprint)." },
+  { rank: "Incredible", num: 40, areas: 7, mph: 105, feetTurn: "924 ft", feetSec: "154 fps", notes: "Express train speed; rapid urban traversal." },
+  { rank: "Amazing", num: 50, areas: 8, mph: 120, feetTurn: "1,056 ft", feetSec: "176 fps", notes: "Bullet train speed; high-velocity runner." },
+  { rank: "Monstrous", num: 75, areas: 9, mph: 135, feetTurn: "1,188 ft", feetSec: "198 fps", notes: "Formula 1 race car speed." },
+  { rank: "Unearthly", num: 100, areas: 10, mph: 150, feetTurn: "1,320 ft", feetSec: "220 fps", notes: "Supersonic ground velocity baseline (Quicksilver)." },
+  { rank: "Shift X", num: 150, areas: 15, mph: 225, feetTurn: "1,980 ft", feetSec: "330 fps", notes: "Super-speed runner crossing districts in seconds." },
+  { rank: "Shift Y", num: 250, areas: 20, mph: 300, feetTurn: "2,640 ft", feetSec: "440 fps", notes: "Subsonic rocket speed on land." },
+  { rank: "Shift Z", num: 500, areas: 30, mph: 450, feetTurn: "3,960 ft", feetSec: "660 fps", notes: "Transonic ground speed." },
+  { rank: "Class 1000", num: 1000, areas: 45, mph: 675, feetTurn: "5,940 ft", feetSec: "990 fps", notes: "Near Mach 1 / Speed of Sound ground sprint!" }
+];
+
+const CMF_AIR_MOVEMENT = [
+  { rank: "Feeble", num: 2, combatAreas: 2, mph: "30 mph", category: "Gliding / Hover", notes: "Low-altitude drift, vulnerable target in combat." },
+  { rank: "Poor", num: 4, combatAreas: 4, mph: "60 mph", category: "Light Aircraft", notes: "Standard propeller flight; slow helicopter." },
+  { rank: "Typical", num: 6, combatAreas: 6, mph: "90 mph", category: "Fast Propeller", notes: "WW1 fighter plane maneuverability; urban patrol." },
+  { rank: "Good", num: 10, combatAreas: 8, mph: "120 mph", category: "Fast Helicopter", notes: "High-maneuverability aerial dogfighter." },
+  { rank: "Excellent", num: 20, combatAreas: 10, mph: "150 mph", category: "Commuter Craft", notes: "Fast urban transit flight (Falcon, Vulture baseline)." },
+  { rank: "Remarkable", num: 30, combatAreas: 15, mph: "225 mph", category: "WW2 Fighter", notes: "High-speed pursuit (Iron Man armor Mark I/II cruise)." },
+  { rank: "Fantastic", num: 35, combatAreas: 20, mph: "300 mph", category: "Subsonic Craft", notes: "Fast propeller / light commuter turboprop." },
+  { rank: "Incredible", num: 40, combatAreas: 25, mph: "375 mph", category: "Fast Subsonic", notes: "Commercial passenger jet speed; rapid state transit." },
+  { rank: "Spectacular", num: 45, combatAreas: 30, mph: "450 mph", category: "High Subsonic", notes: "High-altitude business jet cruise." },
+  { rank: "Amazing", num: 50, combatAreas: 40, mph: "600 mph", category: "Near Mach 1 (Transonic)", notes: "Approaching sound barrier; agile high-altitude dogfight." },
+  { rank: "Sensational", num: 60, combatAreas: 50, mph: "750 mph", category: "Mach 1.0 (Supersonic)", notes: "Breaks sound barrier; sonic boom shockwave." },
+  { rank: "Monstrous", num: 75, combatAreas: 60, mph: "900 mph", category: "Mach 1.2", notes: "Military supersonic jet cruise." },
+  { rank: "Awesome", num: 90, combatAreas: 75, mph: "1,125 mph", category: "Mach 1.5", notes: "Supersonic military interceptor flight." },
+  { rank: "Unearthly", num: 100, combatAreas: 100, mph: "1,500 mph", category: "Mach 2.0", notes: "Mach 2 supersonic interceptor (Thor, Iron Man top flight)." },
+  { rank: "Shift X", num: 150, combatAreas: 150, mph: "2,250 mph", category: "Mach 3.0", notes: "Mach 3 high-altitude recon (SR-71 Blackbird level)." },
+  { rank: "Shift Y", num: 250, combatAreas: 200, mph: "3,000 mph", category: "Mach 4.0 (Hypersonic)", notes: "Upper atmosphere skip; coast-to-coast in 45 minutes." },
+  { rank: "Shift Z", num: 500, combatAreas: 400, mph: "6,000 mph", category: "Mach 8.0 (Sub-Orbital)", notes: "Sub-orbital trajectory; orbits globe in 90 minutes." },
+  { rank: "Class 1000", num: 1000, combatAreas: "Blue Shift", mph: "15,000 mph", category: "Relativistic / Orbital", notes: "Escape velocity (7 miles/sec); leaves Earth atmosphere." },
+  { rank: "Class 3000", num: 3000, combatAreas: "Lightspeed", mph: "186,282 mi/s", category: "Lunar Transit", notes: "Reaches Earth's Moon in under 2 seconds." },
+  { rank: "Class 5000", num: 5000, combatAreas: "100 x Lightspeed", mph: "18.6 million mi/s", category: "Solar Interplanetary", notes: "Interplanetary cosmic transit across star system." },
+  { rank: "Beyond", num: 10000, combatAreas: "Lightspeed+", mph: "Cosmic", category: "Hyperspace / Interstellar", notes: "Instantaneous faster-than-light cosmic transit (Silver Surfer)." }
+];
+
+const STANDARD_AIR_MOVEMENT = [
+  { rank: "Feeble", num: 2, combatAreas: 2, mph: "30 mph", category: "Gliding / Hover", notes: "Low-altitude drift, vulnerable target in combat." },
+  { rank: "Poor", num: 4, combatAreas: 3, mph: "45 mph", category: "Autogyro / Slow", notes: "Light aircraft / slow helicopter cruise." },
+  { rank: "Typical", num: 6, combatAreas: 4, mph: "60 mph", category: "Light Aircraft", notes: "Standard propeller flight speed; urban patrol." },
+  { rank: "Good", num: 10, combatAreas: 6, mph: "90 mph", category: "Fast Helicopter", notes: "WW1 fighter plane; highly maneuverable dogfighter." },
+  { rank: "Excellent", num: 20, combatAreas: 8, mph: "120 mph", category: "Commuter Craft", notes: "Fast urban transit flight (Falcon, Vulture baseline)." },
+  { rank: "Remarkable", num: 30, combatAreas: 15, mph: "225 mph", category: "WW2 Fighter", notes: "High-speed pursuit (Iron Man armor Mark I/II cruise)." },
+  { rank: "Incredible", num: 40, combatAreas: 20, mph: "300 mph", category: "Subsonic Jet", notes: "Commercial jet airliner cruise; rapid state transit." },
+  { rank: "Amazing", num: 50, combatAreas: 30, mph: "450 mph", category: "High Subsonic", notes: "Approaching sound barrier; agile high-altitude dogfight." },
+  { rank: "Monstrous", num: 75, combatAreas: 45, mph: "675 mph", category: "Transonic (Mach 0.9)", notes: "Military jet cruise; rapid continental transit." },
+  { rank: "Unearthly", num: 100, combatAreas: 60, mph: "900 mph", category: "Supersonic (Mach 1.2)", notes: "Breaks sound barrier; generates sonic boom shockwave!" },
+  { rank: "Shift X", num: 150, combatAreas: 100, mph: "1,500 mph", category: "Mach 2.0", notes: "Mach 2 military interceptor (Thor, Iron Man top flight)." },
+  { rank: "Shift Y", num: 250, combatAreas: 200, mph: "3,000 mph", category: "Mach 4.0 (Hypersonic)", notes: "Upper atmosphere skip; coast-to-coast in 45 minutes." },
+  { rank: "Shift Z", num: 500, combatAreas: 400, mph: "6,000 mph", category: "Mach 8.0 (Sub-Orbital)", notes: "Sub-orbital trajectory; orbits globe in 90 minutes." },
+  { rank: "Class 1000", num: 1000, combatAreas: 1000, mph: "15,000 mph", category: "Mach 20 (Orbital Escape)", notes: "Escape velocity (7 miles/sec); leaves Earth atmosphere." },
+  { rank: "Class 3000", num: 3000, combatAreas: 3000, mph: "45,000 mph", category: "Lunar Transit", notes: "Reaches Earth's Moon in under 5 hours." },
+  { rank: "Class 5000", num: 5000, combatAreas: 6000, mph: "90,000 mph", category: "Solar Interplanetary", notes: "Traverses solar system between planets." },
+  { rank: "Beyond", num: 10000, combatAreas: "Lightspeed+", mph: "186,282 miles/sec", category: "Hyperspace / Interstellar", notes: "Instantaneous faster-than-light cosmic transit (Silver Surfer)." }
+];
+
+function getGroundMovementTable(mode = 'cmf') {
+  return (mode === 'standard') ? STANDARD_GROUND_MOVEMENT : CMF_GROUND_MOVEMENT;
+}
+
+function getAirMovementTable(mode = 'cmf') {
+  return (mode === 'standard') ? STANDARD_AIR_MOVEMENT : CMF_AIR_MOVEMENT;
+}
+
 if (typeof globalThis !== 'undefined') {
   globalThis.STANDARD_RANKS = STANDARD_RANKS;
   globalThis.STANDARD_TABLE = STANDARD_TABLE;
@@ -458,6 +554,12 @@ if (typeof globalThis !== 'undefined') {
   globalThis.RANKS = RANKS;
   globalThis.UNIVERSAL_TABLE = UNIVERSAL_TABLE;
   globalThis.UniversalTableEngine = UniversalTableEngine;
+  globalThis.CMF_GROUND_MOVEMENT = CMF_GROUND_MOVEMENT;
+  globalThis.STANDARD_GROUND_MOVEMENT = STANDARD_GROUND_MOVEMENT;
+  globalThis.CMF_AIR_MOVEMENT = CMF_AIR_MOVEMENT;
+  globalThis.STANDARD_AIR_MOVEMENT = STANDARD_AIR_MOVEMENT;
+  globalThis.getGroundMovementTable = getGroundMovementTable;
+  globalThis.getAirMovementTable = getAirMovementTable;
 }
 
 if (typeof module !== 'undefined' && module.exports) {
@@ -468,6 +570,12 @@ if (typeof module !== 'undefined' && module.exports) {
     CMF_TABLE,
     RANKS,
     UNIVERSAL_TABLE,
-    UniversalTableEngine
+    UniversalTableEngine,
+    CMF_GROUND_MOVEMENT,
+    STANDARD_GROUND_MOVEMENT,
+    CMF_AIR_MOVEMENT,
+    STANDARD_AIR_MOVEMENT,
+    getGroundMovementTable,
+    getAirMovementTable
   };
 }

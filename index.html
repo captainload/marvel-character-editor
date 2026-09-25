@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Marvel Super Heroes (FASERIP) - Character Builder & Editor</title>
-  <link rel="stylesheet" href="styles.css?v=1.5.7">
+  <link rel="stylesheet" href="styles.css?v=1.5.8">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bangers&display=swap" rel="stylesheet">
@@ -1011,7 +1011,7 @@
         <span class="modal-title">📖 Marvel Super Heroes Rules Cheat Sheet</span>
         <div style="display: flex; align-items: center; gap: 6px;">
           <button type="button" class="icon-btn cheatsheet-popout-btn" id="btn-cheatsheet-popout" title="Pop-out into separate window">↗ Pop-out</button>
-          <button type="button" class="modal-close" id="btn-cheatsheet-close">&times;</button>
+          <button type="button" class="icon-btn cheatsheet-close-btn modal-close-btn" id="btn-cheatsheet-close" title="Close Rules Cheat Sheet">Close pop-up [<span class="close-x-icon">&times;</span>]</button>
         </div>
       </div>
       <div class="cheatsheet-tabs-bar" id="cheatsheet-tabs-bar">
@@ -1333,7 +1333,10 @@
             </div>
           </div>
 
-          <h3>🏃 Ground Movement & Running Speed Table</h3>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 14px; margin-bottom: 4px;">
+            <h3 style="margin: 0;">🏃 Ground Movement &amp; Running Speed Table</h3>
+            <span id="cheat-ground-movement-scheme-badge" style="font-size: 0.85em; font-weight: 600; padding: 2px 8px; border-radius: 4px; background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3);">CMF Scheme (22 Ranks)</span>
+          </div>
           <p>Ground speed by Land Speed Rank or Endurance Rank for sprinting:</p>
           <table class="cheat-table">
             <thead>
@@ -1343,134 +1346,18 @@
                 <th>MPH</th>
                 <th>Feet / Turn</th>
                 <th>Feet / Sec</th>
-                <th>Tactical Notes & Real-World Examples</th>
+                <th>Tactical Notes &amp; Real-World Examples</th>
               </tr>
             </thead>
-            <tbody>
-              <tr>
-                <td><strong>Shift 0</strong> (0)</td>
-                <td>0</td>
-                <td>0 mph</td>
-                <td>0 ft</td>
-                <td>0 fps</td>
-                <td>Immobilized, paralyzed, unconscious.</td>
-              </tr>
-              <tr>
-                <td><strong>Feeble</strong> (2)</td>
-                <td>1</td>
-                <td>15 mph</td>
-                <td>132 ft</td>
-                <td>22 fps</td>
-                <td>Injured crawl or slow elder walk.</td>
-              </tr>
-              <tr>
-                <td><strong>Poor</strong> (4)</td>
-                <td>2</td>
-                <td>30 mph</td>
-                <td>264 ft</td>
-                <td>44 fps</td>
-                <td>Normal human brisk run / steady jog.</td>
-              </tr>
-              <tr>
-                <td><strong>Typical</strong> (6)</td>
-                <td>3</td>
-                <td>45 mph</td>
-                <td>396 ft</td>
-                <td>66 fps</td>
-                <td>Normal human all-out sprint; Olympic sprinter.</td>
-              </tr>
-              <tr>
-                <td><strong>Good</strong> (10)</td>
-                <td>4</td>
-                <td>60 mph</td>
-                <td>528 ft</td>
-                <td>88 fps</td>
-                <td>Peak human athlete sprint (Captain America).</td>
-              </tr>
-              <tr>
-                <td><strong>Excellent</strong> (20)</td>
-                <td>5</td>
-                <td>75 mph</td>
-                <td>660 ft</td>
-                <td>110 fps</td>
-                <td>Enhanced runner; highway car speed.</td>
-              </tr>
-              <tr>
-                <td><strong>Remarkable</strong> (30)</td>
-                <td>6</td>
-                <td>90 mph</td>
-                <td>792 ft</td>
-                <td>132 fps</td>
-                <td>Superhuman sprinting (Spider-Man, Wolverine sprint).</td>
-              </tr>
-              <tr>
-                <td><strong>Incredible</strong> (40)</td>
-                <td>7</td>
-                <td>105 mph</td>
-                <td>924 ft</td>
-                <td>154 fps</td>
-                <td>Express train speed; rapid urban traversal.</td>
-              </tr>
-              <tr>
-                <td><strong>Amazing</strong> (50)</td>
-                <td>8</td>
-                <td>120 mph</td>
-                <td>1,056 ft</td>
-                <td>176 fps</td>
-                <td>Bullet train speed; high-velocity runner.</td>
-              </tr>
-              <tr>
-                <td><strong>Monstrous</strong> (75)</td>
-                <td>9</td>
-                <td>135 mph</td>
-                <td>1,188 ft</td>
-                <td>198 fps</td>
-                <td>Formula 1 race car speed.</td>
-              </tr>
-              <tr>
-                <td><strong>Unearthly</strong> (100)</td>
-                <td>10</td>
-                <td>150 mph</td>
-                <td>1,320 ft</td>
-                <td>220 fps</td>
-                <td>Supersonic ground velocity baseline (Quicksilver).</td>
-              </tr>
-              <tr>
-                <td><strong>Shift X</strong> (150)</td>
-                <td>15</td>
-                <td>225 mph</td>
-                <td>1,980 ft</td>
-                <td>330 fps</td>
-                <td>Super-speed runner crossing districts in seconds.</td>
-              </tr>
-              <tr>
-                <td><strong>Shift Y</strong> (200)</td>
-                <td>20</td>
-                <td>300 mph</td>
-                <td>2,640 ft</td>
-                <td>440 fps</td>
-                <td>Subsonic rocket speed on land.</td>
-              </tr>
-              <tr>
-                <td><strong>Shift Z</strong> (500)</td>
-                <td>30</td>
-                <td>450 mph</td>
-                <td>3,960 ft</td>
-                <td>660 fps</td>
-                <td>Transonic ground speed.</td>
-              </tr>
-              <tr>
-                <td><strong>Class 1000</strong> (1000)</td>
-                <td>45</td>
-                <td>675 mph</td>
-                <td>5,940 ft</td>
-                <td>990 fps</td>
-                <td>Near Mach 1 / Speed of Sound ground sprint!</td>
-              </tr>
+            <tbody id="cheatsheet-ground-movement-body">
+              <!-- Dynamically populated based on active Universal Table Mode (CMF vs Standard) -->
             </tbody>
           </table>
 
-          <h3>✈️ Air Movement & Flight Speed Table</h3>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 18px; margin-bottom: 4px;">
+            <h3 style="margin: 0;">✈️ Air Movement &amp; Flight Speed Table</h3>
+            <span id="cheat-air-movement-scheme-badge" style="font-size: 0.85em; font-weight: 600; padding: 2px 8px; border-radius: 4px; background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3);">CMF Scheme (22 Ranks)</span>
+          </div>
           <p>Flight speeds in combat tactical scale and long-distance cruising:</p>
           <table class="cheat-table">
             <thead>
@@ -1479,129 +1366,11 @@
                 <th>Combat (Areas/Turn)</th>
                 <th>Air Speed (MPH)</th>
                 <th>Category / Mach</th>
-                <th>Flight Dynamics & Tactical Rules</th>
+                <th>Flight Dynamics &amp; Tactical Rules</th>
               </tr>
             </thead>
-            <tbody>
-              <tr>
-                <td><strong>Feeble</strong> (2)</td>
-                <td>2</td>
-                <td>30 mph</td>
-                <td>Gliding / Hover</td>
-                <td>Low-altitude drift, vulnerable target in combat.</td>
-              </tr>
-              <tr>
-                <td><strong>Poor</strong> (4)</td>
-                <td>3</td>
-                <td>45 mph</td>
-                <td>Autogyro / Slow</td>
-                <td>Light aircraft / slow helicopter cruise.</td>
-              </tr>
-              <tr>
-                <td><strong>Typical</strong> (6)</td>
-                <td>4</td>
-                <td>60 mph</td>
-                <td>Light Aircraft</td>
-                <td>Standard propeller flight speed; urban patrol.</td>
-              </tr>
-              <tr>
-                <td><strong>Good</strong> (10)</td>
-                <td>6</td>
-                <td>90 mph</td>
-                <td>Fast Helicopter</td>
-                <td>WW1 fighter plane; highly maneuverable dogfighter.</td>
-              </tr>
-              <tr>
-                <td><strong>Excellent</strong> (20)</td>
-                <td>8</td>
-                <td>120 mph</td>
-                <td>Commuter Craft</td>
-                <td>Fast urban transit flight (Falcon, Vulture baseline).</td>
-              </tr>
-              <tr>
-                <td><strong>Remarkable</strong> (30)</td>
-                <td>15</td>
-                <td>225 mph</td>
-                <td>WW2 Fighter</td>
-                <td>High-speed pursuit (Iron Man armor Mark I/II cruise).</td>
-              </tr>
-              <tr>
-                <td><strong>Incredible</strong> (40)</td>
-                <td>20</td>
-                <td>300 mph</td>
-                <td>Subsonic Jet</td>
-                <td>Commercial jet airliner cruise; rapid state transit.</td>
-              </tr>
-              <tr>
-                <td><strong>Amazing</strong> (50)</td>
-                <td>30</td>
-                <td>450 mph</td>
-                <td>High Subsonic</td>
-                <td>Approaching sound barrier; agile high-altitude dogfight.</td>
-              </tr>
-              <tr>
-                <td><strong>Monstrous</strong> (75)</td>
-                <td>45</td>
-                <td>675 mph</td>
-                <td>Transonic (Mach 0.9)</td>
-                <td>Military jet cruise; rapid continental transit.</td>
-              </tr>
-              <tr>
-                <td><strong>Unearthly</strong> (100)</td>
-                <td>60</td>
-                <td>900 mph</td>
-                <td>Supersonic (Mach 1.2)</td>
-                <td>Breaks sound barrier; generates sonic boom shockwave!</td>
-              </tr>
-              <tr>
-                <td><strong>Shift X</strong> (150)</td>
-                <td>100</td>
-                <td>1,500 mph</td>
-                <td>Mach 2.0</td>
-                <td>Mach 2 military interceptor (Thor, Iron Man top flight).</td>
-              </tr>
-              <tr>
-                <td><strong>Shift Y</strong> (200)</td>
-                <td>200</td>
-                <td>3,000 mph</td>
-                <td>Mach 4.0 (Hypersonic)</td>
-                <td>Upper atmosphere skip; coast-to-coast in 45 minutes.</td>
-              </tr>
-              <tr>
-                <td><strong>Shift Z</strong> (500)</td>
-                <td>400</td>
-                <td>6,000 mph</td>
-                <td>Mach 8.0 (Sub-Orbital)</td>
-                <td>Sub-orbital trajectory; orbits globe in 90 minutes.</td>
-              </tr>
-              <tr>
-                <td><strong>Class 1000</strong></td>
-                <td>1,000</td>
-                <td>15,000 mph</td>
-                <td>Mach 20 (Orbital Escape)</td>
-                <td>Escape velocity (7 miles/sec); leaves Earth atmosphere.</td>
-              </tr>
-              <tr>
-                <td><strong>Class 3000</strong></td>
-                <td>3,000</td>
-                <td>45,000 mph</td>
-                <td>Lunar Transit</td>
-                <td>Reaches Earth's Moon in under 5 hours.</td>
-              </tr>
-              <tr>
-                <td><strong>Class 5000</strong></td>
-                <td>6,000</td>
-                <td>90,000 mph</td>
-                <td>Solar Interplanetary</td>
-                <td>Traverses solar system between planets.</td>
-              </tr>
-              <tr>
-                <td><strong>Beyond</strong></td>
-                <td>Lightspeed+</td>
-                <td>186,282 miles/sec</td>
-                <td>Hyperspace / Interstellar</td>
-                <td>Instantaneous faster-than-light cosmic transit (Silver Surfer).</td>
-              </tr>
+            <tbody id="cheatsheet-air-movement-body">
+              <!-- Dynamically populated based on active Universal Table Mode (CMF vs Standard) -->
             </tbody>
           </table>
 
@@ -1947,9 +1716,6 @@
           </div>
         </div>
       </div>
-      <div class="modal-footer">
-        <button class="icon-btn modal-close-btn">Close</button>
-      </div>
     </div>
   </div>
 
@@ -2047,7 +1813,7 @@
           <!-- SECTION: PROGRAM UPDATES & AUTOMATED CHECKING -->
           <div style="font-weight: 700; color: var(--text-main); font-size: 11pt; border-bottom: 1px solid var(--border-color); padding-bottom: 6px; margin-top: 10px; display: flex; justify-content: space-between; align-items: center;">
             <span>🔄 Program Updates &amp; Automated Checking</span>
-            <span class="meta-tag" id="update-version-tag" style="color: var(--marvel-gold); font-size: 9pt;">v1.5.7</span>
+            <span class="meta-tag" id="update-version-tag" style="color: var(--marvel-gold); font-size: 9pt;">v1.5.8</span>
           </div>
 
           <div class="update-settings-panel" style="background: rgba(0, 0, 0, 0.2); border: 1px solid var(--border-color); border-radius: 6px; padding: 12px; display: flex; flex-direction: column; gap: 10px;">
@@ -2937,13 +2703,13 @@
   </div>
 
   <!-- Scripts Loading -->
-  <script src="universal_table.js?v=1.5.7"></script>
-  <script src="data_forms.js?v=1.5.7"></script>
-  <script src="data_powers.js?v=1.5.7"></script>
-  <script src="data_talents.js?v=1.5.7"></script>
-  <script src="data_equipment.js?v=1.5.7"></script>
-  <script src="inventions.js?v=1.5.7"></script>
-  <script src="character_model.js?v=1.5.7"></script>
-  <script src="app.js?v=1.5.7"></script>
+  <script src="universal_table.js?v=1.5.8"></script>
+  <script src="data_forms.js?v=1.5.8"></script>
+  <script src="data_powers.js?v=1.5.8"></script>
+  <script src="data_talents.js?v=1.5.8"></script>
+  <script src="data_equipment.js?v=1.5.8"></script>
+  <script src="inventions.js?v=1.5.8"></script>
+  <script src="character_model.js?v=1.5.8"></script>
+  <script src="app.js?v=1.5.8"></script>
 </body>
 </html>

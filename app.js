@@ -38,7 +38,7 @@ const App = {
   isWidthWarningDismissed: false,
   powerAdjustment: false,
   activeAdjustmentPowerIndex: null,
-  VERSION: '1.5.7',
+  VERSION: '1.5.8',
   BUILD_DATE: '2026-09-24',
   COMMIT_SHA: '6a15ff5',
   REPO_OWNER: 'captainload',
@@ -1547,6 +1547,8 @@ const App = {
       this.renderCheatSheetTable();
     } else if (tabKey === 'materials') {
       this.renderCheatSheetMaterials();
+    } else if (tabKey === 'movement') {
+      this.renderCheatSheetMovement();
     }
   },
 
@@ -1811,6 +1813,7 @@ const App = {
     this.renderBackground();
     this.renderCheatSheetTable();
     this.renderCheatSheetMaterials();
+    this.renderCheatSheetMovement();
     this.renderKnownBlueprints();
     this.syncInventionTalentAutoDetect();
   },
@@ -5184,6 +5187,7 @@ const App = {
     this.populateDropdowns();
     this.renderCheatSheetTable();
     this.renderCheatSheetMaterials();
+    this.renderCheatSheetMovement();
     this.render();
     this.updateRollerPreview();
     this.saveState();
@@ -7048,6 +7052,80 @@ const App = {
     });
   },
 
+  renderCheatSheetMovement() {
+    const groundTbody = (typeof this.getCheatSheetEl === 'function')
+      ? this.getCheatSheetEl('cheatsheet-ground-movement-body')
+      : document.getElementById('cheatsheet-ground-movement-body');
+    const airTbody = (typeof this.getCheatSheetEl === 'function')
+      ? this.getCheatSheetEl('cheatsheet-air-movement-body')
+      : document.getElementById('cheatsheet-air-movement-body');
+
+    const mode = this.universalTableMode || 'cmf';
+    const isCMF = (mode === 'cmf');
+
+    const groundBadge = (typeof this.getCheatSheetEl === 'function')
+      ? this.getCheatSheetEl('cheat-ground-movement-scheme-badge')
+      : document.getElementById('cheat-ground-movement-scheme-badge');
+    const airBadge = (typeof this.getCheatSheetEl === 'function')
+      ? this.getCheatSheetEl('cheat-air-movement-scheme-badge')
+      : document.getElementById('cheat-air-movement-scheme-badge');
+
+    const badgeText = isCMF ? 'CMF Scheme (22 Ranks)' : 'Standard TSR Scheme (18 Ranks)';
+    if (groundBadge) groundBadge.textContent = badgeText;
+    if (airBadge) airBadge.textContent = badgeText;
+
+    if (groundTbody) {
+      groundTbody.innerHTML = '';
+      const groundList = (typeof getGroundMovementTable === 'function')
+        ? getGroundMovementTable(mode)
+        : (globalThis.CMF_GROUND_MOVEMENT || []);
+
+      groundList.forEach(row => {
+        const rObj = (typeof UniversalTableEngine !== 'undefined' && UniversalTableEngine.getRankByName)
+          ? UniversalTableEngine.getRankByName(row.rank)
+          : null;
+        const rankColor = rObj ? rObj.color : '#38bdf8';
+        const numLabel = (row.num !== undefined && row.num < 10000) ? ` (${row.num})` : '';
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td class="rank-name-cell" style="font-weight: 700; color: ${rankColor};">${row.rank}${numLabel}</td>
+          <td style="font-weight: 600; text-align: center;">${row.areas}</td>
+          <td style="text-align: center;">${row.mph} mph</td>
+          <td style="text-align: center;">${row.feetTurn}</td>
+          <td style="text-align: center;">${row.feetSec}</td>
+          <td>${row.notes}</td>
+        `;
+        groundTbody.appendChild(tr);
+      });
+    }
+
+    if (airTbody) {
+      airTbody.innerHTML = '';
+      const airList = (typeof getAirMovementTable === 'function')
+        ? getAirMovementTable(mode)
+        : (globalThis.CMF_AIR_MOVEMENT || []);
+
+      airList.forEach(row => {
+        const rObj = (typeof UniversalTableEngine !== 'undefined' && UniversalTableEngine.getRankByName)
+          ? UniversalTableEngine.getRankByName(row.rank)
+          : null;
+        const rankColor = rObj ? rObj.color : '#38bdf8';
+        const numLabel = (row.num !== undefined && row.num < 10000) ? ` (${row.num})` : '';
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td class="rank-name-cell" style="font-weight: 700; color: ${rankColor};">${row.rank}${numLabel}</td>
+          <td style="font-weight: 600; text-align: center;">${row.combatAreas}</td>
+          <td style="text-align: center;">${row.mph}</td>
+          <td style="font-weight: 600; color: var(--text-main);">${row.category}</td>
+          <td>${row.notes}</td>
+        `;
+        airTbody.appendChild(tr);
+      });
+    }
+  },
+
   /* Roller Window & Dialog Logic */
   getRollerBox() {
     if (this.rollerPopoutWindow && !this.rollerPopoutWindow.closed) {
@@ -8435,6 +8513,34 @@ const App = {
         overflow-y: auto !important;
         min-height: 0 !important;
       }
+      .cheatsheet-close-btn {
+        display: inline-flex !important;
+        align-items: center !important;
+        gap: 2px !important;
+        background: #1e293b !important;
+        border: 1px solid var(--border-color, #334155) !important;
+        color: var(--text-main, #f1f5f9) !important;
+        font-size: 10pt !important;
+        font-weight: 700 !important;
+        padding: 2px 8px !important;
+        border-radius: 4px !important;
+        cursor: pointer !important;
+        min-height: 28px !important;
+      }
+      .cheatsheet-close-btn .close-x-icon {
+        color: #ef4444 !important;
+        font-weight: 800 !important;
+        font-size: 1.15em !important;
+        line-height: 1 !important;
+      }
+      .cheatsheet-close-btn:hover {
+        background: #ef4444 !important;
+        border-color: #dc2626 !important;
+        color: #ffffff !important;
+      }
+      .cheatsheet-close-btn:hover .close-x-icon {
+        color: #ffffff !important;
+      }
     `;
     popDoc.head.appendChild(popStyle);
 
@@ -8512,6 +8618,8 @@ const App = {
       this.renderCheatSheetTable();
     } else if (this.activeCheatTab === 'materials') {
       this.renderCheatSheetMaterials();
+    } else if (this.activeCheatTab === 'movement') {
+      this.renderCheatSheetMovement();
     }
     try {
       pop.focus();
@@ -8568,6 +8676,8 @@ const App = {
       this.renderCheatSheetTable();
     } else if (this.activeCheatTab === 'materials') {
       this.renderCheatSheetMaterials();
+    } else if (this.activeCheatTab === 'movement') {
+      this.renderCheatSheetMovement();
     }
     this.showStatusToast('↘ Rules Cheat Sheet docked back into main window');
   },
@@ -8641,6 +8751,8 @@ const App = {
       this.renderCheatSheetTable();
     } else if (this.activeCheatTab === 'materials') {
       this.renderCheatSheetMaterials();
+    } else if (this.activeCheatTab === 'movement') {
+      this.renderCheatSheetMovement();
     }
   },
 

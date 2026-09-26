@@ -1,7 +1,7 @@
 {
-  "version": "1.5.22",
+  "version": "1.5.23",
   "releaseDate": "2026-09-25",
   "name": "Marvel Super Heroes Character Editor",
   "repo": "https://github.com/captainload/marvel-character-editor",
-  "notes": "Condensed the CP block horizontally and seamlessly integrated it into the CSS Grid layout across dual vitals rows, eliminating negative margin floating and overruns."
+  "notes": "Expanded vital chips to full column width with auto-aligned right-side steppers and Total KP display to eliminate border overflow, and anchored the CP / Tier block flush to the right margin across dual rows in CSS Grid."
 }

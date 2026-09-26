@@ -324,8 +324,8 @@ body {
   padding: 4px 10px;
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  gap: 3px;
+  justify-content: space-between;
+  gap: 2px;
   cursor: pointer;
   user-select: none;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.08);
@@ -335,7 +335,8 @@ body {
   font-family: inherit;
   font-size: 10pt;
   color: var(--text-main);
-  min-height: 44px;
+  min-height: 82px;
+  height: 82px;
   box-sizing: border-box;
 }
 
@@ -354,6 +355,41 @@ body {
 .point-buy-combined-block:active {
   transform: translateY(1px);
   box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.6);
+}
+
+.cp-block-tier-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: 8px;
+  font-size: 10pt;
+  padding-bottom: 2px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.cp-block-tier-header-left {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cp-block-tier-name-label {
+  color: #94a3b8;
+  font-size: 10pt;
+  font-weight: 600;
+}
+
+.cp-block-tier-name-val {
+  color: var(--marvel-gold);
+  font-size: 10.5pt;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .cp-block-top-row {
@@ -380,7 +416,7 @@ body {
   gap: 8px;
   font-size: 10pt;
   padding-top: 2px;
-  border-top: 1px solid rgba(255, 255, 255, 0.07);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .cp-block-tier-left {
@@ -1136,7 +1172,22 @@ body {
 }
 
 .vital-chip.vital-chip-karma {
-  flex: 0 0 auto;
+  flex: 0 0 560px;
+  width: 560px;
+  max-width: 560px;
+  min-height: 38px;
+  height: 38px;
+  box-sizing: border-box;
+  gap: 6px;
+  padding: 3px 8px;
+}
+
+.vital-chip.vital-chip-health {
+  width: 560px;
+  max-width: 560px;
+  min-height: 38px;
+  height: 38px;
+  box-sizing: border-box;
   gap: 6px;
   padding: 3px 8px;
 }
@@ -1200,6 +1251,7 @@ body {
   flex: 1 1 0;
   min-width: 0;
   gap: 0px;
+  margin-top: -44px;
 }
 
 .point-tier-group,
@@ -3325,10 +3377,23 @@ body[data-theme="aqua"] .cheatsheet-tabs-bar {
   }
   .vital-chip.vital-chip-karma {
     width: 100%;
+    max-width: 100%;
+    flex: 1 1 auto;
     justify-content: space-between;
+    height: auto;
+  }
+  .vital-chip.vital-chip-health {
+    width: 100%;
+    max-width: 100%;
+    height: auto;
   }
   .point-buy-strip {
+    margin-top: 0;
     width: 100%;
+  }
+  .point-buy-combined-block {
+    min-height: auto;
+    height: auto;
   }
   .modal-box {
     max-width: 96vw;
@@ -4557,6 +4622,18 @@ body[data-theme="manilla"] .point-buy-combined-block:hover {
   background: #e2ded6;
   border-color: #b91c1c;
   box-shadow: 0 0 8px rgba(185, 28, 28, 0.25);
+}
+
+body[data-theme="manilla"] .cp-block-tier-header {
+  border-bottom-color: rgba(0, 0, 0, 0.1);
+}
+
+body[data-theme="manilla"] .cp-block-tier-name-label {
+  color: #475569;
+}
+
+body[data-theme="manilla"] .cp-block-tier-name-val {
+  color: #78350f;
 }
 
 body[data-theme="manilla"] .cp-block-bottom-row {
@@ -6306,6 +6383,18 @@ body[data-theme="aqua"] .tier-readout-btn {
   background: linear-gradient(180deg, #173862 0%, #0d264a 100%) !important;
   border-color: #38bdf8 !important;
   color: #f1f5f9 !important;
+}
+
+body[data-theme="aqua"] .point-buy-combined-block .cp-block-tier-header {
+  border-bottom-color: rgba(56, 189, 248, 0.2);
+}
+
+body[data-theme="aqua"] .cp-block-tier-name-label {
+  color: #7dd3fc;
+}
+
+body[data-theme="aqua"] .cp-block-tier-name-val {
+  color: #38bdf8;
 }
 
 body[data-theme="aqua"] .point-buy-combined-block .cp-block-bottom-row {

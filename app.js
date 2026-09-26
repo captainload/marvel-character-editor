@@ -47,7 +47,7 @@ const App = {
   set superiorOptionTax(val) {
     this.superiorOptionCost = !!val;
   },
-  VERSION: '1.5.20',
+  VERSION: '1.5.21',
   BUILD_DATE: '2026-09-25',
   COMMIT_SHA: '6a15ff5',
   REPO_OWNER: 'captainload',
@@ -2123,10 +2123,64 @@ const App = {
       btnWizard.style.display = isLocked ? 'inline-flex' : 'none';
     }
 
+    const stripTierNameEl = document.getElementById('strip-tier-name');
+    if (stripTierNameEl) {
+      const tierVal = this.character ? this.character.pointTier : '400';
+      stripTierNameEl.textContent = this.getTierName(tierVal);
+    }
+
     this.updateCPSpendingLockUI(isLocked);
 
     const tierSelect = document.getElementById('point-tier-select');
     if (tierSelect) tierSelect.value = this.character.pointTier;
+  },
+
+  getTierName(tier) {
+    const t = String(tier || (this.character ? this.character.pointTier : '400')).toLowerCase();
+    switch (t) {
+      case '150':
+      case 'tier_150':
+      case 'skilled_human':
+        return 'Skilled Human / Agent';
+      case '200':
+      case 'tier_200':
+      case 'street_vigilante':
+      case 'street':
+        return 'Street Vigilante / Mystery Man';
+      case '300':
+      case 'tier_300':
+      case 'costumed_adventurer':
+        return 'Costumed Adventurer / Low-Powered';
+      case '400':
+      case 'tier_400':
+      case 'established_hero':
+      case 'standard':
+        return 'Established Hero / Mutant';
+      case '500':
+      case 'tier_500':
+      case 'major_superhero':
+      case 'high_powered':
+        return 'Major Superhero / Avenger';
+      case '600':
+      case 'tier_600':
+      case 'world_class_hero':
+      case 'cosmic':
+        return 'World-Class Hero / Powerhouse';
+      case 'custom':
+        return 'Custom Point Pool';
+      default: {
+        const parsed = parseInt(t, 10);
+        if (!isNaN(parsed)) {
+          if (parsed <= 150) return 'Skilled Human / Agent';
+          if (parsed <= 250) return 'Street Vigilante / Mystery Man';
+          if (parsed <= 350) return 'Costumed Adventurer / Low-Powered';
+          if (parsed <= 450) return 'Established Hero / Mutant';
+          if (parsed <= 550) return 'Major Superhero / Avenger';
+          return 'World-Class Hero / Powerhouse';
+        }
+        return 'Established Hero / Mutant';
+      }
+    }
   },
 
   renderVitals() {

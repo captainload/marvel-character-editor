@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Marvel Super Heroes (FASERIP) - Character Builder & Editor</title>
-  <link rel="stylesheet" href="styles.css?v=1.5.24">
+  <link rel="stylesheet" href="styles.css?v=1.5.25">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bangers&display=swap" rel="stylesheet">
@@ -26,11 +26,12 @@
         <div class="header-name-box">
           <input type="text" id="header-char-name" class="header-name-input" value="The Vanguard" title="Click to edit Character Name">
         </div>
-        <!-- Character Form Type following character's name -->
-        <div class="header-form-box" id="header-form-box" title="Character Physical Form and Origin">
+        <!-- Character Form Type following character's name (Clickable Button) -->
+        <button type="button" class="header-form-box" id="header-form-box" title="Change Character Physical Form (Opens Form Selection Dialog)">
           <span class="header-form-label">Form:</span>
           <strong id="header-form-display" class="header-form-val">Mutant</strong>
-        </div>
+          <span class="form-change-caret" style="color: #38bdf8; font-size: 8.5pt; margin-left: 2px;">▾</span>
+        </button>
         <span class="header-test-mode-badge" id="header-test-mode-badge" style="display: none;" title="Test Mode is Active (Karma is Infinite; changes are experimental)">TEST</span>
       </div>
 
@@ -1850,7 +1851,7 @@
           <!-- SECTION: PROGRAM UPDATES & AUTOMATED CHECKING -->
           <div style="font-weight: 700; color: var(--text-main); font-size: 11pt; border-bottom: 1px solid var(--border-color); padding-bottom: 6px; margin-top: 10px; display: flex; justify-content: space-between; align-items: center;">
             <span>🔄 Program Updates &amp; Automated Checking</span>
-            <span class="meta-tag" id="update-version-tag" style="color: var(--marvel-gold); font-size: 10pt;">v1.5.24</span>
+            <span class="meta-tag" id="update-version-tag" style="color: var(--marvel-gold); font-size: 10pt;">v1.5.25</span>
           </div>
 
           <div class="update-settings-panel" style="background: rgba(0, 0, 0, 0.2); border: 1px solid var(--border-color); border-radius: 6px; padding: 12px; display: flex; flex-direction: column; gap: 10px;">
@@ -2829,6 +2830,81 @@
     </div>
   </div>
 
+  <!-- MODAL: CHANGE PHYSICAL FORM & ORIGIN -->
+  <div id="modal-change-physical-form" class="modal-overlay">
+    <div class="modal-box" style="max-width: 580px; width: 95%;">
+      <div class="modal-header">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span class="modal-title">🧬 Change Physical Form &amp; Origin</span>
+        </div>
+        <button type="button" class="modal-close" id="btn-close-change-form-x">&times;</button>
+      </div>
+      <div class="modal-body" style="padding: 16px 20px; display: flex; flex-direction: column; gap: 14px;">
+        
+        <!-- Guidance Banner on Form Changes, Powers & GM Revision -->
+        <div class="change-form-guidance-card" style="background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 6px; padding: 12px 14px; font-size: 10pt; line-height: 1.45; color: #cbd5e1;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+            <span style="font-size: 1.15rem;">⚠️</span>
+            <strong style="color: #fbbf24; font-size: 10.5pt;">In-Game Transformations vs. Sheet Revision</strong>
+          </div>
+          <p style="margin: 0 0 6px 0;">
+            Physical form changes caused by the character's own powers (such as <em>Shapeshifting</em>, <em>Alter Ego</em>, <em>Density Manipulation</em>, <em>Growth</em>, <em>Shrinking</em>, or <em>Invisibility</em>) are handled through gameplay rather than modifying the base physical form on the character sheet.
+          </p>
+          <p style="margin: 0;">
+            After character creation, physical form changes should only be the result of <strong>external forces</strong> (e.g. Terrigenesis, cosmic radiation, cybernetic reconstruction, vampirism, gamma exposure) or <strong>GM-approved revision</strong>.
+          </p>
+        </div>
+
+        <!-- Lock Status Notice (Displayed when Starting KP or CP has been spent) -->
+        <div id="change-form-lock-banner" style="display: none; background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.35); border-radius: 6px; padding: 10px 14px; font-size: 10pt; line-height: 1.4; color: #fca5a5;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+            <span style="font-size: 1.1rem;">🔒</span>
+            <strong style="color: #ef4444; font-size: 10.5pt;">Physical Form Selection Locked</strong>
+          </div>
+          <div>
+            Starting CP or KP has already been spent on this character's abilities, powers, or talents.
+          </div>
+          <div style="margin-top: 4px; color: #fecaca;">
+            To unlock the form selection dropdown, roll back to the <strong>first character history entry (Revision #1)</strong> in the <strong>📜 History &amp; Log</strong> tab.
+          </div>
+          <button type="button" class="icon-btn compact" id="btn-change-form-rollback-action" style="margin-top: 8px; font-size: 10pt;" title="Rewind character to initial save point">
+            ⏮️ Roll Back to First Save Point (Revision #1)
+          </button>
+        </div>
+
+        <!-- Unlocked Status Notice (Displayed when at initial save point) -->
+        <div id="change-form-unlocked-banner" style="display: none; background: rgba(34, 197, 94, 0.1); border: 1px solid rgba(34, 197, 94, 0.3); border-radius: 6px; padding: 8px 12px; font-size: 10pt; color: #86efac;">
+          🔓 <strong>Form Selection Available:</strong> The character is at the initial save point (no starting CP or KP spent yet).
+        </div>
+
+        <!-- Physical Form Selection Dropdown -->
+        <div>
+          <label for="change-form-select" style="display: block; font-weight: 700; font-size: 10pt; margin-bottom: 4px; color: #38bdf8;">
+            Select Physical Form &amp; Origin:
+          </label>
+          <select id="change-form-select" class="field-input" style="width: 100%; min-height: 36px; font-size: 10.5pt;">
+            <!-- Populated dynamically from PHYSICAL_FORMS -->
+          </select>
+        </div>
+
+        <!-- Dynamic Physical Form Preview Box -->
+        <div id="change-form-preview-box" style="background: rgba(56, 189, 248, 0.06); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 6px; padding: 10px 14px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+            <strong id="change-form-preview-name" style="color: #38bdf8; font-size: 10pt;">Mutant (Homo Superior)</strong>
+            <span id="change-form-preview-cat" class="meta-tag" style="font-size: 10pt;">Metahuman</span>
+          </div>
+          <div id="change-form-preview-desc" style="font-size: 10pt; color: #cbd5e1; line-height: 1.4; margin-bottom: 6px;"></div>
+          <div id="change-form-preview-rules" style="font-size: 10pt; color: var(--marvel-gold); line-height: 1.3;"></div>
+        </div>
+
+      </div>
+      <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 8px; padding: 12px 18px; border-top: 1px solid var(--border-color);">
+        <button type="button" class="icon-btn" id="btn-close-change-form">Close</button>
+        <button type="button" class="icon-btn primary" id="btn-apply-change-form">Apply Form Change</button>
+      </div>
+    </div>
+  </div>
+
   <!-- MODAL: CUSTOM IN-UI DIALOG (ALERTS & CONFIRMATIONS) -->
   <div id="ui-dialog-modal" class="modal-overlay">
     <div class="modal-box ui-dialog-box" id="ui-dialog-box">
@@ -2935,13 +3011,13 @@
   </div>
 
   <!-- Scripts Loading -->
-  <script src="universal_table.js?v=1.5.24"></script>
-  <script src="data_forms.js?v=1.5.24"></script>
-  <script src="data_powers.js?v=1.5.24"></script>
-  <script src="data_talents.js?v=1.5.24"></script>
-  <script src="data_equipment.js?v=1.5.24"></script>
-  <script src="inventions.js?v=1.5.24"></script>
-  <script src="character_model.js?v=1.5.24"></script>
-  <script src="app.js?v=1.5.24"></script>
+  <script src="universal_table.js?v=1.5.25"></script>
+  <script src="data_forms.js?v=1.5.25"></script>
+  <script src="data_powers.js?v=1.5.25"></script>
+  <script src="data_talents.js?v=1.5.25"></script>
+  <script src="data_equipment.js?v=1.5.25"></script>
+  <script src="inventions.js?v=1.5.25"></script>
+  <script src="character_model.js?v=1.5.25"></script>
+  <script src="app.js?v=1.5.25"></script>
 </body>
 </html>

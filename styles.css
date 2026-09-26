@@ -427,7 +427,7 @@ body {
   gap: 6px;
 }
 
-/* Character Form Box following Name in Top Bar */
+/* Character Form Box following Name in Top Bar (Clickable Button) */
 .header-form-box {
   display: inline-flex;
   align-items: center;
@@ -440,6 +440,24 @@ body {
   height: 28px;
   white-space: nowrap;
   user-select: none;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.2s ease;
+}
+
+.header-form-box:hover {
+  background: rgba(56, 189, 248, 0.15);
+  border-color: #38bdf8;
+  transform: translateY(-1px);
+}
+
+.header-form-box:active {
+  transform: translateY(0);
+}
+
+.header-form-box:focus-visible {
+  outline: 2px solid var(--accent-blue);
+  outline-offset: 1px;
 }
 
 .header-form-label {
@@ -452,6 +470,16 @@ body {
   color: #38bdf8;
   font-size: 10pt;
   font-weight: 700;
+}
+
+.form-change-caret {
+  font-size: 8.5pt;
+  color: #38bdf8;
+  transition: transform 0.2s ease;
+}
+
+.header-form-box:hover .form-change-caret {
+  transform: scale(1.15);
 }
 
 /* Tier Readout Button on Tier Row */
@@ -4684,11 +4712,20 @@ body[data-theme="manilla"] .header-form-box {
   color: #000000;
 }
 
+body[data-theme="manilla"] .header-form-box:hover {
+  background: #ded8cb;
+  border-color: #b91c1c;
+}
+
 body[data-theme="manilla"] .header-form-label {
   color: #475569;
 }
 
 body[data-theme="manilla"] .header-form-val {
+  color: #b91c1c;
+}
+
+body[data-theme="manilla"] .form-change-caret {
   color: #b91c1c;
 }
 
@@ -4719,6 +4756,12 @@ body[data-theme="manilla"] .vital-karma-pill {
   background: #fef3c7;
   border-color: #d97706;
   color: #78350f;
+}
+
+body[data-theme="manilla"] .change-form-guidance-card {
+  background: #fef3c7 !important;
+  border-color: #d97706 !important;
+  color: #451a03 !important;
 }
 
 body[data-theme="manilla"] .vital-karma-pill.clickable:hover {
@@ -6407,11 +6450,20 @@ body[data-theme="aqua"] .header-form-box {
   color: #f0fdfa;
 }
 
+body[data-theme="aqua"] .header-form-box:hover {
+  background: rgba(30, 80, 140, 0.85);
+  border-color: #38bdf8;
+}
+
 body[data-theme="aqua"] .header-form-label {
   color: #7dd3fc;
 }
 
 body[data-theme="aqua"] .header-form-val {
+  color: #38bdf8;
+}
+
+body[data-theme="aqua"] .form-change-caret {
   color: #38bdf8;
 }
 
@@ -6437,6 +6489,12 @@ body[data-theme="aqua"] .cp-block-tier-name-val {
 
 body[data-theme="aqua"] .point-buy-combined-block .cp-block-bottom-row {
   border-top-color: rgba(56, 189, 248, 0.2);
+}
+
+body[data-theme="aqua"] .change-form-guidance-card {
+  background: rgba(14, 116, 144, 0.2) !important;
+  border-color: rgba(6, 182, 212, 0.4) !important;
+  color: #e0f2fe !important;
 }
 
 body[data-theme="aqua"] .point-buy-badge:hover,

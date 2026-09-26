@@ -47,7 +47,7 @@ const App = {
   set superiorOptionTax(val) {
     this.superiorOptionCost = !!val;
   },
-  VERSION: '1.5.24',
+  VERSION: '1.5.25',
   BUILD_DATE: '2026-09-25',
   COMMIT_SHA: '6a15ff5',
   REPO_OWNER: 'captainload',
@@ -355,6 +355,41 @@ const App = {
     const btnApplyCharInit = document.getElementById('btn-apply-char-init');
     if (btnApplyCharInit) {
       btnApplyCharInit.addEventListener('click', () => this.applyCreationWizardSetup());
+    }
+
+    // Change Physical Form Modal Controls & Header Form Box Button
+    const headerFormBox = document.getElementById('header-form-box');
+    if (headerFormBox) {
+      headerFormBox.addEventListener('click', () => {
+        this.openChangePhysicalFormModal();
+      });
+    }
+
+    const btnCloseChangeFormX = document.getElementById('btn-close-change-form-x');
+    if (btnCloseChangeFormX) {
+      btnCloseChangeFormX.addEventListener('click', () => this.closeChangePhysicalFormModal());
+    }
+
+    const btnCloseChangeForm = document.getElementById('btn-close-change-form');
+    if (btnCloseChangeForm) {
+      btnCloseChangeForm.addEventListener('click', () => this.closeChangePhysicalFormModal());
+    }
+
+    const changeFormSelect = document.getElementById('change-form-select');
+    if (changeFormSelect) {
+      changeFormSelect.addEventListener('change', (e) => {
+        this.updateChangeFormPreview(e.target.value);
+      });
+    }
+
+    const btnApplyChangeForm = document.getElementById('btn-apply-change-form');
+    if (btnApplyChangeForm) {
+      btnApplyChangeForm.addEventListener('click', () => this.applyChangePhysicalForm());
+    }
+
+    const btnChangeFormRollback = document.getElementById('btn-change-form-rollback-action');
+    if (btnChangeFormRollback) {
+      btnChangeFormRollback.addEventListener('click', () => this.handleRollbackFromChangeFormModal());
     }
 
     const initTierSelect = document.getElementById('init-tier-select');
@@ -1977,13 +2012,26 @@ const App = {
         `<option value="${f.id}">${f.name} (${f.source})</option>`
       ).join('');
       formSel.addEventListener('change', (e) => {
+        if (this.isFormChangeLocked()) {
+          this.showCustomAlert(
+            'Physical form selection is locked because starting CP or KP has already been spent.\n\nRoll back to the first character history entry (Revision #1) in the History & Log tab to unlock.',
+            '🔒 Form Selection Locked'
+          );
+          formSel.value = this.character.formKey || 'mutant';
+          return;
+        }
         const f = globalThis.PHYSICAL_FORMS.find(x => x.id === e.target.value);
         if (f) {
           this.character.formKey = f.id;
           this.character.formName = f.name;
           this.character.isSwarmForm = (f.id === 's32_collective_mass' || f.id === 'swarm_collective');
+          if (this.character.editLog && this.character.editLog[0]) {
+            this.character.editLog[0].description = `Initial save point: ${this.character.name} (${this.character.pointBudget} CP, ${this.character.formName})`;
+            this.character.editLog[0].snapshot = (typeof this.character.getCleanSnapshot === 'function') ? this.character.getCleanSnapshot() : JSON.parse(JSON.stringify(this.character.toJSON()));
+          }
           this.saveState();
           this.render();
+          this.showStatusToast(`✨ Physical form changed to: ${f.name}`);
         }
       });
     }
@@ -7278,7 +7326,19 @@ const App = {
     const rName = document.getElementById('bio-real-name');
     if (rName) rName.value = this.character.realName || '';
     const pForm = document.getElementById('bio-physical-form');
-    if (pForm) pForm.value = this.character.formKey || 'normal_human';
+    if (pForm) {
+      pForm.value = this.character.formKey || 'normal_human';
+      const isLocked = this.isFormChangeLocked();
+      pForm.disabled = isLocked;
+      pForm.title = isLocked
+        ? 'Physical form is locked because starting CP or KP has been spent. Roll back to Revision #1 in History & Log to unlock.'
+        : 'Select Physical Form & Origin';
+      if (isLocked) {
+        pForm.classList.add('cp-spending-locked');
+      } else {
+        pForm.classList.remove('cp-spending-locked');
+      }
+    }
     const idSel = document.getElementById('bio-identity');
     if (idSel) idSel.value = this.character.identity || 'Secret';
     const genInp = document.getElementById('bio-gender');
@@ -11933,6 +11993,169 @@ const App = {
       }
       rulesEl.textContent = rulesText ? `Special: ${rulesText}` : '';
     }
+  },
+
+  /* Physical Form & Origin Management */
+  isFormChangeLocked() {
+    if (!this.character) return false;
+    // 1. If edit history index is past the first entry (index 0)
+    if (typeof this.character.editHistoryIndex === 'number' && this.character.editHistoryIndex > 0) {
+      return true;
+    }
+    // 2. If any starting CP has been spent beyond baseline
+    if (typeof this.character.calculateSpentPoints === 'function') {
+      const spent = this.character.calculateSpentPoints();
+      if (spent.totalSpent > 48) return true;
+      if (spent.breakdown) {
+        if ((spent.breakdown.powers || 0) > 0) return true;
+        if ((spent.breakdown.talents || 0) > 0) return true;
+        if ((spent.breakdown.contacts || 0) > 0) return true;
+      }
+    }
+    if (this.character.powers && this.character.powers.length > 0) return true;
+    if (this.character.talents && this.character.talents.length > 0) return true;
+    if (this.character.contacts && this.character.contacts.length > 0) return true;
+
+    // 3. If any starting KP has been spent
+    if (this.character.advancementLog && this.character.advancementLog.length > 0) {
+      return true;
+    }
+    if (typeof this.character.calculateBaseKarma === 'function') {
+      const baseKarma = this.character.calculateBaseKarma();
+      if (typeof this.character.currentKarma === 'number' && this.character.currentKarma < baseKarma) {
+        return true;
+      }
+    }
+    return false;
+  },
+
+  openChangePhysicalFormModal() {
+    if (!this.character) return;
+    const modal = document.getElementById('modal-change-physical-form');
+    if (!modal) return;
+
+    const formSelect = document.getElementById('change-form-select');
+    if (formSelect && globalThis.PHYSICAL_FORMS) {
+      formSelect.innerHTML = globalThis.PHYSICAL_FORMS.map(f =>
+        `<option value="${f.id}">${f.name} (${f.category || 'Standard'})</option>`
+      ).join('');
+      const curFormKey = this.character.formKey || 'mutant';
+      formSelect.value = curFormKey;
+      this.updateChangeFormPreview(curFormKey);
+    }
+
+    const isLocked = this.isFormChangeLocked();
+    const lockBanner = document.getElementById('change-form-lock-banner');
+    const unlockedBanner = document.getElementById('change-form-unlocked-banner');
+    const applyBtn = document.getElementById('btn-apply-change-form');
+
+    if (lockBanner) lockBanner.style.display = isLocked ? 'block' : 'none';
+    if (unlockedBanner) unlockedBanner.style.display = isLocked ? 'none' : 'block';
+
+    if (formSelect) {
+      formSelect.disabled = isLocked;
+      if (isLocked) {
+        formSelect.classList.add('cp-spending-locked');
+        formSelect.title = 'Form selection is locked because starting CP or KP has already been spent.';
+      } else {
+        formSelect.classList.remove('cp-spending-locked');
+        formSelect.title = 'Choose your physical form and origin';
+      }
+    }
+
+    if (applyBtn) {
+      applyBtn.disabled = isLocked;
+      if (isLocked) {
+        applyBtn.title = 'Form selection is locked because starting CP or KP has already been spent.';
+      } else {
+        applyBtn.title = 'Apply selected physical form to character';
+      }
+    }
+
+    modal.classList.add('open');
+  },
+
+  closeChangePhysicalFormModal() {
+    const modal = document.getElementById('modal-change-physical-form');
+    if (modal) modal.classList.remove('open');
+  },
+
+  updateChangeFormPreview(formId) {
+    const forms = globalThis.PHYSICAL_FORMS || [];
+    const f = forms.find(x => x.id === formId) || forms[0];
+    if (!f) return;
+
+    const nameEl = document.getElementById('change-form-preview-name');
+    const catEl = document.getElementById('change-form-preview-cat');
+    const descEl = document.getElementById('change-form-preview-desc');
+    const rulesEl = document.getElementById('change-form-preview-rules');
+
+    if (nameEl) nameEl.textContent = f.name;
+    if (catEl) catEl.textContent = f.category || f.source || 'Standard';
+    if (descEl) descEl.textContent = f.description || '';
+    if (rulesEl) {
+      let rulesText = '';
+      if (Array.isArray(f.specialRules)) {
+        rulesText = f.specialRules.join(' ');
+      } else if (f.specialRules) {
+        rulesText = f.specialRules;
+      }
+      rulesEl.textContent = rulesText ? `Special: ${rulesText}` : '';
+    }
+  },
+
+  applyChangePhysicalForm() {
+    if (!this.character) return;
+    if (this.isFormChangeLocked()) {
+      this.showCustomAlert(
+        'Physical form changes are locked because starting CP or KP has already been spent.\n\nRoll back to the first character history entry (Revision #1) in the History & Log tab to unlock.',
+        '🔒 Form Selection Locked'
+      );
+      return;
+    }
+
+    const formSelect = document.getElementById('change-form-select');
+    const formId = formSelect ? formSelect.value : (this.character.formKey || 'mutant');
+    const forms = globalThis.PHYSICAL_FORMS || [];
+    const f = forms.find(x => x.id === formId);
+    if (!f) return;
+
+    this.character.formKey = f.id;
+    this.character.formName = f.name;
+    this.character.isSwarmForm = (f.id === 's32_collective_mass' || f.id === 'swarm_collective');
+
+    if (this.character.editLog && this.character.editLog[0]) {
+      this.character.editLog[0].description = `Initial save point: ${this.character.name} (${this.character.pointBudget} CP, ${this.character.formName})`;
+      this.character.editLog[0].snapshot = (typeof this.character.getCleanSnapshot === 'function') ? this.character.getCleanSnapshot() : JSON.parse(JSON.stringify(this.character.toJSON()));
+    }
+
+    const headerFormEl = document.getElementById('header-form-display');
+    if (headerFormEl) headerFormEl.textContent = f.name;
+
+    const bioFormEl = document.getElementById('bio-physical-form');
+    if (bioFormEl) bioFormEl.value = f.id;
+
+    const initFormSelect = document.getElementById('init-form-select');
+    if (initFormSelect) initFormSelect.value = f.id;
+
+    this.saveState();
+    this.render();
+    this.closeChangePhysicalFormModal();
+    this.showStatusToast(`✨ Physical form changed to: ${f.name}`);
+  },
+
+  async handleRollbackFromChangeFormModal() {
+    const confirmed = await this.showCustomConfirm(
+      'Roll back character to Revision #1 (Initial save point)?\n\nAll subsequent CP and KP spending will be rewound to unlock physical form selection.',
+      '⏮️ Roll Back to First Save Point',
+      null,
+      'Roll Back',
+      'Cancel'
+    );
+    if (!confirmed) return;
+    this.handleRollbackToEdit(0);
+    this.closeCreationWizardModal();
+    this.openChangePhysicalFormModal();
   },
 
   applyCreationWizardSetup() {

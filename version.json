@@ -1,7 +1,7 @@
 {
-  "version": "1.5.24",
-  "releaseDate": "2026-09-25",
+  "version": "1.5.25",
+  "releaseDate": "2026-09-26",
   "name": "Marvel Super Heroes Character Editor",
   "repo": "https://github.com/captainload/marvel-character-editor",
-  "notes": "Isolated starting CP budget slider exclusively to the new character creation wizard, anchored the first character save point strictly after hero name, CP allotment and physical form are chosen, and made CP breakdown modal a read-only budget inspector."
+  "notes": "Added interactive Physical Form button opening a Change Physical Form dialog with guidance on in-game power transformations vs GM revision, and locked form dropdown once starting KP or CP is spent until rolled back to the first save point."
 }

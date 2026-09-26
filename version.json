@@ -1,7 +1,7 @@
 {
-  "version": "1.5.17",
+  "version": "1.5.18",
   "releaseDate": "2026-09-25",
   "name": "Marvel Super Heroes Character Editor",
   "repo": "https://github.com/captainload/marvel-character-editor",
-  "notes": "Added interactive Character Point (CP) breakdown pop-up modal, starting CP budget scaling slider (-25% to +50%), and intuitive green active indicator for touch controls."
+  "notes": "Configured starting CP budget slider to jump in discrete increments of 25 (-25%, 0%, +25%, +50%) with datalist snap markers and synchronized presets."
 }

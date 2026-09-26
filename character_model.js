@@ -1558,7 +1558,9 @@ class FASERIPCharacter {
   }
 
   setCpAdjustment(percent) {
-    const p = Math.max(-25, Math.min(50, parseInt(percent) || 0));
+    let p = parseInt(percent) || 0;
+    p = Math.round(p / 25) * 25;
+    p = Math.max(-25, Math.min(50, p));
     this.cpAdjustment = p;
     if (!this.basePointBudget) {
       this.basePointBudget = this.getBaseTierBudget(this.pointTier);
@@ -2613,7 +2615,9 @@ class FASERIPCharacter {
       this.isSwarmForm = (f.id === 's32_collective_mass' || f.id === 'swarm_collective');
     }
     if (cpAdjustment !== null && cpAdjustment !== undefined) {
-      this.cpAdjustment = Math.max(-25, Math.min(50, parseInt(cpAdjustment) || 0));
+      let p = parseInt(cpAdjustment) || 0;
+      p = Math.round(p / 25) * 25;
+      this.cpAdjustment = Math.max(-25, Math.min(50, p));
     }
     if (tier === 'custom') {
       const budget = parseInt(customBudget) || 400;

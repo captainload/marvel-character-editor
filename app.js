@@ -47,7 +47,7 @@ const App = {
   set superiorOptionTax(val) {
     this.superiorOptionCost = !!val;
   },
-  VERSION: '1.5.17',
+  VERSION: '1.5.18',
   BUILD_DATE: '2026-09-25',
   COMMIT_SHA: '6a15ff5',
   REPO_OWNER: 'captainload',
@@ -9833,7 +9833,9 @@ const App = {
 
   setCpSlider(val) {
     if (!this.character) return;
-    const pct = Math.max(-25, Math.min(50, parseInt(val) || 0));
+    let pct = parseInt(val) || 0;
+    pct = Math.round(pct / 25) * 25;
+    pct = Math.max(-25, Math.min(50, pct));
     this.character.setCpAdjustment(pct);
     this.renderPointBuy();
     this.renderCpBreakdownModal();
@@ -9933,7 +9935,12 @@ const App = {
     const tierSelect = document.getElementById('init-tier-select');
     const customBudgetInp = document.getElementById('init-custom-budget');
     if (!wizardSlider || !wizardSliderReadout) return;
-    const adj = parseInt(wizardSlider.value) || 0;
+    let adj = parseInt(wizardSlider.value) || 0;
+    adj = Math.round(adj / 25) * 25;
+    adj = Math.max(-25, Math.min(50, adj));
+    if (parseInt(wizardSlider.value) !== adj) {
+      wizardSlider.value = adj;
+    }
     let baseBudget = 400;
     if (tierSelect) {
       if (tierSelect.value === 'custom') {

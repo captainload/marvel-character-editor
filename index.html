@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Marvel Super Heroes (FASERIP) - Character Builder & Editor</title>
-  <link rel="stylesheet" href="styles.css?v=1.5.17">
+  <link rel="stylesheet" href="styles.css?v=1.5.18">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bangers&display=swap" rel="stylesheet">
@@ -1828,7 +1828,7 @@
           <!-- SECTION: PROGRAM UPDATES & AUTOMATED CHECKING -->
           <div style="font-weight: 700; color: var(--text-main); font-size: 11pt; border-bottom: 1px solid var(--border-color); padding-bottom: 6px; margin-top: 10px; display: flex; justify-content: space-between; align-items: center;">
             <span>🔄 Program Updates &amp; Automated Checking</span>
-            <span class="meta-tag" id="update-version-tag" style="color: var(--marvel-gold); font-size: 10pt;">v1.5.17</span>
+            <span class="meta-tag" id="update-version-tag" style="color: var(--marvel-gold); font-size: 10pt;">v1.5.18</span>
           </div>
 
           <div class="update-settings-panel" style="background: rgba(0, 0, 0, 0.2); border: 1px solid var(--border-color); border-radius: 6px; padding: 12px; display: flex; flex-direction: column; gap: 10px;">
@@ -1940,17 +1940,27 @@
           <!-- Slider Range Control -->
           <div class="cp-slider-control-row" style="margin-top: 6px; display: flex; align-items: center; gap: 12px;">
             <span style="font-size: 10pt; font-weight: 700; color: #ef4444; width: 45px;">-25%</span>
-            <input type="range" id="cp-budget-slider" min="-25" max="50" step="1" value="0" style="flex: 1; cursor: pointer; accent-color: var(--marvel-gold);" aria-label="Starting CP adjustment slider">
+            <input type="range" id="cp-budget-slider" min="-25" max="50" step="25" value="0" list="cp-slider-steps" style="flex: 1; cursor: pointer; accent-color: var(--marvel-gold);" aria-label="Starting CP adjustment slider">
             <span style="font-size: 10pt; font-weight: 700; color: #22c55e; width: 45px; text-align: right;">+50%</span>
+            <datalist id="cp-slider-steps">
+              <option value="-25" label="-25%"></option>
+              <option value="0" label="0%"></option>
+              <option value="25" label="+25%"></option>
+              <option value="50" label="+50%"></option>
+            </datalist>
+          </div>
+          <div style="display: flex; justify-content: space-between; padding-left: 57px; padding-right: 57px; font-size: 10pt; color: var(--text-muted); margin-top: 2px;">
+            <span style="font-weight: 600;">-25%</span>
+            <span style="font-weight: 600;">0%</span>
+            <span style="font-weight: 600;">+25%</span>
+            <span style="font-weight: 600;">+50%</span>
           </div>
 
           <!-- Quick Presets -->
-          <div style="display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-top: 4px;">
+          <div style="display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-top: 6px;">
             <span style="font-size: 10pt; color: var(--text-muted); margin-right: 4px;">Quick Presets:</span>
             <button type="button" class="icon-btn compact cp-preset-btn" data-pct="-25">-25% (Min)</button>
-            <button type="button" class="icon-btn compact cp-preset-btn" data-pct="-10">-10%</button>
             <button type="button" class="icon-btn compact cp-preset-btn active" data-pct="0">0% (Standard)</button>
-            <button type="button" class="icon-btn compact cp-preset-btn" data-pct="10">+10%</button>
             <button type="button" class="icon-btn compact cp-preset-btn" data-pct="25">+25%</button>
             <button type="button" class="icon-btn compact cp-preset-btn" data-pct="50">+50% (Max)</button>
           </div>
@@ -2775,12 +2785,24 @@
             <span id="wizard-cp-slider-readout" class="meta-tag" style="font-size: 10pt; color: #38bdf8; font-weight: 800;">±0% (400 CP)</span>
           </div>
           <div style="display: flex; align-items: center; gap: 10px;">
-            <span style="font-size: 10pt; font-weight: 700; color: #ef4444;">-25%</span>
-            <input type="range" id="wizard-cp-slider" min="-25" max="50" step="1" value="0" style="flex: 1; cursor: pointer; accent-color: var(--marvel-gold);" aria-label="Starting CP adjustment slider">
-            <span style="font-size: 10pt; font-weight: 700; color: #22c55e;">+50%</span>
+            <span style="font-size: 10pt; font-weight: 700; color: #ef4444; width: 45px;">-25%</span>
+            <input type="range" id="wizard-cp-slider" min="-25" max="50" step="25" value="0" list="wizard-cp-slider-steps" style="flex: 1; cursor: pointer; accent-color: var(--marvel-gold);" aria-label="Starting CP adjustment slider">
+            <span style="font-size: 10pt; font-weight: 700; color: #22c55e; width: 45px; text-align: right;">+50%</span>
+            <datalist id="wizard-cp-slider-steps">
+              <option value="-25" label="-25%"></option>
+              <option value="0" label="0%"></option>
+              <option value="25" label="+25%"></option>
+              <option value="50" label="+50%"></option>
+            </datalist>
           </div>
-          <div style="font-size: 10pt; color: var(--text-muted);">
-            Scale starting budget up or down relative to base tier.
+          <div style="display: flex; justify-content: space-between; padding-left: 55px; padding-right: 55px; font-size: 10pt; color: var(--text-muted); margin-top: 2px;">
+            <span style="font-weight: 600;">-25%</span>
+            <span style="font-weight: 600;">0%</span>
+            <span style="font-weight: 600;">+25%</span>
+            <span style="font-weight: 600;">+50%</span>
+          </div>
+          <div style="font-size: 10pt; color: var(--text-muted); margin-top: 4px;">
+            Scale starting budget up or down by increments of 25 (-25%, 0%, +25%, +50%).
           </div>
         </div>
 
@@ -2917,13 +2939,13 @@
   </div>
 
   <!-- Scripts Loading -->
-  <script src="universal_table.js?v=1.5.17"></script>
-  <script src="data_forms.js?v=1.5.17"></script>
-  <script src="data_powers.js?v=1.5.17"></script>
-  <script src="data_talents.js?v=1.5.17"></script>
-  <script src="data_equipment.js?v=1.5.17"></script>
-  <script src="inventions.js?v=1.5.17"></script>
-  <script src="character_model.js?v=1.5.17"></script>
-  <script src="app.js?v=1.5.17"></script>
+  <script src="universal_table.js?v=1.5.18"></script>
+  <script src="data_forms.js?v=1.5.18"></script>
+  <script src="data_powers.js?v=1.5.18"></script>
+  <script src="data_talents.js?v=1.5.18"></script>
+  <script src="data_equipment.js?v=1.5.18"></script>
+  <script src="inventions.js?v=1.5.18"></script>
+  <script src="character_model.js?v=1.5.18"></script>
+  <script src="app.js?v=1.5.18"></script>
 </body>
 </html>

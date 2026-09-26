@@ -1,7 +1,7 @@
 {
-  "version": "1.5.18",
+  "version": "1.5.19",
   "releaseDate": "2026-09-25",
   "name": "Marvel Super Heroes Character Editor",
   "repo": "https://github.com/captainload/marvel-character-editor",
-  "notes": "Configured starting CP budget slider to jump in discrete increments of 25 (-25%, 0%, +25%, +50%) with datalist snap markers and synchronized presets."
+  "notes": "Streamlined Tier row by removing CP usage breakdown text, converted Tier readout into an interactive breakdown trigger button, and styled CP Used header display with prominent button aesthetics."
 }

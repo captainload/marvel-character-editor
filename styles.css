@@ -265,27 +265,87 @@ body {
   }
 }
 
-/* CMF Point-Buy Header Badge */
+/* CMF Point-Buy Header Badge / Button */
 .point-buy-badge {
-  background: #0d121d;
+  background: linear-gradient(180deg, #182235 0%, #0d1424 100%);
   border: 1px solid var(--marvel-gold);
   border-radius: 5px;
-  padding: 2px 10px;
+  padding: 3px 10px;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 7px;
+  font-family: inherit;
   font-size: 10pt;
   min-height: 32px;
   cursor: pointer;
   user-select: none;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1);
   transition: all 0.2s ease;
+  color: var(--text-main);
 }
 
 .point-buy-badge:hover,
 .point-buy-badge.clickable:hover {
-  background: #1e293b;
+  background: linear-gradient(180deg, #243048 0%, #151d2e 100%);
   border-color: #38bdf8;
-  box-shadow: 0 0 8px rgba(56, 189, 248, 0.35);
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  transform: translateY(-1px);
+}
+
+.point-buy-badge:active {
+  transform: translateY(1px);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.6);
+}
+
+.point-buy-badge .point-buy-action-pill {
+  font-size: 10pt;
+  font-weight: 700;
+  background: rgba(234, 179, 8, 0.18);
+  border: 1px solid rgba(234, 179, 8, 0.45);
+  border-radius: 4px;
+  padding: 1px 7px;
+  color: var(--marvel-gold);
+  letter-spacing: 0.2px;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.point-buy-badge:hover .point-buy-action-pill {
+  background: rgba(56, 189, 248, 0.25);
+  border-color: #38bdf8;
+  color: #38bdf8;
+}
+
+/* Tier Readout Button on Tier Row */
+.tier-readout-btn {
+  background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+  border: 1px solid var(--marvel-gold);
+  border-radius: 5px;
+  color: var(--marvel-gold);
+  padding: 4px 10px;
+  font-family: inherit;
+  font-size: 10pt;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.tier-readout-btn:hover {
+  background: linear-gradient(180deg, #334155 0%, #1e293b 100%);
+  border-color: #38bdf8;
+  color: #38bdf8;
+  box-shadow: 0 0 8px rgba(56, 189, 248, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  transform: translateY(-1px);
+}
+
+.tier-readout-btn:active {
+  transform: translateY(1px);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.5);
 }
 
 .point-tier-status-group.clickable,
@@ -6010,10 +6070,25 @@ body[data-theme="manilla"] #ui-dialog-message {
   color: #000000 !important;
 }
 
-body[data-theme="manilla"] .point-buy-badge {
-  background: #eae6df !important;
+body[data-theme="manilla"] .point-buy-badge,
+body[data-theme="manilla"] .tier-readout-btn {
+  background: linear-gradient(180deg, #fdfcf9 0%, #eae6df 100%) !important;
   border-color: #c2bcaf !important;
   color: #000000 !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08) !important;
+}
+
+body[data-theme="manilla"] .point-buy-badge:hover,
+body[data-theme="manilla"] .tier-readout-btn:hover {
+  background: #ffffff !important;
+  border-color: #2563eb !important;
+  color: #1e3a8a !important;
+}
+
+body[data-theme="manilla"] .point-buy-badge .point-buy-action-pill {
+  background: rgba(0, 0, 0, 0.06) !important;
+  border-color: #c2bcaf !important;
+  color: #1e293b !important;
 }
 
 body[data-theme="manilla"] .feasibility-pill {
@@ -6078,6 +6153,26 @@ body[data-theme="aqua"] .char-header-top {
 body[data-theme="aqua"] .point-buy-strip {
   background: #133560;
   border-color: #23588e;
+}
+
+body[data-theme="aqua"] .point-buy-badge,
+body[data-theme="aqua"] .tier-readout-btn {
+  background: linear-gradient(180deg, #173862 0%, #0d264a 100%) !important;
+  border-color: #38bdf8 !important;
+  color: #f1f5f9 !important;
+}
+
+body[data-theme="aqua"] .point-buy-badge:hover,
+body[data-theme="aqua"] .tier-readout-btn:hover {
+  background: linear-gradient(180deg, #204a80 0%, #12315c 100%) !important;
+  border-color: #67e8f9 !important;
+  color: #67e8f9 !important;
+}
+
+body[data-theme="aqua"] .point-buy-badge .point-buy-action-pill {
+  background: rgba(56, 189, 248, 0.15) !important;
+  border-color: rgba(56, 189, 248, 0.4) !important;
+  color: #38bdf8 !important;
 }
 
 body[data-theme="aqua"] .vital-chip {

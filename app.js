@@ -47,7 +47,7 @@ const App = {
   set superiorOptionTax(val) {
     this.superiorOptionCost = !!val;
   },
-  VERSION: '1.5.18',
+  VERSION: '1.5.19',
   BUILD_DATE: '2026-09-25',
   COMMIT_SHA: '6a15ff5',
   REPO_OWNER: 'captainload',
@@ -250,6 +250,14 @@ const App = {
     const pointBuyBadge = document.getElementById('point-buy-badge');
     if (pointBuyBadge) {
       pointBuyBadge.addEventListener('click', () => this.openCpBreakdownModal());
+    }
+
+    const stripTierBtn = document.getElementById('strip-tier-button');
+    if (stripTierBtn) {
+      stripTierBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.openCpBreakdownModal();
+      });
     }
 
     const pointTierGroup = document.getElementById('point-tier-status-group');
@@ -2054,6 +2062,11 @@ const App = {
       }
       stripTierEl.textContent = isLocked ? `${displayTier} [Setup Pending]` : displayTier;
       stripTierEl.style.color = isLocked ? '#f59e0b' : 'var(--marvel-gold)';
+    }
+
+    const stripTierBtn = document.getElementById('strip-tier-button');
+    if (stripTierBtn) {
+      stripTierBtn.style.borderColor = isLocked ? '#f59e0b' : 'var(--marvel-gold)';
     }
 
     const adjustBadge = document.getElementById('strip-cp-adjust-badge');

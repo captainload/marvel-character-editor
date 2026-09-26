@@ -316,6 +316,106 @@ body {
   color: #38bdf8;
 }
 
+/* Combined Point-Buy CP & Tier Block */
+.point-buy-combined-block {
+  background: linear-gradient(180deg, #182235 0%, #0d1424 100%);
+  border: 1px solid var(--marvel-gold);
+  border-radius: 5px;
+  padding: 4px 10px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 3px;
+  cursor: pointer;
+  user-select: none;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  transition: all 0.2s ease;
+  width: 100%;
+  text-align: left;
+  font-family: inherit;
+  font-size: 10pt;
+  color: var(--text-main);
+  min-height: 44px;
+  box-sizing: border-box;
+}
+
+.point-buy-combined-block:focus-visible {
+  outline: 2px solid var(--marvel-gold);
+  outline-offset: 1px;
+}
+
+.point-buy-combined-block:hover {
+  background: linear-gradient(180deg, #243048 0%, #151d2e 100%);
+  border-color: #38bdf8;
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  transform: translateY(-1px);
+}
+
+.point-buy-combined-block:active {
+  transform: translateY(1px);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.6);
+}
+
+.cp-block-top-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: 8px;
+}
+
+.cp-block-numbers {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10pt;
+  white-space: nowrap;
+}
+
+.cp-block-bottom-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: 8px;
+  font-size: 10pt;
+  padding-top: 2px;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.cp-block-tier-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Character Form Box following Name in Top Bar */
+.header-form-box {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  padding: 2px 8px;
+  font-size: 10pt;
+  height: 28px;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.header-form-label {
+  color: var(--text-muted);
+  font-size: 10pt;
+  font-weight: 600;
+}
+
+.header-form-val {
+  color: #38bdf8;
+  font-size: 10pt;
+  font-weight: 700;
+}
+
 /* Tier Readout Button on Tier Row */
 .tier-readout-btn {
   background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
@@ -1089,17 +1189,17 @@ body {
 
 /* Condensed CMF Point-Buy Budget Configuration Bar */
 .point-buy-strip {
-  background: #0c1322;
-  border: 1px solid var(--border-color);
-  border-radius: 5px;
-  padding: 3px 10px;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  padding: 0;
   margin-bottom: 0px;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  align-items: stretch;
+  justify-content: stretch;
   flex: 1 1 0;
   min-width: 0;
-  gap: 8px;
+  gap: 0px;
 }
 
 .point-tier-group,
@@ -4441,9 +4541,40 @@ body[data-theme="manilla"] .header-name-input {
 
 /* Manilla: Vitals & Point-Buy */
 body[data-theme="manilla"] .point-buy-strip {
+  background: transparent;
+  border: none;
+  color: #000000;
+}
+
+body[data-theme="manilla"] .point-buy-combined-block {
+  background: #f0ede6;
+  border-color: #c2bcaf;
+  color: #000000;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+body[data-theme="manilla"] .point-buy-combined-block:hover {
+  background: #e2ded6;
+  border-color: #b91c1c;
+  box-shadow: 0 0 8px rgba(185, 28, 28, 0.25);
+}
+
+body[data-theme="manilla"] .cp-block-bottom-row {
+  border-top-color: rgba(0, 0, 0, 0.1);
+}
+
+body[data-theme="manilla"] .header-form-box {
   background: #eae6df;
   border-color: #c2bcaf;
   color: #000000;
+}
+
+body[data-theme="manilla"] .header-form-label {
+  color: #475569;
+}
+
+body[data-theme="manilla"] .header-form-val {
+  color: #b91c1c;
 }
 
 body[data-theme="manilla"] .vital-chip {
@@ -6151,15 +6282,34 @@ body[data-theme="aqua"] .char-header-top {
 }
 
 body[data-theme="aqua"] .point-buy-strip {
-  background: #133560;
+  background: transparent;
+  border: none;
+}
+
+body[data-theme="aqua"] .header-form-box {
+  background: rgba(16, 45, 82, 0.7);
   border-color: #23588e;
+  color: #f0fdfa;
+}
+
+body[data-theme="aqua"] .header-form-label {
+  color: #7dd3fc;
+}
+
+body[data-theme="aqua"] .header-form-val {
+  color: #38bdf8;
 }
 
 body[data-theme="aqua"] .point-buy-badge,
+body[data-theme="aqua"] .point-buy-combined-block,
 body[data-theme="aqua"] .tier-readout-btn {
   background: linear-gradient(180deg, #173862 0%, #0d264a 100%) !important;
   border-color: #38bdf8 !important;
   color: #f1f5f9 !important;
+}
+
+body[data-theme="aqua"] .point-buy-combined-block .cp-block-bottom-row {
+  border-top-color: rgba(56, 189, 248, 0.2);
 }
 
 body[data-theme="aqua"] .point-buy-badge:hover,

@@ -47,7 +47,7 @@ const App = {
   set superiorOptionTax(val) {
     this.superiorOptionCost = !!val;
   },
-  VERSION: '1.5.19',
+  VERSION: '1.5.20',
   BUILD_DATE: '2026-09-25',
   COMMIT_SHA: '6a15ff5',
   REPO_OWNER: 'captainload',
@@ -243,13 +243,26 @@ const App = {
 
     const btnOpenWizard = document.getElementById('btn-open-creation-wizard');
     if (btnOpenWizard) {
-      btnOpenWizard.addEventListener('click', () => this.openCreationWizardModal());
+      btnOpenWizard.addEventListener('click', (e) => {
+        if (e && e.stopPropagation) e.stopPropagation();
+        this.openCreationWizardModal();
+      });
     }
 
     // CP Breakdown Modal & Slider Controls
     const pointBuyBadge = document.getElementById('point-buy-badge');
     if (pointBuyBadge) {
-      pointBuyBadge.addEventListener('click', () => this.openCpBreakdownModal());
+      pointBuyBadge.addEventListener('click', (e) => {
+        if (e && e.target && e.target.closest('#btn-open-creation-wizard')) return;
+        this.openCpBreakdownModal();
+      });
+      pointBuyBadge.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          if (e.target && e.target.closest('#btn-open-creation-wizard')) return;
+          e.preventDefault();
+          this.openCpBreakdownModal();
+        }
+      });
     }
 
     const stripTierBtn = document.getElementById('strip-tier-button');
@@ -2026,6 +2039,12 @@ const App = {
     const nameInp = document.getElementById('header-char-name');
     if (nameInp) nameInp.value = this.character.name || 'The Vanguard';
 
+    const formName = this.character ? (this.character.formName || 'Mutant') : 'Mutant';
+    const headerFormEl = document.getElementById('header-form-display');
+    if (headerFormEl) headerFormEl.textContent = formName;
+    const stripFormEl = document.getElementById('strip-form-display');
+    if (stripFormEl) stripFormEl.textContent = formName;
+
     document.getElementById('tab-power-count').textContent = this.character.powers.length;
     document.getElementById('tab-equipment-count').textContent = this.character.equipment.length;
   },
@@ -2088,9 +2107,15 @@ const App = {
       this.renderCpBreakdownModal();
     }
 
+    const formName = this.character ? (this.character.formName || 'Mutant') : 'Mutant';
+    const headerFormEl = document.getElementById('header-form-display');
+    if (headerFormEl) {
+      headerFormEl.textContent = formName;
+    }
+
     const stripFormEl = document.getElementById('strip-form-display');
     if (stripFormEl) {
-      stripFormEl.textContent = this.character ? (this.character.formName || 'Mutant') : 'Mutant';
+      stripFormEl.textContent = formName;
     }
 
     const btnWizard = document.getElementById('btn-open-creation-wizard');

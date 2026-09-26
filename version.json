@@ -1,7 +1,7 @@
 {
-  "version": "1.5.19",
+  "version": "1.5.20",
   "releaseDate": "2026-09-25",
   "name": "Marvel Super Heroes Character Editor",
   "repo": "https://github.com/captainload/marvel-character-editor",
-  "notes": "Streamlined Tier row by removing CP usage breakdown text, converted Tier readout into an interactive breakdown trigger button, and styled CP Used header display with prominent button aesthetics."
+  "notes": "Combined CP Used and Tier display into a single unified interactive block with CP display placed directly above the Tier display, relocated character physical Form type to follow the hero's name in the top bar, and preserved 1-click access to CP breakdown and Starting CP slider."
 }

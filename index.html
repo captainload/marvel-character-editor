@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Marvel Super Heroes (FASERIP) - Character Builder & Editor</title>
-  <link rel="stylesheet" href="styles.css?v=1.5.19">
+  <link rel="stylesheet" href="styles.css?v=1.5.20">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bangers&display=swap" rel="stylesheet">
@@ -26,17 +26,13 @@
         <div class="header-name-box">
           <input type="text" id="header-char-name" class="header-name-input" value="The Vanguard" title="Click to edit Character Name">
         </div>
+        <!-- Character Form Type following character's name -->
+        <div class="header-form-box" id="header-form-box" title="Character Physical Form and Origin">
+          <span class="header-form-label">Form:</span>
+          <strong id="header-form-display" class="header-form-val">Mutant</strong>
+        </div>
         <span class="header-test-mode-badge" id="header-test-mode-badge" style="display: none;" title="Test Mode is Active (Karma is Infinite; changes are experimental)">TEST</span>
       </div>
-
-      <!-- CMF Point-Buy Budget Indicator & Breakdown Trigger Button -->
-      <button type="button" class="point-buy-badge clickable point-buy-btn" id="point-buy-badge" title="Click to view full CP Breakdown and adjust Starting CP Slider">
-        <span class="point-buy-icon" aria-hidden="true" style="font-size: 10pt;">📊</span>
-        <span>CP Used:</span>
-        <span class="point-numbers"><span id="header-points-spent">48</span> / <span id="header-points-budget">550</span></span>
-        <span style="color: var(--text-muted);">(<span id="header-points-remaining" style="color: #38bdf8; font-weight: 700;">502</span> left)</span>
-        <span class="point-buy-action-pill" aria-hidden="true">Breakdown ▾</span>
-      </button>
 
       <!-- Top Action Toolbar -->
       <div class="top-controls">
@@ -177,24 +173,35 @@
             </div>
           </div>
 
-          <!-- Condensed CMF Point-Buy Budget Configuration Bar -->
+          <!-- Combined Point-Buy CP & Tier Configuration Bar -->
           <div class="point-buy-strip" id="point-buy-strip">
-            <div id="point-tier-status-group" class="point-tier-status-group clickable" style="display: flex; align-items: center; gap: 8px;" title="Click to view CP Usage Breakdown and adjust Starting CP Slider">
-              <button type="button" class="tier-readout-btn" id="strip-tier-button" title="Click to view full Character Point breakdown and adjust Starting CP">
-                <span class="tier-icon" aria-hidden="true" style="font-size: 10pt;">📊</span>
-                <span style="color: #94a3b8; font-weight: 600;">Tier:</span>
-                <strong id="strip-tier-display" style="color: var(--marvel-gold); font-size: 10pt;">400 CP</strong>
-                <span id="strip-cp-adjust-badge" class="meta-tag" style="display: none; font-size: 10pt; padding: 1px 6px; font-weight: 700;">±0%</span>
-                <span class="tier-action-hint" style="font-size: 10pt; opacity: 0.8; margin-left: 2px;" aria-hidden="true">▾</span>
-              </button>
-              <span style="opacity: 0.4; color: var(--border-color);">·</span>
-              <span style="display: flex; align-items: center; gap: 4px; font-size: 10pt; color: #cbd5e1;">Form: <strong id="strip-form-display" style="color: #38bdf8; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: inline-block; vertical-align: middle;">Mutant</strong></span>
-              <button type="button" class="icon-btn primary compact" id="btn-open-creation-wizard" style="display: none; font-size: 10pt; padding: 2px 6px;" title="Set Starting Tier and Physical Form">⚡ Set Tier &amp; Form</button>
+            <div role="button" tabindex="0" class="point-buy-badge clickable point-buy-btn point-buy-combined-block" id="point-buy-badge" title="Click to view Character Point breakdown and adjust Starting CP">
+              <!-- Top Row: CP Display (Above Tier Display) -->
+              <div class="cp-block-top-row">
+                <div class="cp-block-numbers">
+                  <span class="point-buy-icon" aria-hidden="true" style="font-size: 10pt;">📊</span>
+                  <span>CP Used:</span>
+                  <span class="point-numbers"><span id="header-points-spent">48</span> / <span id="header-points-budget">550</span></span>
+                  <span class="point-buy-rem" style="color: var(--text-muted);">(<span id="header-points-remaining" style="color: #38bdf8; font-weight: 700;">502</span> left)</span>
+                </div>
+                <span class="point-buy-action-pill" aria-hidden="true">Breakdown ▾</span>
+              </div>
+              <!-- Bottom Row: Tier Display -->
+              <div class="cp-block-bottom-row point-tier-status-group clickable" id="point-tier-status-group">
+                <div class="cp-block-tier-left">
+                  <span class="tier-label" style="color: #94a3b8; font-weight: 600; font-size: 10pt;">Tier:</span>
+                  <strong id="strip-tier-display" style="color: var(--marvel-gold); font-size: 10pt;">400 CP</strong>
+                  <span id="strip-cp-adjust-badge" class="meta-tag" style="display: none; font-size: 10pt; padding: 1px 6px; font-weight: 700;">±0%</span>
+                </div>
+                <button type="button" class="icon-btn primary compact" id="btn-open-creation-wizard" style="display: none; font-size: 10pt; padding: 1px 6px;" title="Set Starting Tier and Physical Form">⚡ Set Tier &amp; Form</button>
+              </div>
             </div>
 
-            <!-- Hidden breakdown container preserving IDs for tests and scripts without displaying on the Tier row -->
+            <!-- Hidden preservation elements for test suites & backwards compatibility -->
             <div class="spent-breakdown-text" id="spent-breakdown-summary" style="display: none;" aria-hidden="true">
               <span>Spent: <strong id="spent-abilities">42</strong> FASERIP · <strong id="spent-powers">0</strong> Pwr · <strong id="spent-talents">0</strong> Tal · <strong id="spent-contacts">0</strong> Con · <strong id="spent-resources">6</strong> Res</span>
+              <span id="strip-form-display" style="display: none;">Mutant</span>
+              <button type="button" class="tier-readout-btn" id="strip-tier-button" style="display: none;">Tier</button>
               <button type="button" class="icon-btn compact" id="btn-open-cp-breakdown" style="display: none;" title="Open Character Point Breakdown and Starting CP Slider">📊 Breakdown &amp; Slider</button>
             </div>
           </div>
@@ -1834,7 +1841,7 @@
           <!-- SECTION: PROGRAM UPDATES & AUTOMATED CHECKING -->
           <div style="font-weight: 700; color: var(--text-main); font-size: 11pt; border-bottom: 1px solid var(--border-color); padding-bottom: 6px; margin-top: 10px; display: flex; justify-content: space-between; align-items: center;">
             <span>🔄 Program Updates &amp; Automated Checking</span>
-            <span class="meta-tag" id="update-version-tag" style="color: var(--marvel-gold); font-size: 10pt;">v1.5.19</span>
+            <span class="meta-tag" id="update-version-tag" style="color: var(--marvel-gold); font-size: 10pt;">v1.5.20</span>
           </div>
 
           <div class="update-settings-panel" style="background: rgba(0, 0, 0, 0.2); border: 1px solid var(--border-color); border-radius: 6px; padding: 12px; display: flex; flex-direction: column; gap: 10px;">
@@ -2945,13 +2952,13 @@
   </div>
 
   <!-- Scripts Loading -->
-  <script src="universal_table.js?v=1.5.19"></script>
-  <script src="data_forms.js?v=1.5.19"></script>
-  <script src="data_powers.js?v=1.5.19"></script>
-  <script src="data_talents.js?v=1.5.19"></script>
-  <script src="data_equipment.js?v=1.5.19"></script>
-  <script src="inventions.js?v=1.5.19"></script>
-  <script src="character_model.js?v=1.5.19"></script>
-  <script src="app.js?v=1.5.19"></script>
+  <script src="universal_table.js?v=1.5.20"></script>
+  <script src="data_forms.js?v=1.5.20"></script>
+  <script src="data_powers.js?v=1.5.20"></script>
+  <script src="data_talents.js?v=1.5.20"></script>
+  <script src="data_equipment.js?v=1.5.20"></script>
+  <script src="inventions.js?v=1.5.20"></script>
+  <script src="character_model.js?v=1.5.20"></script>
+  <script src="app.js?v=1.5.20"></script>
 </body>
 </html>

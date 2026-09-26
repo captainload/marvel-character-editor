@@ -2626,7 +2626,9 @@ class FASERIPCharacter {
       this.setPointTier(tier || '400');
     }
     this.isCreationSetupPending = false;
-    this.recordEdit(`Creation setup confirmed: ${this.name} (${this.pointBudget} CP, ${this.formName})`, 'creation');
+    this.editLog = [];
+    this.editHistoryIndex = -1;
+    this.recordEdit(`Initial save point: ${this.name} (${this.pointBudget} CP, ${this.formName})`, 'creation');
   }
 
   static createBlankCharacter(tier = '400') {

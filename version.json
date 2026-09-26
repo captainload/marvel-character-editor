@@ -1,7 +1,7 @@
 {
-  "version": "1.5.23",
+  "version": "1.5.24",
   "releaseDate": "2026-09-25",
   "name": "Marvel Super Heroes Character Editor",
   "repo": "https://github.com/captainload/marvel-character-editor",
-  "notes": "Expanded vital chips to full column width with auto-aligned right-side steppers and Total KP display to eliminate border overflow, and anchored the CP / Tier block flush to the right margin across dual rows in CSS Grid."
+  "notes": "Isolated starting CP budget slider exclusively to the new character creation wizard, anchored the first character save point strictly after hero name, CP allotment and physical form are chosen, and made CP breakdown modal a read-only budget inspector."
 }

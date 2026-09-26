@@ -47,7 +47,7 @@ const App = {
   set superiorOptionTax(val) {
     this.superiorOptionCost = !!val;
   },
-  VERSION: '1.5.23',
+  VERSION: '1.5.24',
   BUILD_DATE: '2026-09-25',
   COMMIT_SHA: '6a15ff5',
   REPO_OWNER: 'captainload',
@@ -11970,7 +11970,9 @@ const App = {
         this.character.setPointTier(tier);
       }
       this.character.isCreationSetupPending = false;
-      this.character.recordEdit(`Creation setup confirmed: ${this.character.name} (${this.character.pointBudget} CP, ${this.character.formName})`, 'creation');
+      this.character.editLog = [];
+      this.character.editHistoryIndex = -1;
+      this.character.recordEdit(`Initial save point: ${this.character.name} (${this.character.pointBudget} CP, ${this.character.formName})`, 'creation');
     }
 
     const headerNameInp = document.getElementById('header-char-name');

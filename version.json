@@ -1,7 +1,7 @@
 {
-  "version": "1.5.25",
+  "version": "1.5.26",
   "releaseDate": "2026-09-26",
   "name": "Marvel Super Heroes Character Editor",
   "repo": "https://github.com/captainload/marvel-character-editor",
-  "notes": "Added interactive Physical Form button opening a Change Physical Form dialog with guidance on in-game power transformations vs GM revision, and locked form dropdown once starting KP or CP is spent until rolled back to the first save point."
+  "notes": "Physical form controls under Main Stats and History function as simple direct dropdowns until starting CP has been spent. Once CP has been spent, controls switch to locked buttons that invoke the Change Physical Form pop-up dialog (unlockable by rolling back to Revision #1)."
 }

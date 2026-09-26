@@ -47,7 +47,7 @@ const App = {
   set superiorOptionTax(val) {
     this.superiorOptionCost = !!val;
   },
-  VERSION: '1.5.25',
+  VERSION: '1.5.26',
   BUILD_DATE: '2026-09-25',
   COMMIT_SHA: '6a15ff5',
   REPO_OWNER: 'captainload',
@@ -357,13 +357,29 @@ const App = {
       btnApplyCharInit.addEventListener('click', () => this.applyCreationWizardSetup());
     }
 
-    // Change Physical Form Modal Controls & Header Form Box Button
+    // Change Physical Form Modal Controls & Header Form Box (Dual Mode: Simple Dropdown vs Modal Pop-up)
     const headerFormBox = document.getElementById('header-form-box');
     if (headerFormBox) {
-      headerFormBox.addEventListener('click', () => {
+      headerFormBox.addEventListener('click', (e) => {
+        // If clicking on the active dropdown itself when unlocked, let native dropdown handle it
+        if (e.target && e.target.id === 'header-form-select' && !this.isFormChangeLocked()) {
+          return;
+        }
+        if (this.isFormChangeLocked()) {
+          this.openChangePhysicalFormModal();
+        }
+      });
+    }
+
+    const headerFormBtn = document.getElementById('header-form-btn');
+    if (headerFormBtn) {
+      headerFormBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
         this.openChangePhysicalFormModal();
       });
     }
+
+    this.setupPhysicalFormDropdowns();
 
     const btnCloseChangeFormX = document.getElementById('btn-close-change-form-x');
     if (btnCloseChangeFormX) {
@@ -2005,36 +2021,8 @@ const App = {
     // Talents Catalog (Categorized optgroups)
     this.renderTalentDropdown();
 
-    // Physical Forms Catalog (Background Tab)
-    const formSel = document.getElementById('bio-physical-form');
-    if (formSel && globalThis.PHYSICAL_FORMS) {
-      formSel.innerHTML = globalThis.PHYSICAL_FORMS.map(f => 
-        `<option value="${f.id}">${f.name} (${f.source})</option>`
-      ).join('');
-      formSel.addEventListener('change', (e) => {
-        if (this.isFormChangeLocked()) {
-          this.showCustomAlert(
-            'Physical form selection is locked because starting CP or KP has already been spent.\n\nRoll back to the first character history entry (Revision #1) in the History & Log tab to unlock.',
-            '🔒 Form Selection Locked'
-          );
-          formSel.value = this.character.formKey || 'mutant';
-          return;
-        }
-        const f = globalThis.PHYSICAL_FORMS.find(x => x.id === e.target.value);
-        if (f) {
-          this.character.formKey = f.id;
-          this.character.formName = f.name;
-          this.character.isSwarmForm = (f.id === 's32_collective_mass' || f.id === 'swarm_collective');
-          if (this.character.editLog && this.character.editLog[0]) {
-            this.character.editLog[0].description = `Initial save point: ${this.character.name} (${this.character.pointBudget} CP, ${this.character.formName})`;
-            this.character.editLog[0].snapshot = (typeof this.character.getCleanSnapshot === 'function') ? this.character.getCleanSnapshot() : JSON.parse(JSON.stringify(this.character.toJSON()));
-          }
-          this.saveState();
-          this.render();
-          this.showStatusToast(`✨ Physical form changed to: ${f.name}`);
-        }
-      });
-    }
+    // Physical Forms Catalog (Background Tab & Direct Dropdown)
+    this.setupPhysicalFormDropdowns();
 
     // Background fields binding
     const bindBio = (id, prop) => {
@@ -2092,6 +2080,8 @@ const App = {
     if (headerFormEl) headerFormEl.textContent = formName;
     const stripFormEl = document.getElementById('strip-form-display');
     if (stripFormEl) stripFormEl.textContent = formName;
+
+    this.updatePhysicalFormControlsUI();
 
     document.getElementById('tab-power-count').textContent = this.character.powers.length;
     document.getElementById('tab-equipment-count').textContent = this.character.equipment.length;
@@ -7325,20 +7315,7 @@ const App = {
   renderBackground() {
     const rName = document.getElementById('bio-real-name');
     if (rName) rName.value = this.character.realName || '';
-    const pForm = document.getElementById('bio-physical-form');
-    if (pForm) {
-      pForm.value = this.character.formKey || 'normal_human';
-      const isLocked = this.isFormChangeLocked();
-      pForm.disabled = isLocked;
-      pForm.title = isLocked
-        ? 'Physical form is locked because starting CP or KP has been spent. Roll back to Revision #1 in History & Log to unlock.'
-        : 'Select Physical Form & Origin';
-      if (isLocked) {
-        pForm.classList.add('cp-spending-locked');
-      } else {
-        pForm.classList.remove('cp-spending-locked');
-      }
-    }
+    this.updatePhysicalFormControlsUI();
     const idSel = document.getElementById('bio-identity');
     if (idSel) idSel.value = this.character.identity || 'Secret';
     const genInp = document.getElementById('bio-gender');
@@ -12029,6 +12006,179 @@ const App = {
     return false;
   },
 
+  applyPhysicalFormDirectly(formId) {
+    if (!this.character) return;
+    if (this.isFormChangeLocked()) {
+      this.openChangePhysicalFormModal();
+      return;
+    }
+    const forms = globalThis.PHYSICAL_FORMS || [];
+    const f = forms.find(x => x.id === formId);
+    if (!f) return;
+
+    this.character.formKey = f.id;
+    this.character.formName = f.name;
+    this.character.isSwarmForm = (f.id === 's32_collective_mass' || f.id === 'swarm_collective');
+
+    if (this.character.editLog && this.character.editLog[0]) {
+      this.character.editLog[0].description = `Initial save point: ${this.character.name} (${this.character.pointBudget} CP, ${this.character.formName})`;
+      this.character.editLog[0].snapshot = (typeof this.character.getCleanSnapshot === 'function')
+        ? this.character.getCleanSnapshot()
+        : JSON.parse(JSON.stringify(this.character.toJSON()));
+    }
+
+    this.syncPhysicalFormDisplays(f);
+    this.saveState();
+    this.render();
+    this.showStatusToast(`✨ Physical form changed to: ${f.name}`);
+  },
+
+  setupPhysicalFormDropdowns() {
+    // 1. Header Select (Main Stats)
+    const headerSel = document.getElementById('header-form-select');
+    if (headerSel && globalThis.PHYSICAL_FORMS) {
+      headerSel.innerHTML = globalThis.PHYSICAL_FORMS.map(f =>
+        `<option value="${f.id}">${f.name}</option>`
+      ).join('');
+      if (!headerSel.dataset.bound) {
+        headerSel.dataset.bound = 'true';
+        headerSel.addEventListener('change', (e) => {
+          const val = (e && e.target && e.target.value) || headerSel.value;
+          this.applyPhysicalFormDirectly(val);
+        });
+      }
+    }
+
+    // 2. Bio Form Select (History Tab)
+    const formSel = document.getElementById('bio-physical-form');
+    if (formSel && globalThis.PHYSICAL_FORMS) {
+      formSel.innerHTML = globalThis.PHYSICAL_FORMS.map(f => 
+        `<option value="${f.id}">${f.name} (${f.source})</option>`
+      ).join('');
+      if (!formSel.dataset.bound) {
+        formSel.dataset.bound = 'true';
+        formSel.addEventListener('change', (e) => {
+          if (this.isFormChangeLocked()) {
+            this.openChangePhysicalFormModal();
+            formSel.value = this.character ? (this.character.formKey || 'normal_human') : 'normal_human';
+            return;
+          }
+          const val = (e && e.target && e.target.value) || formSel.value;
+          this.applyPhysicalFormDirectly(val);
+        });
+        formSel.addEventListener('click', (e) => {
+          if (this.isFormChangeLocked()) {
+            e.preventDefault();
+            this.openChangePhysicalFormModal();
+          }
+        });
+      }
+    }
+
+    const bioFormBtn = document.getElementById('bio-physical-form-btn');
+    if (bioFormBtn && !bioFormBtn.dataset.bound) {
+      bioFormBtn.dataset.bound = 'true';
+      bioFormBtn.addEventListener('click', () => {
+        this.openChangePhysicalFormModal();
+      });
+    }
+  },
+
+  syncPhysicalFormDisplays(f) {
+    if (!f) return;
+    const headerSel = document.getElementById('header-form-select');
+    if (headerSel) headerSel.value = f.id;
+
+    const headerVal = document.getElementById('header-form-display');
+    if (headerVal) headerVal.textContent = f.name;
+
+    const stripForm = document.getElementById('strip-form-display');
+    if (stripForm) stripForm.textContent = f.name;
+
+    const bioSel = document.getElementById('bio-physical-form');
+    if (bioSel) bioSel.value = f.id;
+
+    const bioVal = document.getElementById('bio-physical-form-display');
+    if (bioVal) bioVal.textContent = f.name;
+
+    const initSel = document.getElementById('init-form-select');
+    if (initSel) initSel.value = f.id;
+
+    const changeSel = document.getElementById('change-form-select');
+    if (changeSel) changeSel.value = f.id;
+  },
+
+  updatePhysicalFormControlsUI() {
+    if (!this.character) return;
+    const isLocked = this.isFormChangeLocked();
+    const curFormKey = this.character.formKey || 'mutant';
+    const curFormName = this.character.formName || 'Mutant';
+
+    // 1. Main Stats / Top Bar Form Box
+    const headerSel = document.getElementById('header-form-select');
+    const headerBtn = document.getElementById('header-form-btn');
+    const headerBox = document.getElementById('header-form-box');
+    const headerVal = document.getElementById('header-form-display');
+
+    if (headerVal) headerVal.textContent = curFormName;
+
+    if (isLocked) {
+      if (headerSel) {
+        headerSel.style.display = 'none';
+        headerSel.disabled = true;
+        headerSel.value = curFormKey;
+      }
+      if (headerBtn) {
+        headerBtn.style.display = 'inline-flex';
+      }
+      if (headerBox) {
+        headerBox.title = 'Physical Form is locked because starting CP has been spent. Click to open Change Physical Form dialog or roll back to unlock.';
+        headerBox.classList.add('cp-spending-locked');
+      }
+    } else {
+      if (headerSel) {
+        headerSel.style.display = 'inline-block';
+        headerSel.disabled = false;
+        headerSel.value = curFormKey;
+        headerSel.title = 'Select Physical Form & Origin';
+      }
+      if (headerBtn) {
+        headerBtn.style.display = 'none';
+      }
+      if (headerBox) {
+        headerBox.title = 'Select Physical Form & Origin';
+        headerBox.classList.remove('cp-spending-locked');
+      }
+    }
+
+    // 2. History & Log Tab Form Controls
+    const bioSel = document.getElementById('bio-physical-form');
+    const bioBtn = document.getElementById('bio-physical-form-btn');
+    const bioDisplay = document.getElementById('bio-physical-form-display');
+
+    if (bioDisplay) bioDisplay.textContent = curFormName;
+
+    if (isLocked) {
+      if (bioSel) {
+        bioSel.style.display = 'none';
+        bioSel.disabled = true;
+        bioSel.value = curFormKey;
+      }
+      if (bioBtn) {
+        bioBtn.style.display = 'flex';
+      }
+    } else {
+      if (bioSel) {
+        bioSel.style.display = 'block';
+        bioSel.disabled = false;
+        bioSel.value = curFormKey;
+      }
+      if (bioBtn) {
+        bioBtn.style.display = 'none';
+      }
+    }
+  },
+
   openChangePhysicalFormModal() {
     if (!this.character) return;
     const modal = document.getElementById('modal-change-physical-form');
@@ -12129,14 +12279,8 @@ const App = {
       this.character.editLog[0].snapshot = (typeof this.character.getCleanSnapshot === 'function') ? this.character.getCleanSnapshot() : JSON.parse(JSON.stringify(this.character.toJSON()));
     }
 
-    const headerFormEl = document.getElementById('header-form-display');
-    if (headerFormEl) headerFormEl.textContent = f.name;
-
-    const bioFormEl = document.getElementById('bio-physical-form');
-    if (bioFormEl) bioFormEl.value = f.id;
-
-    const initFormSelect = document.getElementById('init-form-select');
-    if (initFormSelect) initFormSelect.value = f.id;
+    this.syncPhysicalFormDisplays(f);
+    this.updatePhysicalFormControlsUI();
 
     this.saveState();
     this.render();

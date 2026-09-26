@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Marvel Super Heroes (FASERIP) - Character Builder & Editor</title>
-  <link rel="stylesheet" href="styles.css?v=1.5.25">
+  <link rel="stylesheet" href="styles.css?v=1.5.26">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bangers&display=swap" rel="stylesheet">
@@ -26,12 +26,15 @@
         <div class="header-name-box">
           <input type="text" id="header-char-name" class="header-name-input" value="The Vanguard" title="Click to edit Character Name">
         </div>
-        <!-- Character Form Type following character's name (Clickable Button) -->
-        <button type="button" class="header-form-box" id="header-form-box" title="Change Character Physical Form (Opens Form Selection Dialog)">
+        <!-- Character Form Type following character's name (Simple dropdown when unspent; Clickable button invoking pop-up once CP is spent) -->
+        <div class="header-form-box" id="header-form-box" title="Character Physical Form &amp; Origin">
           <span class="header-form-label">Form:</span>
-          <strong id="header-form-display" class="header-form-val">Mutant</strong>
-          <span class="form-change-caret" style="color: #38bdf8; font-size: 8.5pt; margin-left: 2px;">▾</span>
-        </button>
+          <select id="header-form-select" class="header-form-select" title="Select Physical Form &amp; Origin"></select>
+          <button type="button" class="header-form-btn" id="header-form-btn" style="display: none;" title="Physical Form (Locked - Click to open Form Change dialog or roll back to unlock)">
+            <strong id="header-form-display" class="header-form-val">Mutant</strong>
+            <span class="form-change-caret" style="color: #ef4444; font-size: 8.5pt; margin-left: 2px;">🔒</span>
+          </button>
+        </div>
         <span class="header-test-mode-badge" id="header-test-mode-badge" style="display: none;" title="Test Mode is Active (Karma is Infinite; changes are experimental)">TEST</span>
       </div>
 
@@ -818,9 +821,15 @@
             <span class="field-label">Real Name / Secret ID:</span>
             <input type="text" id="bio-real-name" class="field-input" value="Secret Identity">
           </div>
-          <div>
+          <div id="bio-physical-form-container">
             <span class="field-label">Physical Form (UPB + Dragon #134):</span>
-            <select id="bio-physical-form" class="field-input"></select>
+            <!-- Simple dropdown mode (shown until CP has been spent) -->
+            <select id="bio-physical-form" class="field-input" title="Select Physical Form &amp; Origin"></select>
+            <!-- Modal button trigger mode (shown once CP has been spent) -->
+            <button type="button" id="bio-physical-form-btn" class="field-input form-locked-btn" style="display: none;" title="Physical Form is locked because starting CP has been spent. Click to open Change Physical Form dialog or roll back to unlock.">
+              <span id="bio-physical-form-display" style="font-weight: 700; color: #38bdf8;">Mutant</span>
+              <span style="font-size: 9.5pt; color: #ef4444; display: inline-flex; align-items: center; gap: 4px;">🔒 Locked (Pop-up)</span>
+            </button>
           </div>
           <div>
             <span class="field-label">Legal Identity Status:</span>
@@ -1851,7 +1860,7 @@
           <!-- SECTION: PROGRAM UPDATES & AUTOMATED CHECKING -->
           <div style="font-weight: 700; color: var(--text-main); font-size: 11pt; border-bottom: 1px solid var(--border-color); padding-bottom: 6px; margin-top: 10px; display: flex; justify-content: space-between; align-items: center;">
             <span>🔄 Program Updates &amp; Automated Checking</span>
-            <span class="meta-tag" id="update-version-tag" style="color: var(--marvel-gold); font-size: 10pt;">v1.5.25</span>
+            <span class="meta-tag" id="update-version-tag" style="color: var(--marvel-gold); font-size: 10pt;">v1.5.26</span>
           </div>
 
           <div class="update-settings-panel" style="background: rgba(0, 0, 0, 0.2); border: 1px solid var(--border-color); border-radius: 6px; padding: 12px; display: flex; flex-direction: column; gap: 10px;">
@@ -3011,13 +3020,13 @@
   </div>
 
   <!-- Scripts Loading -->
-  <script src="universal_table.js?v=1.5.25"></script>
-  <script src="data_forms.js?v=1.5.25"></script>
-  <script src="data_powers.js?v=1.5.25"></script>
-  <script src="data_talents.js?v=1.5.25"></script>
-  <script src="data_equipment.js?v=1.5.25"></script>
-  <script src="inventions.js?v=1.5.25"></script>
-  <script src="character_model.js?v=1.5.25"></script>
-  <script src="app.js?v=1.5.25"></script>
+  <script src="universal_table.js?v=1.5.26"></script>
+  <script src="data_forms.js?v=1.5.26"></script>
+  <script src="data_powers.js?v=1.5.26"></script>
+  <script src="data_talents.js?v=1.5.26"></script>
+  <script src="data_equipment.js?v=1.5.26"></script>
+  <script src="inventions.js?v=1.5.26"></script>
+  <script src="character_model.js?v=1.5.26"></script>
+  <script src="app.js?v=1.5.26"></script>
 </body>
 </html>

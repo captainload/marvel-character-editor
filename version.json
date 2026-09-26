@@ -1,7 +1,7 @@
 {
-  "version": "1.5.21",
+  "version": "1.5.22",
   "releaseDate": "2026-09-25",
   "name": "Marvel Super Heroes Character Editor",
   "repo": "https://github.com/captainload/marvel-character-editor",
-  "notes": "Extended the CP block into the empty space above it in the vitals row, seamlessly aligning with the stacked Health and Karma chips and prominently displaying the active starting Tier name (e.g., Established Hero / Mutant) above the CP Used meter and budget controls."
+  "notes": "Condensed the CP block horizontally and seamlessly integrated it into the CSS Grid layout across dual vitals rows, eliminating negative margin floating and overruns."
 }

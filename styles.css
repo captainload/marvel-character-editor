@@ -331,12 +331,13 @@ body {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.08);
   transition: all 0.2s ease;
   width: 100%;
+  max-width: 440px;
   text-align: left;
   font-family: inherit;
   font-size: 10pt;
   color: var(--text-main);
   min-height: 82px;
-  height: 82px;
+  height: 100%;
   box-sizing: border-box;
 }
 
@@ -761,14 +762,17 @@ body {
 /* Vitals (Health & Karma live bars - Condensed) */
 .vitals-row {
   display: grid;
-  grid-template-columns: 1fr;
-  gap: 6px;
+  grid-template-columns: auto auto;
+  grid-template-rows: auto auto;
+  gap: 6px 10px;
   margin-bottom: 0px;
+  width: fit-content;
+  max-width: 100%;
 }
 
 /* Combined Karma & Point-Buy CP Info Row */
 .karma-cp-row {
-  display: flex;
+  display: contents;
   align-items: stretch;
   gap: 8px;
   width: 100%;
@@ -1172,6 +1176,8 @@ body {
 }
 
 .vital-chip.vital-chip-karma {
+  grid-column: 1;
+  grid-row: 2;
   flex: 0 0 560px;
   width: 560px;
   max-width: 560px;
@@ -1183,6 +1189,8 @@ body {
 }
 
 .vital-chip.vital-chip-health {
+  grid-column: 1;
+  grid-row: 1;
   width: 560px;
   max-width: 560px;
   min-height: 38px;
@@ -1240,18 +1248,20 @@ body {
 
 /* Condensed CMF Point-Buy Budget Configuration Bar */
 .point-buy-strip {
+  grid-column: 2;
+  grid-row: 1 / span 2;
   background: transparent;
   border: none;
   border-radius: 0;
   padding: 0;
-  margin-bottom: 0px;
+  margin: 0;
   display: flex;
   align-items: stretch;
   justify-content: stretch;
-  flex: 1 1 0;
-  min-width: 0;
+  width: 100%;
+  max-width: 440px;
+  min-width: 320px;
   gap: 0px;
-  margin-top: -44px;
 }
 
 .point-tier-group,
@@ -3369,13 +3379,19 @@ body[data-theme="aqua"] .cheatsheet-tabs-bar {
   }
   .vitals-row {
     grid-template-columns: 1fr;
+    grid-template-rows: auto;
     gap: 8px;
+    width: 100%;
   }
   .karma-cp-row {
+    display: flex;
     flex-direction: column;
     gap: 6px;
+    width: 100%;
   }
   .vital-chip.vital-chip-karma {
+    grid-column: auto;
+    grid-row: auto;
     width: 100%;
     max-width: 100%;
     flex: 1 1 auto;
@@ -3383,15 +3399,22 @@ body[data-theme="aqua"] .cheatsheet-tabs-bar {
     height: auto;
   }
   .vital-chip.vital-chip-health {
+    grid-column: auto;
+    grid-row: auto;
     width: 100%;
     max-width: 100%;
     height: auto;
   }
   .point-buy-strip {
+    grid-column: auto;
+    grid-row: auto;
     margin-top: 0;
     width: 100%;
+    max-width: 100%;
+    height: auto;
   }
   .point-buy-combined-block {
+    max-width: 100%;
     min-height: auto;
     height: auto;
   }

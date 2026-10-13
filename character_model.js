@@ -239,9 +239,13 @@ class FASERIPCharacter {
         category: p.category || (catalogPower ? catalogPower.category : 'Special'),
         rankName: rankName,
         rankValue: rankVal,
-        powerSlots: powerSlots,
+        powerSlots: p.isFormInnate ? 0 : powerSlots,
         isStarred: isStarred,
         isExceptional: isExceptional,
+        isFormInnate: !!p.isFormInnate,
+        grantedByForm: p.grantedByForm || null,
+        innateBaseRankName: p.innateBaseRankName || null,
+        innateBaseRankValue: p.innateBaseRankValue !== undefined ? p.innateBaseRankValue : null,
         isNpcArchetype: !!(p.isNpcArchetype || (catalogPower && catalogPower.isNpcArchetype)),
         isCustom: !!p.isCustom,
         templateKey: p.templateKey || (catalogPower ? catalogPower.code : null),
@@ -414,6 +418,7 @@ class FASERIPCharacter {
     this.sanitizeEditLog();
 
     this.syncRanksToActiveScheme();
+    this.syncFormInnatePowers();
   }
 
   get superiorOptionTax() {
@@ -847,7 +852,9 @@ class FASERIPCharacter {
   setFormExtraPart(extraPartId) {
     const clean = extraPartId ? String(extraPartId).toLowerCase().trim() : 'arms';
     this.formExtraPart = ['arms', 'organs', 'tail', 'wings'].includes(clean) ? clean : 'arms';
-    return this.syncFormAbilityShifts();
+    const shifts = this.syncFormAbilityShifts();
+    this.syncFormInnatePowers();
+    return shifts;
   }
 
   applyPhysicalForm(formKey, options = {}) {
@@ -897,12 +904,132 @@ class FASERIPCharacter {
 
     this.currentHealth = this.calculateMaxHealth();
     this.currentKarma = this.calculateBaseKarma();
+    this.syncFormInnatePowers();
     if (this.calculateDefenses) this.calculateDefenses();
     return f;
   }
 
+  getFormInnatePowersList(formKey = null, extraPartId = null) {
+    const key = formKey || this.formKey || 'normal_human';
+    const f = this.getFormDefinition(key);
+    if (!f) return [];
+
+    let list = [];
+    if (Array.isArray(f.innatePowers)) {
+      list = list.concat(f.innatePowers);
+    }
+
+    if (f.id === 'modified_human_extra_parts' && Array.isArray(f.extraPartOptions)) {
+      const partKey = (extraPartId || this.formExtraPart || 'arms').toLowerCase().trim();
+      const partOpt = f.extraPartOptions.find(o => o.id === partKey);
+      if (partOpt && Array.isArray(partOpt.innatePowers)) {
+        list = list.concat(partOpt.innatePowers);
+      }
+    }
+
+    return list;
+  }
+
+  syncFormInnatePowers() {
+    if (!Array.isArray(this.powers)) this.powers = [];
+
+    const expectedInnate = this.getFormInnatePowersList();
+    const currentFormKey = this.formKey || 'normal_human';
+    const expectedCodes = new Set(expectedInnate.map(ip => ip.code));
+
+    // 1. Remove innate powers that belonged to a different form, or an unselected extra part
+    this.powers = this.powers.filter(p => {
+      if (!p.isFormInnate) return true;
+      if (p.grantedByForm && p.grantedByForm !== currentFormKey) return false;
+      if (!expectedCodes.has(p.code)) return false;
+      return true;
+    });
+
+    // 2. Add or update expected innate powers
+    const allCatalogPowers = [
+      ...(globalThis.MSH_POWERS || []),
+      ...(globalThis.MSH_NPC_PRESET_POWERS || [])
+    ];
+
+    expectedInnate.forEach(def => {
+      let existing = this.powers.find(p => p.isFormInnate && p.code === def.code);
+
+      if (existing) {
+        existing.grantedByForm = currentFormKey;
+        existing.innateBaseRankName = def.rankName;
+        existing.innateBaseRankValue = def.rankValue;
+        if (def.selectedOption) existing.selectedOption = def.selectedOption;
+        if (def.optionSubChoice) existing.optionSubChoice = def.optionSubChoice;
+        if (def.name) existing.name = def.name;
+        return;
+      }
+
+      const catalogPower = allCatalogPowers.find(cp =>
+        cp.code === def.code || cp.id === def.code
+      );
+
+      const rankName = def.rankName || (catalogPower ? catalogPower.defaultRank : 'Good');
+      const rankVal = def.rankValue ?? ((typeof UniversalTableEngine !== 'undefined' && UniversalTableEngine.getRankByName(rankName)) ? UniversalTableEngine.getRankByName(rankName).num : 10);
+      const isStarred = !!(catalogPower && (catalogPower.isStarred || catalogPower.countsAsTwo));
+
+      const newInnate = {
+        id: 'innate_' + currentFormKey + '_' + (def.code || Date.now()),
+        code: def.code,
+        name: def.name || (catalogPower ? catalogPower.name : 'Innate Power'),
+        category: catalogPower ? catalogPower.category : 'Special',
+        rankName: rankName,
+        rankValue: rankVal,
+        powerSlots: 0,
+        isStarred: isStarred,
+        isExceptional: isStarred,
+        isFormInnate: true,
+        grantedByForm: currentFormKey,
+        innateBaseRankName: rankName,
+        innateBaseRankValue: rankVal,
+        isNpcArchetype: false,
+        isCustom: false,
+        templateKey: def.code,
+        source: 'UPB Form',
+        range: catalogPower ? catalogPower.range : 'Self',
+        duration: catalogPower ? catalogPower.duration : 'Permanent',
+        areaOfEffect: catalogPower ? catalogPower.areaOfEffect : null,
+        targets: catalogPower ? catalogPower.targets : null,
+        speed: catalogPower ? catalogPower.speed : null,
+        pool: null,
+        trigger: null,
+        traitModifiers: [],
+        adjustments: null,
+        selectedOption: def.selectedOption || null,
+        optionSubChoice: def.optionSubChoice || null,
+        optionAcquisitionMethod: 'innate',
+        optionSurcharge: 0,
+        isSuperiorOption: false,
+        operationalType: 'innate',
+        isSwitchedOn: true,
+        isDisabled: false,
+        triggerConfig: {
+          mode: 'default',
+          masterPowerId: null,
+          masterPowerName: null,
+          invert: false,
+          conditionLabel: ''
+        },
+        limitation: null,
+        limitations: [],
+        notes: def.notes || `Innate power granted by ${this.formName || currentFormKey} form`,
+        stunts: (catalogPower && Array.isArray(catalogPower.powerStunts))
+          ? catalogPower.powerStunts.map(s => (typeof normalizePowerStunt === 'function' ? normalizePowerStunt(s, true) : { name: typeof s === 'string' ? s : s.name, isLearned: true }))
+          : []
+      };
+
+      this.powers.push(newInnate);
+    });
+
+    return this.powers;
+  }
+
   hasManualStatInvestments() {
-    if (this.powers && this.powers.length > 0) return true;
+    if (this.powers && this.powers.some(p => !p.isFormInnate || (p.rankValue > (p.innateBaseRankValue || p.rankValue)))) return true;
     if (this.talents && this.talents.length > 0) return true;
     if (this.contacts && this.contacts.length > 0) return true;
 
@@ -1450,7 +1577,7 @@ class FASERIPCharacter {
     if (!powerData) return null;
     if (!Array.isArray(this.powers)) this.powers = [];
 
-    if (this.creationMode === 'tsr' && !this.isModeledMode()) {
+    if (this.creationMode === 'tsr' && !this.isModeledMode() && !powerData.isFormInnate) {
       const maxSlots = this.getMaxPowerSlots();
       if (maxSlots !== null && !this.canAddPower(powerData)) {
         return null;
@@ -1472,7 +1599,7 @@ class FASERIPCharacter {
 
     const isStarred = !!(powerData.isStarred || (catalogPower && (catalogPower.isStarred || catalogPower.countsAsTwo)));
     const isExceptional = !!(powerData.isExceptional || isStarred);
-    const powerSlots = isStarred ? 2 : (powerData.powerSlots || (catalogPower ? catalogPower.powerSlots : 1));
+    const powerSlots = powerData.isFormInnate ? 0 : (isStarred ? 2 : (powerData.powerSlots || (catalogPower ? catalogPower.powerSlots : 1)));
 
     const rankName = powerData.rankName || powerData.rank || (catalogPower ? catalogPower.defaultRank : 'Good');
     const rankObj = UniversalTableEngine.getRankByName(rankName);
@@ -1507,6 +1634,10 @@ class FASERIPCharacter {
       bonusPowerSlots: bonusPowerSlots,
       isStarred: isStarred,
       isExceptional: isExceptional,
+      isFormInnate: !!powerData.isFormInnate,
+      grantedByForm: powerData.grantedByForm || null,
+      innateBaseRankName: powerData.innateBaseRankName || null,
+      innateBaseRankValue: powerData.innateBaseRankValue !== undefined ? powerData.innateBaseRankValue : null,
       isNpcArchetype: !!(powerData.isNpcArchetype || (catalogPower && catalogPower.isNpcArchetype)),
       isCustom: !!powerData.isCustom,
       templateKey: powerData.templateKey || (catalogPower ? catalogPower.code : null),
@@ -1598,7 +1729,7 @@ class FASERIPCharacter {
 
   setPowerRank(powerId, newRankName) {
     if (!Array.isArray(this.powers)) return null;
-    const power = typeof powerId === 'number' ? this.powers[powerId] : this.powers.find(p => p.id === powerId);
+    const power = typeof powerId === 'number' ? this.powers[powerId] : this.powers.find(p => p.id === powerId || p.code === powerId);
     if (!power) return null;
 
     const rankObj = (typeof UniversalTableEngine !== 'undefined')
@@ -1965,7 +2096,14 @@ class FASERIPCharacter {
       const rankMultiplier = isExp ? 2 : 1;
       const isTaxActive = !!(this.superiorOptionCost || this.superiorOptionTax);
       const surcharge = (isTaxActive && p.optionSurcharge !== undefined) ? parseInt(p.optionSurcharge || 0) : 0;
-      let powerCost = baseCost + (p.rankValue * rankMultiplier) + surcharge;
+      let powerCost = 0;
+      if (p.isFormInnate) {
+        const baseRankVal = p.innateBaseRankValue !== undefined ? p.innateBaseRankValue : p.rankValue;
+        const upgradeVal = Math.max(0, (p.rankValue || 0) - baseRankVal);
+        powerCost = (upgradeVal * rankMultiplier) + surcharge;
+      } else {
+        powerCost = baseCost + (p.rankValue * rankMultiplier) + surcharge;
+      }
       let totalDiscount = 0;
       if (Array.isArray(p.limitations)) {
         p.limitations.forEach(lim => {
@@ -1974,7 +2112,11 @@ class FASERIPCharacter {
       } else if (p.limitation && p.limitation.cpDiscount) {
         totalDiscount += (parseInt(p.limitation.cpDiscount, 10) || 0);
       }
-      powerCost = Math.max(5, powerCost - totalDiscount);
+      if (p.isFormInnate) {
+        powerCost = Math.max(0, powerCost - totalDiscount);
+      } else {
+        powerCost = Math.max(5, powerCost - totalDiscount);
+      }
       powersTotal += powerCost;
     });
 
@@ -2038,7 +2180,14 @@ class FASERIPCharacter {
       const rankMultiplier = isExp ? 20 : 10;
       const isTaxActive = !!(this.superiorOptionCost || this.superiorOptionTax);
       const surcharge = (isTaxActive && p.optionSurcharge !== undefined) ? (parseInt(p.optionSurcharge || 0) * 10) : 0;
-      let powerCost = baseCost + ((p.rankValue || 0) * rankMultiplier) + surcharge;
+      let powerCost = 0;
+      if (p.isFormInnate) {
+        const baseRankVal = p.innateBaseRankValue !== undefined ? p.innateBaseRankValue : p.rankValue;
+        const upgradeVal = Math.max(0, (p.rankValue || 0) - baseRankVal);
+        powerCost = (upgradeVal * rankMultiplier) + surcharge;
+      } else {
+        powerCost = baseCost + ((p.rankValue || 0) * rankMultiplier) + surcharge;
+      }
       let totalDiscount = 0;
       if (Array.isArray(p.limitations)) {
         p.limitations.forEach(lim => {
@@ -2047,7 +2196,11 @@ class FASERIPCharacter {
       } else if (p.limitation && p.limitation.cpDiscount) {
         totalDiscount += ((parseInt(p.limitation.cpDiscount, 10) || 0) * 10);
       }
-      powerCost = Math.max(50, powerCost - totalDiscount);
+      if (p.isFormInnate) {
+        powerCost = Math.max(0, powerCost - totalDiscount);
+      } else {
+        powerCost = Math.max(50, powerCost - totalDiscount);
+      }
       powersTotal += powerCost;
     });
 
@@ -2082,7 +2235,10 @@ class FASERIPCharacter {
    */
   getTotalPowerSlots() {
     if (!Array.isArray(this.powers)) return 0;
-    return this.powers.reduce((sum, p) => sum + (p.powerSlots || (p.isStarred || p.countsAsTwo ? 2 : 1)), 0);
+    return this.powers.reduce((sum, p) => {
+      if (p.isFormInnate) return sum;
+      return sum + (p.powerSlots || (p.isStarred || p.countsAsTwo ? 2 : 1));
+    }, 0);
   }
 
   /**
@@ -2136,6 +2292,7 @@ class FASERIPCharacter {
    */
   canAddPower(powerData) {
     if (!powerData) return false;
+    if (powerData.isFormInnate) return true;
     if (this.creationMode !== 'tsr' || this.isModeledMode()) return true;
     const maxSlots = this.getMaxPowerSlots();
     if (maxSlots === null) return false;

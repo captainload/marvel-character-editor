@@ -1,7 +1,7 @@
 {
-  "version": "1.5.82",
-  "releaseDate": "2026-10-12",
+  "version": "1.5.83",
+  "releaseDate": "2026-10-13",
   "name": "Marvel Super Heroes Character Editor",
   "repo": "https://github.com/captainload/marvel-character-editor",
-  "notes": "v1.5.82: Applied clean sans-serif UI font (var(--font-body)) and larger typography (11.5pt / 11pt minimum) globally across Cheat Sheet button, Cheat Sheet tabs & modal tables, File/Options dropdown menu & submenu items, top header toolbar, creation mode bar, and all form controls/buttons."
+  "notes": "v1.5.83: Added T25 Winged Flight with option definitions (feathered, leathery, biomechanical, insectoid). Integrated canonical UPB physical form innate powers (Avian Angelic/Harpy, Chiropteran, Modified Human wings/tail, Faun, Felinoid, Lupinoid, Merhuman, etc.) with automatic synchronization, 0 rolled slot cost, and baseline CP exemption. Fixed Rules Cheat Sheet in-page toggle and z-index layering over open dialogs, with seamless popout/docking across all 5 reference tabs."
 }

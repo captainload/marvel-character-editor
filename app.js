@@ -62,8 +62,8 @@ const App = {
     this.superiorOptionCost = !!val;
   },
   humanAbilityCaps: false,
-  VERSION: '1.5.82',
-  BUILD_DATE: '2026-10-12',
+  VERSION: '1.5.83',
+  BUILD_DATE: '2026-10-13',
   COMMIT_SHA: '6a15ff5',
   REPO_OWNER: 'captainload',
   REPO_NAME: 'marvel-character-editor',
@@ -844,7 +844,7 @@ const App = {
     // Cheat Sheet Modal Button & Modal Closes
     const cheatBtn = document.getElementById('btn-cheatsheet');
     if (cheatBtn) {
-      cheatBtn.addEventListener('click', () => this.openCheatSheet());
+      cheatBtn.addEventListener('click', () => this.toggleCheatSheet());
     }
 
     const btnTopAdvancement = document.getElementById('btn-top-advancement');
@@ -3954,15 +3954,43 @@ const App = {
       const rawCpCost = baseCost + (p.rankValue * rankMult) + surcharge;
       const cpCost = Math.max(5, rawCpCost - limitationDiscount);
 
+      let displayCpText = `${cpCost} CP`;
+      if (p.isFormInnate) {
+        const baseRankVal = p.innateBaseRankValue || 0;
+        if (p.rankValue <= baseRankVal) {
+          displayCpText = '0 CP (Innate)';
+        } else {
+          const extraCp = Math.max(0, (p.rankValue - baseRankVal) * rankMult);
+          displayCpText = `+${extraCp} CP (Innate Upgraded)`;
+        }
+      }
+
       const activeRanks = (typeof UniversalTableEngine !== 'undefined' && UniversalTableEngine.ranks)
         ? UniversalTableEngine.ranks.filter(r => r.name !== 'Shift 0' && !r.name.startsWith('Class') && r.name !== 'Beyond')
         : (typeof RANKS !== 'undefined' ? RANKS.slice(1, 14) : []);
 
       const rankSelectOptionsHtml = activeRanks.map(r => {
-        const costForRank = Math.max(5, baseCost + (r.num * rankMult) + surcharge - limitationDiscount);
+        let costLabel = '';
+        if (p.isFormInnate) {
+          const baseRankVal = p.innateBaseRankValue || 0;
+          if (r.num <= baseRankVal) {
+            costLabel = '0 CP (Innate)';
+          } else {
+            const extraCp = Math.max(0, (r.num - baseRankVal) * rankMult);
+            costLabel = `+${extraCp} CP (Innate Upgraded)`;
+          }
+        } else {
+          const costForRank = Math.max(5, baseCost + (r.num * rankMult) + surcharge - limitationDiscount);
+          costLabel = `${costForRank} CP`;
+        }
         const isSelected = r.name.toLowerCase() === pRank.name.toLowerCase();
-        return `<option value="${r.name}" ${isSelected ? 'selected' : ''}>${r.name} (${r.num}) - ${costForRank} CP</option>`;
+        return `<option value="${r.name}" ${isSelected ? 'selected' : ''}>${r.name} (${r.num}) - ${costLabel}</option>`;
       }).join('');
+
+      let innateBadgeHtml = '';
+      if (p.isFormInnate) {
+        innateBadgeHtml = `<span class="meta-tag tag-power-innate" title="Innate Form Power (Granted naturally by physical form - 0 Rolled Slots, 0 Base CP)">🧬 Innate (${p.innateBaseRankName || 'Base'})</span>`;
+      }
 
       let badgeHtml = '';
       if (isStarredPower) {
@@ -4112,6 +4140,7 @@ const App = {
           <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
             ${powerTitleHtml}
             <button type="button" class="help-circle-btn power-help-btn" title="View details and rules for ${(p.name || '').replace(/"/g, '&quot;')}" data-power-name="${(p.name || '').replace(/"/g, '&quot;')}">?</button>
+            ${innateBadgeHtml}
             ${badgeHtml}
             ${operationalBadgeHtml}
             ${adjustedBadgeHtml}
@@ -4120,7 +4149,7 @@ const App = {
           </div>
           <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
             ${switchBtnHtml}
-            <span class="meta-tag tag-power-cp" style="font-weight: 700;">${cpCost} CP</span>
+            <span class="meta-tag tag-power-cp" style="font-weight: 700;">${displayCpText}</span>
             <select class="power-rank-select" data-power-rank-select="${idx}" title="Change Rank for ${p.name} (CP cost is calculated automatically)" style="background-color: ${pRank.color};">
               ${rankSelectOptionsHtml}
             </select>
@@ -4130,7 +4159,7 @@ const App = {
         </div>
         <div class="power-details-grid">
           ${detailItems.join('')}
-          <span class="power-slots-hint" style="font-size: 10pt; margin-left: auto;">(Slots: ${p.powerSlots || (isStarredPower ? 2 : 1)})</span>
+          <span class="power-slots-hint" style="font-size: 10pt; margin-left: auto;">(Slots: ${p.isFormInnate ? '0 (Innate)' : (p.powerSlots || (isStarredPower ? 2 : 1))})</span>
         </div>
         ${customNotesHtml}
       `;
@@ -5257,13 +5286,28 @@ const App = {
     const isStarredPower = !!p.isStarred;
     const isExp = isStarredPower || !!p.isExceptional;
     const isTaxActive = !!(this.superiorOptionCost || (this.character && this.character.superiorOptionCost));
-    const cpRefund = (isExp ? 20 : 10) + (p.rankValue * (isExp ? 2 : 1)) + ((isTaxActive && p.optionSurcharge) ? p.optionSurcharge : 0);
+
+    let cpRefund = 0;
+    if (p.isFormInnate) {
+      const baseVal = p.innateBaseRankValue || 0;
+      if (p.rankValue > baseVal) {
+        cpRefund = (p.rankValue - baseVal) * (isExp ? 2 : 1) + ((isTaxActive && p.optionSurcharge) ? p.optionSurcharge : 0);
+      }
+    } else {
+      cpRefund = (isExp ? 20 : 10) + (p.rankValue * (isExp ? 2 : 1)) + ((isTaxActive && p.optionSurcharge) ? p.optionSurcharge : 0);
+    }
+
+    const confirmMsg = p.isFormInnate
+      ? `"${p.name}" is an innate power granted naturally by your physical form (${this.character.formName || 'Current Form'}).\n\nRemoving it will delete it from this character${cpRefund > 0 ? ` (refunding ${cpRefund} CP for rank upgrades)` : ''}. If you reapply your physical form or change extra parts later, innate powers will be re-synced.\n\nDo you want to remove it?`
+      : `Remove power "${p.name}" (${p.rankName})?\n\nRemoving this power will refund ${cpRefund} Character Points (CP) to your budget, and this removal will be noted in your Character Log.`;
+
+    const confirmBtnText = cpRefund > 0 ? `Remove & Refund ${cpRefund} CP` : 'Remove Power';
 
     const confirmed = await this.showCustomConfirm(
-      `Remove power "${p.name}" (${p.rankName})?\n\nRemoving this power will refund ${cpRefund} Character Points (CP) to your budget, and this removal will be noted in your Character Log.`,
+      confirmMsg,
       '🗑️ Remove Power',
       mouseEvent,
-      `Remove & Refund ${cpRefund} CP`,
+      confirmBtnText,
       'Cancel'
     );
 
@@ -5273,9 +5317,10 @@ const App = {
       if (this.character.calculateDefenses) {
         this.character.calculateDefenses();
       }
-      this.recordCharacterEdit(`Removed power: ${powerName} (+${cpRefund} CP refunded)`, 'power');
+      const refundNotice = cpRefund > 0 ? ` (+${cpRefund} CP refunded)` : '';
+      this.recordCharacterEdit(`Removed power: ${powerName}${refundNotice}`, 'power');
       this.render();
-      this.showStatusToast(`🗑️ "${powerName}" removed (+${cpRefund} CP refunded)`);
+      this.showStatusToast(`🗑️ "${powerName}" removed${refundNotice}`);
     }
   },
 
@@ -12392,7 +12437,7 @@ const App = {
     const charName = (char.name || '').trim().toLowerCase();
     const hasCustomName = !!(charName && !defaultNames.includes(charName));
     const hasRealName = !!(char.realName && char.realName.trim() !== '');
-    const hasPowers = Array.isArray(char.powers) && char.powers.length > 0;
+    const hasPowers = Array.isArray(char.powers) && char.powers.some(p => !p.isFormInnate || (p.rankValue > (p.innateBaseRankValue || p.rankValue)));
     const hasTalents = Array.isArray(char.talents) && char.talents.length > 0;
     const hasContacts = Array.isArray(char.contacts) && char.contacts.length > 0;
     const hasEquipment = (Array.isArray(char.equipment) && char.equipment.length > 0) ||
@@ -12556,7 +12601,7 @@ const App = {
         if (box) return box;
       } catch (e) {}
     }
-    return document.querySelector('.modal-box.cheatsheet-modal-box');
+    return document.querySelector('.modal-box.cheatsheet-modal-box') || this.cheatsheetModalBox;
   },
 
   getCheatSheetEl(id) {
@@ -12834,6 +12879,9 @@ const App = {
     }
     const mount = popDoc.getElementById('cheatsheet-popout-shell');
     if (mount) {
+      if (popDoc.adoptNode) {
+        try { popDoc.adoptNode(modalBox); } catch (e) {}
+      }
       mount.appendChild(modalBox);
     }
 
@@ -12873,6 +12921,9 @@ const App = {
       if (!isFullyInitialized && pop && !pop.closed) return;
       this.saveCheatSheetPopoutGeometry();
       returned = true;
+      if (document.adoptNode) {
+        try { document.adoptNode(modalBox); } catch (e) {}
+      }
       if (this.cheatsheetPlaceholder && this.cheatsheetPlaceholder.parentNode) {
         this.cheatsheetPlaceholder.parentNode.insertBefore(modalBox, this.cheatsheetPlaceholder);
         this.cheatsheetPlaceholder.remove();
@@ -12919,15 +12970,7 @@ const App = {
       }
     }, 400);
 
-    if (this.activeCheatTab === 'table') {
-      this.renderCheatSheetTable();
-    } else if (this.activeCheatTab === 'combat') {
-      this.renderCheatSheetCombat();
-    } else if (this.activeCheatTab === 'materials') {
-      this.renderCheatSheetMaterials();
-    } else if (this.activeCheatTab === 'movement') {
-      this.renderCheatSheetMovement();
-    }
+    this.switchCheatTab(this.activeCheatTab || 'table');
     try {
       pop.focus();
     } catch (e) {}
@@ -12951,6 +12994,9 @@ const App = {
     }
 
     if (modalBox) {
+      if (document.adoptNode) {
+        try { document.adoptNode(modalBox); } catch (e) {}
+      }
       if (this.cheatsheetPlaceholder && this.cheatsheetPlaceholder.parentNode) {
         this.cheatsheetPlaceholder.parentNode.insertBefore(modalBox, this.cheatsheetPlaceholder);
         this.cheatsheetPlaceholder.remove();
@@ -12994,15 +13040,7 @@ const App = {
         modal.classList.remove('open');
       }
     }
-    if (this.activeCheatTab === 'table') {
-      this.renderCheatSheetTable();
-    } else if (this.activeCheatTab === 'combat') {
-      this.renderCheatSheetCombat();
-    } else if (this.activeCheatTab === 'materials') {
-      this.renderCheatSheetMaterials();
-    } else if (this.activeCheatTab === 'movement') {
-      this.renderCheatSheetMovement();
-    }
+    this.switchCheatTab(this.activeCheatTab || 'table');
     this.showStatusToast('↘ Rules Cheat Sheet docked back into main window');
   },
 
@@ -13018,6 +13056,7 @@ const App = {
   initCheatSheetWindow() {
     const modalBox = document.querySelector('.modal-box.cheatsheet-modal-box');
     if (!modalBox) return;
+    this.cheatsheetModalBox = modalBox;
 
     modalBox.addEventListener('click', (e) => {
       const popBtn = e.target.closest('#btn-cheatsheet-popout');
@@ -13077,13 +13116,29 @@ const App = {
     }
 
     const modal = document.getElementById('cheatsheet-modal');
+    const modalBox = this.getCheatSheetBox();
+    if (modal && modalBox && !modal.contains(modalBox)) {
+      if (document.adoptNode) {
+        try { document.adoptNode(modalBox); } catch (e) {}
+      }
+      modal.appendChild(modalBox);
+    }
     if (modal) modal.classList.add('open');
-    if (this.activeCheatTab === 'table') {
-      this.renderCheatSheetTable();
-    } else if (this.activeCheatTab === 'materials') {
-      this.renderCheatSheetMaterials();
-    } else if (this.activeCheatTab === 'movement') {
-      this.renderCheatSheetMovement();
+    this.switchCheatTab(this.activeCheatTab || 'table');
+  },
+
+  toggleCheatSheet() {
+    if (this.isCheatSheetPoppedOut()) {
+      try {
+        this.cheatsheetPopoutWindow.focus();
+      } catch (e) {}
+      return;
+    }
+    const modal = document.getElementById('cheatsheet-modal');
+    if (modal && modal.classList.contains('open')) {
+      this.closeCheatSheet();
+    } else {
+      this.openCheatSheet();
     }
   },
 
@@ -16644,7 +16699,8 @@ const App = {
     // 3. If TSR mode with rolled / active character
     if (this.character.creationMode === 'tsr') {
       if (this.character.isTsrGenerated) return true;
-      if (this.character.powers && this.character.powers.length > 0) return true;
+      const hasInvestedPowersTsr = (this.character.powers || []).some(p => !p.isFormInnate || (p.rankValue > (p.innateBaseRankValue || p.rankValue)));
+      if (hasInvestedPowersTsr) return true;
       if (this.character.talents && this.character.talents.length > 0) return true;
       if (this.character.contacts && this.character.contacts.length > 0) return true;
       if (typeof this.character.hasManualStatInvestments === 'function' && this.character.hasManualStatInvestments()) {
@@ -16665,7 +16721,8 @@ const App = {
         if ((spent.breakdown.resources || 0) !== 6) return true;
       }
     }
-    if (this.character.powers && this.character.powers.length > 0) return true;
+    const hasInvestedPowers = (this.character.powers || []).some(p => !p.isFormInnate || (p.rankValue > (p.innateBaseRankValue || p.rankValue)));
+    if (hasInvestedPowers) return true;
     if (this.character.talents && this.character.talents.length > 0) return true;
     if (this.character.contacts && this.character.contacts.length > 0) return true;
 
@@ -18477,8 +18534,25 @@ const App = {
     // 3. Superpowers (PB p. 10 Category Model & Col 4 Ranks & Starred 2-Slot Powers)
     const pContainer = this.getTsrEl('tsr-powers-list-container');
     if (pContainer) {
+      const formInnateList = (typeof this.character?.getFormInnatePowersList === 'function')
+        ? this.character.getFormInnatePowersList(origin?.id, originExtraPart)
+        : [];
+      let innateNoticeHtml = '';
+      if (formInnateList.length > 0) {
+        const innateItems = formInnateList.map(ip => `<li><strong>${ip.name}</strong> (${ip.rankName || 'Typical'} ${ip.rankValue || 6})${ip.notes ? ` — <em>${ip.notes}</em>` : ''}</li>`).join('');
+        innateNoticeHtml = `
+          <div class="calc-rule-callout" style="margin-bottom: 12px; background: rgba(168, 85, 247, 0.08); border-left: 3px solid #c084fc;">
+            🧬 <strong>Innate Physical Form Powers (0 Rolled Slots):</strong>
+            <div style="font-size: 10pt; color: var(--text-muted); margin-top: 2px;">Your physical form (<strong>${origin?.name || 'Selected Form'}</strong>) automatically grants the following native powers upon applying to character sheet:</div>
+            <ul style="margin: 6px 0 2px 20px; font-size: 10.5pt; color: #f1f5f9;">
+              ${innateItems}
+            </ul>
+          </div>
+        `;
+      }
+
       if (powers.length === 0) {
-        pContainer.innerHTML = '<div style="color: var(--text-muted); font-size: 10pt; font-style: italic; padding: 8px;">No power slots. Click "Roll Slots &amp; Categories" to generate.</div>';
+        pContainer.innerHTML = innateNoticeHtml + '<div style="color: var(--text-muted); font-size: 10pt; font-style: italic; padding: 8px;">No power slots. Click "Roll Slots &amp; Categories" to generate.</div>';
       } else {
         const ceilings = (typeof TSR_LIMITATION_CEILINGS !== 'undefined')
           ? TSR_LIMITATION_CEILINGS
@@ -18488,7 +18562,7 @@ const App = {
           `<option value="${c.category}">${c.category} (${c.label})</option>`
         ).join('');
 
-        pContainer.innerHTML = powers.map((slot, idx) => {
+        pContainer.innerHTML = innateNoticeHtml + powers.map((slot, idx) => {
           const availableInCat = this.getPowersForTsrCategory(slot.category);
           const isSlotStarred = slot.isStarred !== undefined ? slot.isStarred : this.isTsrPowerStarred(slot.powerId || slot.powerName);
           const otherSlotsUsed = usedPowerSlots - (isSlotStarred ? 2 : 1);
@@ -19758,6 +19832,11 @@ const App = {
 
       this.character.powers.push(newPower);
     });
+
+    // Synchronize Form Innate Powers (e.g. Winged Flight for Avians, Sonar for Chiropteran, etc.)
+    if (typeof this.character.syncFormInnatePowers === 'function') {
+      this.character.syncFormInnatePowers();
+    }
 
     // Apply Talents
     this.character.talents = [];

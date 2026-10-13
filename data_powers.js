@@ -5424,6 +5424,27 @@
     "range": "Rank",
     "duration": "Maintained",
     "areaOfEffect": "1 portal"
+  },
+  {
+    "code": "T25",
+    "name": "Winged Flight",
+    "category": "Travel",
+    "source": "Player's Book p. 24 & UPB p. 5 (Avian / Chiropteran / Extra Anatomy)",
+    "defaultRank": "Good",
+    "countsAsTwo": false,
+    "description": "The hero flies through the air by means of feathered, leathery, membranous, or biomechanical wings (e.g. Angel, Falcon, Sauron).",
+    "rulesText": "The hero possesses functional anatomical or artificial wings capable of true powered flight in an atmosphere at the Air Movement rate determined by the Power rank (maximum of Shift-X / Mach 1 in atmosphere). Acceleration occurs at +1CS per turn and deceleration at -2CS per turn. Maneuverability in flight is governed by the hero's Agility. Unlike unassisted True Flight, Winged Flight requires an atmosphere to generate lift (cannot fly in vacuum/outer space) and requires sufficient wingspan clearance to beat the wings (Grappling holds or confined spaces prevent flight). Per canonical rules, the hero suffers -1CS to Strength when lifting or carrying heavy loads while airborne.",
+    "errataNote": "Native to Avian (Angelic), Avian (Harpy), Chiropteran (Bat-Form), and Modified Human (Extra Parts: Wings) physical forms.",
+    "powerStunts": [
+      "Wing Buffet / Gust: Beat wings powerfully to create a localized wind gust or knockback in 1 area",
+      "Diving Stoop / Swoop Attack: Dive from altitude to gain +1CS Charging damage on a melee or talon strike",
+      "Wing Shield: Wrap wings around the torso to deflect light projectiles or cushion an impact"
+    ],
+    "isStarred": false,
+    "powerSlots": 1,
+    "range": "Self",
+    "duration": "Maintained",
+    "speed": "Flight"
   }
 ];
 
@@ -5971,7 +5992,8 @@ const POWER_ATTRIBUTES = {
   "T21": { range: "Self", speed: "Flight", duration: "Maintained" },
   "T22": { range: "Self", speed: "Land", duration: "Maintained" },
   "T23": { range: "Self or 1 area", speed: "Flight", duration: "Maintained", areaOfEffect: "1 area" },
-  "T24": { range: "Rank", duration: "Maintained", areaOfEffect: "1 portal" }
+  "T24": { range: "Rank", duration: "Maintained", areaOfEffect: "1 portal" },
+  "T25": { range: "Self", speed: "Flight", duration: "Maintained" }
 };
 
 const POWERS_BY_CODE = {};
@@ -6840,6 +6862,69 @@ const POWER_OPTIONS_DEFINITIONS = {
         isSuperior: true,
         rankShift: 1,
         subChoiceList: ["Animals Only", "Inanimate Objects Only", "Humanoids Only"]
+      }
+    ]
+  },
+  "T21": {
+    powerCode: "T21",
+    powerName: "True Flight",
+    id: "flight_manifestation",
+    label: "Flight Propulsion / Manifestation",
+    canRoll: true,
+    rollTable: [[1, 35, "winged"], [36, 100, "true_flight"]],
+    choices: [
+      {
+        key: "true_flight",
+        label: "True Flight (Unassisted / Space-Capable)",
+        description: "Flies through air, water, and space without visible propulsion at Power Rank speed.",
+        isSuperior: true,
+        rankShift: 0
+      },
+      {
+        key: "winged",
+        label: "Winged Flight (Feathered, Leathery, or Mechanical Wings)",
+        description: "Flies via anatomical or mechanical wings (Air Movement rate; requires atmosphere; -1CS Strength lifting while airborne).",
+        isSuperior: false,
+        rankShift: 0,
+        subChoiceList: ["Feathered Wings (Avian / Angelic)", "Leathery Wings (Bat / Dragon)", "Biomechanical Wings", "Insectoid Wings"]
+      }
+    ]
+  },
+  "T25": {
+    powerCode: "T25",
+    powerName: "Winged Flight",
+    id: "winged_flight_type",
+    label: "Wing Anatomy & Physiology",
+    canRoll: true,
+    rollTable: [[1, 40, "feathered"], [41, 70, "leathery"], [71, 85, "biomechanical"], [86, 100, "insectoid"]],
+    choices: [
+      {
+        key: "feathered",
+        label: "Feathered Wings (Avian / Angelic)",
+        description: "Aerodynamic avian wings with plumage and hollow bone adaptation. Standard Air Movement rate.",
+        isSuperior: false,
+        rankShift: 0
+      },
+      {
+        key: "leathery",
+        label: "Leathery Wings (Bat-Form / Chiropteran / Gargoyle)",
+        description: "Membranous leathery wings with elongated finger bones (Chiropteran/gargoyle anatomy). Standard Air Movement rate.",
+        isSuperior: false,
+        rankShift: 0
+      },
+      {
+        key: "biomechanical",
+        label: "Biomechanical / Cybernetic Wings (Falcon / Vulture / Archangel)",
+        description: "High-tech synthetic alloy wings or cybernetic wing grafts.",
+        isSuperior: false,
+        rankShift: 0
+      },
+      {
+        key: "insectoid",
+        label: "Insectoid / Gossamer Wings (Wasp / Pixie)",
+        description: "High-frequency vibrating wings providing hovering and precision maneuverability.",
+        isSuperior: false,
+        rankShift: 0
       }
     ]
   }

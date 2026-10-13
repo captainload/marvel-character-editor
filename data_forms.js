@@ -305,8 +305,39 @@ const PHYSICAL_FORMS = [
     extraPartOptions: [
       { id: "arms", label: "Extra Arms (+1CS Fighting & Grapple)", abilityMods: { F: 1 }, combatNote: "+1CS Fighting & Grappling" },
       { id: "organs", label: "Duplicate Organs (2× Initial Health)", abilityMods: {}, healthMultiplier: 2, combatNote: "Doubles Base Health total" },
-      { id: "tail", label: "Prehensile Tail(s) (+1 Blunt Attack)", abilityMods: {}, extraAttack: "tail", combatNote: "+1 additional Blunt Tail Attack" },
-      { id: "wings", label: "Wings (Innate Flight)", abilityMods: {}, innatePower: "Flight", combatNote: "Grants innate Winged Flight" }
+      {
+        id: "tail",
+        label: "Prehensile Tail(s) (+1 Blunt Attack)",
+        abilityMods: {},
+        extraAttack: "tail",
+        combatNote: "+1 additional Blunt Tail Attack",
+        innatePowers: [
+          {
+            code: "F3",
+            name: "Natural Weaponry (Prehensile Tail)",
+            rankName: "Typical",
+            rankValue: 6,
+            selectedOption: "tail",
+            notes: "Innate Modified Human prehensile tail blunt attack (UPB p. 4)"
+          }
+        ]
+      },
+      {
+        id: "wings",
+        label: "Wings (Innate Flight)",
+        abilityMods: {},
+        combatNote: "Grants innate Winged Flight",
+        innatePowers: [
+          {
+            code: "T25",
+            name: "Winged Flight",
+            rankName: "Typical",
+            rankValue: 6,
+            selectedOption: "feathered",
+            notes: "Innate Modified Human winged flight (UPB p. 4)"
+          }
+        ]
+      }
     ],
     columnAssignment: 2, // Dragon #122 Table 1: Column 2 (UPB p. 4 text said Col 1, corrected to Col 2 in Dragon #122)
     powerSlots: { min: 1, max: 5, default: 2 },
@@ -372,6 +403,15 @@ const PHYSICAL_FORMS = [
     contactsBonus: 0,
     resourcesBase: "Typical",
     startingPopularity: 0, // UPB p. 4: "fauns have an initial Popularity of zero."
+    innatePowers: [
+      {
+        code: "L9",
+        name: "Hypnotic Control",
+        rankName: "Feeble",
+        rankValue: 2,
+        notes: "Innate Faun/Satyr mental fascination over humanoid females (UPB p. 4)"
+      }
+    ],
     specialRules: "Rolls on Column 2. Initial Popularity is 0 (resemblance to traditional devil). Possesses Feeble Mental Domination (Hypnotic Control) over females of any humanoid race."
   },
   {
@@ -392,6 +432,23 @@ const PHYSICAL_FORMS = [
       climbingShift: 1,
       nightVision: "Excellent"
     },
+    innatePowers: [
+      {
+        code: "F3",
+        name: "Natural Weaponry (Claws)",
+        rankName: "Good",
+        rankValue: 10,
+        selectedOption: "claws",
+        notes: "Innate Felinoid claws & fangs edged attack (UPB p. 4)"
+      },
+      {
+        code: "DT21",
+        name: "UV Vision",
+        rankName: "Excellent",
+        rankValue: 20,
+        notes: "Innate Felinoid night vision (UPB p. 4)"
+      }
+    ],
     specialRules: "Rolls on Column 1. Possesses Claws & Fangs (Edged attack), Excellent (20) Night Vision, and +1CS to Climbing FEATs."
   },
   {
@@ -411,6 +468,23 @@ const PHYSICAL_FORMS = [
     combatMods: {
       olfactoryRank: "Excellent"
     },
+    innatePowers: [
+      {
+        code: "DT7",
+        name: "Hyper-Olfactory",
+        rankName: "Excellent",
+        rankValue: 20,
+        notes: "Innate Lupinoid hyper-olfactory smell (UPB p. 5)"
+      },
+      {
+        code: "F3",
+        name: "Natural Weaponry (Fangs)",
+        rankName: "Good",
+        rankValue: 10,
+        selectedOption: "fangs",
+        notes: "Innate Lupinoid fangs attack (UPB p. 5)"
+      }
+    ],
     specialRules: "Rolls on Column 4. Possesses an Excellent (20) sense of smell (Hyper-Olfactory). Initial Popularity is reduced -1CS (often mistaken for werewolves)."
   },
   {
@@ -427,6 +501,16 @@ const PHYSICAL_FORMS = [
     contactsBonus: 0,
     resourcesBase: "Typical",
     popularityShift: 1, // UPB p. 5: "They get an increased Popularity (+1CS)."
+    innatePowers: [
+      {
+        code: "T25",
+        name: "Winged Flight",
+        rankName: "Excellent",
+        rankValue: 20,
+        selectedOption: "feathered",
+        notes: "Innate Demihuman Avian (Angelic) feathered winged flight (UPB p. 5)"
+      }
+    ],
     specialRules: "Rolls on Column 3. Gains +1CS Popularity and winged Flight."
   },
   {
@@ -445,6 +529,24 @@ const PHYSICAL_FORMS = [
     combatMods: {
       talonClawsAttack: true
     },
+    innatePowers: [
+      {
+        code: "T25",
+        name: "Winged Flight",
+        rankName: "Excellent",
+        rankValue: 20,
+        selectedOption: "feathered",
+        notes: "Innate Demihuman Avian (Harpy) feathered winged flight (UPB p. 5)"
+      },
+      {
+        code: "F3",
+        name: "Natural Weaponry (Talon Claws)",
+        rankName: "Good",
+        rankValue: 10,
+        selectedOption: "claws",
+        notes: "Innate Demihuman Avian (Harpy) bird claw attack (UPB p. 5)"
+      }
+    ],
     specialRules: "Rolls on Column 2. Gains +1CS Fighting, bird-claw Talon Edged attacks, and winged Flight."
   },
   {
@@ -464,6 +566,23 @@ const PHYSICAL_FORMS = [
     combatMods: {
       innateSonarRank: "Good"
     },
+    innatePowers: [
+      {
+        code: "T25",
+        name: "Winged Flight",
+        rankName: "Good",
+        rankValue: 10,
+        selectedOption: "leathery",
+        notes: "Innate Demihuman Chiropteran leathery winged flight (UPB p. 5)"
+      },
+      {
+        code: "DT16",
+        name: "Sonar",
+        rankName: "Good",
+        rankValue: 10,
+        notes: "Innate Demihuman Chiropteran active sonar (UPB p. 5)"
+      }
+    ],
     specialRules: "Rolls on Column 2. Possesses Active Sonar at Good (10) rank and leathery wings. Initial Popularity is Feeble (2)."
   },
   {
@@ -484,6 +603,16 @@ const PHYSICAL_FORMS = [
       escapeShift: 1, // UPB p. 5: "Lamians are difficult to bind (+1CS to escape)."
       venomousBiteRank: "Excellent" // UPB p. 5: "50% chance the lamian is venomous (Excellent Intensity poison)."
     },
+    innatePowers: [
+      {
+        code: "F3",
+        name: "Natural Weaponry (Venomous Fangs)",
+        rankName: "Excellent",
+        rankValue: 20,
+        selectedOption: "fangs",
+        notes: "Innate Demihuman Lamian venomous fangs attack (UPB p. 5)"
+      }
+    ],
     specialRules: "Rolls on Column 3. Difficult to bind (+1CS to Escape FEATs). 50% chance of venomous fangs (Excellent 20 poison). Initial Popularity is 0."
   },
   {
@@ -500,6 +629,29 @@ const PHYSICAL_FORMS = [
     contactsBonus: 0,
     resourcesBase: "Typical",
     popularityShift: 1, // UPB p. 5: "have an increased Popularity (+1CS)."
+    innatePowers: [
+      {
+        code: "P16",
+        name: "Waterbreathing",
+        rankName: "Good",
+        rankValue: 10,
+        notes: "Innate Demihuman Merhuman waterbreathing lungs & gills (UPB p. 5)"
+      },
+      {
+        code: "P17",
+        name: "Water Freedom",
+        rankName: "Good",
+        rankValue: 10,
+        notes: "Innate Demihuman Merhuman water freedom (UPB p. 5)"
+      },
+      {
+        code: "T11",
+        name: "Hyper-Swimming",
+        rankName: "Good",
+        rankValue: 10,
+        notes: "Innate Demihuman Merhuman aquatic swimming locomotion (UPB p. 5)"
+      }
+    ],
     specialRules: "Rolls on Column 2. Possesses lungs, gills (Waterbreathing), and Water Freedom natively. Gains +1CS Popularity. Dry-land movement is limited without vehicles or flight."
   },
   {
@@ -605,6 +757,17 @@ const PHYSICAL_FORMS = [
     combatMods: {
       diseasePoisonResistanceRank: "Monstrous" // UPB p. 5: "Mech Bodies have Monstrous Resistance to Disease and Poisons of all sorts."
     },
+    innatePowers: [
+      {
+        code: "D15",
+        name: "Resist: Physical (Toxins & Disease)",
+        rankName: "Monstrous",
+        rankValue: 75,
+        selectedOption: "specialized",
+        optionSubChoice: "Toxins & Poisons",
+        notes: "Innate Cyborg (Mechanical Body) resistance to disease and poisons (UPB p. 5)"
+      }
+    ],
     specialRules: "Rolls on Column 4. Initial Intuition and Psyche are both reduced -1CS. Possesses Monstrous (75) Resistance to Disease and Poisons. Vulnerable to Magnetic attacks and rust. Starts with only 1 Contact (the creating lab)."
   },
   {
@@ -822,7 +985,23 @@ const PHYSICAL_FORMS = [
     contactsBonus: 0,
     minContacts: 1, // UPB p. 7: "Animals have to have a human Contact."
     resourcesBase: "Shift 0", // UPB p. 7: "Resources are zero unless the animal has attached himself to a human."
-    specialRules: "Rolls on Column 1 (Column 5 if Alien). Gains 1 less Power, but automatically has 2 Detection Powers at Good (10) rank. Resources are Shift 0 (0) unless attached to a human Contact."
+    specialRules: "Rolls on Column 1 (Column 5 if Alien). Gains 1 less Power, but automatically has 2 Detection Powers at Good (10) rank. Resources are Shift 0 (0) unless attached to a human Contact.",
+    innatePowers: [
+      {
+        code: "DT6",
+        name: "Hyper-Hearing",
+        rankName: "Good",
+        rankValue: 10,
+        notes: "Innate Animal detection power (UPB p. 7)"
+      },
+      {
+        code: "DT7",
+        name: "Hyper-Olfactory",
+        rankName: "Good",
+        rankValue: 10,
+        notes: "Innate Animal detection power (UPB p. 7)"
+      }
+    ]
   },
   {
     id: "vegetable",
@@ -838,6 +1017,16 @@ const PHYSICAL_FORMS = [
     contactsBonus: 0,
     maxContacts: 0, // UPB p. 8: "Plants have no initial Contacts"
     resourcesBase: "Shift 0", // UPB p. 8: "Plants have zero Resources."
+    innatePowers: [
+      {
+        code: "EC1",
+        name: "Absorption Power (Photosynthesis)",
+        rankName: "Good",
+        rankValue: 10,
+        selectedOption: "light",
+        notes: "Innate Vegetable form photosynthesis energy absorption (UPB p. 8)"
+      }
+    ],
     specialRules: "Rolls on Column 1. Has -2CS Fighting and +2CS Endurance. Zero (Shift 0) Resources and 0 initial Contacts. Automatically possesses Good (10) Absorption Power (photosynthesis)."
   },
   {
@@ -873,6 +1062,17 @@ const PHYSICAL_FORMS = [
     resourcesBase: "Typical",
     healthMultiplier: 2, // UPB p. 8: "Initial Health is doubled."
     movementShift: -1, // UPB p. 8: "Movement rate is decreased -1CS."
+    innatePowers: [
+      {
+        code: "D15",
+        name: "Resist: Physical (Toxins & Disease)",
+        rankName: "Unearthly",
+        rankValue: 100,
+        selectedOption: "specialized",
+        optionSubChoice: "Toxins & Poisons",
+        notes: "Innate Mineral Life immunity to poisons and diseases (UPB p. 8)"
+      }
+    ],
     specialRules: "Rolls on Column 2. Initial Health is doubled (2× F+A+S+E). Movement rate is decreased -1CS. Immune to all normal human Poisons and Diseases."
   },
   {
@@ -889,6 +1089,15 @@ const PHYSICAL_FORMS = [
     contactsBonus: 0,
     maxContacts: 0, // UPB p. 9: "no initial Contacts"
     resourcesBase: "Shift 0", // UPB p. 9: "On Earth, Gas Bodies have zero Resources"
+    innatePowers: [
+      {
+        code: "S22",
+        name: "Phasing (Ghost Walk)",
+        rankName: "Good",
+        rankValue: 10,
+        notes: "Innate Gaseous Life natural permeable phasing (UPB p. 8-9)"
+      }
+    ],
     specialRules: "Rolls on Column 5. Zero (Shift 0) Resources and 0 initial Contacts on Earth. Possesses natural Phasing through permeable solids; immune to normal physical blows."
   },
   {
@@ -905,6 +1114,15 @@ const PHYSICAL_FORMS = [
     contactsBonus: 0,
     maxContacts: 0, // UPB p. 8: "Fluid Bodies have no initial Contacts except their own race"
     resourcesBase: "Typical",
+    innatePowers: [
+      {
+        code: "S22",
+        name: "Phasing (Ghost Walk)",
+        rankName: "Good",
+        rankValue: 10,
+        notes: "Innate Liquid Life natural permeable phasing (UPB p. 8)"
+      }
+    ],
     specialRules: "Rolls on Column 5. Possesses a natural variation of Phasing to permeate porous materials. Immobilized if frozen; vaporization is fatal. No initial Contacts except own race."
   },
   {
@@ -924,6 +1142,22 @@ const PHYSICAL_FORMS = [
       contactEnergyDamage: 2, // UPB p. 9: "Physical contact with an Energy Being does Feeble damage."
       plasmaVulnerabilityShift: -1 // UPB p. 9: "special vulnerability to Plasma Control (-1CS Resistance)"
     },
+    innatePowers: [
+      {
+        code: "S13",
+        name: "Energy Body",
+        rankName: "Good",
+        rankValue: 10,
+        notes: "Innate Energy Being body of coherent energy (UPB p. 9)"
+      },
+      {
+        code: "EE8",
+        name: "Light Emission",
+        rankName: "Good",
+        rankValue: 10,
+        notes: "Innate Energy Being bonus power of energy emission (UPB p. 9)"
+      }
+    ],
     specialRules: "Rolls on Column 5. Gains a Bonus Power of Energy Emission. Physical contact with an Energy Being inflicts Feeble (2) damage. Vulnerable to Plasma Control (-1CS Resistance) and containment storage batteries."
   },
 
@@ -943,6 +1177,15 @@ const PHYSICAL_FORMS = [
     talentBonus: 1,
     contactsBonus: 1,
     resourcesBase: "Typical",
+    innatePowers: [
+      {
+        code: "S23",
+        name: "Physical Gestalt",
+        rankName: "Good",
+        rankValue: 10,
+        notes: "Innate Physical Gestalt fused form (UPB p. 10)"
+      }
+    ],
     specialRules: "Requires partner entities to fuse; separation returns characters to normal stats."
   },
   {
@@ -964,6 +1207,15 @@ const PHYSICAL_FORMS = [
     combatMods: {
       swarmResistanceShift: 2
     },
+    innatePowers: [
+      {
+        code: "S32",
+        name: "Swarm / Collective Mass (Swarm Form)",
+        rankName: "Good",
+        rankValue: 10,
+        notes: "Innate S32 Collective Mass swarm form (Dragon #134)"
+      }
+    ],
     specialRules: [
       "+2CS Resistance to Physical and Directed Energy attacks (attacks pass harmlessly through dispersed components).",
       "Requires tracking dual abilities: Component Stats (individual organism, e.g. Feeble 2) and Collective Mass Stats (full swarm).",
@@ -1008,6 +1260,22 @@ const PHYSICAL_FORMS = [
       earthFightingShiftZero: true, // UPB p. 9: "Fighting rank is zero in the Earth Dimension, unless the Ethereal is fighting another Ethereal."
       physicalAttackReductionCS: -9 // UPB p. 9: "Physical attacks have a decreased effect on Ethereals (-9CS)."
     },
+    innatePowers: [
+      {
+        code: "S22",
+        name: "Phasing (Ghost Walk)",
+        rankName: "Monstrous",
+        rankValue: 75,
+        notes: "Innate Ethereal disembodied spirit phasing (UPB p. 9)"
+      },
+      {
+        code: "T1",
+        name: "Astral Body",
+        rankName: "Good",
+        rankValue: 10,
+        notes: "Innate Ethereal astral body movement (UPB p. 9)"
+      }
+    ],
     specialRules: "Rolls on Column 1. Fighting rank is Shift 0 on the Earth Dimension (except vs other Ethereals). Physical attacks suffer -9CS against Ethereals (immune to physical < Unearthly). At least 1 Contact can be a Spiritual Medium."
   },
   {
@@ -1028,6 +1296,24 @@ const PHYSICAL_FORMS = [
       angelicSword: true,
       demonicHellfire: true
     },
+    innatePowers: [
+      {
+        code: "EE4",
+        name: "Fire Generation",
+        rankName: "Good",
+        rankValue: 10,
+        notes: "Innate Demon fire generation (UPB p. 7)"
+      },
+      {
+        code: "D12",
+        name: "Resist: Energy (Fire & Heat)",
+        rankName: "Unearthly",
+        rankValue: 100,
+        selectedOption: "specialized",
+        optionSubChoice: "Fire & Heat",
+        notes: "Innate Demon fire & heat invulnerability (UPB p. 7)"
+      }
+    ],
     specialRules: "Rolls on Column 5. All Physical Abilities (F, A, S, E) are raised +1CS. 0 initial Contacts. Angels gain +2CS Popularity and a Magical Sword (Excellent 20 damage). Demons lose -2CS Popularity and gain Good (10) Fire Generation & Heat/Fire Invulnerability."
   },
   {
@@ -1044,6 +1330,22 @@ const PHYSICAL_FORMS = [
     contactsBonus: 0,
     resourcesBase: "Typical",
     popularityShift: 2, // UPB p. 7: "Deities have increased Popularity (+2CS) with the public"
+    innatePowers: [
+      {
+        code: "P10",
+        name: "Self-Revival",
+        rankName: "Unearthly",
+        rankValue: 100,
+        notes: "Innate Deity immortality / non-permanent Earth death (UPB p. 7)"
+      },
+      {
+        code: "T3",
+        name: "Dimension Travel",
+        rankName: "Good",
+        rankValue: 10,
+        notes: "Innate Deity travel power (UPB p. 7)"
+      }
+    ],
     specialRules: "Rolls on Column 5. All 7 Primary Abilities are raised +2CS. Gains +2 additional Powers (and at least 1 Travel Power). Gains +2CS Popularity with the public. Cannot permanently die in the Earth Dimension unless slain by another Deity."
   },
   {
@@ -1081,6 +1383,15 @@ const PHYSICAL_FORMS = [
     talentBonus: 0,
     contactsBonus: 0,
     resourcesBase: "Typical",
+    innatePowers: [
+      {
+        code: "S18",
+        name: "Imitation-Human Changeling",
+        rankName: "Good",
+        rankValue: 10,
+        notes: "Innate Changeling metamorphic aspect transformation (UPB p. 10)"
+      }
+    ],
     specialRules: "Rolls on Column 5. Can transform between 2–5 Body Type Aspects in 10 turns (during transformation, no Powers function and all Primary Abilities drop -2CS)."
   }
 ];

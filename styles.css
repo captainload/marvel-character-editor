@@ -32,7 +32,7 @@
   --rank-red: #ef4444;
 
   /* Minimum typography and sizing */
-  --min-font-size: 10pt; /* Exactly 13.33px */
+  --min-font-size: 11pt;
   --min-touch-target: 44px;
 
   /* Persistent Header Dimensions */
@@ -49,6 +49,10 @@
   -webkit-tap-highlight-color: transparent;
 }
 
+button, input, select, textarea, optgroup, option {
+  font-family: var(--font-body);
+}
+
 html {
   overflow-y: scroll;
   scrollbar-gutter: stable;
@@ -58,7 +62,7 @@ body {
   background-color: var(--bg-main);
   color: var(--text-main);
   font-family: var(--font-body);
-  font-size: 10.5pt; /* Space efficient, strictly >= 10pt */
+  font-size: 11.5pt;
   line-height: 1.45;
   width: 100%;
   max-width: 1080px;
@@ -69,8 +73,8 @@ body {
   overflow-x: clip;
 }
 
-/* Enforce 10pt minimum font size across all smaller elements */
-.field-label, .vital-label, .meta-tag, .defense-badge-title, .attack-notes, .talent-desc, small, span, button {
+/* Enforce minimum font size across smaller label/note elements */
+.field-label, .vital-label, .meta-tag, .defense-badge-title, .attack-notes, .talent-desc, small {
   font-size: var(--min-font-size);
 }
 
@@ -460,14 +464,14 @@ body {
   border: 1px solid var(--border-color);
   border-radius: 4px;
   padding: 0 8px 0 10px;
-  font-size: 10pt;
-  height: 28px;
+  font-family: var(--font-body);
+  font-size: 11pt;
+  height: 30px;
   white-space: nowrap;
   user-select: none;
   cursor: pointer;
   flex: 0 0 auto;
   flex-shrink: 0;
-  font-family: inherit;
   transition: all 0.2s ease;
   box-sizing: border-box;
 }
@@ -489,13 +493,15 @@ body {
 
 .header-form-label {
   color: var(--text-muted);
-  font-size: 10pt;
+  font-family: var(--font-body);
+  font-size: 11pt;
   font-weight: 600;
 }
 
 .header-form-val {
   color: #38bdf8;
-  font-size: 10pt;
+  font-family: var(--font-body);
+  font-size: 11.5pt;
   font-weight: 700;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -503,7 +509,7 @@ body {
 }
 
 .form-change-caret {
-  font-size: 10pt;
+  font-size: 11pt;
   color: #38bdf8;
   transition: transform 0.2s ease;
 }
@@ -531,9 +537,9 @@ body {
   background: transparent;
   color: #38bdf8;
   border: none;
-  font-size: 10pt;
+  font-size: 11.5pt;
   font-weight: 700;
-  font-family: inherit;
+  font-family: var(--font-body);
   cursor: pointer;
   padding: 2px 20px 2px 4px;
   outline: none;
@@ -559,7 +565,8 @@ body {
 .header-form-select option {
   background: #0f172a;
   color: #f1f5f9;
-  font-size: 10pt;
+  font-family: var(--font-body);
+  font-size: 11.5pt;
   font-weight: 500;
   padding: 6px 10px;
 }
@@ -571,9 +578,9 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  font-size: 10pt;
+  font-size: 11.5pt;
   font-weight: 700;
-  font-family: inherit;
+  font-family: var(--font-body);
   cursor: pointer;
   padding: 0;
   outline: none;
@@ -597,7 +604,7 @@ body {
   background: rgba(239, 68, 68, 0.08);
   border-radius: 4px;
   padding: 4px 10px;
-  font-family: inherit;
+  font-family: var(--font-body);
   transition: all 0.2s ease;
 }
 
@@ -613,8 +620,8 @@ body {
   border-radius: 5px;
   color: var(--marvel-gold);
   padding: 4px 10px;
-  font-family: inherit;
-  font-size: 10pt;
+  font-family: var(--font-body);
+  font-size: 11pt;
   font-weight: 700;
   display: inline-flex;
   align-items: center;
@@ -655,7 +662,7 @@ body {
 .point-numbers {
   font-family: var(--font-mono);
   font-weight: 800;
-  font-size: 11pt;
+  font-size: 11.5pt;
   color: var(--marvel-gold);
 }
 
@@ -669,10 +676,14 @@ body {
   white-space: nowrap;
 }
 
-.top-controls .icon-btn {
-  padding: 4px 10px;
-  min-height: 32px;
-  font-size: 10pt;
+.top-controls .icon-btn,
+#btn-cheatsheet,
+#btn-file-options {
+  padding: 5px 12px;
+  min-height: 34px;
+  font-family: var(--font-body);
+  font-size: 11.5pt;
+  font-weight: 700;
 }
 
 /* Touch-Friendly Action Buttons */
@@ -682,7 +693,8 @@ body {
   border: 1px solid var(--border-color);
   border-radius: 6px;
   padding: 8px 14px;
-  font-size: 10.5pt;
+  font-family: var(--font-body);
+  font-size: 11.5pt;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
@@ -692,6 +704,12 @@ body {
   transition: all 0.15s ease;
   min-height: var(--min-touch-target);
   user-select: none;
+}
+
+.icon-btn span {
+  font-family: inherit;
+  font-size: inherit;
+  font-weight: inherit;
 }
 
 .icon-btn:hover {
@@ -795,7 +813,8 @@ body {
 }
 
 .tab-history-label {
-  font-size: 10pt;
+  font-family: var(--font-body);
+  font-size: 11pt;
   font-weight: 700;
   color: var(--text-muted);
   margin-right: 4px;
@@ -2063,7 +2082,8 @@ body.touch-friendly .attack-roll-chip {
   border: 1px solid var(--border-color);
   border-radius: 6px;
   color: var(--text-main);
-  font-size: 10.5pt;
+  font-family: var(--font-body);
+  font-size: 11.5pt;
   padding: 6px 10px;
   min-height: 38px;
   box-sizing: border-box;
@@ -2086,7 +2106,8 @@ select.field-input {
 select.field-input option {
   background: #111827;
   color: #f1f5f9;
-  font-size: 10.5pt;
+  font-family: var(--font-body);
+  font-size: 11.5pt;
   max-width: 100%;
 }
 
@@ -3325,7 +3346,8 @@ body[data-theme="aqua"] #options-modal .option-control-header {
   background: #1e293b;
   border: 1px solid var(--border-color);
   color: #38bdf8;
-  font-size: 10pt;
+  font-family: var(--font-body);
+  font-size: 11pt;
   font-weight: 700;
   padding: 2px 8px;
   border-radius: 4px;
@@ -3349,7 +3371,8 @@ body[data-theme="aqua"] #options-modal .option-control-header {
   background: #1e293b;
   border: 1px solid var(--border-color);
   color: var(--text-main, #f1f5f9);
-  font-size: 10pt;
+  font-family: var(--font-body);
+  font-size: 11pt;
   font-weight: 700;
   padding: 3px 10px;
   border-radius: 4px;
@@ -3915,7 +3938,8 @@ body[data-theme="aqua"] #options-modal .option-control-header {
   overflow-y: auto;
   min-height: 0;
   padding: 16px 20px;
-  font-size: 10pt;
+  font-family: var(--font-body);
+  font-size: 11pt;
   line-height: 1.55;
 }
 
@@ -3925,7 +3949,7 @@ body[data-theme="aqua"] #options-modal .option-control-header {
 }
 
 #cheatsheet-modal .modal-title {
-  font-size: 1.3rem;
+  font-size: 1.35rem;
   line-height: 1.2;
 }
 
@@ -3941,6 +3965,14 @@ body[data-theme="aqua"] #options-modal .option-control-header {
   align-items: center;
 }
 
+.cheatsheet-tabs-bar .icon-btn {
+  font-family: var(--font-body);
+  font-size: 11.5pt;
+  font-weight: 700;
+  padding: 6px 12px;
+  min-height: 36px;
+}
+
 body[data-theme="manilla"] .cheatsheet-tabs-bar {
   background: #e2ded6;
   border-bottom-color: #c2bcaf;
@@ -3954,13 +3986,14 @@ body[data-theme="aqua"] .cheatsheet-tabs-bar {
 #cheatsheet-modal p,
 #cheatsheet-modal li,
 #cheatsheet-modal .cheat-text {
-  font-size: 10pt;
+  font-family: var(--font-body);
+  font-size: 11pt;
   line-height: 1.55;
   color: var(--text-main);
 }
 
 #cheatsheet-modal h3 {
-  font-size: 12pt;
+  font-size: 13pt;
   color: var(--marvel-gold);
   margin: 14px 0 8px 0;
   padding-bottom: 4px;
@@ -3970,9 +4003,10 @@ body[data-theme="aqua"] .cheatsheet-tabs-bar {
 }
 
 #cheatsheet-modal h4 {
-  font-size: 11pt;
+  font-size: 11.5pt;
   color: #38bdf8;
   margin: 10px 0 6px 0;
+  font-family: var(--font-body);
   font-weight: 700;
 }
 
@@ -4032,13 +4066,13 @@ body[data-theme="aqua"] .cheatsheet-tabs-bar {
 .universal-table-view th, .universal-table-view td {
   padding: 6px 8px;
   border: 1px solid #334155;
-  font-size: 10pt;
+  font-size: 11pt;
 }
 
 .universal-table-view th {
   background: #1e293b;
   font-weight: 700;
-  font-size: 10pt;
+  font-size: 11.5pt;
 }
 
 .feat-blue, .color-blue {
@@ -4073,14 +4107,14 @@ body[data-theme="aqua"] .cheatsheet-tabs-bar {
   color: #f8fafc;
   padding: 7px 10px;
   font-weight: 700;
-  font-size: 10pt;
+  font-size: 11.5pt;
   border: 1px solid #2e3c54;
   text-align: left;
 }
 
 .cheat-table td {
   padding: 6px 10px;
-  font-size: 10pt;
+  font-size: 11pt;
   border: 1px solid #243048;
   color: var(--text-main);
   vertical-align: top;
@@ -4110,7 +4144,7 @@ body[data-theme="aqua"] .cheatsheet-tabs-bar {
   background: rgba(245, 158, 11, 0.1);
   border-left: 4px solid var(--marvel-gold);
   padding: 10px 14px;
-  font-size: 10pt;
+  font-size: 11pt;
   color: #fde68a;
   border-radius: 0 4px 4px 0;
   margin: 10px 0;
@@ -4246,7 +4280,7 @@ body[data-theme="aqua"] .cheatsheet-tabs-bar {
 /* Roller Dice KP Badge */
 .dice-kp-badge {
   color: var(--marvel-gold, #f59e0b);
-  font-size: 10pt;
+  font-size: 11pt;
   font-weight: 700;
   margin-left: 6px;
   background: rgba(245, 158, 11, 0.12);
@@ -4270,7 +4304,7 @@ body[data-theme="aqua"] .cheatsheet-tabs-bar {
   background: #162032;
   border: 1px solid var(--border-color);
   border-radius: 6px;
-  min-width: 220px;
+  min-width: 245px;
   z-index: 1000;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6);
   padding: 6px 0;
@@ -4287,7 +4321,8 @@ body[data-theme="aqua"] .cheatsheet-tabs-bar {
   width: 100%;
   padding: 9px 14px;
   color: #f1f5f9;
-  font-size: 10pt;
+  font-family: var(--font-body);
+  font-size: 11.5pt;
   font-weight: 600;
   background: transparent;
   border: none;
@@ -4297,6 +4332,11 @@ body[data-theme="aqua"] .cheatsheet-tabs-bar {
   min-height: 38px;
   user-select: none;
   box-sizing: border-box;
+}
+
+.dropdown-item span {
+  font-family: inherit;
+  font-size: inherit;
 }
 
 .dropdown-item:hover {
@@ -4331,7 +4371,7 @@ body[data-theme="aqua"] .cheatsheet-tabs-bar {
 }
 
 .submenu-arrow {
-  font-size: 10pt;
+  font-size: 11pt;
   color: var(--text-muted);
   margin-left: 8px;
   transition: transform 0.15s ease, color 0.15s ease;
@@ -4354,7 +4394,7 @@ body[data-theme="aqua"] .cheatsheet-tabs-bar {
   background: #162032;
   border: 1px solid var(--border-color);
   border-radius: 6px;
-  min-width: 230px;
+  min-width: 245px;
   z-index: 1010;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.65);
   padding: 6px 0;
@@ -4369,7 +4409,7 @@ body[data-theme="aqua"] .cheatsheet-tabs-bar {
 .theme-check-icon {
   display: inline-block;
   width: 18px;
-  font-size: 11pt;
+  font-size: 11.5pt;
   font-weight: 900;
   color: var(--marvel-gold);
   text-align: center;
@@ -4381,7 +4421,8 @@ body[data-theme="aqua"] .cheatsheet-tabs-bar {
   align-items: center;
   gap: 8px;
   width: 100%;
-  font-size: 10pt;
+  font-family: var(--font-body);
+  font-size: 11.5pt;
   font-weight: 600;
   cursor: pointer;
   background: transparent;
@@ -4389,6 +4430,11 @@ body[data-theme="aqua"] .cheatsheet-tabs-bar {
   color: #f1f5f9;
   text-align: left;
   transition: background 0.15s ease, color 0.15s ease;
+}
+
+.theme-option-btn span {
+  font-family: inherit;
+  font-size: inherit;
 }
 
 .theme-option-btn:hover {
@@ -4454,12 +4500,13 @@ body:not(.sticky-header-active) .app-container {
 /* Compact action button styling for creation row */
 #btn-open-tsr-generator,
 #btn-open-creation-wizard {
-  height: 24px !important;
-  min-height: 24px !important;
-  max-height: 24px !important;
-  padding: 1px 8px !important;
+  height: 26px !important;
+  min-height: 26px !important;
+  max-height: 26px !important;
+  padding: 2px 10px !important;
   line-height: 1 !important;
-  font-size: 10pt !important;
+  font-family: var(--font-body) !important;
+  font-size: 11pt !important;
   font-weight: 700 !important;
   border-radius: 4px !important;
   display: inline-flex !important;
@@ -4787,7 +4834,8 @@ body[data-theme="aqua"] #ui-dialog-creation-mode-select {
 
 #btn-finalize-creation {
   transition: all 0.2s ease;
-  font-size: 10pt;
+  font-family: var(--font-body);
+  font-size: 11pt;
   min-height: 32px;
   padding: 4px 10px;
   border-radius: 6px;
@@ -4960,7 +5008,7 @@ body[data-theme="aqua"] #ui-dialog-creation-mode-select {
   background: rgba(245, 158, 11, 0.2);
   color: var(--marvel-gold);
   border: 1px solid var(--marvel-gold);
-  font-size: 10pt;
+  font-size: 11pt;
   font-weight: 800;
   letter-spacing: 0.5px;
   padding: 2px 6px;
@@ -4971,7 +5019,7 @@ body[data-theme="aqua"] #ui-dialog-creation-mode-select {
   background: rgba(56, 189, 248, 0.15);
   color: #38bdf8;
   border: 1px solid rgba(56, 189, 248, 0.4);
-  font-size: 10pt;
+  font-size: 11pt;
   font-weight: 700;
   letter-spacing: 0.5px;
   padding: 2px 6px;
@@ -4979,7 +5027,7 @@ body[data-theme="aqua"] #ui-dialog-creation-mode-select {
 }
 
 #top-creation-mode-tag {
-  font-size: 10pt;
+  font-size: 11pt;
   font-weight: 800;
   letter-spacing: 0.5px;
   display: inline-flex;
@@ -5016,8 +5064,8 @@ body[data-theme="aqua"] #ui-dialog-creation-mode-select {
   border: 1px solid transparent;
   background: transparent;
   color: var(--text-muted);
-  font-family: inherit;
-  font-size: 10pt;
+  font-family: var(--font-body);
+  font-size: 11pt;
   font-weight: 700;
   letter-spacing: 0.5px;
   padding: 1px 7px;
@@ -5072,14 +5120,16 @@ body[data-theme="aqua"] #ui-dialog-creation-mode-select {
 }
 
 .creation-mode-label {
-  font-size: 10pt;
+  font-family: var(--font-body);
+  font-size: 11pt;
   font-weight: 700;
   color: #94a3b8;
   white-space: nowrap;
 }
 
 .creation-mode-select {
-  font-size: 10pt;
+  font-family: var(--font-body);
+  font-size: 11pt;
   min-height: 28px;
   padding: 2px 8px;
   border-radius: 4px;
@@ -5104,6 +5154,8 @@ body[data-theme="aqua"] #ui-dialog-creation-mode-select {
 .creation-mode-select option {
   background: #1e293b;
   color: #f1f5f9;
+  font-family: var(--font-body);
+  font-size: 11pt;
   font-weight: 600;
   padding: 4px;
 }
@@ -5141,7 +5193,7 @@ body[data-theme="aqua"] .creation-mode-select option {
 body.touch-friendly .creation-mode-select {
   min-height: 36px;
   padding: 4px 10px;
-  font-size: 10pt;
+  font-size: 11pt;
 }
 
 /* Prominent Creation Mode Button (Invokes Mode Picker & Doubles as Mode Readout) */
@@ -5149,12 +5201,13 @@ body.touch-friendly .creation-mode-select {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  font-size: 10pt;
+  font-family: var(--font-body);
+  font-size: 11pt;
   font-weight: 700;
   padding: 2px 10px;
-  height: 24px;
-  min-height: 24px;
-  max-height: 24px;
+  height: 26px;
+  min-height: 26px;
+  max-height: 26px;
   line-height: 1;
   border-radius: 4px;
   cursor: pointer;
@@ -5180,16 +5233,17 @@ body.touch-friendly .creation-mode-select {
 }
 
 .creation-mode-btn .mode-btn-icon {
-  font-size: 10pt;
+  font-size: 11pt;
 }
 
 .creation-mode-btn .mode-btn-label {
-  font-size: 10pt;
+  font-family: var(--font-body);
+  font-size: 11pt;
   font-weight: 700;
 }
 
 .creation-mode-btn .mode-btn-caret {
-  font-size: 10pt;
+  font-size: 11pt;
   opacity: 0.85;
   margin-left: 2px;
 }
@@ -5875,7 +5929,8 @@ body.touch-friendly #select-quick-load-blueprint {
 body.touch-friendly .dropdown-toggle {
   min-height: 42px;
   padding: 8px 14px;
-  font-size: 10.5pt;
+  font-family: var(--font-body);
+  font-size: 11.5pt;
 }
 
 body.touch-friendly .dropdown-menu {
@@ -5887,7 +5942,8 @@ body.touch-friendly .theme-option-btn,
 body.touch-friendly .dropdown-submenu-toggle {
   min-height: 48px;
   padding: 13px 18px;
-  font-size: 10.5pt;
+  font-family: var(--font-body);
+  font-size: 11.5pt;
 }
 
 body.touch-friendly .dropdown-divider {
@@ -5895,7 +5951,7 @@ body.touch-friendly .dropdown-divider {
 }
 
 body.touch-friendly .dropdown-submenu {
-  min-width: 250px;
+  min-width: 255px;
 }
 
 /* Editable Fields: Text & Number Inputs, Textareas */
@@ -5906,14 +5962,14 @@ body.touch-friendly input[type="search"].field-input,
 body.touch-friendly .field-input:not(select) {
   min-height: 44px;
   padding: 8px 12px;
-  font-size: 11pt;
+  font-size: 11.5pt;
   border-radius: 6px;
 }
 
 body.touch-friendly textarea.field-input {
   min-height: 90px;
   padding: 10px 12px;
-  font-size: 11pt;
+  font-size: 11.5pt;
   line-height: 1.5;
   border-radius: 6px;
 }
@@ -5922,13 +5978,17 @@ body.touch-friendly textarea.field-input {
 body.touch-friendly .icon-btn {
   min-height: 42px;
   padding: 8px 14px;
-  font-size: 10.5pt;
+  font-family: var(--font-body);
+  font-size: 11.5pt;
 }
 
-body.touch-friendly .top-controls .icon-btn {
+body.touch-friendly .top-controls .icon-btn,
+body.touch-friendly #btn-cheatsheet,
+body.touch-friendly #btn-file-options {
   min-height: 36px;
   padding: 5px 12px;
-  font-size: 10pt;
+  font-family: var(--font-body);
+  font-size: 11.5pt;
 }
 
 /* Tab buttons are big enough in standard mode - preserve standard compact size in touch mode */

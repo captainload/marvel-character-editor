@@ -1,7 +1,7 @@
 {
-  "version": "1.5.81",
+  "version": "1.5.82",
   "releaseDate": "2026-10-12",
   "name": "Marvel Super Heroes Character Editor",
   "repo": "https://github.com/captainload/marvel-character-editor",
-  "notes": "v1.5.81: Restored clean sans-serif UI font (var(--font-body), bold 700) and increased font size (11.5pt) for top navigation tab titles (.nav-tab-btn) and their badge counts across all themes and screen widths."
+  "notes": "v1.5.82: Applied clean sans-serif UI font (var(--font-body)) and larger typography (11.5pt / 11pt minimum) globally across Cheat Sheet button, Cheat Sheet tabs & modal tables, File/Options dropdown menu & submenu items, top header toolbar, creation mode bar, and all form controls/buttons."
 }

@@ -5,7 +5,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Marvel Super Heroes (FASERIP) - Character Builder & Editor</title>
-  <link rel="stylesheet" href="styles.css?v=1.5.81">
+  <link rel="stylesheet" href="styles.css?v=1.5.82">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bangers&display=swap" rel="stylesheet">
@@ -42,8 +42,9 @@
       </div>
 
       <!-- Top Action Toolbar -->
+      <div class="top-controls">
         <!-- Combined Top-Row Creation Mode Tag (pulsing in-progress, finalize on click) -->
-        <button type="button" class="icon-btn compact creating combined-mode-tag" id="btn-finalize-creation" style="display: inline-flex; font-size: 10pt; padding: 3px 10px; font-weight: 800; border-radius: 4px; align-items: center; justify-content: center; height: 26px; line-height: 1; cursor: pointer;" title="Creation Mode: CMF CP buy (in progress)">CMF CP buy</button>
+        <button type="button" class="icon-btn compact creating combined-mode-tag" id="btn-finalize-creation" style="display: inline-flex; font-size: 11pt; padding: 3px 10px; font-weight: 800; border-radius: 4px; align-items: center; justify-content: center; height: 30px; line-height: 1; cursor: pointer;" title="Creation Mode: CMF CP buy (in progress)">CMF CP buy</button>
         <span id="top-creation-mode-tag" style="display: none;" aria-hidden="true"></span>
         <button id="btn-cheatsheet" class="icon-btn" title="Rules Cheat Sheet & Universal Table">📖 Cheat Sheet</button>
         
@@ -91,6 +92,7 @@
             <button type="button" class="dropdown-item" id="menu-item-options">⚙️ Preferences & Options...</button>
           </div>
         </div>
+      </div>
     </header>
 
     <!-- Creation Mode & Budget Bar (Persistent Second Row) -->
@@ -103,19 +105,19 @@
           <button type="button" class="icon-btn creation-mode-btn" id="btn-creation-mode-picker" title="Current Creation Mode: CMF CP buy (Click to switch ruleset or character generation mode)">
             <span class="mode-btn-icon" aria-hidden="true">⚙️</span>
             <span class="mode-btn-label" id="creation-mode-btn-text">Mode: CMF CP buy</span>
-            <span class="mode-btn-caret" aria-hidden="true" style="font-size: 10pt; opacity: 0.85; margin-left: 2px;">▾</span>
+            <span class="mode-btn-caret" aria-hidden="true" style="font-size: 11pt; opacity: 0.85; margin-left: 2px;">▾</span>
           </button>
 
           <!-- Roll Tables Button (TSR Modes) directly next to Mode Button -->
-          <button type="button" class="icon-btn primary compact" id="btn-open-tsr-generator" style="display: none; font-size: 10pt; padding: 1px 8px; height: 24px; min-height: 24px; max-height: 24px; line-height: 1; font-weight: 700; border-radius: 4px; align-items: center; justify-content: center;" title="Open TSR 1986 Character Generator &amp; Roll Tables">🎲 Roll Tables</button>
+          <button type="button" class="icon-btn primary compact" id="btn-open-tsr-generator" style="display: none; font-size: 11pt; padding: 2px 10px; height: 26px; min-height: 26px; max-height: 26px; line-height: 1; font-weight: 700; border-radius: 4px; align-items: center; justify-content: center;" title="Open TSR 1986 Character Generator &amp; Roll Tables">🎲 Roll Tables</button>
 
           <!-- Set Tier Button (Point-Buy / CMF Modes) directly next to Mode Button -->
-          <button type="button" class="icon-btn primary compact" id="btn-open-creation-wizard" style="display: none; font-size: 10pt; padding: 1px 8px; height: 24px; min-height: 24px; max-height: 24px; line-height: 1; font-weight: 700; border-radius: 4px; align-items: center; justify-content: center;" title="Set Starting Tier, CP Budget &amp; Physical Form">⚡ Set Tier</button>
+          <button type="button" class="icon-btn primary compact" id="btn-open-creation-wizard" style="display: none; font-size: 11pt; padding: 2px 10px; height: 26px; min-height: 26px; max-height: 26px; line-height: 1; font-weight: 700; border-radius: 4px; align-items: center; justify-content: center;" title="Set Starting Tier, CP Budget &amp; Physical Form">⚡ Set Tier</button>
 
           <!-- Tier Dropdown (Functional on Creation Bar for Point-Buy) -->
           <div class="creation-tier-container" id="creation-tier-container" style="display: inline-flex; align-items: center; gap: 4px;">
-            <label for="select-point-tier" class="tier-label" id="strip-tier-prefix-label" style="font-size: 10pt; font-weight: 600; color: #94a3b8; white-space: nowrap;">Tier:</label>
-            <select id="select-point-tier" class="creation-mode-select tier-select" aria-label="Starting Point-Buy Tier" title="Select starting Character Point tier" style="font-size: 10pt; height: 26px; border-radius: 4px; padding: 2px 6px;">
+            <label for="select-point-tier" class="tier-label" id="strip-tier-prefix-label" style="font-size: 11pt; font-weight: 600; color: #94a3b8; white-space: nowrap;">Tier:</label>
+            <select id="select-point-tier" class="creation-mode-select tier-select" aria-label="Starting Point-Buy Tier" title="Select starting Character Point tier" style="font-size: 11pt; height: 28px; border-radius: 4px; padding: 2px 6px;">
               <option value="150">Skilled Human (150 CP)</option>
               <option value="200">Street Vigilante (200 CP)</option>
               <option value="300" selected>Costumed Adventurer (300 CP)</option>
@@ -149,13 +151,13 @@
         <!-- Center Section: CP / KP Used & Compact Breakdown (No breakdown button, no redundant budget total) -->
         <div class="creation-bar-center" style="display: flex; align-items: center; gap: 10px; flex-shrink: 1; min-width: 0;">
           <!-- CMF / Point-Buy View -->
-          <div class="cp-block-numbers" id="cp-block-cmf-view" style="display: flex; align-items: center; gap: 6px; font-size: 10pt; white-space: nowrap;">
-            <span class="point-buy-icon" aria-hidden="true" style="font-size: 10pt;">📊</span>
-            <span>CP Used: <strong id="header-points-spent" style="color: var(--text-main); font-size: 10pt;">48</strong></span>
+          <div class="cp-block-numbers" id="cp-block-cmf-view" style="display: flex; align-items: center; gap: 6px; font-size: 11pt; white-space: nowrap;">
+            <span class="point-buy-icon" aria-hidden="true" style="font-size: 11pt;">📊</span>
+            <span>CP Used: <strong id="header-points-spent" style="color: var(--text-main); font-size: 11pt;">48</strong></span>
             <span class="point-buy-rem" style="color: var(--text-muted);">(<strong id="header-points-remaining" style="color: #38bdf8; font-weight: 700;">252</strong> left)</span>
             <span class="creation-bar-sep" style="color: var(--border-color); opacity: 0.6; margin: 0 2px;">|</span>
             <!-- Inline Compact Breakdown -->
-            <div class="compact-breakdown-row" id="compact-breakdown-row" style="display: inline-flex; align-items: center; gap: 5px; font-size: 10pt; color: #94a3b8;">
+            <div class="compact-breakdown-row" id="compact-breakdown-row" style="display: inline-flex; align-items: center; gap: 5px; font-size: 11pt; color: #94a3b8;">
               <span>Abil: <strong id="compact-spent-abilities" style="color: #cbd5e1;">42</strong></span> ·
               <span>Pwr: <strong id="compact-spent-powers" style="color: #cbd5e1;">0</strong></span> ·
               <span>Tal: <strong id="compact-spent-talents" style="color: #cbd5e1;">0</strong></span> ·
@@ -165,17 +167,17 @@
           </div>
 
           <!-- TSR View: Slots & PB Status / Modeled KP -->
-          <div class="cp-block-numbers" id="cp-block-tsr-view" style="display: none; align-items: center; gap: 6px; font-size: 10pt; white-space: nowrap;">
-            <span class="point-buy-icon" aria-hidden="true" style="font-size: 10pt;" id="tsr-middle-row-icon">🎲</span>
+          <div class="cp-block-numbers" id="cp-block-tsr-view" style="display: none; align-items: center; gap: 6px; font-size: 11pt; white-space: nowrap;">
+            <span class="point-buy-icon" aria-hidden="true" style="font-size: 11pt;" id="tsr-middle-row-icon">🎲</span>
             <span style="color: var(--marvel-gold); font-weight: 700;" id="tsr-strip-label">Random rolls:</span>
             <!-- TSR Random Inline Compact Breakdown -->
-            <div class="compact-breakdown-row" id="compact-tsr-random-breakdown" style="display: inline-flex; align-items: center; gap: 5px; font-size: 10pt; color: #94a3b8;">
+            <div class="compact-breakdown-row" id="compact-tsr-random-breakdown" style="display: inline-flex; align-items: center; gap: 5px; font-size: 11pt; color: #94a3b8;">
               <span><strong id="compact-tsr-powers" style="color: #cbd5e1;">0</strong> Pwr</span> ·
               <span><strong id="compact-tsr-talents" style="color: #cbd5e1;">0</strong> Tal</span> ·
               <span><strong id="compact-tsr-contacts" style="color: #cbd5e1;">0</strong> Con</span>
             </div>
             <!-- TSR Modeled Inline Compact Breakdown -->
-            <div class="compact-breakdown-row" id="compact-tsr-modeled-breakdown" style="display: none; align-items: center; gap: 5px; font-size: 10pt; color: #94a3b8;">
+            <div class="compact-breakdown-row" id="compact-tsr-modeled-breakdown" style="display: none; align-items: center; gap: 5px; font-size: 11pt; color: #94a3b8;">
               <span>Total: <strong id="compact-kp-total" style="color: var(--marvel-gold);">0</strong> KP</span> ·
               <span>Abil: <strong id="compact-kp-abilities" style="color: #cbd5e1;">0</strong></span> ·
               <span>Pwr: <strong id="compact-kp-powers" style="color: #cbd5e1;">0</strong></span> ·
@@ -187,7 +189,7 @@
 
         <!-- Right Section: Action Badges / Meta -->
         <div class="creation-bar-right" id="point-tier-status-right" style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
-          <span id="strip-cp-adjust-badge" class="meta-tag" style="display: none; font-size: 10pt; padding: 1px 6px; font-weight: 700;">±0%</span>
+          <span id="strip-cp-adjust-badge" class="meta-tag" style="display: none; font-size: 11pt; padding: 1px 6px; font-weight: 700;">±0%</span>
         </div>
 
         <!-- Preserved Legacy Elements (Hidden for 100% test compatibility) -->
@@ -2116,7 +2118,7 @@
           <!-- SECTION: PROGRAM UPDATES & AUTOMATED CHECKING -->
           <div style="font-weight: 700; color: var(--text-main); font-size: 11pt; border-bottom: 1px solid var(--border-color); padding-bottom: 6px; margin-top: 10px; display: flex; justify-content: space-between; align-items: center;">
             <span>🔄 Program Updates &amp; Automated Checking</span>
-            <span class="meta-tag" id="update-version-tag" style="color: var(--marvel-gold); font-size: 10pt;">v1.5.81</span>
+            <span class="meta-tag" id="update-version-tag" style="color: var(--marvel-gold); font-size: 10pt;">v1.5.82</span>
           </div>
 
           <div class="update-settings-panel" style="background: rgba(0, 0, 0, 0.2); border: 1px solid var(--border-color); border-radius: 6px; padding: 12px; display: flex; flex-direction: column; gap: 10px;">
@@ -3964,13 +3966,13 @@
   </div>
 
   <!-- Scripts Loading -->
-  <script src="universal_table.js?v=1.5.81"></script>
-  <script src="data_forms.js?v=1.5.81"></script>
-  <script src="data_powers.js?v=1.5.81"></script>
-  <script src="data_talents.js?v=1.5.81"></script>
-  <script src="data_equipment.js?v=1.5.81"></script>
-  <script src="inventions.js?v=1.5.81"></script>
-  <script src="character_model.js?v=1.5.81"></script>
-  <script src="app.js?v=1.5.81"></script>
+  <script src="universal_table.js?v=1.5.82"></script>
+  <script src="data_forms.js?v=1.5.82"></script>
+  <script src="data_powers.js?v=1.5.82"></script>
+  <script src="data_talents.js?v=1.5.82"></script>
+  <script src="data_equipment.js?v=1.5.82"></script>
+  <script src="inventions.js?v=1.5.82"></script>
+  <script src="character_model.js?v=1.5.82"></script>
+  <script src="app.js?v=1.5.82"></script>
 </body>
 </html>

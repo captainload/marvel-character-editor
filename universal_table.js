@@ -447,6 +447,26 @@ const UniversalTableEngine = {
     }
 
     return { hit: false, desc: "Unknown action" };
+  },
+
+  /**
+   * Returns human biological ability rank caps per house rule:
+   * - FASE series: Incredible (IN, 40) in TSR mode, Fantastic (FA, 35) in CMF mode
+   * - RIP series: Amazing (AM, 50) in both modes
+   */
+  getHumanAbilityCap(abilityKey, tableMode = this.activeMode || 'cmf') {
+    const key = (abilityKey || '').toLowerCase();
+    const isFase = ['fighting', 'agility', 'strength', 'endurance'].includes(key);
+    const isRip = ['reason', 'intuition', 'psyche'].includes(key);
+    if (!isFase && !isRip) return null;
+    const mode = (tableMode === 'standard') ? 'standard' : 'cmf';
+    if (isFase) {
+      return (mode === 'standard')
+        ? { rankName: 'Incredible', rankValue: 40, rankNum: 40, num: 40, abbr: 'In', short: 'IN' }
+        : { rankName: 'Fantastic', rankValue: 35, rankNum: 35, num: 35, abbr: 'Fa', short: 'FA' };
+    } else {
+      return { rankName: 'Amazing', rankValue: 50, rankNum: 50, num: 50, abbr: 'Am', short: 'AM' };
+    }
   }
 };
 
@@ -538,6 +558,159 @@ const STANDARD_AIR_MOVEMENT = [
   { rank: "Beyond", num: 10000, combatAreas: "Lightspeed+", mph: "186,282 miles/sec", category: "Hyperspace / Interstellar", notes: "Instantaneous faster-than-light cosmic transit (Silver Surfer)." }
 ];
 
+const COMBAT_ACTION_RULES = [
+  {
+    name: 'Slugfest',
+    detail: '(Unarmed Strike)',
+    ability: 'Fighting',
+    blue: 'Critical Blunder (Hero trips, strikes barrier, or off-balance)',
+    white: 'Miss (0 damage)',
+    green: 'Hit (Strength damage)',
+    yellow: 'Slam FEAT (Damage + target checks Slam)',
+    red: 'Stun FEAT (Damage + target checks Stun)'
+  },
+  {
+    name: 'Blunt Weapons',
+    detail: '(Clubs, Maces, Staff)',
+    ability: 'Fighting',
+    blue: 'Weapon Fumble (Dropped, knocked away, or breaks on barrier)',
+    white: 'Miss (0 damage)',
+    green: 'Hit (Weapon or Str damage)',
+    yellow: 'Slam FEAT (Damage + target checks Slam)',
+    red: 'Stun FEAT (Damage + target checks Stun)'
+  },
+  {
+    name: 'Edged Weapons',
+    detail: '(Swords, Knives, Claws)',
+    ability: 'Fighting',
+    blue: 'Lose Weapon (Knocked from hand, lodged in obstacle, or dropped)',
+    white: 'Miss (0 damage)',
+    green: 'Hit (Weapon or Str damage)',
+    yellow: 'Stun FEAT (Damage + target checks Stun)',
+    red: 'Kill FEAT (Damage + target checks Kill)'
+  },
+  {
+    name: 'Shooting',
+    detail: '(Guns, Bows, Darts)',
+    ability: 'Agility',
+    blue: 'Reload / Jam (Weapon misfires, jams, or runs out of ammo)',
+    white: 'Miss (0 damage)',
+    green: 'Hit (Weapon damage)',
+    yellow: 'Bullseye (Called shot, precise disarm, or pinpoint strike)',
+    red: 'Kill FEAT (Damage + target checks Kill)'
+  },
+  {
+    name: 'Energy Blasts',
+    detail: '(Plasma, Lasers, Lightning)',
+    ability: 'Agility / Psyche',
+    blue: 'Feedback / Dazed (Energy feedback shocks and dazes hero 1 round)',
+    white: 'Miss (0 damage)',
+    green: 'Hit (Power Rank damage)',
+    yellow: 'Bullseye (Pinpoint strike, called shot, or bypass cover)',
+    red: 'Kill / Disintegrate (Damage + target checks Kill)'
+  },
+  {
+    name: 'Force Blasts',
+    detail: '(Concussive Force, TK)',
+    ability: 'Agility / Psyche',
+    blue: 'Kinetic Recoil (Shockwave recoils and dazes hero 1 round)',
+    white: 'Miss (0 damage)',
+    green: 'Hit (Power Rank force damage)',
+    yellow: 'Bullseye / Slam (Pinpoint strike or target checks Slam)',
+    red: 'Stun FEAT (Force damage + target checks Stun)'
+  },
+  {
+    name: 'Grappling / Hold',
+    detail: '',
+    ability: 'Strength',
+    blue: 'Reversal (Foe counters grip, twists free, and takes control)',
+    white: 'Miss (Target escapes hold)',
+    green: 'Partial Hold (Target suffers -2CS)',
+    yellow: 'Full Hold (Target immobilized / pinned)',
+    red: 'Pin & Crush (Full hold + Str damage/turn)'
+  },
+  {
+    name: 'Escape from Hold / Pin',
+    detail: '',
+    ability: 'Strength or Agility',
+    blue: 'Trapped (Foe tightens hold; hero suffers -1CS next attempt)',
+    white: 'Held Fast (Cannot break hold)',
+    green: 'Break Free (Escapes hold; may move up to 1/2 speed)',
+    yellow: 'Clean Escape (Escapes hold cleanly; no penalty)',
+    red: 'Reversal (Escapes hold & immediately places hold on foe!)'
+  },
+  {
+    name: 'Charging / Tackle',
+    detail: '',
+    ability: 'Endurance',
+    blue: 'Stumble & Fall (Hero stumbles, crashes, takes 5 dmg, falls prone)',
+    white: 'Miss / Recoil (Overshoots; barrier collision recoil)',
+    green: 'Hit (Charge damage: End rank + 1CS/area, max +3CS)',
+    yellow: 'Slam FEAT (Charge damage + target checks Slam)',
+    red: 'Stun FEAT (Charge damage + target checks Stun)'
+  },
+  {
+    name: 'Throwing Object / Missile',
+    detail: '',
+    ability: 'Agility',
+    blue: 'Projectile Lost (Thrown object breaks, flies wide, or is lost)',
+    white: 'Miss (0 damage)',
+    green: 'Hit (Lesser of Str or Material damage)',
+    yellow: 'Bullseye (Pinpoint hit or trip)',
+    red: 'Stun FEAT (Damage + target checks Stun; Edged is Kill)'
+  },
+  {
+    name: 'Catching Item / Ally',
+    detail: '',
+    ability: 'Agility',
+    blue: 'Damaged / Dropped (Fumbled; target or hero takes 1/2 fall damage)',
+    white: 'Miss / Dropped (Full fall damage)',
+    green: 'Safe Catch (Safely catches up to Str weight)',
+    yellow: 'Intercept & Cushion (Catches weapon/missile undamaged)',
+    red: 'Secure & Ready (Catch cleanly; ready to throw/redirect next action)'
+  },
+  {
+    name: 'Dodging',
+    detail: '(1991 Revised Active Defense)',
+    ability: 'Agility',
+    blue: 'Stumble / Off-Balance (Hero trips; incoming attacks at +2CS this round)',
+    white: '0CS (No modifier to attacker)',
+    green: '-2CS penalty to attacker\'s roll',
+    yellow: '-4CS penalty to attacker\'s roll',
+    red: '-6CS penalty to attacker\'s roll'
+  },
+  {
+    name: 'Evading',
+    detail: '(Melee Hand-to-Hand Defense)',
+    ability: 'Fighting',
+    blue: 'Tripped / Off-Balance (Hero stumbles; melee attacker gains +2CS)',
+    white: '0CS (No modifier to attacker)',
+    green: '-2CS penalty to melee attacker',
+    yellow: '-4CS penalty to melee attacker',
+    red: 'Automatic Miss (Attacker misses completely!)'
+  },
+  {
+    name: 'Blocking / Bracing',
+    detail: '(Unarmed Physical Defense)',
+    ability: 'Strength',
+    blue: 'Guard Collapses (Guard drops; incoming attack strikes unobstructed)',
+    white: 'Block Fails (Full damage taken)',
+    green: 'Partial Absorption (Temp Armor at Str -2CS)',
+    yellow: 'Full Absorption (Temp Armor at full Str rank)',
+    red: 'Superior Absorption (Temp Armor at Str +1CS)'
+  },
+  {
+    name: 'Shield Blocking',
+    detail: '(Interposing Shield / Cover)',
+    ability: 'Material Str',
+    blue: 'Shield Knocked Aside (Shield knocked aside; full damage taken)',
+    white: 'Bypassed (Misses shield; full damage)',
+    green: 'Shield Absorbs (Body Armor = Shield Material)',
+    yellow: 'Solid Deflection (Shield absorbs; no pushback)',
+    red: 'Impenetrable Guard (Absorbs up to Material +1CS)'
+  }
+];
+
 function getGroundMovementTable(mode = 'cmf') {
   return (mode === 'standard') ? STANDARD_GROUND_MOVEMENT : CMF_GROUND_MOVEMENT;
 }
@@ -545,6 +718,12 @@ function getGroundMovementTable(mode = 'cmf') {
 function getAirMovementTable(mode = 'cmf') {
   return (mode === 'standard') ? STANDARD_AIR_MOVEMENT : CMF_AIR_MOVEMENT;
 }
+
+function getHumanAbilityCap(abilityKey, mode = 'cmf') {
+  return UniversalTableEngine.getHumanAbilityCap(abilityKey, mode);
+}
+
+UniversalTableEngine.combatActionRules = COMBAT_ACTION_RULES;
 
 if (typeof globalThis !== 'undefined') {
   globalThis.STANDARD_RANKS = STANDARD_RANKS;
@@ -558,8 +737,10 @@ if (typeof globalThis !== 'undefined') {
   globalThis.STANDARD_GROUND_MOVEMENT = STANDARD_GROUND_MOVEMENT;
   globalThis.CMF_AIR_MOVEMENT = CMF_AIR_MOVEMENT;
   globalThis.STANDARD_AIR_MOVEMENT = STANDARD_AIR_MOVEMENT;
+  globalThis.COMBAT_ACTION_RULES = COMBAT_ACTION_RULES;
   globalThis.getGroundMovementTable = getGroundMovementTable;
   globalThis.getAirMovementTable = getAirMovementTable;
+  globalThis.getHumanAbilityCap = getHumanAbilityCap;
 }
 
 if (typeof module !== 'undefined' && module.exports) {
@@ -575,7 +756,9 @@ if (typeof module !== 'undefined' && module.exports) {
     STANDARD_GROUND_MOVEMENT,
     CMF_AIR_MOVEMENT,
     STANDARD_AIR_MOVEMENT,
+    COMBAT_ACTION_RULES,
     getGroundMovementTable,
-    getAirMovementTable
+    getAirMovementTable,
+    getHumanAbilityCap
   };
 }

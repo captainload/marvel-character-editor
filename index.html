@@ -1,15 +1,16 @@
+<!-- Built by Psycros with lots of help from Gemini - 2026. -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Marvel Super Heroes (FASERIP) - Character Builder & Editor</title>
-  <link rel="stylesheet" href="styles.css?v=1.5.26">
+  <link rel="stylesheet" href="styles.css?v=1.5.81">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bangers&display=swap" rel="stylesheet">
 </head>
-<body>
+<body class="sticky-header-active">
 
   <!-- 1080px Screen Width Warning Banner -->
   <div id="screen-width-warning">
@@ -29,19 +30,22 @@
         <!-- Character Form Type following character's name (Simple dropdown when unspent; Clickable button invoking pop-up once CP is spent) -->
         <div class="header-form-box" id="header-form-box" title="Character Physical Form &amp; Origin">
           <span class="header-form-label">Form:</span>
-          <select id="header-form-select" class="header-form-select" title="Select Physical Form &amp; Origin"></select>
+          <select id="header-form-select" class="header-form-select" title="Select Physical Form &amp; Origin">
+            <option value="">- Select physical form -</option>
+          </select>
           <button type="button" class="header-form-btn" id="header-form-btn" style="display: none;" title="Physical Form (Locked - Click to open Form Change dialog or roll back to unlock)">
             <strong id="header-form-display" class="header-form-val">Mutant</strong>
-            <span class="form-change-caret" style="color: #ef4444; font-size: 8.5pt; margin-left: 2px;">🔒</span>
+            <span class="form-change-caret" style="color: #ef4444; font-size: 10pt; margin-left: 2px;">🔒</span>
           </button>
         </div>
         <span class="header-test-mode-badge" id="header-test-mode-badge" style="display: none;" title="Test Mode is Active (Karma is Infinite; changes are experimental)">TEST</span>
       </div>
 
       <!-- Top Action Toolbar -->
-      <div class="top-controls">
+        <!-- Combined Top-Row Creation Mode Tag (pulsing in-progress, finalize on click) -->
+        <button type="button" class="icon-btn compact creating combined-mode-tag" id="btn-finalize-creation" style="display: inline-flex; font-size: 10pt; padding: 3px 10px; font-weight: 800; border-radius: 4px; align-items: center; justify-content: center; height: 26px; line-height: 1; cursor: pointer;" title="Creation Mode: CMF CP buy (in progress)">CMF CP buy</button>
+        <span id="top-creation-mode-tag" style="display: none;" aria-hidden="true"></span>
         <button id="btn-cheatsheet" class="icon-btn" title="Rules Cheat Sheet & Universal Table">📖 Cheat Sheet</button>
-        <button type="button" id="btn-top-advancement" class="icon-btn" title="Character Advancement (Spend Karma to raise abilities, powers, or add talents)">📈 Advancement</button>
         
         <!-- File / Options Dropdown Menu -->
         <div class="dropdown-container" id="file-options-dropdown-container">
@@ -87,8 +91,126 @@
             <button type="button" class="dropdown-item" id="menu-item-options">⚙️ Preferences & Options...</button>
           </div>
         </div>
-      </div>
     </header>
+
+    <!-- Creation Mode & Budget Bar (Persistent Second Row) -->
+    <div class="point-buy-strip creation-mode-bar" id="point-buy-strip">
+      <div class="point-buy-badge point-buy-combined-block" id="point-buy-badge" style="display: flex; align-items: center; justify-content: space-between; width: 100%; gap: 10px; flex-wrap: nowrap;">
+        
+        <!-- Left Section: Mode Switcher, Action Buttons & Tier Dropdown -->
+        <div class="creation-bar-left" style="display: flex; align-items: center; gap: 8px; flex-shrink: 0;">
+          <!-- Prominent Creation Mode Button (Invokes Mode Picker & Doubles as Mode Readout) -->
+          <button type="button" class="icon-btn creation-mode-btn" id="btn-creation-mode-picker" title="Current Creation Mode: CMF CP buy (Click to switch ruleset or character generation mode)">
+            <span class="mode-btn-icon" aria-hidden="true">⚙️</span>
+            <span class="mode-btn-label" id="creation-mode-btn-text">Mode: CMF CP buy</span>
+            <span class="mode-btn-caret" aria-hidden="true" style="font-size: 10pt; opacity: 0.85; margin-left: 2px;">▾</span>
+          </button>
+
+          <!-- Roll Tables Button (TSR Modes) directly next to Mode Button -->
+          <button type="button" class="icon-btn primary compact" id="btn-open-tsr-generator" style="display: none; font-size: 10pt; padding: 1px 8px; height: 24px; min-height: 24px; max-height: 24px; line-height: 1; font-weight: 700; border-radius: 4px; align-items: center; justify-content: center;" title="Open TSR 1986 Character Generator &amp; Roll Tables">🎲 Roll Tables</button>
+
+          <!-- Set Tier Button (Point-Buy / CMF Modes) directly next to Mode Button -->
+          <button type="button" class="icon-btn primary compact" id="btn-open-creation-wizard" style="display: none; font-size: 10pt; padding: 1px 8px; height: 24px; min-height: 24px; max-height: 24px; line-height: 1; font-weight: 700; border-radius: 4px; align-items: center; justify-content: center;" title="Set Starting Tier, CP Budget &amp; Physical Form">⚡ Set Tier</button>
+
+          <!-- Tier Dropdown (Functional on Creation Bar for Point-Buy) -->
+          <div class="creation-tier-container" id="creation-tier-container" style="display: inline-flex; align-items: center; gap: 4px;">
+            <label for="select-point-tier" class="tier-label" id="strip-tier-prefix-label" style="font-size: 10pt; font-weight: 600; color: #94a3b8; white-space: nowrap;">Tier:</label>
+            <select id="select-point-tier" class="creation-mode-select tier-select" aria-label="Starting Point-Buy Tier" title="Select starting Character Point tier" style="font-size: 10pt; height: 26px; border-radius: 4px; padding: 2px 6px;">
+              <option value="150">Skilled Human (150 CP)</option>
+              <option value="200">Street Vigilante (200 CP)</option>
+              <option value="300" selected>Costumed Adventurer (300 CP)</option>
+              <option value="400">Established Hero (400 CP)</option>
+              <option value="500">Major Superhero (500 CP)</option>
+              <option value="600">World Class Hero (600 CP)</option>
+              <option value="custom">Custom Budget...</option>
+            </select>
+          </div>
+
+          <!-- Preserved Hidden Select for 100% Backward & Test Compatibility -->
+          <div class="creation-mode-dropdown-container" id="creation-mode-dropdown-container" style="display: none !important;" aria-hidden="true">
+            <label for="select-creation-mode" class="creation-mode-label" id="creation-mode-label" style="display: none;">Mode:</label>
+            <select id="select-creation-mode" class="creation-mode-select" aria-label="Creation mode" style="display: none;">
+              <option value="tsr-standard">TSR standard</option>
+              <option value="tsr-modeled">TSR modeled</option>
+              <option value="tsr-cp-buy">TSR CP buy</option>
+              <option value="cmf-standard">CMF standard</option>
+              <option value="cmf-modeled">CMF modeled</option>
+              <option value="cmf-cp-buy" selected>CMF CP buy</option>
+            </select>
+          </div>
+
+          <!-- Preserved Legacy TSR Sub-Mode Toggle (Hidden from view) -->
+          <div class="split-mode-toggle tsr-submode-toggle" id="tsr-submode-split-toggle" role="group" aria-label="TSR Mode Detail Toggle" style="display: none !important;" aria-hidden="true">
+            <button type="button" class="split-mode-segment segment-random active" id="btn-submode-random" data-submode="random" style="display: none;">Random</button>
+            <button type="button" class="split-mode-segment segment-modeled" id="btn-submode-modeled" data-submode="modeled" style="display: none;">Modeled</button>
+          </div>
+        </div>
+
+        <!-- Center Section: CP / KP Used & Compact Breakdown (No breakdown button, no redundant budget total) -->
+        <div class="creation-bar-center" style="display: flex; align-items: center; gap: 10px; flex-shrink: 1; min-width: 0;">
+          <!-- CMF / Point-Buy View -->
+          <div class="cp-block-numbers" id="cp-block-cmf-view" style="display: flex; align-items: center; gap: 6px; font-size: 10pt; white-space: nowrap;">
+            <span class="point-buy-icon" aria-hidden="true" style="font-size: 10pt;">📊</span>
+            <span>CP Used: <strong id="header-points-spent" style="color: var(--text-main); font-size: 10pt;">48</strong></span>
+            <span class="point-buy-rem" style="color: var(--text-muted);">(<strong id="header-points-remaining" style="color: #38bdf8; font-weight: 700;">252</strong> left)</span>
+            <span class="creation-bar-sep" style="color: var(--border-color); opacity: 0.6; margin: 0 2px;">|</span>
+            <!-- Inline Compact Breakdown -->
+            <div class="compact-breakdown-row" id="compact-breakdown-row" style="display: inline-flex; align-items: center; gap: 5px; font-size: 10pt; color: #94a3b8;">
+              <span>Abil: <strong id="compact-spent-abilities" style="color: #cbd5e1;">42</strong></span> ·
+              <span>Pwr: <strong id="compact-spent-powers" style="color: #cbd5e1;">0</strong></span> ·
+              <span>Tal: <strong id="compact-spent-talents" style="color: #cbd5e1;">0</strong></span> ·
+              <span>Con: <strong id="compact-spent-contacts" style="color: #cbd5e1;">0</strong></span> ·
+              <span>Res: <strong id="compact-spent-resources" style="color: #cbd5e1;">6</strong></span>
+            </div>
+          </div>
+
+          <!-- TSR View: Slots & PB Status / Modeled KP -->
+          <div class="cp-block-numbers" id="cp-block-tsr-view" style="display: none; align-items: center; gap: 6px; font-size: 10pt; white-space: nowrap;">
+            <span class="point-buy-icon" aria-hidden="true" style="font-size: 10pt;" id="tsr-middle-row-icon">🎲</span>
+            <span style="color: var(--marvel-gold); font-weight: 700;" id="tsr-strip-label">Random rolls:</span>
+            <!-- TSR Random Inline Compact Breakdown -->
+            <div class="compact-breakdown-row" id="compact-tsr-random-breakdown" style="display: inline-flex; align-items: center; gap: 5px; font-size: 10pt; color: #94a3b8;">
+              <span><strong id="compact-tsr-powers" style="color: #cbd5e1;">0</strong> Pwr</span> ·
+              <span><strong id="compact-tsr-talents" style="color: #cbd5e1;">0</strong> Tal</span> ·
+              <span><strong id="compact-tsr-contacts" style="color: #cbd5e1;">0</strong> Con</span>
+            </div>
+            <!-- TSR Modeled Inline Compact Breakdown -->
+            <div class="compact-breakdown-row" id="compact-tsr-modeled-breakdown" style="display: none; align-items: center; gap: 5px; font-size: 10pt; color: #94a3b8;">
+              <span>Total: <strong id="compact-kp-total" style="color: var(--marvel-gold);">0</strong> KP</span> ·
+              <span>Abil: <strong id="compact-kp-abilities" style="color: #cbd5e1;">0</strong></span> ·
+              <span>Pwr: <strong id="compact-kp-powers" style="color: #cbd5e1;">0</strong></span> ·
+              <span>Tal: <strong id="compact-kp-talents" style="color: #cbd5e1;">0</strong></span> ·
+              <span>Con: <strong id="compact-kp-contacts" style="color: #cbd5e1;">0</strong></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Section: Action Badges / Meta -->
+        <div class="creation-bar-right" id="point-tier-status-right" style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
+          <span id="strip-cp-adjust-badge" class="meta-tag" style="display: none; font-size: 10pt; padding: 1px 6px; font-weight: 700;">±0%</span>
+        </div>
+
+        <!-- Preserved Legacy Elements (Hidden for 100% test compatibility) -->
+        <strong class="cp-block-tier-name-val" id="strip-tier-name" style="display: none !important;" aria-hidden="true">Costumed Adventurer</strong>
+        <span id="header-points-budget" style="display: none;">300</span>
+        <span class="point-buy-action-pill" id="btn-breakdown-pill-legacy" style="display: none;" aria-hidden="true">Breakdown ▾</span>
+        <span class="point-buy-action-pill" id="tsr-kp-breakdown-pill" style="display: none;" aria-hidden="true">Breakdown ▾</span>
+        <span class="tier-label" id="strip-budget-label" style="display: none !important;" aria-hidden="true">Budget:</span>
+        <strong id="strip-tier-display" style="display: none !important;" aria-hidden="true">300 CP</strong>
+        <span id="tsr-strip-powers-count" style="display: none;">0</span>
+        <span id="tsr-strip-talents-count" style="display: none;">0</span>
+        <span id="tsr-strip-contacts-count" style="display: none;">0</span>
+        <span id="tsr-middle-row-stats" style="display: none;">0 Pwr · 0 Tal · 0 Con</span>
+      </div>
+
+      <!-- Hidden preservation elements for test suites & backwards compatibility -->
+      <div class="spent-breakdown-text" id="spent-breakdown-summary" style="display: none;" aria-hidden="true">
+        <span>Spent: <strong id="spent-abilities">42</strong> FASERIP · <strong id="spent-powers">0</strong> Pwr · <strong id="spent-talents">0</strong> Tal · <strong id="spent-contacts">0</strong> Con · <strong id="spent-resources">6</strong> Res</span>
+        <span id="strip-form-display" style="display: none;">Mutant</span>
+        <button type="button" class="tier-readout-btn" id="strip-tier-button" style="display: none;">Tier</button>
+        <button type="button" class="icon-btn compact" id="btn-open-cp-breakdown" style="display: none;" title="Open Character Point Breakdown and Starting CP Slider">📊 Breakdown &amp; Slider</button>
+      </div>
+    </div>
 
     <!-- Top-Row Tab Navigation Bar -->
     <nav class="top-tabs-bar">
@@ -98,9 +220,10 @@
         <button class="nav-tab-btn" data-tab="invention">🔬 Invention Lab</button>
         <button class="nav-tab-btn" data-tab="equipment">🎒 Equipment (<span id="tab-equipment-count">0</span>)</button>
         <button class="nav-tab-btn" data-tab="talents">🥋 Talents & Contacts</button>
-        <button class="nav-tab-btn" data-tab="background">📜 History &amp; Log</button>
+        <button class="nav-tab-btn" data-tab="background">📈 Progression</button>
       </div>
       <div class="tab-history-nav" title="Undo / Redo character edits">
+        <span class="tab-history-label" id="tab-history-nav-label">History:</span>
         <button type="button" class="history-nav-btn" id="btn-history-back" title="Undo: Step back to previous edit" disabled aria-label="Undo edit">⮜</button>
         <button type="button" class="history-nav-btn" id="btn-history-forward" title="Redo: Step forward to next edit" disabled aria-label="Redo edit">⮞</button>
       </div>
@@ -120,102 +243,59 @@
           <div class="vital-left">
             <span class="vital-title">❤️ Health</span>
           </div>
-          <div class="vital-health-breakdown" title="Health Breakdown: Base (F+A+S+E) + Bonus (Powers/Buffers) = Total">
+          <div class="vital-health-breakdown" title="Health Breakdown: Base (F+A+S+E) + Bonus (Powers/Buffers)">
             <div class="vital-stat-pill" title="Base Health from physical abilities (F+A+S+E)">
               <span class="pill-label">Base:</span> <strong id="vital-health-base">--</strong>
             </div>
             <div class="vital-stat-pill vital-stat-pill-bonus" id="vital-health-bonus-pill" title="Bonus Health gained from powers, buffers, or health exceeding base">
               <span class="pill-label">Bonus:</span> <strong id="vital-health-bonus">0</strong>
             </div>
-            <div class="vital-stat-pill vital-stat-pill-total" title="Current Health / Maximum Health">
-              <span class="pill-label">Total:</span> <strong id="vital-health-cur">100</strong>/<span id="vital-health-max">100</span>
-            </div>
           </div>
           <div class="vital-steppers">
-            <button type="button" class="icon-btn vital-reset-btn" id="btn-health-reset" title="Reset Health: Restore health to full normal amount">Reset</button>
             <div class="vital-manual-wrap" title="Manual Health adjustment (+### or -###). Type amount and press Enter or click away to apply.">
-              <span class="vital-manual-tag">HP -/+</span>
+              <button type="button" class="vital-manual-tag-btn" id="btn-health-sign-toggle" title="Toggle -/+ sign prefix in Health edit field">HP -/+</button>
               <input type="text" id="input-health-adjust" class="vital-manual-input" autocomplete="off" aria-label="Manual Health adjustment">
             </div>
-            <button type="button" class="icon-btn vital-hold-btn" id="btn-health-minus1" title="-1 Health (Hold to auto-decrement)">-1</button>
-            <button type="button" class="icon-btn vital-hold-btn" id="btn-health-plus1" title="+1 Health (Hold to auto-increment)">+1</button>
+            <div class="stepper-group vital-stepper-group" title="Quick +/- 1 Health Steppers (Hold to auto-decrement/increment)">
+              <button type="button" class="stepper-btn stepper-dec vital-hold-btn" id="btn-health-minus1" title="-1 Health (Hold to auto-decrement)">-1</button>
+              <button type="button" class="stepper-btn stepper-inc vital-hold-btn" id="btn-health-plus1" title="+1 Health (Hold to auto-increment)">+1</button>
+            </div>
+            <button type="button" class="icon-btn vital-reset-btn" id="btn-health-reset" title="Reset Health: Restore health to full normal amount">Reset</button>
+          </div>
+          <div class="vital-stat-pill vital-stat-pill-total" id="vital-health-total-box" title="Current Health / Maximum Health">
+            <span class="pill-label">Total:</span> <strong id="vital-health-cur">100</strong>/<span id="vital-health-max">100</span>
           </div>
         </div>
 
-        <!-- Karma & Point-Buy CP Info Row: Condensed Karma Chip + Point-Buy CP Info on Same Row -->
+        <!-- Karma Chip (Condensed) -->
         <div class="karma-cp-row" id="karma-cp-row">
-          <!-- Karma Chip (Condensed) -->
           <div class="vital-chip compact vital-chip-karma" id="vital-chip-karma">
             <div class="vital-left clickable" id="vital-karma-mode-trigger" title="Karma Operating Mode: Click to switch between Session, Advancement, and Test Mode">
-              <div style="display: flex; align-items: center; gap: 4px;">
-                <span class="vital-title">✨ Karma</span>
-                <span class="vital-karma-mode-badge mode-session" id="vital-karma-mode-badge" title="Current Mode: Session Mode (Click to change)">Session</span>
-              </div>
+              <span class="vital-title">✨ Karma</span>
+              <span class="vital-karma-mode-badge" id="vital-karma-mode-badge" style="display: none;" title="Current Mode: Session Mode (Click to change)"></span>
             </div>
-            <div class="vital-karma-history">
-              <div class="vital-karma-pill" id="vital-karma-last-roll" title="Last Karma spent on a FEAT roll">
-                <span class="history-pill-label">Roll:</span> <strong id="vital-karma-last-val">--</strong>
+            <div class="vital-karma-history" id="vital-karma-history" style="display: none;" aria-hidden="true" title="Karma History: Last Roll & Rank Spends">
+              <div class="vital-stat-pill vital-karma-pill" id="vital-karma-last-roll" title="Last Karma spent on a FEAT roll">
+                <span class="pill-label history-pill-label">Roll:</span> <strong id="vital-karma-last-val">--</strong>
               </div>
-              <div class="vital-karma-pill clickable" id="vital-karma-last-rank" title="Last Karma spent on a Rank Increase (Click to open Advancement)">
-                <span class="history-pill-label">Rank:</span> <strong id="vital-karma-last-rank-val">--</strong>
-              </div>
-            </div>
-            <div class="vital-adjust-box" title="Manual Karma adjustment (+### or -###). Type amount and press Enter or click away to apply.">
-              <div class="vital-manual-wrap">
-                <span class="vital-manual-tag">KIP -/+</span>
-                <input type="text" id="input-karma-adjust" class="vital-manual-input" autocomplete="off" aria-label="Manual Karma adjustment">
+              <div class="vital-stat-pill vital-karma-pill clickable" id="vital-karma-last-rank" title="Last Karma spent on a Rank Increase (Click to open Advancement)">
+                <span class="pill-label history-pill-label">Rank:</span> <strong id="vital-karma-last-rank-val">--</strong>
               </div>
             </div>
             <div class="vital-steppers">
-              <button type="button" class="icon-btn vital-hold-btn" id="btn-karma-minus1" title="-1 Karma (Hold to auto-decrement)">-1</button>
-              <button type="button" class="icon-btn vital-hold-btn" id="btn-karma-plus1" title="+1 Karma (Hold to auto-increment)">+1</button>
+              <div class="vital-manual-wrap" title="Manual Karma adjustment (+### or -###). Type amount and press Enter or click away to apply.">
+                <button type="button" class="vital-manual-tag-btn" id="btn-karma-sign-toggle" title="Toggle -/+ sign prefix in Karma edit field">KP -/+</button>
+                <input type="text" id="input-karma-adjust" class="vital-manual-input" autocomplete="off" aria-label="Manual Karma adjustment">
+              </div>
+              <div class="stepper-group vital-stepper-group" title="Quick +/- 1 Karma Steppers (Hold to auto-decrement/increment)">
+                <button type="button" class="stepper-btn stepper-dec vital-hold-btn" id="btn-karma-minus1" title="-1 Karma (Hold to auto-decrement)">-1</button>
+                <button type="button" class="stepper-btn stepper-inc vital-hold-btn" id="btn-karma-plus1" title="+1 Karma (Hold to auto-increment)">+1</button>
+              </div>
             </div>
-            <div class="vital-total-box" id="vital-karma-total-box" title="Current total Karma Points (KP)">
-              <span class="total-label">Total:</span>
+            <div class="vital-stat-pill vital-stat-pill-total vital-total-box" id="vital-karma-total-box" title="Current total Karma Points (KP)">
+              <span class="pill-label total-label">Total:</span>
               <strong id="vital-karma-cur" class="vital-total-val">100</strong>
               <span class="vital-unit">KP</span>
-            </div>
-          </div>
-
-          <!-- Combined Point-Buy CP & Tier Configuration Bar -->
-          <div class="point-buy-strip" id="point-buy-strip">
-            <div role="button" tabindex="0" class="point-buy-badge clickable point-buy-btn point-buy-combined-block" id="point-buy-badge" title="Click to view Character Point breakdown and adjust Starting CP">
-              <!-- Extended Top Area: Current Tier Name -->
-              <div class="cp-block-tier-header" id="cp-block-tier-header">
-                <div class="cp-block-tier-header-left">
-                  <span class="tier-icon" aria-hidden="true" style="font-size: 10pt;">⚡</span>
-                  <span class="cp-block-tier-name-label">Tier:</span>
-                  <strong class="cp-block-tier-name-val" id="strip-tier-name">Established Hero / Mutant</strong>
-                </div>
-                <span class="tier-action-hint" style="font-size: 10pt; opacity: 0.7; color: var(--marvel-gold);" aria-hidden="true">▾</span>
-              </div>
-              <!-- Middle Row: CP Display (Above Tier Display) -->
-              <div class="cp-block-top-row">
-                <div class="cp-block-numbers">
-                  <span class="point-buy-icon" aria-hidden="true" style="font-size: 10pt;">📊</span>
-                  <span>CP Used:</span>
-                  <span class="point-numbers"><span id="header-points-spent">48</span> / <span id="header-points-budget">550</span></span>
-                  <span class="point-buy-rem" style="color: var(--text-muted);">(<span id="header-points-remaining" style="color: #38bdf8; font-weight: 700;">502</span> left)</span>
-                </div>
-                <span class="point-buy-action-pill" aria-hidden="true">Breakdown ▾</span>
-              </div>
-              <!-- Bottom Row: Tier Display -->
-              <div class="cp-block-bottom-row point-tier-status-group clickable" id="point-tier-status-group">
-                <div class="cp-block-tier-left">
-                  <span class="tier-label" style="color: #94a3b8; font-weight: 600; font-size: 10pt;">Budget:</span>
-                  <strong id="strip-tier-display" style="color: var(--marvel-gold); font-size: 10pt;">400 CP</strong>
-                  <span id="strip-cp-adjust-badge" class="meta-tag" style="display: none; font-size: 10pt; padding: 1px 6px; font-weight: 700;">±0%</span>
-                </div>
-                <button type="button" class="icon-btn primary compact" id="btn-open-creation-wizard" style="display: none; font-size: 10pt; padding: 1px 6px;" title="Set Starting Tier and Physical Form">⚡ Set Tier &amp; Form</button>
-              </div>
-            </div>
-
-            <!-- Hidden preservation elements for test suites & backwards compatibility -->
-            <div class="spent-breakdown-text" id="spent-breakdown-summary" style="display: none;" aria-hidden="true">
-              <span>Spent: <strong id="spent-abilities">42</strong> FASERIP · <strong id="spent-powers">0</strong> Pwr · <strong id="spent-talents">0</strong> Tal · <strong id="spent-contacts">0</strong> Con · <strong id="spent-resources">6</strong> Res</span>
-              <span id="strip-form-display" style="display: none;">Mutant</span>
-              <button type="button" class="tier-readout-btn" id="strip-tier-button" style="display: none;">Tier</button>
-              <button type="button" class="icon-btn compact" id="btn-open-cp-breakdown" style="display: none;" title="Open Character Point Breakdown and Starting CP Slider">📊 Breakdown &amp; Slider</button>
             </div>
           </div>
         </div>
@@ -245,6 +325,9 @@
               <span class="card-title">📊 Primary Abilities (FASERIP)</span>
               <span style="color: var(--text-muted);">Point-for-Point Rank Value</span>
             </div>
+
+            <!-- Physical Form Stat Adjustments & Selectable Bonus Bar -->
+            <div id="main-form-adjustments-bar" style="display: none; background: rgba(56, 189, 248, 0.08); border: 1px solid rgba(56, 189, 248, 0.28); border-radius: 6px; padding: 8px 10px; margin-bottom: 10px; font-size: 9.5pt;"></div>
 
             <div class="faserip-grid">
               
@@ -350,6 +433,7 @@
                 <span style="color: var(--text-muted);" id="def-force-field-notes">No active field</span>
               </div>
             </div>
+            <div id="def-resistances-container" style="display: none; margin-top: 10px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.08); font-size: 9.5pt;"></div>
           </div>
 
           <!-- Conditions Card -->
@@ -723,25 +807,141 @@
 
     </section>
 
-    <!-- TAB 4: EQUIPMENT STORE & INVENTORY -->
+    <!-- TAB 4: EQUIPMENT STORE & INVENTORY (Adjustable Split View) -->
     <section class="tab-pane" id="tab-pane-equipment">
-      
-      <div class="card">
-        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
-          <div>
-            <span class="card-title">🎒 Character Gear & Carrying Inventory</span>
-            <div style="color: var(--text-muted); font-size: 10pt; margin-top: 2px;">Equipped and carried weapons, tactical armor, communications, and custom inventions.</div>
+      <div class="equipment-split-layout" id="equipment-split-layout">
+        
+        <!-- Popped Out Equipment Store Notice Banner in Tab 4 -->
+        <div class="equipment-store-popped-banner" id="equipment-store-popped-banner" style="display: none;">
+          <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+            <span style="font-size: 1.1em;">🛒</span>
+            <span style="font-weight: 700; color: var(--marvel-gold);">Rulebook Equipment Store</span>
+            <span style="color: var(--text-muted); font-size: 10pt;">is open in a separate window.</span>
           </div>
-          <button type="button" class="icon-btn primary" id="btn-open-equipment-store" style="font-size: 11pt; padding: 8px 18px; min-height: 42px;">
-            🛒 Open Rulebook Equipment Store (390 TSR Items)
-          </button>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <button type="button" class="icon-btn compact primary" id="btn-focus-store-popout" title="Bring the popped-out Equipment Store window to front" style="font-size: 10pt; padding: 2px 8px; min-height: 28px;">🔍 View Store Window</button>
+            <button type="button" class="icon-btn compact" id="btn-dock-store-banner" title="Dock Equipment Store back into this tab" style="font-size: 10pt; padding: 2px 8px; min-height: 28px;">↘ Dock Store</button>
+          </div>
         </div>
 
-        <div class="attacks-list" id="equipment-container" style="margin-top: 10px;">
-          <!-- Equipped and carried items rendered here -->
+        <!-- UPPER HALF: Rulebook Equipment Store (390 TSR Items) -->
+        <div class="equipment-split-section equipment-store-section" id="equipment-store-section">
+          <div class="equipment-section-inner">
+            <div class="card-header equipment-store-header">
+              <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                <span class="card-title">🛒 Rulebook Equipment Store</span>
+                <span class="meta-tag" id="store-item-count-tag" style="color: var(--marvel-gold); font-size: 10.5pt; font-weight: 700;">Showing 390 of 390 TSR Items</span>
+                <div id="store-resource-status-badge" class="store-resource-badge"></div>
+              </div>
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <button type="button" class="icon-btn compact" id="btn-popout-store" title="Pop out Equipment Store into a separate window" style="font-size: 10pt; padding: 2px 8px; min-height: 28px;">↗ Pop-out</button>
+                <button type="button" class="icon-btn compact" id="btn-collapse-store" title="Collapse Equipment Store to maximize inventory" style="font-size: 10pt; padding: 2px 8px; min-height: 28px;">▲ Collapse</button>
+              </div>
+            </div>
+
+            <div class="equipment-store-body">
+              <!-- Clearance & Market Access Toggles (Military, Black Market, S.H.I.E.L.D.) -->
+              <div class="store-access-bar">
+                <div class="store-access-bar-left">
+                  <span class="store-access-bar-label">Store Clearances:</span>
+                  <button type="button" id="toggle-store-military" class="store-access-toggle" data-access="military" title="Toggle Military Access to unlock combat firearms, ordnance, and heavy suits">
+                    <span class="toggle-icon">🎖️</span> Military Access: <strong class="toggle-status">OFF</strong>
+                  </button>
+                  <button type="button" id="toggle-store-blackmarket" class="store-access-toggle" data-access="black_market" title="Toggle Black Market underworld access (+1CS cost markup)">
+                    <span class="toggle-icon">🕵️</span> Black Market (+1CS): <strong class="toggle-status">OFF</strong>
+                  </button>
+                  <button type="button" id="toggle-store-shield" class="store-access-toggle" data-access="shield" title="Toggle S.H.I.E.L.D. Tech Clearance (Requisition requires GM approval per purchase)">
+                    <span class="toggle-icon">🦅</span> S.H.I.E.L.D. Tech: <strong class="toggle-status">OFF</strong>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Store Filters Bar: Search, Category Pills, and Access Filter Pills -->
+              <div class="equipment-store-filters-bar">
+                <div style="flex: 1; min-width: 240px; display: flex; gap: 6px; align-items: center;">
+                  <input type="text" id="filter-store-search" class="field-input" placeholder="🔍 Search weapons, firearms, armor, ammo, vehicles, gear..." style="min-height: 36px; font-size: 10.5pt; flex: 1;">
+                  <button type="button" id="btn-clear-store-search" class="icon-btn" style="padding: 4px 10px; min-height: 36px; font-size: 11pt;" title="Clear search filters">✕</button>
+                </div>
+                
+                <div style="display: flex; gap: 6px; flex-wrap: wrap; align-items: center;" id="store-access-filter-group">
+                  <span style="font-size: 10pt; color: var(--text-muted); font-weight: 700;">Show:</span>
+                  <button type="button" class="store-access-filter-btn active" data-store-access="all">All</button>
+                  <button type="button" class="store-access-filter-btn" data-store-access="civilian">Civilian</button>
+                  <button type="button" class="store-access-filter-btn" data-store-access="military">Military</button>
+                  <button type="button" class="store-access-filter-btn" data-store-access="black_market">Black Market</button>
+                  <button type="button" class="store-access-filter-btn" data-store-access="shield">S.H.I.E.L.D.</button>
+                </div>
+
+                <div style="display: flex; gap: 6px; flex-wrap: wrap;" id="store-category-filter-group">
+                  <button type="button" class="store-filter-btn active" data-store-cat="all">All Items</button>
+                  <button type="button" class="store-filter-btn" data-store-cat="weapons">Weapons</button>
+                  <button type="button" class="store-filter-btn" data-store-cat="ammo">Ammunition</button>
+                  <button type="button" class="store-filter-btn" data-store-cat="firearms">Firearms &amp; Heavy</button>
+                  <button type="button" class="store-filter-btn" data-store-cat="melee">Melee &amp; Thrown</button>
+                  <button type="button" class="store-filter-btn" data-store-cat="armor">Armor &amp; Suits</button>
+                  <button type="button" class="store-filter-btn" data-store-cat="robotics">Robotics &amp; Tech</button>
+                  <button type="button" class="store-filter-btn" data-store-cat="vehicles">Vehicles</button>
+                  <button type="button" class="store-filter-btn" data-store-cat="electronics">Electronics</button>
+                  <button type="button" class="store-filter-btn" data-store-cat="hq">Headquarters</button>
+                  <button type="button" class="store-filter-btn" data-store-cat="sundries">Sundries &amp; Services</button>
+                </div>
+              </div>
+
+              <!-- Store Table Container -->
+              <div class="store-table-container">
+                <table class="store-wide-table">
+                  <thead>
+                    <tr>
+                      <th style="width: 19%;">Item Name</th>
+                      <th style="width: 11%;">Category</th>
+                      <th style="width: 13%;">Access</th>
+                      <th style="width: 9%;">Cost Rank</th>
+                      <th style="width: 16%;">Damage / Protection</th>
+                      <th style="width: 23%;">Description &amp; Stats</th>
+                      <th style="width: 9%; text-align: center;">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody id="store-equipment-tbody">
+                    <!-- Rendered dynamically -->
+                  </tbody>
+                </table>
+              </div>
+              <!-- Persistent Hover Description Tooltip -->
+              <div id="store-desc-hover-tooltip" class="store-desc-popover" style="display: none;"></div>
+            </div>
+          </div>
         </div>
+
+        <!-- ADJUSTABLE HORIZONTAL SPLITTER DIVIDER -->
+        <div class="equipment-split-divider" id="equipment-split-divider" role="separator" aria-orientation="horizontal" tabindex="0" title="Drag to adjust split. Shift to top or bottom edge to collapse. Double-click to restore auto-fit.">
+          <div class="divider-grip-line"></div>
+          <div class="divider-controls">
+            <span class="divider-label" id="equipment-divider-label">⇕ Auto-fit (Max 50%) · Drag to resize · Double-click to auto-fit</span>
+          </div>
+        </div>
+
+        <!-- LOWER HALF: Acquired Items & Carrying Inventory -->
+        <div class="equipment-split-section equipment-inventory-section" id="equipment-inventory-section">
+          <div class="equipment-section-inner">
+            <div class="card-header equipment-inventory-header">
+              <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                <span class="card-title">🎒 Character Gear &amp; Carrying Inventory</span>
+                <span class="meta-tag" id="inv-item-count-tag" style="color: #38bdf8; font-size: 10.5pt; font-weight: 700;">0 Items</span>
+                <div style="color: var(--text-muted); font-size: 10pt;">Equipped and carried weapons, tactical armor, communications, and custom inventions.</div>
+              </div>
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <button type="button" class="icon-btn compact" id="btn-collapse-inventory" title="Collapse Inventory to maximize equipment store" style="font-size: 10pt; padding: 2px 8px; min-height: 28px;">▼ Collapse</button>
+              </div>
+            </div>
+            <div class="equipment-inventory-body">
+              <div class="attacks-list" id="equipment-container">
+                <!-- Equipped and carried items rendered here -->
+              </div>
+            </div>
+          </div>
+        </div>
+
       </div>
-
     </section>
 
     <!-- TAB 5: TALENTS & CONTACTS -->
@@ -808,9 +1008,25 @@
 
     </section>
 
-    <!-- TAB 6: BACKGROUND & PHYSICAL FORM -->
+    <!-- TAB 6: PROGRESSION (ADVANCEMENT, BIOGRAPHY, RESOURCES & EDIT LOG) -->
     <section class="tab-pane" id="tab-pane-background">
       
+      <!-- Character Progression & Advancement Card -->
+      <div class="card" id="card-progression-advancement" style="margin-bottom: 14px;">
+        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <span class="card-title">📈 Character Progression &amp; Advancement</span>
+            <span class="meta-tag" id="progression-karma-badge" style="font-size: 10pt; font-weight: 700; color: var(--marvel-gold);">Available Karma: <strong id="progression-karma-val">0</strong> KP</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <button type="button" id="btn-top-advancement" class="icon-btn primary" style="font-size: 10pt; font-weight: 700; padding: 6px 14px;" title="Character Advancement (Spend Karma to raise abilities, powers, or add talents)">📈 Character Advancement...</button>
+          </div>
+        </div>
+        <div style="padding: 10px 16px; font-size: 10pt; color: var(--text-muted); line-height: 1.5;">
+          Per TSR Advanced Set rules (Player's Book p. 19), spend accumulated Karma during live campaign play to permanently raise abilities, advance superpower ranks, or add new talents.
+        </div>
+      </div>
+
       <div class="card">
         <div class="card-header">
           <span class="card-title">📜 Hero Biography, Identity & Physical Form</span>
@@ -824,11 +1040,13 @@
           <div id="bio-physical-form-container">
             <span class="field-label">Physical Form (UPB + Dragon #134):</span>
             <!-- Simple dropdown mode (shown until CP has been spent) -->
-            <select id="bio-physical-form" class="field-input" title="Select Physical Form &amp; Origin"></select>
+            <select id="bio-physical-form" class="field-input" title="Select Physical Form &amp; Origin">
+              <option value="">- Select physical form -</option>
+            </select>
             <!-- Modal button trigger mode (shown once CP has been spent) -->
             <button type="button" id="bio-physical-form-btn" class="field-input form-locked-btn" style="display: none;" title="Physical Form is locked because starting CP has been spent. Click to open Change Physical Form dialog or roll back to unlock.">
               <span id="bio-physical-form-display" style="font-weight: 700; color: #38bdf8;">Mutant</span>
-              <span style="font-size: 9.5pt; color: #ef4444; display: inline-flex; align-items: center; gap: 4px;">🔒 Locked (Pop-up)</span>
+              <span style="font-size: 10pt; color: #ef4444; display: inline-flex; align-items: center; gap: 4px;">🔒 Locked (Pop-up)</span>
             </button>
           </div>
           <div>
@@ -1044,22 +1262,56 @@
         </div>
       </div>
       <div class="cheatsheet-tabs-bar" id="cheatsheet-tabs-bar">
-        <button class="icon-btn active" id="cheat-tab-btn-combat" onclick="App.switchCheatTab('combat')">⚔️ Combat FEATs</button>
-        <button class="icon-btn" id="cheat-tab-btn-table" onclick="App.switchCheatTab('table')">🎲 Universal Table Matrix</button>
+        <button class="icon-btn active" id="cheat-tab-btn-table" onclick="App.switchCheatTab('table')">🎲 Universal Table Matrix</button>
+        <button class="icon-btn" id="cheat-tab-btn-combat" onclick="App.switchCheatTab('combat')">⚔️ Combat FEATs</button>
         <button class="icon-btn" id="cheat-tab-btn-movement" onclick="App.switchCheatTab('movement')">🏃 Movement & Speed</button>
         <button class="icon-btn" id="cheat-tab-btn-health" onclick="App.switchCheatTab('health')">❤️ Health & Recovery</button>
         <button class="icon-btn" id="cheat-tab-btn-materials" onclick="App.switchCheatTab('materials')">🛡️ Materials & Modifiers</button>
       </div>
       <div class="modal-body">
 
+        <!-- Cheat Section: Universal Table -->
+        <div id="cheat-section-table" class="cheatsheet-section">
+          <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 8px;">
+            <h3 id="cheat-table-title" style="margin: 0;">🎲 Universal Action Table Matrix (All 18 Ranks)</h3>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="font-size: 10pt; color: var(--text-muted); font-weight: 700;">Rank Scheme:</span>
+              <span id="cheat-table-scheme-badge" class="meta-tag" style="font-size: 10pt; font-weight: 700; background: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.4); color: #38bdf8; padding: 2px 8px; border-radius: 4px;">CMF Scheme (22 Ranks)</span>
+            </div>
+          </div>
+          <p id="cheat-table-desc">The core engine of the FASERIP system. Roll 1d100 (percentile dice) and cross-reference rank to determine FEAT color result:</p>
+          <table class="universal-table-view">
+            <thead>
+              <tr id="cheatsheet-table-header-row">
+                <th>Rank & Number</th>
+                <th><span class="feat-white">White (Failure)</span></th>
+                <th><span class="feat-green">Green (Standard)</span></th>
+                <th><span class="feat-yellow">Yellow (Superior)</span></th>
+                <th><span class="feat-red">Red (Critical)</span></th>
+              </tr>
+            </thead>
+            <tbody id="cheatsheet-table-body"></tbody>
+          </table>
+
+          <div class="calc-rule-callout" style="margin-top: 14px;">
+            <strong>📐 Column Shifts (CS):</strong>
+            <br>• <strong>+1CS:</strong> Shifts one column to the right (e.g. Typical &rarr; Good).
+            <br>• <strong>-1CS:</strong> Shifts one column to the left (e.g. Typical &rarr; Poor).
+            <br>• Absolute bounds: Shifts cannot drop below <strong>Shift 0</strong> or exceed <strong>Beyond</strong>.
+          </div>
+        </div>
+
         <!-- Cheat Section: Combat -->
-        <div id="cheat-section-combat" class="cheatsheet-section">
-          <h3>⚔️ Tactical Combat Actions & Battle Effects Resolution Table</h3>
+        <div id="cheat-section-combat" class="cheatsheet-section" style="display: none;">
+          <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin-bottom: 6px;">
+            <h3 style="margin: 0;">⚔️ Tactical Combat Actions &amp; Battle Effects Resolution Table</h3>
+            <span id="cheat-combat-scheme-badge" class="meta-tag" style="font-size: 10pt; font-weight: 700;">CMF Scheme (22 Ranks + Fumbles)</span>
+          </div>
           <p style="margin-bottom: 10px;">Cross-reference action type and FEAT roll color on the Universal Table to resolve combat outcomes:</p>
           
           <table class="cheat-table">
             <thead>
-              <tr>
+              <tr id="cheatsheet-combat-header-row">
                 <th style="width: 18%;">Action / FEAT</th>
                 <th style="width: 10%;">Ability</th>
                 <th style="width: 14%;"><span class="feat-white">White (Failure)</span></th>
@@ -1068,7 +1320,7 @@
                 <th style="width: 20%;"><span class="feat-red">Red (Critical)</span></th>
               </tr>
             </thead>
-            <tbody>
+            <tbody id="cheatsheet-combat-body">
               <tr>
                 <td><strong>Slugfest</strong> (Unarmed Strike)</td>
                 <td>Fighting</td>
@@ -1309,40 +1561,6 @@
                 <li><strong>Surprise:</strong> Roll Intuition vs foe's Intuition. Surprised characters cannot act or declare active defenses (Dodge, Evade, Block) on round 1.</li>
               </ul>
             </div>
-          </div>
-        </div>
-
-        <!-- Cheat Section: Universal Table -->
-        <div id="cheat-section-table" class="cheatsheet-section" style="display: none;">
-          <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 8px;">
-            <h3 id="cheat-table-title" style="margin: 0;">🎲 Universal Action Table Matrix (All 18 Ranks)</h3>
-            <div style="display: flex; align-items: center; gap: 8px;">
-              <span style="font-size: 10pt; color: var(--text-muted); font-weight: 700;">Table Mode:</span>
-              <select id="cheat-table-mode-select" class="field-input" style="min-height: 30px; padding: 2px 8px; font-size: 10pt; width: auto;">
-                <option value="cmf" selected>Modified CMF (22 Ranks - Default)</option>
-                <option value="standard">Standard TSR (18 Ranks)</option>
-              </select>
-            </div>
-          </div>
-          <p id="cheat-table-desc">The core engine of the FASERIP system. Roll 1d100 (percentile dice) and cross-reference rank to determine FEAT color result:</p>
-          <table class="universal-table-view">
-            <thead>
-              <tr id="cheatsheet-table-header-row">
-                <th>Rank & Number</th>
-                <th><span class="feat-white">White (Failure)</span></th>
-                <th><span class="feat-green">Green (Standard)</span></th>
-                <th><span class="feat-yellow">Yellow (Superior)</span></th>
-                <th><span class="feat-red">Red (Critical)</span></th>
-              </tr>
-            </thead>
-            <tbody id="cheatsheet-table-body"></tbody>
-          </table>
-
-          <div class="calc-rule-callout" style="margin-top: 14px;">
-            <strong>📐 Column Shifts (CS):</strong>
-            <br>• <strong>+1CS:</strong> Shifts one column to the right (e.g. Typical &rarr; Good).
-            <br>• <strong>-1CS:</strong> Shifts one column to the left (e.g. Typical &rarr; Poor).
-            <br>• Absolute bounds: Shifts cannot drop below <strong>Shift 0</strong> or exceed <strong>Beyond</strong>.
           </div>
         </div>
 
@@ -1760,10 +1978,10 @@
         <div style="display: flex; flex-direction: column; gap: 14px;">
           <div style="font-weight: 700; color: var(--text-main); font-size: 11pt; border-bottom: 1px solid var(--border-color); padding-bottom: 6px;">Interface Layout & Display</div>
           <label class="checkbox-label" style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer;">
-            <input type="checkbox" id="option-sticky-header" style="margin-top: 3px;">
+            <input type="checkbox" id="option-sticky-header" style="margin-top: 3px;" checked>
             <div>
-              <strong class="option-control-header">Persistent Top Bar &amp; Tabs (Sticky Navigation)</strong>
-              <div style="color: var(--text-muted); font-size: 10pt; margin-top: 2px;">Keeps character header, CP tracker, and navigation tabs fixed at the top of the window while scrolling.</div>
+              <strong class="option-control-header">Persistent Navigation &amp; Creation Header (Sticky Header)</strong>
+              <div style="color: var(--text-muted); font-size: 10pt; margin-top: 2px;">Keep the character header bar, creation mode bar, and navigation tabs pinned to the top of the screen while scrolling.</div>
             </div>
           </label>
           <label class="checkbox-label" style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer;">
@@ -1778,6 +1996,24 @@
             <div>
               <strong class="option-control-header">Remember Cheat Sheet Pop-out Across Sessions</strong>
               <div style="color: var(--text-muted); font-size: 10pt; margin-top: 2px;">When enabled, if the Rules Cheat Sheet is in its separate pop-out window when you close the client, it automatically pops out the next time you open the client.</div>
+              <div style="color: #94a3b8; font-size: 10pt; margin-top: 4px; line-height: 1.4;">💡 <em>Note for Waterfox / Custom Gecko Browsers:</em> If pop-outs open as tabs instead of windows, open <code>about:config</code> in your browser and set <code>browser.link.open_newwindow.restriction</code> to <code>2</code>.</div>
+            </div>
+          </label>
+          <label class="checkbox-label" style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer;">
+            <input type="checkbox" id="option-store-auto-popout" style="margin-top: 3px;">
+            <div>
+              <strong class="option-control-header">Remember Equipment Store Pop-out Across Sessions</strong>
+              <div style="color: var(--text-muted); font-size: 10pt; margin-top: 2px;">When enabled, if the Rulebook Equipment Store is in its separate pop-out window when you close the client, it automatically pops out the next time you open the client.</div>
+            </div>
+          </label>
+          <label class="checkbox-label" style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer;">
+            <input type="checkbox" id="option-roller-restore-geometry" style="margin-top: 3px;" checked>
+            <div>
+              <strong class="option-control-header">Remember Popped-Out Dice Roller Size &amp; Position</strong>
+              <div style="color: var(--text-muted); font-size: 10pt; margin-top: 2px;">When enabled, the 3D dice roller remembers its window dimensions and screen coordinates when popped out across sessions.</div>
+              <div style="margin-top: 6px;">
+                <button type="button" class="icon-btn compact" id="btn-reset-roller-geometry" style="font-size: 10pt; padding: 2px 8px;">Reset Roller Window Size &amp; Position</button>
+              </div>
             </div>
           </label>
 
@@ -1819,11 +2055,31 @@
           </label>
 
           <label class="checkbox-label" style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer;">
+            <input type="checkbox" id="option-convert-unspent-cp-to-kp" style="margin-top: 3px;">
+            <div>
+              <strong class="option-control-header">Enable "Convert Unspent CP to KP" House Rule</strong>
+              <div style="color: var(--text-muted); font-size: 10pt; margin-top: 2px; line-height: 1.4;">
+                Allows up to 5 unspent Character Points (CP) to be converted into bonus Starting Karma Points (KP) at a 1 CP to 5 KP rate when finalizing character creation. When disabled, zero CP can remain before finalizing.
+              </div>
+            </div>
+          </label>
+
+          <label class="checkbox-label" style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer;">
             <input type="checkbox" id="option-superior-option-cost" style="margin-top: 3px;">
             <div>
               <strong class="option-control-header">Enable "Superior Option" Tax / Surcharge House Rule</strong>
               <div style="color: var(--text-muted); font-size: 10pt; margin-top: 2px; line-height: 1.4;">
                 When enabled, choosing a superior power manifestation or sub-option manually (instead of rolling on the random d100 subtable) adds a +100% base unlock CP surcharge (+10 CP, or +20 CP for starred powers). When disabled, superior options incur 0 CP surcharge.
+              </div>
+            </div>
+          </label>
+
+          <label class="checkbox-label" style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer;">
+            <input type="checkbox" id="option-human-ability-caps" style="margin-top: 3px;">
+            <div>
+              <strong class="option-control-header">Enable "Human Ability Rank Caps" House Rule</strong>
+              <div style="color: var(--text-muted); font-size: 10pt; margin-top: 2px; line-height: 1.4;">
+                Enforces natural biological ability rank limits for humans. For FASE abilities (Fighting, Agility, Strength, Endurance), the maximum natural rank is <strong>Incredible (IN, 40)</strong> in TSR mode or <strong>Fantastic (FA, 35)</strong> in CMF mode. For RIP abilities (Reason, Intuition, Psyche), the maximum natural rank is <strong>Amazing (AM, 50)</strong> in both modes. Exceeding these limits requires the use of powers.
               </div>
             </div>
           </label>
@@ -1860,7 +2116,7 @@
           <!-- SECTION: PROGRAM UPDATES & AUTOMATED CHECKING -->
           <div style="font-weight: 700; color: var(--text-main); font-size: 11pt; border-bottom: 1px solid var(--border-color); padding-bottom: 6px; margin-top: 10px; display: flex; justify-content: space-between; align-items: center;">
             <span>🔄 Program Updates &amp; Automated Checking</span>
-            <span class="meta-tag" id="update-version-tag" style="color: var(--marvel-gold); font-size: 10pt;">v1.5.26</span>
+            <span class="meta-tag" id="update-version-tag" style="color: var(--marvel-gold); font-size: 10pt;">v1.5.81</span>
           </div>
 
           <div class="update-settings-panel" style="background: rgba(0, 0, 0, 0.2); border: 1px solid var(--border-color); border-radius: 6px; padding: 12px; display: flex; flex-direction: column; gap: 10px;">
@@ -1949,31 +2205,90 @@
       <div class="modal-header">
         <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
           <span class="modal-title">📊 CP Budget &amp; Usage Breakdown</span>
-          <span id="cp-modal-tier-badge" class="meta-tag" style="color: var(--marvel-gold); font-size: 10pt; font-weight: 700;">400 CP Base</span>
+          <span id="cp-modal-tier-badge" class="meta-tag" style="color: var(--marvel-gold); font-size: 10pt; font-weight: 700;">300 CP Base</span>
         </div>
         <button type="button" class="modal-close" id="btn-close-cp-modal-x">&times;</button>
       </div>
       <div class="modal-body" style="padding: 16px 20px; display: flex; flex-direction: column; gap: 14px;">
         
-        <!-- SECTION 1: STARTING CP BUDGET SUMMARY (READ-ONLY) -->
-        <div class="cp-slider-card">
+        <!-- SECTION 1: CP BUDGET CONFIGURATION & ADJUSTMENT -->
+        <div class="cp-slider-card" id="cp-budget-config-card">
           <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
             <div>
-              <strong style="color: var(--text-main); font-size: 11pt;">⚡ Character Starting Budget</strong>
+              <strong style="color: var(--text-main); font-size: 11pt;">⚡ Character Point (CP) Budget</strong>
               <div style="color: var(--text-muted); font-size: 10pt; margin-top: 2px;">
-                Starting budget is established during character creation.
+                Adjust starting tier or custom budget. Budget cannot be reduced below spent CP.
               </div>
             </div>
             <div id="cp-slider-readout" class="cp-slider-readout">
-              <span id="cp-slider-pct-badge" class="meta-tag" style="background: rgba(56, 189, 248, 0.2); color: #38bdf8; font-size: 10pt; font-weight: 800;">±0% (400 CP)</span>
+              <span id="cp-slider-pct-badge" class="meta-tag" style="background: rgba(56, 189, 248, 0.2); color: #38bdf8; font-size: 10pt; font-weight: 800;">±0% (300 CP)</span>
             </div>
           </div>
           
-          <div id="cp-slider-calculation-detail" style="font-size: 10pt; color: var(--text-muted); margin-top: 8px; border-top: 1px solid rgba(255, 255, 255, 0.08); padding-top: 8px;">
-            Base Tier: <strong id="cp-detail-base-tier" style="color: var(--marvel-gold);">400 CP</strong> · Adjustment: <strong id="cp-detail-adjust-val" style="color: #38bdf8;">+0 CP (0%)</strong> · Total Starting Budget: <strong id="cp-detail-effective-budget" style="color: #4ade80;">400 CP</strong>
+          <div id="cp-slider-calculation-detail" style="font-size: 10pt; color: var(--text-muted); margin-top: 6px; border-top: 1px solid rgba(255, 255, 255, 0.08); padding-top: 6px;">
+            Base Tier: <strong id="cp-detail-base-tier" style="color: var(--marvel-gold);">300 CP</strong> · Adjustment: <strong id="cp-detail-adjust-val" style="color: #38bdf8;">+0 CP (0%)</strong> · Total Starting Budget: <strong id="cp-detail-effective-budget" style="color: #4ade80;">300 CP</strong>
           </div>
-          <div style="font-size: 10pt; color: var(--text-muted); margin-top: 6px; line-height: 1.4; background: rgba(0, 0, 0, 0.2); padding: 6px 10px; border-radius: 4px; border-left: 3px solid var(--marvel-gold);">
-            ℹ️ To reset the starting budget, start a new character or roll back to the first character save point in Revision History.
+
+          <!-- Interactive Budget Modifier Controls -->
+          <div style="background: rgba(0, 0, 0, 0.25); border: 1px solid var(--border-color); border-radius: 6px; padding: 10px 14px; margin-top: 4px; display: flex; flex-direction: column; gap: 10px;">
+            <div style="display: flex; align-items: flex-end; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+              <div style="flex: 1; min-width: 200px;">
+                <label for="cp-modal-tier-select" style="display: block; font-size: 10pt; font-weight: 700; color: var(--marvel-gold); margin-bottom: 4px;">
+                  CP Budget Tier:
+                </label>
+                <select id="cp-modal-tier-select" class="field-input" style="width: 100%; min-height: 32px; font-size: 10pt; font-weight: 700;">
+                  <option value="150">150 CP - Skilled Human / Agent</option>
+                  <option value="200">200 CP - Street Vigilante / Mystery Man</option>
+                  <option value="300" selected>300 CP - Costumed Adventurer / Low-Powered (Default)</option>
+                  <option value="400">400 CP - Established Hero / Mutant</option>
+                  <option value="500">500 CP - Major Superhero / Avenger</option>
+                  <option value="600">600 CP - World-Class Hero / Powerhouse</option>
+                  <option value="custom">Custom Point Pool...</option>
+                </select>
+              </div>
+
+              <!-- Custom CP Input (shown if Custom selected) -->
+              <div id="cp-modal-custom-row" style="display: none; align-items: flex-end; gap: 8px;">
+                <div>
+                  <label for="cp-modal-custom-budget" style="display: block; font-size: 10pt; font-weight: 700; color: var(--text-muted); margin-bottom: 4px;">
+                    Custom CP:
+                  </label>
+                  <input type="number" id="cp-modal-custom-budget" class="field-input compact" value="300" min="50" max="3000" step="5" style="width: 100px; text-align: center; font-weight: 700; min-height: 32px;">
+                </div>
+              </div>
+
+              <!-- Starting CP % Adjustment Slider -->
+              <div style="flex: 1; min-width: 160px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                  <label for="cp-modal-adj-slider" style="font-size: 10pt; font-weight: 700; color: var(--text-main);">Adjustment:</label>
+                  <span id="cp-modal-adj-readout" class="meta-tag" style="font-size: 10pt; font-weight: 700; color: #38bdf8;">±0%</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 6px;">
+                  <span style="font-size: 10pt; font-weight: 700; color: #ef4444;">-25%</span>
+                  <input type="range" id="cp-modal-adj-slider" min="-25" max="50" step="25" value="0" style="flex: 1; cursor: pointer; accent-color: var(--marvel-gold);" aria-label="CP adjustment slider">
+                  <span style="font-size: 10pt; font-weight: 700; color: #22c55e;">+50%</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Over Budget Validation Warning / Info Box -->
+            <div id="cp-modal-budget-warning" style="display: none; background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); border-radius: 4px; padding: 8px 12px; font-size: 10pt; color: #f87171; line-height: 1.4;">
+              <strong>⚠️ Over Budget Restriction:</strong>
+              <div id="cp-modal-budget-warning-text" style="margin-top: 2px;">
+                Cannot reduce budget below your current expenditure. Reduce CP expenditure first.
+              </div>
+            </div>
+
+            <!-- Proposed Budget Preview & Action Row -->
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; border-top: 1px solid rgba(255, 255, 255, 0.08); padding-top: 8px;">
+              <div id="cp-modal-proposed-preview" style="font-size: 10pt; color: #cbd5e1;">
+                Proposed Budget: <strong id="cp-modal-proposed-val" style="color: var(--marvel-gold);">300 CP</strong>
+                <span id="cp-modal-proposed-remaining-wrap">· Projected Left: <strong id="cp-modal-proposed-rem" style="color: #38bdf8;">252 CP</strong></span>
+              </div>
+              <button type="button" class="icon-btn primary compact" id="btn-cp-modal-apply-budget" style="font-weight: 700; padding: 4px 14px; font-size: 10pt;">
+                Update Budget
+              </button>
+            </div>
           </div>
         </div>
 
@@ -1983,7 +2298,7 @@
             <div style="display: flex; gap: 16px; align-items: baseline; flex-wrap: wrap;">
               <div>
                 <span style="color: var(--text-muted); font-size: 10pt;">Total Budget:</span>
-                <strong id="cp-modal-total-budget" style="font-family: var(--font-mono); font-size: 11.5pt; color: var(--marvel-gold); margin-left: 4px;">400 CP</strong>
+                <strong id="cp-modal-total-budget" style="font-family: var(--font-mono); font-size: 11.5pt; color: var(--marvel-gold); margin-left: 4px;">300 CP</strong>
               </div>
               <div>
                 <span style="color: var(--text-muted); font-size: 10pt;">Total Spent:</span>
@@ -1991,7 +2306,7 @@
               </div>
               <div>
                 <span style="color: var(--text-muted); font-size: 10pt;">Remaining:</span>
-                <strong id="cp-modal-remaining" style="font-family: var(--font-mono); font-size: 11.5pt; color: #38bdf8; margin-left: 4px;">352 CP</strong>
+                <strong id="cp-modal-remaining" style="font-family: var(--font-mono); font-size: 11.5pt; color: #38bdf8; margin-left: 4px;">252 CP</strong>
               </div>
             </div>
             <div id="cp-modal-budget-status" class="meta-tag" style="font-size: 10pt; font-weight: 700; color: #4ade80; background: rgba(74, 222, 128, 0.15);">Under Budget</div>
@@ -2057,93 +2372,385 @@
     </div>
   </div>
 
-  <!-- MODAL: EQUIPMENT STORE (Large Pop-up Wide Format - Max 2 Rows Per Item) -->
-  <div id="equipment-store-modal" class="modal-overlay">
-    <div class="modal-box store-modal-box">
+  <!-- MODAL: NEW CHARACTER GENERATION MODE SELECTION -->
+  <div id="modal-new-character-mode" class="modal-overlay">
+    <div class="modal-box" style="max-width: 860px; width: 95%;">
       <div class="modal-header">
         <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
-          <span class="modal-title">🛒 Rulebook Equipment Store</span>
-          <span class="meta-tag" id="store-item-count-tag" style="color: var(--marvel-gold); font-size: 10.5pt; font-weight: 700;">Showing 390 of 390 TSR Items</span>
-          <div id="store-resource-status-badge" class="store-resource-badge"></div>
+          <span class="modal-title" id="modal-creation-mode-title">⚡ Character Creation Mode &amp; Universal Table Selection</span>
+          <span class="meta-tag" id="modal-creation-mode-badge" style="background: rgba(56, 189, 248, 0.2); color: #38bdf8; font-size: 10pt; font-weight: 800; border: 1px solid #38bdf8; padding: 2px 8px; border-radius: 4px;">6 Creation Modes</span>
         </div>
-        <button class="modal-close">&times;</button>
+        <button type="button" class="modal-close" id="btn-close-new-char-mode-x">&times;</button>
       </div>
-      <div class="modal-body" style="padding: 14px 18px; display: flex; flex-direction: column; gap: 10px; flex: 1; overflow: hidden;">
-        
-        <!-- Clearance & Market Access Toggles (Military, Black Market, S.H.I.E.L.D.) -->
-        <div class="store-access-bar">
-          <div class="store-access-bar-left">
-            <span class="store-access-bar-label">Store Clearances:</span>
-            <button type="button" id="toggle-store-military" class="store-access-toggle" data-access="military" title="Toggle Military Access to unlock combat firearms, ordnance, and heavy suits">
-              <span class="toggle-icon">🎖️</span> Military Access: <strong class="toggle-status">OFF</strong>
-            </button>
-            <button type="button" id="toggle-store-blackmarket" class="store-access-toggle" data-access="black_market" title="Toggle Black Market underworld access (+1CS cost markup)">
-              <span class="toggle-icon">🕵️</span> Black Market (+1CS): <strong class="toggle-status">OFF</strong>
-            </button>
-            <button type="button" id="toggle-store-shield" class="store-access-toggle" data-access="shield" title="Toggle S.H.I.E.L.D. Tech Clearance (Requisition requires GM approval per purchase)">
-              <span class="toggle-icon">🦅</span> S.H.I.E.L.D. Tech: <strong class="toggle-status">OFF</strong>
-            </button>
+      <div class="modal-body" style="padding: 18px 20px; display: flex; flex-direction: column; gap: 14px;">
+        <div style="font-size: 10.5pt; color: var(--text-main); line-height: 1.45;">
+          Choose the ruleset and generation method for your character. Explanations for each mode's generation process and Universal Table (UT) scheme are shown below:
+        </div>
+
+        <!-- 6-Mode Selection Grouped by Rank Scheme -->
+        <!-- Section 1: Canonical Standard TSR (18 Ranks) -->
+        <div style="margin-bottom: 6px;">
+          <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(245, 158, 11, 0.3); padding-bottom: 4px; margin-bottom: 8px;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <strong style="color: var(--marvel-gold); font-size: 11pt;">🏛️ TSR Canonical Ruleset</strong>
+              <span style="font-size: 10pt; color: var(--text-muted);">(18 Ranks, Shift 0 through Beyond)</span>
+            </div>
+            <span class="meta-tag" style="background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4); font-size: 10pt; padding: 1px 6px;">Standard Action Table</span>
+          </div>
+
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px;">
+            <!-- OPTION 1: TSR STANDARD -->
+            <div class="mode-select-card" id="card-mode-tsr-standard" style="background: rgba(0, 0, 0, 0.35); border: 2px solid #f59e0b; border-radius: 8px; padding: 12px; display: flex; flex-direction: column; justify-content: space-between; gap: 8px;">
+              <div>
+                <div style="display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-bottom: 6px;">
+                  <div style="display: flex; align-items: center; gap: 6px;">
+                    <span style="font-size: 13pt;">🎲</span>
+                    <strong style="color: var(--marvel-gold); font-size: 10.5pt;">TSR Standard</strong>
+                  </div>
+                  <span class="active-mode-badge" id="badge-active-tsr-standard" style="display: none; font-size: 9pt; background: #f59e0b; color: #000; font-weight: 800; padding: 1px 6px; border-radius: 3px;">Active</span>
+                </div>
+                <div style="font-size: 10pt; color: var(--text-muted); line-height: 1.4;">
+                  <strong style="color: #e2e8f0;">• Generation:</strong> Canonical 1986 rolling rules with 18 ranks. Roll Origin on Table 1, FASERIP abilities on Table 1, power slots on Table 2, and talents/contacts.
+                  <br><strong style="color: #e2e8f0;">• Universal Table:</strong> Standard TSR Universal Table (18 Ranks, Shift 0 through Beyond).
+                </div>
+              </div>
+              <button type="button" class="icon-btn primary creation-mode-select-btn" id="btn-new-char-tsr-standard" data-mode="tsr-standard" style="width: 100%; justify-content: center; font-size: 10pt; padding: 6px 10px; font-weight: 700; margin-top: 4px;">
+                🎲 Select TSR Standard
+              </button>
+            </div>
+
+            <!-- OPTION 2: TSR MODELED -->
+            <div class="mode-select-card" id="card-mode-tsr-modeled" style="background: rgba(0, 0, 0, 0.35); border: 2px solid #c084fc; border-radius: 8px; padding: 12px; display: flex; flex-direction: column; justify-content: space-between; gap: 8px;">
+              <div>
+                <div style="display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-bottom: 6px;">
+                  <div style="display: flex; align-items: center; gap: 6px;">
+                    <span style="font-size: 13pt;">📐</span>
+                    <strong style="color: #c084fc; font-size: 10.5pt;">TSR Modeled</strong>
+                  </div>
+                  <span class="active-mode-badge" id="badge-active-tsr-modeled" style="display: none; font-size: 9pt; background: #c084fc; color: #000; font-weight: 800; padding: 1px 6px; border-radius: 3px;">Active</span>
+                </div>
+                <div style="font-size: 10pt; color: var(--text-muted); line-height: 1.4;">
+                  <strong style="color: #e2e8f0;">• Generation:</strong> Free-form TSR character modeling with 18 ranks without slot limits. Real-time Karma Point (KP) investment tracking.
+                  <br><strong style="color: #e2e8f0;">• Universal Table:</strong> Standard TSR Universal Table (18 Ranks, Shift 0 through Beyond).
+                </div>
+              </div>
+              <button type="button" class="icon-btn creation-mode-select-btn" id="btn-new-char-tsr-modeled" data-mode="tsr-modeled" style="width: 100%; justify-content: center; font-size: 10pt; padding: 6px 10px; font-weight: 700; border-color: #c084fc; color: #c084fc; margin-top: 4px;">
+                📐 Select TSR Modeled
+              </button>
+            </div>
+
+            <!-- OPTION 3: TSR CP BUY -->
+            <div class="mode-select-card" id="card-mode-tsr-cp-buy" style="background: rgba(0, 0, 0, 0.35); border: 2px solid #38bdf8; border-radius: 8px; padding: 12px; display: flex; flex-direction: column; justify-content: space-between; gap: 8px;">
+              <div>
+                <div style="display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-bottom: 6px;">
+                  <div style="display: flex; align-items: center; gap: 6px;">
+                    <span style="font-size: 13pt;">⚖️</span>
+                    <strong style="color: #38bdf8; font-size: 10.5pt;">TSR CP Buy</strong>
+                  </div>
+                  <span class="active-mode-badge" id="badge-active-tsr-cp-buy" style="display: none; font-size: 9pt; background: #38bdf8; color: #000; font-weight: 800; padding: 1px 6px; border-radius: 3px;">Active</span>
+                </div>
+                <div style="font-size: 10pt; color: var(--text-muted); line-height: 1.4;">
+                  <strong style="color: #e2e8f0;">• Generation:</strong> Point-Buy character creation (300 CP default tier) with Physical Form wizard using TSR rank progressions.
+                  <br><strong style="color: #e2e8f0;">• Universal Table:</strong> Standard TSR Universal Table (18 Ranks, Shift 0 through Beyond).
+                </div>
+              </div>
+              <button type="button" class="icon-btn creation-mode-select-btn" id="btn-new-char-tsr-cp-buy" data-mode="tsr-cp-buy" style="width: 100%; justify-content: center; font-size: 10pt; padding: 6px 10px; font-weight: 700; border-color: #38bdf8; color: #38bdf8; margin-top: 4px;">
+                ⚖️ Select TSR CP Buy
+              </button>
+            </div>
           </div>
         </div>
 
-        <!-- Store Filters Bar: Search, Category Pills, and Access Filter Pills -->
-        <div style="display: flex; gap: 10px; align-items: center; justify-content: space-between; flex-wrap: wrap;">
-          <div style="flex: 1; min-width: 260px; display: flex; gap: 6px; align-items: center;">
-            <input type="text" id="filter-store-search" class="field-input" placeholder="🔍 Search weapons, firearms, armor, ammo, vehicles, gear..." style="min-height: 38px; font-size: 10.5pt; flex: 1;">
-            <button type="button" id="btn-clear-store-search" class="icon-btn" style="padding: 4px 10px; min-height: 38px; font-size: 11pt;" title="Clear search filters">✕</button>
-          </div>
-          
-          <div style="display: flex; gap: 6px; flex-wrap: wrap; align-items: center;" id="store-access-filter-group">
-            <span style="font-size: 10pt; color: var(--text-muted); font-weight: 700;">Show:</span>
-            <button type="button" class="store-access-filter-btn active" data-store-access="all">All</button>
-            <button type="button" class="store-access-filter-btn" data-store-access="civilian">Civilian</button>
-            <button type="button" class="store-access-filter-btn" data-store-access="military">Military</button>
-            <button type="button" class="store-access-filter-btn" data-store-access="black_market">Black Market</button>
-            <button type="button" class="store-access-filter-btn" data-store-access="shield">S.H.I.E.L.D.</button>
+        <!-- Section 2: Modified CMF Ruleset (22 Ranks + Fumbles) -->
+        <div style="margin-bottom: 6px;">
+          <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(56, 189, 248, 0.3); padding-bottom: 4px; margin-bottom: 8px;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <strong style="color: #38bdf8; font-size: 11pt;">🌐 CMF Modified Ruleset</strong>
+              <span style="font-size: 10pt; color: var(--text-muted);">(22 Ranks + Dark Blue Fumble Column)</span>
+            </div>
+            <span class="meta-tag" style="background: rgba(56, 189, 248, 0.15); color: #7dd3fc; border: 1px solid rgba(56, 189, 248, 0.4); font-size: 10pt; padding: 1px 6px;">CMF 22-Rank Table</span>
           </div>
 
-          <div style="display: flex; gap: 6px; flex-wrap: wrap;" id="store-category-filter-group">
-            <button type="button" class="store-filter-btn active" data-store-cat="all">All Items</button>
-            <button type="button" class="store-filter-btn" data-store-cat="weapons">Weapons</button>
-            <button type="button" class="store-filter-btn" data-store-cat="ammo">Ammunition</button>
-            <button type="button" class="store-filter-btn" data-store-cat="firearms">Firearms &amp; Heavy</button>
-            <button type="button" class="store-filter-btn" data-store-cat="melee">Melee &amp; Thrown</button>
-            <button type="button" class="store-filter-btn" data-store-cat="armor">Armor &amp; Suits</button>
-            <button type="button" class="store-filter-btn" data-store-cat="robotics">Robotics &amp; Tech</button>
-            <button type="button" class="store-filter-btn" data-store-cat="vehicles">Vehicles</button>
-            <button type="button" class="store-filter-btn" data-store-cat="electronics">Electronics</button>
-            <button type="button" class="store-filter-btn" data-store-cat="hq">Headquarters</button>
-            <button type="button" class="store-filter-btn" data-store-cat="sundries">Sundries &amp; Services</button>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px;">
+            <!-- OPTION 4: CMF STANDARD -->
+            <div class="mode-select-card" id="card-mode-cmf-standard" style="background: rgba(0, 0, 0, 0.35); border: 2px solid #f59e0b; border-radius: 8px; padding: 12px; display: flex; flex-direction: column; justify-content: space-between; gap: 8px;">
+              <div>
+                <div style="display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-bottom: 6px;">
+                  <div style="display: flex; align-items: center; gap: 6px;">
+                    <span style="font-size: 13pt;">🎲</span>
+                    <strong style="color: var(--marvel-gold); font-size: 10.5pt;">CMF Standard</strong>
+                  </div>
+                  <span class="active-mode-badge" id="badge-active-cmf-standard" style="display: none; font-size: 9pt; background: #f59e0b; color: #000; font-weight: 800; padding: 1px 6px; border-radius: 3px;">Active</span>
+                </div>
+                <div style="font-size: 10pt; color: var(--text-muted); line-height: 1.4;">
+                  <strong style="color: #e2e8f0;">• Generation:</strong> Canonical 1986 random rolling rules mapped to the expanded CMF 22-rank table featuring Dark Blue Fumble results.
+                  <br><strong style="color: #e2e8f0;">• Universal Table:</strong> Modified CMF Universal Table (22 Ranks + Dark Blue Fumbles).
+                </div>
+              </div>
+              <button type="button" class="icon-btn primary creation-mode-select-btn" id="btn-new-char-cmf-standard" data-mode="cmf-standard" style="width: 100%; justify-content: center; font-size: 10pt; padding: 6px 10px; font-weight: 700; margin-top: 4px;">
+                🎲 Select CMF Standard
+              </button>
+            </div>
+
+            <!-- OPTION 5: CMF MODELED -->
+            <div class="mode-select-card" id="card-mode-cmf-modeled" style="background: rgba(0, 0, 0, 0.35); border: 2px solid #c084fc; border-radius: 8px; padding: 12px; display: flex; flex-direction: column; justify-content: space-between; gap: 8px;">
+              <div>
+                <div style="display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-bottom: 6px;">
+                  <div style="display: flex; align-items: center; gap: 6px;">
+                    <span style="font-size: 13pt;">📐</span>
+                    <strong style="color: #c084fc; font-size: 10.5pt;">CMF Modeled</strong>
+                  </div>
+                  <span class="active-mode-badge" id="badge-active-cmf-modeled" style="display: none; font-size: 9pt; background: #c084fc; color: #000; font-weight: 800; padding: 1px 6px; border-radius: 3px;">Active</span>
+                </div>
+                <div style="font-size: 10pt; color: var(--text-muted); line-height: 1.4;">
+                  <strong style="color: #e2e8f0;">• Generation:</strong> Free-form character modeling with access to all 22 CMF ranks (including Fantastic through Awesome) and KP tracking.
+                  <br><strong style="color: #e2e8f0;">• Universal Table:</strong> Modified CMF Universal Table (22 Ranks + Dark Blue Fumbles).
+                </div>
+              </div>
+              <button type="button" class="icon-btn creation-mode-select-btn" id="btn-new-char-cmf-modeled" data-mode="cmf-modeled" style="width: 100%; justify-content: center; font-size: 10pt; padding: 6px 10px; font-weight: 700; border-color: #c084fc; color: #c084fc; margin-top: 4px;">
+                📐 Select CMF Modeled
+              </button>
+            </div>
+
+            <!-- OPTION 6: CMF CP BUY -->
+            <div class="mode-select-card" id="card-mode-cmf-cp-buy" style="background: rgba(0, 0, 0, 0.35); border: 2px solid #10b981; border-radius: 8px; padding: 12px; display: flex; flex-direction: column; justify-content: space-between; gap: 8px;">
+              <div>
+                <div style="display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-bottom: 6px;">
+                  <div style="display: flex; align-items: center; gap: 6px;">
+                    <span style="font-size: 13pt;">⚖️</span>
+                    <strong style="color: #34d399; font-size: 10.5pt;">CMF CP Buy</strong>
+                  </div>
+                  <span class="active-mode-badge" id="badge-active-cmf-cp-buy" style="display: none; font-size: 9pt; background: #10b981; color: #000; font-weight: 800; padding: 1px 6px; border-radius: 3px;">Active</span>
+                </div>
+                <div style="font-size: 10pt; color: var(--text-muted); line-height: 1.4;">
+                  <strong style="color: #e2e8f0;">• Generation:</strong> Classic Marvel Forever point-buy rules with 22 ranks. Spend Character Points (300 CP default tier) with Physical Form wizard.
+                  <br><strong style="color: #e2e8f0;">• Universal Table:</strong> Modified CMF Universal Table (22 Ranks + Dark Blue Fumbles).
+                </div>
+              </div>
+              <button type="button" class="icon-btn creation-mode-select-btn" id="btn-new-char-cmf-cp-buy" data-mode="cmf-cp-buy" style="width: 100%; justify-content: center; font-size: 10pt; padding: 6px 10px; font-weight: 700; border-color: #10b981; color: #34d399; margin-top: 4px;">
+                ⚖️ Select CMF CP Buy
+              </button>
+            </div>
           </div>
         </div>
 
-        <div class="store-table-container" style="flex: 1; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 6px; background: var(--bg-card);">
-          <table class="store-wide-table">
-            <thead>
-              <tr>
-                <th style="width: 19%;">Item Name</th>
-                <th style="width: 11%;">Category</th>
-                <th style="width: 13%;">Access</th>
-                <th style="width: 9%;">Cost Rank</th>
-                <th style="width: 16%;">Damage / Protection</th>
-                <th style="width: 23%;">Description &amp; Stats</th>
-                <th style="width: 9%; text-align: center;">Action</th>
-              </tr>
-            </thead>
-            <tbody id="store-equipment-tbody">
-              <!-- Rendered dynamically -->
-            </tbody>
-          </table>
+        <div style="font-size: 10pt; color: #fca5a5; background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.35); border-radius: 6px; padding: 8px 12px; line-height: 1.4;">
+          ⚠️ <strong>Notice:</strong> Switching generation modes will prompt you to save or discard any unsaved changes on your active sheet before the new mode is applied.
         </div>
-        <!-- Persistent Hover Description Tooltip -->
-        <div id="store-desc-hover-tooltip" class="store-desc-popover" style="display: none;"></div>
       </div>
-      <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center;">
-        <span style="color: var(--text-muted); font-size: 10pt;">Items procured with Resources are added directly to your Character Gear.</span>
-        <button class="icon-btn modal-close-btn">Done</button>
+      <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 10px; padding: 10px 18px; border-top: 1px solid var(--border-color);">
+        <button type="button" class="icon-btn" id="btn-cancel-new-char-mode" style="font-size: 10pt;">Cancel</button>
       </div>
     </div>
   </div>
+
+  <!-- MODAL: TSR MODE SELECTION (RANDOM vs MODELED) -->
+  <div id="modal-tsr-mode-select" class="modal-overlay">
+    <div class="modal-box" style="max-width: 640px; width: 95%;">
+      <div class="modal-header">
+        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+          <span class="modal-title">🎲 Switch to TSR 1986 Creation Mode</span>
+          <span class="meta-tag" style="background: rgba(245, 158, 11, 0.2); color: var(--marvel-gold); font-size: 10pt; font-weight: 800; border: 1px solid var(--marvel-gold); padding: 2px 8px; border-radius: 4px;">TSR 1986</span>
+        </div>
+        <button type="button" class="modal-close" id="btn-close-tsr-mode-select-x">&times;</button>
+      </div>
+      <div class="modal-body" style="padding: 18px 20px; display: flex; flex-direction: column; gap: 14px;">
+        <div style="font-size: 10.5pt; color: var(--text-main); line-height: 1.45;">
+          Choose how you want to build this superhero under the <strong>TSR 1986 Advanced Set</strong> ruleset.
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 14px;">
+          <!-- OPTION 1: RANDOM ROLL MODE -->
+          <div style="background: rgba(0, 0, 0, 0.35); border: 2px solid #f59e0b; border-radius: 8px; padding: 14px; display: flex; flex-direction: column; justify-content: space-between; gap: 10px;">
+            <div>
+              <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 6px;">
+                <span style="font-size: 14pt;">🎲</span>
+                <strong style="color: var(--marvel-gold); font-size: 11pt;">Random Roll Mode</strong>
+              </div>
+              <div style="font-size: 10pt; color: var(--text-muted); line-height: 1.4;">
+                Canonical 1986 Player's Book rolling rules. Roll origin, FASERIP abilities on Table 1, power slots on Table 2, and talents/contacts.
+              </div>
+              <ul style="font-size: 10pt; color: var(--text-main); margin-top: 8px; padding-left: 18px; line-height: 1.4;">
+                <li>Strict rolled slot limits for powers, talents, and contacts.</li>
+                <li>Interactive TSR generator wizard with 3D dice.</li>
+                <li><em style="color: #38bdf8;">You can switch to Modeled Mode at any time.</em></li>
+              </ul>
+            </div>
+            <button type="button" class="icon-btn primary" id="btn-choose-tsr-random" style="width: 100%; justify-content: center; font-size: 10pt; padding: 8px 12px; font-weight: 700; margin-top: 4px;">
+              🎲 Start Random Roll
+            </button>
+          </div>
+
+          <!-- OPTION 2: MODELED MODE -->
+          <div style="background: rgba(0, 0, 0, 0.35); border: 2px solid #c084fc; border-radius: 8px; padding: 14px; display: flex; flex-direction: column; justify-content: space-between; gap: 10px;">
+            <div>
+              <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 6px;">
+                <span style="font-size: 14pt;">📐</span>
+                <strong style="color: #c084fc; font-size: 11pt;">Modeled Mode (Free-Form)</strong>
+              </div>
+              <div style="font-size: 10pt; color: var(--text-muted); line-height: 1.4;">
+                Free-form TSR character modeling without random roll requirements or slot limits. Perfect for replicating established heroes or custom concepts.
+              </div>
+              <ul style="font-size: 10pt; color: var(--text-main); margin-top: 8px; padding-left: 18px; line-height: 1.4;">
+                <li>Unlimited power, talent, and contact slots.</li>
+                <li>Real-time Karma Point (KP) investment tracking (1 CP = 10 KP).</li>
+                <li>Optional GM campaign KP budget limit setting.</li>
+                <li><strong style="color: #fca5a5;">⚠️ Irreversible without rolling back history.</strong></li>
+              </ul>
+            </div>
+            <button type="button" class="icon-btn" id="btn-choose-tsr-modeled" style="width: 100%; justify-content: center; font-size: 10pt; padding: 8px 12px; font-weight: 700; border-color: #c084fc; color: #c084fc; margin-top: 4px;">
+              📐 Start Modeled Mode
+            </button>
+          </div>
+        </div>
+
+        <div style="font-size: 10pt; color: var(--text-muted); background: rgba(0, 0, 0, 0.2); border: 1px solid var(--border-color); border-radius: 6px; padding: 8px 12px; line-height: 1.4;">
+          💡 <strong>Notice:</strong> Characters started in Random mode can freely graduate to Modeled mode at any time. However, because Modeled mode removes slot constraints, returning from Modeled to Random requires rolling back to Revision #1 in the Progression tab.
+        </div>
+      </div>
+      <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 10px; padding: 10px 18px; border-top: 1px solid var(--border-color);">
+        <button type="button" class="icon-btn" id="btn-cancel-tsr-mode-select" style="font-size: 10pt;">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: TSR 1986 RANDOM & MODELED CREATION INFO -->
+  <div id="modal-tsr-mode-info" class="modal-overlay">
+    <div class="modal-box" style="max-width: 580px; width: 95%;">
+      <div class="modal-header">
+        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+          <span class="modal-title" id="tsr-info-modal-title">🎲 Creation Mode: RANDOM</span>
+          <span class="meta-tag random-mode-tag" id="tsr-info-modal-tag" style="background: rgba(245, 158, 11, 0.2); color: var(--marvel-gold); font-size: 10pt; font-weight: 800; border: 1px solid var(--marvel-gold); padding: 2px 8px; border-radius: 4px;">RANDOM</span>
+        </div>
+        <button type="button" class="modal-close" id="btn-close-tsr-mode-modal-x">&times;</button>
+      </div>
+      <div class="modal-body" style="padding: 16px 20px; display: flex; flex-direction: column; gap: 14px;">
+        <div style="font-size: 10pt; color: var(--text-muted); line-height: 1.4;" id="tsr-info-mode-desc">
+          This character uses the canonical <strong>TSR 1986 Advanced Set Player's Book</strong> random roll rules. Character Points (CP) and budget breakdowns do not apply in this mode.
+        </div>
+
+        <!-- Physical Form / Origin -->
+        <div style="background: rgba(0, 0, 0, 0.25); border: 1px solid var(--border-color); border-radius: 6px; padding: 10px 14px;">
+          <div style="font-size: 10pt; color: var(--text-muted); margin-bottom: 2px;">Physical Form &amp; Origin:</div>
+          <div style="font-size: 11pt; font-weight: 700; color: #38bdf8;" id="tsr-info-origin-name">Altered Human</div>
+        </div>
+
+        <!-- VIEW 1: Random Rolled Slots Summary -->
+        <div id="tsr-info-random-view" style="display: flex; flex-direction: column; gap: 14px;">
+          <div style="background: rgba(0, 0, 0, 0.25); border: 1px solid var(--border-color); border-radius: 6px; padding: 12px 14px;">
+            <div style="font-size: 10.5pt; font-weight: 700; color: var(--marvel-gold); margin-bottom: 10px;">
+              Rolled Trait Slots (Player's Book pp. 4–10):
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; text-align: center;">
+              <div style="background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 6px; padding: 10px 6px;">
+                <div style="font-size: 10pt; color: var(--text-muted);">Powers</div>
+                <div style="font-size: 13pt; font-weight: 800; color: #f59e0b; margin: 4px 0;" id="tsr-info-powers-count">0 / 0</div>
+                <div style="font-size: 10pt; color: var(--text-muted);" id="tsr-info-powers-status">0 slot(s) rolled</div>
+              </div>
+              <div style="background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 6px; padding: 10px 6px;">
+                <div style="font-size: 10pt; color: var(--text-muted);">Talents</div>
+                <div style="font-size: 13pt; font-weight: 800; color: #38bdf8; margin: 4px 0;" id="tsr-info-talents-count">0 / 0</div>
+                <div style="font-size: 10pt; color: var(--text-muted);" id="tsr-info-talents-status">0 slot(s) rolled</div>
+              </div>
+              <div style="background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 6px; padding: 10px 6px;">
+                <div style="font-size: 10pt; color: var(--text-muted);">Contacts</div>
+                <div style="font-size: 13pt; font-weight: 800; color: #34d399; margin: 4px 0;" id="tsr-info-contacts-count">0 / 0</div>
+                <div style="font-size: 10pt; color: var(--text-muted);" id="tsr-info-contacts-status">0 slot(s) rolled</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Random Mode Actions -->
+          <div style="display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap;">
+            <button type="button" class="icon-btn primary" id="btn-tsr-info-open-gen" style="font-size: 10pt; padding: 6px 12px; font-weight: 700;">🎲 Open TSR Generator</button>
+            <button type="button" class="icon-btn" id="btn-tsr-info-switch-cmf" style="font-size: 10pt; padding: 6px 12px; font-weight: 600;">⚙️ Switch to CMF Point-Buy</button>
+          </div>
+        </div>
+
+        <!-- VIEW 2: Modeled KP Cost Accounting & Optional Limit -->
+        <div id="tsr-info-modeled-view" style="display: none; flex-direction: column; gap: 14px;">
+          <!-- Modeled Traits Overview -->
+          <div style="background: rgba(0, 0, 0, 0.25); border: 1px solid var(--border-color); border-radius: 6px; padding: 12px 14px;">
+            <div style="font-size: 10.5pt; font-weight: 700; color: #c084fc; margin-bottom: 10px;">
+              Modeled Traits (Free-form / No Slot Limits):
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; text-align: center;">
+              <div style="background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 6px; padding: 10px 6px;">
+                <div style="font-size: 10pt; color: var(--text-muted);">Powers</div>
+                <div style="font-size: 13pt; font-weight: 800; color: #c084fc; margin: 4px 0;" id="tsr-modeled-powers-count">0</div>
+                <div style="font-size: 10pt; color: var(--text-muted);" id="tsr-modeled-powers-kp">0 KP</div>
+              </div>
+              <div style="background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 6px; padding: 10px 6px;">
+                <div style="font-size: 10pt; color: var(--text-muted);">Talents</div>
+                <div style="font-size: 13pt; font-weight: 800; color: #38bdf8; margin: 4px 0;" id="tsr-modeled-talents-count">0</div>
+                <div style="font-size: 10pt; color: var(--text-muted);" id="tsr-modeled-talents-kp">0 KP</div>
+              </div>
+              <div style="background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 6px; padding: 10px 6px;">
+                <div style="font-size: 10pt; color: var(--text-muted);">Contacts</div>
+                <div style="font-size: 13pt; font-weight: 800; color: #34d399; margin: 4px 0;" id="tsr-modeled-contacts-count">0</div>
+                <div style="font-size: 10pt; color: var(--text-muted);" id="tsr-modeled-contacts-kp">0 KP</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- KP Cost Itemized Table -->
+          <div style="background: rgba(0, 0, 0, 0.25); border: 1px solid var(--border-color); border-radius: 6px; padding: 12px 14px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <span style="font-size: 10.5pt; font-weight: 700; color: var(--marvel-gold);">Karma Point (KP) Cost Itemization:</span>
+              <strong id="tsr-modeled-total-kp-badge" style="font-size: 11pt; color: var(--marvel-gold);">0 KP Total</strong>
+            </div>
+            <table style="width: 100%; border-collapse: collapse; font-size: 10pt;">
+              <tbody>
+                <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.06);">
+                  <td style="padding: 4px 0; color: var(--text-muted);">Primary Abilities (FASERIP):</td>
+                  <td style="padding: 4px 0; text-align: right; font-weight: 600; color: var(--text-main);" id="tsr-modeled-kp-abilities">0 KP</td>
+                </tr>
+                <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.06);">
+                  <td style="padding: 4px 0; color: var(--text-muted);">Superpowers (Rank &amp; Starred):</td>
+                  <td style="padding: 4px 0; text-align: right; font-weight: 600; color: var(--text-main);" id="tsr-modeled-kp-powers">0 KP</td>
+                </tr>
+                <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.06);">
+                  <td style="padding: 4px 0; color: var(--text-muted);">Talents:</td>
+                  <td style="padding: 4px 0; text-align: right; font-weight: 600; color: var(--text-main);" id="tsr-modeled-kp-talents">0 KP</td>
+                </tr>
+                <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.06);">
+                  <td style="padding: 4px 0; color: var(--text-muted);">Contacts:</td>
+                  <td style="padding: 4px 0; text-align: right; font-weight: 600; color: var(--text-main);" id="tsr-modeled-kp-contacts">0 KP</td>
+                </tr>
+                <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.06);">
+                  <td style="padding: 4px 0; color: var(--text-muted);">Resources:</td>
+                  <td style="padding: 4px 0; text-align: right; font-weight: 600; color: var(--text-main);" id="tsr-modeled-kp-resources">0 KP</td>
+                </tr>
+                <tr style="font-weight: 800;">
+                  <td style="padding: 6px 0; color: var(--marvel-gold);">Total Modeled KP Cost:</td>
+                  <td style="padding: 6px 0; text-align: right; color: var(--marvel-gold);" id="tsr-modeled-kp-total">0 KP</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Campaign KP Limit Setting -->
+          <div style="background: rgba(0, 0, 0, 0.25); border: 1px solid var(--border-color); border-radius: 6px; padding: 12px 14px;">
+            <div style="font-size: 10.5pt; font-weight: 700; color: #38bdf8; margin-bottom: 6px;">
+              Campaign KP Limit (Optional GM Budget):
+            </div>
+            <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+              <input type="number" id="input-tsr-modeled-kp-limit" class="field-input" min="0" step="100" placeholder="0 = Unlimited / Free-form" style="max-width: 220px; font-size: 10pt; min-height: 36px; padding: 4px 8px;">
+              <button type="button" class="icon-btn compact primary" id="btn-save-modeled-kp-limit" style="font-size: 10pt; padding: 4px 12px; font-weight: 700;">💾 Set Limit</button>
+            </div>
+            <div id="tsr-modeled-kp-limit-status" style="font-size: 10pt; color: var(--text-muted); margin-top: 6px;">
+              No KP limit set (Free-form modeling active). Enter a number to set a campaign budget ceiling.
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 8px; padding: 10px 18px; border-top: 1px solid var(--border-color);">
+        <button type="button" class="icon-btn" id="btn-close-tsr-mode-modal-footer" style="font-size: 10pt;">Close</button>
+      </div>
+    </div>
+  </div>
+
+
 
   <!-- MODAL: EQUIPMENT PROCUREMENT & RESOURCE FEAT EVALUATOR (TSR Player's Book p. 18 & 41) -->
   <div id="procurement-modal" class="modal-overlay">
@@ -2258,7 +2865,9 @@
             </label>
             <div id="stunt-emulate-select-row" style="display: none; margin-top: 8px;">
               <span class="field-label">Select Emulated Power (Universal Catalog):</span>
-              <select id="stunt-emulated-power-select" class="field-input"></select>
+              <select id="stunt-emulated-power-select" class="field-input">
+                <option value="">- Select emulated power -</option>
+              </select>
             </div>
           </div>
 
@@ -2507,6 +3116,7 @@
                 Select Master Power:
               </label>
               <select id="trigger-master-select" class="field-input" style="width: 100%; min-height: 32px; font-size: 10pt;">
+                <option value="">- Select master power -</option>
                 <!-- Dynamically populated with other powers -->
               </select>
             </div>
@@ -2552,6 +3162,322 @@
           <button type="button" class="icon-btn" id="btn-cancel-trigger-modal">Cancel</button>
           <button type="button" class="icon-btn primary" id="btn-save-trigger-modal">💾 Save Trigger Config</button>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: POWER LIMITATION / RESTRICTION -->
+  <div id="modal-power-limitation" class="modal-overlay">
+    <div class="modal-box" style="max-width: 600px; width: 95%;">
+      <div class="modal-header">
+        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+          <span class="modal-title">⚖️ Power Limitations &amp; Restrictions</span>
+          <span class="meta-tag" id="modal-limitation-power-rank" style="color: var(--marvel-gold); font-size: 10.5pt; font-weight: 700;"></span>
+        </div>
+        <button type="button" class="modal-close" id="btn-close-limitation-modal">&times;</button>
+      </div>
+      <div class="modal-body" style="padding: 16px 20px; display: flex; flex-direction: column; gap: 14px;">
+        <input type="hidden" id="modal-limitation-power-index" value="">
+
+        <!-- Mandatory Limitation Alert Banner (shown when power mandates limitation) -->
+        <div id="limitation-mandatory-banner" style="display: none; padding: 10px 14px; background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); border-radius: 6px;">
+          <div style="display: flex; align-items: flex-start; gap: 8px;">
+            <span style="font-size: 14pt;">⚠️</span>
+            <div>
+              <strong style="color: #f87171; font-size: 10.5pt;">Mandatory Limitation Required</strong>
+              <div id="limitation-mandatory-reason" style="font-size: 10pt; color: #fca5a5; margin-top: 2px; line-height: 1.4;">
+                This power is required by canonical rules to have a limitation before it can be added to your hero.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Header Summary Card -->
+        <div class="power-adj-card" style="padding: 10px 14px; border-radius: 6px; background: rgba(15, 23, 42, 0.4); border: 1px solid var(--border-color);">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <strong id="modal-limitation-power-name" style="font-size: 12pt; color: var(--text-main);"></strong>
+            <span id="modal-limitation-cost-badge" class="meta-tag tag-power-cp" style="font-size: 10pt;"></span>
+          </div>
+          <div id="modal-limitation-power-meta" style="font-size: 10pt; color: var(--text-muted); margin-top: 4px;"></div>
+        </div>
+
+        <!-- CMF Point-Buy Limitations Container -->
+        <div id="lim-container-cmf" style="display: flex; flex-direction: column; gap: 14px;">
+          <!-- Source Mode Selection (Provided Canonical vs Custom) -->
+          <div style="display: flex; gap: 16px;">
+            <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 10pt;">
+              <input type="radio" name="limitation-type-choice" id="radio-lim-provided" value="provided" checked>
+              <strong>Canonical / Provided Limitation</strong>
+            </label>
+            <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 10pt;">
+              <input type="radio" name="limitation-type-choice" id="radio-lim-custom" value="custom">
+              <strong>Custom Limitation</strong>
+            </label>
+          </div>
+
+          <!-- Section: Provided / Canonical Limitations -->
+          <div id="lim-section-provided" style="display: flex; flex-direction: column; gap: 10px;">
+            <div>
+              <label for="select-provided-limitation" style="display: block; font-size: 10pt; color: var(--text-muted); margin-bottom: 4px; font-weight: 600;">Choose Limitation:</label>
+              <select id="select-provided-limitation" class="field-input" style="width: 100%; font-size: 10pt;">
+                <option value="">- Select limitation -</option>
+              </select>
+            </div>
+            <div id="provided-limitation-details" style="padding: 8px 12px; background: rgba(0, 0, 0, 0.25); border: 1px solid var(--border-color); border-radius: 6px; font-size: 10pt; color: var(--text-main); line-height: 1.4;">
+              <!-- Populated dynamically -->
+            </div>
+          </div>
+
+          <!-- Section: Custom Limitation -->
+          <div id="lim-section-custom" style="display: none; flex-direction: column; gap: 10px;">
+            <div>
+              <label for="input-custom-lim-name" style="display: block; font-size: 10pt; color: var(--text-muted); margin-bottom: 4px; font-weight: 600;">Limitation Name / Condition:</label>
+              <input type="text" id="input-custom-lim-name" class="field-input" placeholder="e.g. Only in direct sunlight, Touch range only..." style="width: 100%; font-size: 10pt;">
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+              <div>
+                <label for="select-custom-lim-rank" style="display: block; font-size: 10pt; color: var(--text-muted); margin-bottom: 4px; font-weight: 600;">Intensity / Overcoming Rank:</label>
+                <select id="select-custom-lim-rank" class="field-input" style="width: 100%; font-size: 10pt;"></select>
+              </div>
+              <div>
+                <label for="select-custom-lim-discount" style="display: block; font-size: 10pt; color: var(--text-muted); margin-bottom: 4px; font-weight: 600;">CP Discount:</label>
+                <select id="select-custom-lim-discount" class="field-input" style="width: 100%; font-size: 10pt;">
+                  <option value="5">-5 CP (Minor restriction)</option>
+                  <option value="10" selected>-10 CP (Standard limitation)</option>
+                  <option value="15">-15 CP (Severe drawback / trigger)</option>
+                  <option value="20">-20 CP (Extreme flaw / hazard)</option>
+                </select>
+              </div>
+            </div>
+            <div>
+              <label for="input-custom-lim-desc" style="display: block; font-size: 10pt; color: var(--text-muted); margin-bottom: 4px; font-weight: 600;">Description &amp; Operational Rules:</label>
+              <textarea id="input-custom-lim-desc" class="field-input" rows="3" placeholder="Describe the trigger, condition, frequency, or drawbacks..." style="width: 100%; font-size: 10pt; resize: vertical;"></textarea>
+            </div>
+          </div>
+
+          <!-- Limitation Cost Preview Summary -->
+          <div id="limitation-cost-preview-card" style="padding: 10px 14px; background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 6px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+              <div style="font-size: 10pt;">
+                <span style="color: var(--text-muted);">Cost Impact:</span>
+                <strong id="lim-preview-original-cost">--</strong>
+                <span style="color: #38bdf8; font-weight: 700;" id="lim-preview-discount"> -10 CP</span>
+                <span style="color: var(--text-muted);"> &rarr; </span>
+                <strong style="color: var(--marvel-gold);" id="lim-preview-final-cost">-- CP</strong>
+              </div>
+              <div style="font-size: 10pt; color: #94a3b8;" id="lim-preview-tsr-info">
+                TSR Shift: Intensity Rank Check
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Vanilla TSR Limitation Container (Player's Book p. 9) -->
+        <div id="lim-container-tsr" style="display: none; flex-direction: column; gap: 14px;">
+          <div style="padding: 8px 12px; background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 6px; font-size: 10pt; line-height: 1.4;">
+            <strong style="color: var(--marvel-gold);">📖 Vanilla TSR Advanced Rule (Player's Book p. 9):</strong>
+            <div style="color: var(--text-main); margin-top: 2px;">
+              Accepting a limitation raises this power by <strong>+1CS (one column shift)</strong>, but it <em>cannot raise a power beyond the category's maximum ceiling</em>.
+            </div>
+          </div>
+
+          <div>
+            <label for="select-tsr-lim-ceiling" style="display: block; font-size: 10pt; color: var(--text-muted); margin-bottom: 4px; font-weight: 600;">Limitation Tier &amp; Maximum Ceiling:</label>
+            <select id="select-tsr-lim-ceiling" class="field-input" style="width: 100%; font-size: 10pt; font-weight: 700; color: var(--marvel-gold);"></select>
+          </div>
+
+          <div>
+            <label for="select-tsr-lim-example" style="display: block; font-size: 10pt; color: var(--text-muted); margin-bottom: 4px; font-weight: 600;">Canonical Example or Custom:</label>
+            <select id="select-tsr-lim-example" class="field-input" style="width: 100%; font-size: 10pt;"></select>
+          </div>
+
+          <div>
+            <label for="input-tsr-lim-name" style="display: block; font-size: 10pt; color: var(--text-muted); margin-bottom: 4px; font-weight: 600;">Limitation Name:</label>
+            <input type="text" id="input-tsr-lim-name" class="field-input" style="width: 100%; font-size: 10pt;">
+          </div>
+
+          <div>
+            <label for="input-tsr-lim-desc" style="display: block; font-size: 10pt; color: var(--text-muted); margin-bottom: 4px; font-weight: 600;">Description &amp; Operational Rules:</label>
+            <textarea id="input-tsr-lim-desc" class="field-input" rows="2" style="width: 100%; font-size: 10pt; resize: vertical;"></textarea>
+          </div>
+
+          <!-- TSR Rank Boost & Ceiling Validation Preview Card -->
+          <div id="tsr-lim-preview-card" style="padding: 10px 14px; background: rgba(34, 197, 94, 0.1); border: 1px solid rgba(34, 197, 94, 0.3); border-radius: 6px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+              <div style="font-size: 10pt;">
+                <span>Rolled Rank: <strong id="tsr-lim-preview-cur-rank">Good (10)</strong></span>
+                <span style="color: var(--text-muted);"> &rarr; </span>
+                <span style="color: #4ade80; font-weight: 700;">+1CS Bump: <strong id="tsr-lim-preview-new-rank">Excellent (20)</strong></span>
+              </div>
+              <div id="tsr-lim-preview-status" style="font-size: 10pt; font-weight: 700; color: #4ade80;">
+                ✅ Valid (Below Ceiling)
+              </div>
+            </div>
+            <div id="tsr-lim-blocked-warning" style="display: none; margin-top: 6px; padding: 6px 10px; background: rgba(239, 68, 68, 0.2); border: 1px solid rgba(239, 68, 68, 0.4); border-radius: 4px; color: #fca5a5; font-size: 10pt;">
+              ⚠️ Cannot raise rank: This power is already at or above this limitation's maximum ceiling!
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 18px; border-top: 1px solid var(--border-color);">
+        <button type="button" class="icon-btn danger" id="btn-remove-limitation" style="display: none;">Remove Limitation</button>
+        <div style="display: flex; gap: 8px; margin-left: auto;">
+          <button type="button" class="icon-btn" id="btn-cancel-limitation">Cancel</button>
+          <button type="button" class="icon-btn primary" id="btn-apply-limitation">⚖️ Apply Limitation</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: TSR 1986 ADVANCED SET CHARACTER GENERATOR (PB pp. 4-10) -->
+  <div id="modal-tsr-generator" class="modal-overlay">
+    <div class="modal-box tsr-generator-modal-box">
+      <div class="modal-header">
+        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+          <span class="modal-title">🎲 TSR Character Generator</span>
+          <span class="meta-tag" style="background: rgba(245, 158, 11, 0.15); color: var(--marvel-gold); font-weight: 700;">1986 PB &amp; 1987 UPB Rules</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+          <label for="tsr-select-slot-ruleset" style="font-size: 9.5pt; color: var(--text-muted); font-weight: 600;">Slot Table:</label>
+          <select id="tsr-select-slot-ruleset" class="field-input compact" style="font-size: 9.5pt; padding: 2px 6px; height: 26px; font-weight: 700;" title="Select Powers, Talents &amp; Contacts Slot Table">
+            <option value="pb" selected>1986 Player's Book (PB p. 7 — 2/4 to 5/5 Powers)</option>
+            <option value="upb">1987 Ultimate Powers Book (UPB p. 14 — 1/3 to 14/18 Powers)</option>
+          </select>
+          <button type="button" class="icon-btn tsr-popout-btn" id="btn-tsr-popout" title="Pop-out into separate window">↗ Pop-out</button>
+          <button type="button" class="modal-close" id="btn-close-tsr-generator" title="Close TSR Generator">&times;</button>
+        </div>
+      </div>
+      <div class="modal-body" style="padding: 16px 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 16px;">
+        <div style="font-size: 10pt; color: var(--text-muted); line-height: 1.4;">
+          Generate your hero following canonical TSR rules: roll Physical Form on UPB Table 1 (with Dragon #122 column assignments), Primary Abilities on FASERIP Table 1, Resources on the Ability Modifier Table (PB p. 6), and Initial / Maximum Power, Talent &amp; Contact slots (with optional slot purchases by lowering starting Resources).
+        </div>
+
+        <!-- Section 1: Physical Form (UPB Table 1 & Dragon #122 Table 1) -->
+        <div class="card" style="margin-bottom: 0; background: rgba(15, 23, 42, 0.5); border: 1px solid var(--border-color); padding: 12px 14px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-wrap: wrap; gap: 8px;">
+            <strong style="color: var(--marvel-gold); font-size: 11pt;">Step 1: Physical Form &amp; Origin (UPB Table 1 &amp; Dragon #122)</strong>
+            <button type="button" class="icon-btn compact primary" id="btn-tsr-roll-origin">🎲 Roll Physical Form (UPB Table 1)</button>
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; align-items: start;">
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+              <div>
+                <label for="tsr-select-origin" style="display: block; font-size: 10pt; color: var(--text-muted); margin-bottom: 4px;">Selected Physical Form:</label>
+                <select id="tsr-select-origin" class="field-input" style="width: 100%; font-size: 10pt; font-weight: 700;">
+                  <option value="">- Select physical form -</option>
+                </select>
+              </div>
+              <div id="tsr-origin-choice-row" style="display: none; background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.35); border-radius: 5px; padding: 7px 9px; font-size: 9.5pt;"></div>
+            </div>
+            <div id="tsr-origin-details" style="font-size: 10pt; color: var(--text-main); background: rgba(0,0,0,0.25); padding: 8px 10px; border-radius: 4px; border: 1px solid var(--border-color); min-height: 40px;">
+              <!-- Origin modifier & table column info -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 2: Primary Abilities (FASERIP) (PB p. 6, Table 1) -->
+        <div class="card" style="margin-bottom: 0; background: rgba(15, 23, 42, 0.5); border: 1px solid var(--border-color); padding: 12px 14px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-wrap: wrap; gap: 8px;">
+            <div>
+              <strong style="color: var(--marvel-gold); font-size: 11pt;">Step 2: Primary Abilities &amp; Resources (PB p. 6 Table 1 &amp; Ability Modifier Table)</strong>
+              <span style="font-size: 10pt; color: var(--text-muted); margin-left: 6px;">(Assign each random roll to the ability of your choice)</span>
+            </div>
+            <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+              <button type="button" class="icon-btn compact" id="btn-tsr-unassign-abilities" title="Clear ability assignments so you can assign each roll from scratch">🔄 Clear Assignments</button>
+              <button type="button" class="icon-btn compact primary" id="btn-tsr-roll-abilities">🎲 Roll All 7 Abilities</button>
+            </div>
+          </div>
+          <div id="tsr-abilities-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(115px, 1fr)); gap: 8px; text-align: center;">
+            <!-- 7 Roll boxes with ability assignment dropdowns -->
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.08); font-size: 10pt; flex-wrap: wrap; gap: 10px;">
+            <div>Health: <strong id="tsr-calc-health" style="color: #4ade80;">--</strong> <span id="tsr-calc-health-note" style="color: var(--text-muted); font-size: 9pt;">(F+A+S+E)</span></div>
+            <div>Karma: <strong id="tsr-calc-karma" style="color: #38bdf8;">--</strong> <span style="color: var(--text-muted); font-size: 9pt;">(R+I+P)</span></div>
+            <div>Popularity: <strong id="tsr-calc-popularity" style="color: #f472b6;">10</strong></div>
+            <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+              <span>Resources:</span>
+              <strong id="tsr-calc-resources" style="color: var(--marvel-gold);">Typical (6)</strong>
+              <span id="tsr-calc-resources-detail" style="font-size: 9pt; color: var(--text-muted);"></span>
+              <button type="button" class="icon-btn compact" id="btn-tsr-roll-resources" style="font-size: 9.5pt; padding: 1px 6px;" title="Roll d100 on the Ability Modifier Table (PB p. 6) to modify starting Resources">🎲 Roll Mod</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 3: Powers (PB p. 7-10 Model: Rolled Initial/Max Slots & Categories, Pick Power, Roll Col 4 Rank) -->
+        <div class="card" style="margin-bottom: 0; background: rgba(15, 23, 42, 0.5); border: 1px solid var(--border-color); padding: 12px 14px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-wrap: wrap; gap: 8px;">
+            <div>
+              <strong style="color: var(--marvel-gold); font-size: 11pt;">Step 3: Superpowers (Column 4 Ranks &amp; Starred 2-Slot Accounting)</strong>
+              <div style="font-size: 10pt; color: var(--text-muted);">Roll Initial/Max slots, roll categories on Table 4, pick powers (★ Starred = 2 slots), and roll Power Ranks on Column 4 (PB p. 8).</div>
+            </div>
+            <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
+              <span id="tsr-power-slots-summary" class="meta-tag" style="font-size: 9.5pt; color: var(--marvel-gold); font-weight: 700;">Slots: 0 / 0 (Max 0)</span>
+              <button type="button" class="icon-btn compact" id="btn-tsr-buy-power-slot" style="font-size: 9pt; padding: 2px 7px;" title="Buy +1 Power Slot up to Maximum by permanently reducing starting Resources by -2CS (min Feeble)" disabled>+1 Slot (-2CS Res)</button>
+              <button type="button" class="icon-btn compact" id="btn-tsr-refund-power-slot" style="display: none; font-size: 9pt; padding: 2px 7px;" title="Refund purchased Power Slot (+2CS Resources)">-1 Slot (+2CS Res)</button>
+              <button type="button" class="icon-btn compact primary" id="btn-tsr-roll-power-slots">🎲 Roll Slots &amp; Categories</button>
+            </div>
+          </div>
+          <div id="tsr-powers-list-container" style="display: flex; flex-direction: column; gap: 10px;">
+            <!-- Dynamic power slot rows -->
+          </div>
+        </div>
+
+        <!-- Section 4: Talents & Contacts (PB p. 7 & 10) -->
+        <div class="card" style="margin-bottom: 0; background: rgba(15, 23, 42, 0.5); border: 1px solid var(--border-color); padding: 12px 14px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-wrap: wrap; gap: 8px;">
+            <div>
+              <strong style="color: var(--marvel-gold); font-size: 11pt;">Step 4: Talents &amp; Contacts (PB p. 7 Initial / Maximum Slots)</strong>
+              <div style="font-size: 10pt; color: var(--text-muted);">Roll Initial/Max slots for Talents and Contacts. Extra slots up to Max cost -1CS Resources each (PB p. 7).</div>
+            </div>
+            <button type="button" class="icon-btn compact primary" id="btn-tsr-roll-talents-contacts">🎲 Roll Talent &amp; Contact Slots</button>
+          </div>
+          <div style="display: grid; grid-template-columns: 1.2fr 1fr; gap: 14px;">
+            <!-- Talents Column -->
+            <div style="display: flex; flex-direction: column; gap: 6px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 4px;">
+                <div style="display: flex; align-items: center; gap: 5px; flex-wrap: wrap;">
+                  <span style="font-size: 10pt; color: var(--text-muted); font-weight: 600;">
+                    Talents (<span id="tsr-talent-chosen-display" style="color: var(--marvel-gold); font-weight: 700;">0</span> / <span id="tsr-talent-slots-display">0</span> slots, Max <span id="tsr-talent-max-display">0</span>):
+                  </span>
+                  <button type="button" class="icon-btn compact" id="btn-tsr-buy-talent-slot" style="font-size: 8.5pt; padding: 1px 5px;" title="Buy +1 Talent Slot up to Maximum for -1CS Resources (min Feeble)" disabled>+1 (-1CS Res)</button>
+                  <button type="button" class="icon-btn compact" id="btn-tsr-refund-talent-slot" style="display: none; font-size: 8.5pt; padding: 1px 5px;" title="Refund purchased Talent Slot (+1CS Resources)">-1 (+1CS)</button>
+                </div>
+                <select id="tsr-talent-category-filter" class="field-input compact" style="font-size: 10pt; padding: 2px 6px; max-width: 165px;">
+                  <option value="all">All Categories</option>
+                  <option value="Weapon Skills">Weapon Skills</option>
+                  <option value="Fighting Skills">Fighting Skills</option>
+                  <option value="Professional Skills">Professional Skills</option>
+                  <option value="Scientific Skills">Scientific Skills</option>
+                  <option value="Mystic and Mental Skills">Mystic / Mental Skills</option>
+                  <option value="Piloting Skills">Piloting Skills</option>
+                  <option value="Other Skills">Other Skills</option>
+                </select>
+              </div>
+              <div id="tsr-talents-selection" style="max-height: 200px; overflow-y: auto; background: rgba(0,0,0,0.25); border: 1px solid var(--border-color); border-radius: 4px; padding: 6px; display: flex; flex-direction: column; gap: 4px;"></div>
+            </div>
+            <!-- Contacts Column -->
+            <div style="display: flex; flex-direction: column; gap: 6px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 4px;">
+                <div style="display: flex; align-items: center; gap: 5px; flex-wrap: wrap;">
+                  <span style="font-size: 10pt; color: var(--text-muted); font-weight: 600;">
+                    Contacts (<span id="tsr-contact-chosen-display" style="color: #38bdf8; font-weight: 700;">0</span> / <span id="tsr-contact-slots-display">0</span> slots, Max <span id="tsr-contact-max-display">0</span>):
+                  </span>
+                  <button type="button" class="icon-btn compact" id="btn-tsr-buy-contact-slot" style="font-size: 8.5pt; padding: 1px 5px;" title="Buy +1 Contact Slot up to Maximum for -1CS Resources (min Feeble)" disabled>+1 (-1CS Res)</button>
+                  <button type="button" class="icon-btn compact" id="btn-tsr-refund-contact-slot" style="display: none; font-size: 8.5pt; padding: 1px 5px;" title="Refund purchased Contact Slot (+1CS Resources)">-1 (+1CS)</button>
+                </div>
+              </div>
+              <!-- Quick Add Contact Input -->
+              <div style="display: flex; gap: 4px;">
+                <input type="text" id="tsr-custom-contact-input" class="field-input compact" placeholder="Add custom contact name..." style="flex: 1; font-size: 10pt;">
+                <button type="button" class="icon-btn compact primary" id="btn-tsr-add-custom-contact" style="font-size: 10pt; padding: 2px 8px;">+ Add</button>
+              </div>
+              <div id="tsr-contacts-selection" style="max-height: 165px; overflow-y: auto; background: rgba(0,0,0,0.25); border: 1px solid var(--border-color); border-radius: 4px; padding: 6px; display: flex; flex-direction: column; gap: 3px;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 18px; border-top: 1px solid var(--border-color);">
+        <button type="button" class="icon-btn" id="btn-cancel-tsr-generator">Cancel</button>
+        <button type="button" class="icon-btn primary" id="btn-apply-tsr-character" style="font-weight: 700;">✨ Apply to Character Sheet</button>
       </div>
     </div>
   </div>
@@ -2684,6 +3610,7 @@
             Select Trait:
           </label>
           <select id="adv-item-select" class="field-input" style="width: 100%; min-height: 36px; font-size: 10.5pt;">
+            <option value="">- Select trait to advance -</option>
             <!-- Populated dynamically -->
           </select>
         </div>
@@ -2702,6 +3629,7 @@
               Target New Rank:
             </label>
             <select id="adv-target-rank-select" class="field-input" style="width: 100%; min-height: 38px; font-size: 10.5pt; font-weight: 700;">
+              <option value="">- Select target rank -</option>
               <!-- Populated dynamically with higher ranks -->
             </select>
           </div>
@@ -2767,8 +3695,8 @@
           <select id="init-tier-select" class="field-input" style="width: 100%; min-height: 36px; font-size: 10.5pt; font-weight: 700;">
             <option value="150">150 CP - Skilled Human / Agent</option>
             <option value="200">200 CP - Street Vigilante / Mystery Man</option>
-            <option value="300">300 CP - Costumed Adventurer / Low-Powered</option>
-            <option value="400" selected>400 CP - Established Hero / Mutant (Recommended)</option>
+            <option value="300" selected>300 CP - Costumed Adventurer / Low-Powered (Default)</option>
+            <option value="400">400 CP - Established Hero / Mutant</option>
             <option value="500">500 CP - Major Superhero / Avenger</option>
             <option value="600">600 CP - World-Class Hero / Powerhouse</option>
             <option value="custom">Custom Point Pool...</option>
@@ -2778,7 +3706,7 @@
         <!-- Custom Tier Budget Input (Shown only when custom selected) -->
         <div id="init-custom-tier-row" style="display: none; align-items: center; gap: 10px; background: rgba(0,0,0,0.25); padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border-color);">
           <label for="init-custom-budget" style="font-size: 10pt; font-weight: 600; color: var(--text-muted);">Custom CP Budget:</label>
-          <input type="number" id="init-custom-budget" class="field-input compact" value="400" min="50" max="2000" style="width: 100px; text-align: center; font-weight: 700;">
+          <input type="number" id="init-custom-budget" class="field-input compact" value="300" min="50" max="2000" style="width: 100px; text-align: center; font-weight: 700;">
           <span style="font-size: 10pt; color: var(--text-muted);">Points allocated for stats, powers, talents &amp; resources.</span>
         </div>
 
@@ -2788,7 +3716,7 @@
             <label for="wizard-cp-slider" style="font-size: 10pt; font-weight: 700; color: var(--text-main);">
               Starting CP Slider (-25% to +50%):
             </label>
-            <span id="wizard-cp-slider-readout" class="meta-tag" style="font-size: 10pt; color: #38bdf8; font-weight: 800;">±0% (400 CP)</span>
+            <span id="wizard-cp-slider-readout" class="meta-tag" style="font-size: 10pt; color: #38bdf8; font-weight: 800;">±0% (300 CP)</span>
           </div>
           <div style="display: flex; align-items: center; gap: 10px;">
             <span style="font-size: 10pt; font-weight: 700; color: #ef4444; width: 45px;">-25%</span>
@@ -2818,6 +3746,7 @@
             Physical Form &amp; Origin:
           </label>
           <select id="init-form-select" class="field-input" style="width: 100%; min-height: 36px; font-size: 10.5pt;">
+            <option value="">- Select physical form -</option>
             <!-- Populated dynamically from PHYSICAL_FORMS -->
           </select>
         </div>
@@ -2832,7 +3761,8 @@
           <div id="init-form-preview-rules" style="font-size: 10pt; color: var(--marvel-gold); line-height: 1.3;"></div>
         </div>
       </div>
-      <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 8px; padding: 12px 18px; border-top: 1px solid var(--border-color);">
+      <div class="modal-footer" style="display: flex; justify-content: flex-end; align-items: center; gap: 8px; padding: 12px 18px; border-top: 1px solid var(--border-color);">
+        <button type="button" class="icon-btn" id="btn-wizard-switch-mode" style="margin-right: auto; font-size: 10pt;" title="Change ruleset or character generation mode">🔄 Choose Mode...</button>
         <button type="button" class="icon-btn" id="btn-cancel-char-init">Cancel</button>
         <button type="button" class="icon-btn primary" id="btn-apply-char-init">🚀 Begin Character Creation</button>
       </div>
@@ -2874,7 +3804,7 @@
             Starting CP or KP has already been spent on this character's abilities, powers, or talents.
           </div>
           <div style="margin-top: 4px; color: #fecaca;">
-            To unlock the form selection dropdown, roll back to the <strong>first character history entry (Revision #1)</strong> in the <strong>📜 History &amp; Log</strong> tab.
+            To unlock the form selection dropdown, roll back to the <strong>first character history entry (Revision #1)</strong> in the <strong>📈 Progression</strong> tab.
           </div>
           <button type="button" class="icon-btn compact" id="btn-change-form-rollback-action" style="margin-top: 8px; font-size: 10pt;" title="Rewind character to initial save point">
             ⏮️ Roll Back to First Save Point (Revision #1)
@@ -2892,6 +3822,7 @@
             Select Physical Form &amp; Origin:
           </label>
           <select id="change-form-select" class="field-input" style="width: 100%; min-height: 36px; font-size: 10.5pt;">
+            <option value="">- Select physical form -</option>
             <!-- Populated dynamically from PHYSICAL_FORMS -->
           </select>
         </div>
@@ -2923,10 +3854,23 @@
       </div>
       <div class="modal-body compact" style="padding: 14px 16px;">
         <div id="ui-dialog-message"></div>
+        <div id="ui-dialog-creation-mode-container" style="display: none; margin-top: 14px; padding-top: 12px; border-top: 1px solid rgba(255, 255, 255, 0.12); align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;">
+          <span id="ui-dialog-creation-mode-label" style="font-size: 10pt; font-weight: 600; color: #94a3b8;">Want to switch generation modes?</span>
+          <button type="button" class="icon-btn primary" id="btn-ui-dialog-open-mode-picker" style="font-size: 10pt; font-weight: 700; padding: 5px 12px;">⚙️ Change Generation Mode...</button>
+          <select id="ui-dialog-creation-mode-select" class="field-input compact" style="display: none; min-height: 28px; font-size: 10pt; font-weight: 600; padding: 2px 8px; border-radius: 4px;">
+            <option value="tsr-standard">TSR standard</option>
+            <option value="tsr-modeled">TSR modeled</option>
+            <option value="tsr-cp-buy">TSR CP buy</option>
+            <option value="cmf-standard">CMF standard</option>
+            <option value="cmf-modeled">CMF modeled</option>
+            <option value="cmf-cp-buy">CMF CP buy</option>
+          </select>
+        </div>
       </div>
       <div class="modal-footer compact" id="ui-dialog-footer" style="padding: 10px 16px; display: flex; justify-content: flex-end; gap: 8px;">
-        <button type="button" class="icon-btn" id="btn-ui-dialog-cancel" style="display: none;">Cancel</button>
-        <button type="button" class="icon-btn primary" id="btn-ui-dialog-ok">OK</button>
+        <button type="button" class="icon-btn" id="btn-ui-dialog-cancel" style="display: none; font-size: 10pt; font-weight: 700;">Cancel</button>
+        <button type="button" class="icon-btn" id="btn-ui-dialog-discard" style="display: none; color: #ef4444; border-color: rgba(239, 68, 68, 0.4); font-size: 10pt; font-weight: 700;">Don't Save</button>
+        <button type="button" class="icon-btn primary" id="btn-ui-dialog-ok" style="font-size: 10pt; font-weight: 700;">OK</button>
       </div>
     </div>
   </div>
@@ -3020,13 +3964,13 @@
   </div>
 
   <!-- Scripts Loading -->
-  <script src="universal_table.js?v=1.5.26"></script>
-  <script src="data_forms.js?v=1.5.26"></script>
-  <script src="data_powers.js?v=1.5.26"></script>
-  <script src="data_talents.js?v=1.5.26"></script>
-  <script src="data_equipment.js?v=1.5.26"></script>
-  <script src="inventions.js?v=1.5.26"></script>
-  <script src="character_model.js?v=1.5.26"></script>
-  <script src="app.js?v=1.5.26"></script>
+  <script src="universal_table.js?v=1.5.81"></script>
+  <script src="data_forms.js?v=1.5.81"></script>
+  <script src="data_powers.js?v=1.5.81"></script>
+  <script src="data_talents.js?v=1.5.81"></script>
+  <script src="data_equipment.js?v=1.5.81"></script>
+  <script src="inventions.js?v=1.5.81"></script>
+  <script src="character_model.js?v=1.5.81"></script>
+  <script src="app.js?v=1.5.81"></script>
 </body>
 </html>

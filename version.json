@@ -1,7 +1,7 @@
 {
-  "version": "1.5.26",
-  "releaseDate": "2026-09-26",
+  "version": "1.5.81",
+  "releaseDate": "2026-10-12",
   "name": "Marvel Super Heroes Character Editor",
   "repo": "https://github.com/captainload/marvel-character-editor",
-  "notes": "Physical form controls under Main Stats and History function as simple direct dropdowns until starting CP has been spent. Once CP has been spent, controls switch to locked buttons that invoke the Change Physical Form pop-up dialog (unlockable by rolling back to Revision #1)."
+  "notes": "v1.5.81: Restored clean sans-serif UI font (var(--font-body), bold 700) and increased font size (11.5pt) for top navigation tab titles (.nav-tab-btn) and their badge counts across all themes and screen widths."
 }

@@ -1,3 +1,4 @@
+<!-- Built by Psycros with lots of help from Gemini - 2026. -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -537,8 +538,8 @@
         <a href="msh_rules_errata_report.html" target="_blank" class="nav-btn">⚖️ Rules Errata Report</a>
         <button type="button" class="nav-btn" onclick="window.print()">🖨️ Print / Save as PDF</button>
       </div>
-      <div style="font-size: 12px; color: var(--text-muted);">
-        Marvel Super Heroes (FASERIP) Suite • <strong>Version 1.5.26</strong>
+      <div style="font-size: 10pt; color: var(--text-muted);">
+        Marvel Super Heroes (FASERIP) Suite • <strong>Version 1.5.81</strong>
       </div>
     </div>
 
@@ -750,14 +751,16 @@
               The editor features an interactive, automated <strong>Classic Marvel Forever Point-Buy Engine</strong>. Rather than relying on swingy random dice rolls, players build heroes according to balanced Character Point (CP) budgets.
             </p>
 
-            <h3>Standard CP Budget Tiers</h3>
+            <h3>Standard CP Budget Tiers &amp; Dynamic Adjustments</h3>
             <ul class="feature-list">
-              <li><strong>400 CP — Street-Level / City Defender:</strong> Vigilantes, martial artists, and neighborhood heroes (e.g., Daredevil, Luke Cage, Spider-Man).</li>
-              <li><strong>600 CP — Experienced Super Hero:</strong> Seasoned mutants and national champions (e.g., Captain America, Wolverine, Cyclops).</li>
-              <li><strong>800 CP — Major Team Member:</strong> Frontline powerhouse heroes (e.g., Iron Man, Storm, Colossus).</li>
-              <li><strong>1000 CP — Heavyweight / World Class:</strong> Elite Avengers and godlike champions (e.g., Thor, Hulk, Silver Surfer).</li>
-              <li><strong>1200 / 1500 CP — Cosmic / Herald:</strong> Cosmic guardians and heralds of the universe.</li>
-              <li><strong>Custom CP:</strong> Enter any custom budget for homebrew campaigns or one-shot adventures.</li>
+              <li><strong>300 CP — Costumed Adventurer / Low-Powered (Default):</strong> Costumed mystery men, neighborhood vigilantes, and young heroes (e.g., Daredevil, Moon Knight, Hawkeye).</li>
+              <li><strong>150 CP — Skilled Human / Agent:</strong> Highly trained non-powered agents, detectives, and athletic investigators.</li>
+              <li><strong>200 CP — Street Vigilante / Mystery Man:</strong> Hard-boiled street fighters, vigilantes, and low-powered heroes.</li>
+              <li><strong>400 CP — Established Hero / Mutant:</strong> Seasoned heroes, iconic mutants, and experienced crime-fighters (e.g., Spider-Man, Wolverine, Cyclops).</li>
+              <li><strong>500 CP — Major Superhero / Avenger:</strong> Frontline powerhouse team members and premier heroes (e.g., Iron Man, Storm, Colossus).</li>
+              <li><strong>600 CP — World-Class Hero / Powerhouse:</strong> Elite heavyweights, powerhouse champions, and high-tier heroes (e.g., Thor, Hulk, Silver Surfer).</li>
+              <li><strong>Custom CP:</strong> Enter any custom budget for homebrew campaigns or custom scenarios.</li>
+              <li><strong>Changeable Budget &amp; Expenditure Guard:</strong> You can adjust your CP budget at any time during character creation via the <em>CP Budget &amp; Usage Breakdown</em> modal. The engine strictly requires that your new budget cannot be lower than your current CP expenditure. If reducing the budget would put the hero over budget, you must reduce your CP expenditures (e.g. lowering ability ranks, or removing powers, talents, or contacts) before the lower budget can be applied.</li>
             </ul>
 
             <h3>Cost Accounting Formula</h3>
@@ -813,7 +816,7 @@
             <div class="callout callout-green">
               <strong>Extended CP &amp; Tier Block with Breakdown Pop-up:</strong> The vitals row features a unified <strong>Combined Point-Buy &amp; Tier Block</strong> that extends into the space above it to align with the Health and Karma chips. The block displays the active starting <strong>Tier Name</strong> across the top (e.g., <code>⚡ Tier: Established Hero / Mutant</code>), the live <strong>CP Used</strong> meter in the middle (<code>📊 CP Used: 48 / 550 (502 left) [Breakdown ▾]</code>), and the <strong>Budget</strong> readout at the bottom (<code>Budget: 400 CP [±0%] [⚡ Set Tier &amp; Form]</code>). Clicking this combined block opens the <strong>Character Point Breakdown &amp; Budget Adjuster</strong> pop-up dialog.
               <br><br>
-              <strong>Physical Form Dual Controls (Simple Dropdown &amp; Modal Pop-up):</strong> Under <strong>Main Stats</strong> (top bar) and <strong>History</strong> (📜 History &amp; Log tab), physical form controls function as <strong>simple, direct dropdowns</strong> until Character Points (CP) have been spent. Players can select and change their physical form directly in-place during initial hero setup. Once starting CP or KP has been spent on abilities, powers, or talents, these controls switch to locked buttons that invoke the <strong>Change Physical Form &amp; Origin</strong> pop-up dialog. In this dialog, players are informed that physical form changes caused by the character's own powers (e.g. Shapeshifting, Alter Ego, Density Manipulation) are handled through gameplay rather than modifying the base sheet, and permanent changes require external forces or GM approval. If locked, players can use the rollback button to return to the first save point (Revision #1), which rewinds spent points and restores the direct dropdowns.
+              <strong>Physical Form Dual Controls (Simple Dropdown &amp; Modal Pop-up):</strong> Under <strong>Main Stats</strong> (top bar) and <strong>Progression</strong> (📈 Progression tab), physical form controls function as <strong>simple, direct dropdowns</strong> until Character Points (CP) have been spent. Players can select and change their physical form directly in-place during initial hero setup. Once starting CP or KP has been spent on abilities, powers, or talents, these controls switch to locked buttons that invoke the <strong>Change Physical Form &amp; Origin</strong> pop-up dialog. In this dialog, players are informed that physical form changes caused by the character's own powers (e.g. Shapeshifting, Alter Ego, Density Manipulation) are handled through gameplay rather than modifying the base sheet, and permanent changes require external forces or GM approval. If locked, players can use the rollback button to return to the first save point (Revision #1), which rewinds spent points and restores the direct dropdowns.
             </div>
 
             <h3>CP Breakdown Pop-up &amp; Starting CP Budget Slider (-25% to +50%)</h3>
@@ -825,6 +828,52 @@
               <li><strong>Visual Progress Meter:</strong> A real-time progress bar shows capacity utilization and turns warning-red if your build exceeds available CP.</li>
               <li><strong>Starting CP Budget Slider in Creation Wizard:</strong> The starting CP adjustment slider is located exclusively in the <strong>New Character Creation Setup</strong> dialog. Scale your starting CP budget from <strong>-25% up to +50%</strong> (in discrete increments of 25%: -25%, 0%, +25%, +50%) relative to your selected tier's base budget.</li>
               <li><strong>Resetting Starting Budget:</strong> To adjust or reset your character's starting budget after creation, start a new character or roll back to the first character save point in <strong>Revision History</strong>. The first save point occurs immediately after the hero name, CP allotment, and physical form are chosen.</li>
+            </ul>
+
+            <h3>New Character Generation Mode Prompt (TSR Standard, TSR Modeled, CMF Point-Buy)</h3>
+            <p>
+              When a new character is created (via <em>File &gt; New Character</em> or on initial launch without a saved character), the application presents an interactive <strong>Generation Mode Selection</strong> dialog allowing players to choose their desired ruleset and creation method:
+            </p>
+            <ul class="feature-list">
+              <li><strong>🎲 TSR Standard (1986 Random Roll):</strong> Canonical 1986 Player's Book rolling rules. Roll Origin on UPB Table 1, FASERIP abilities on Table 1, power slots on Table 2, and talents/contacts using the interactive 3D dice generator. Rolled slot limits are strictly enforced. Characters can graduate to Modeled mode at any time.</li>
+              <li><strong>📐 TSR Modeled (Free-Form):</strong> Free-form TSR character modeling without random roll tables or slot constraints. Directly assign FASERIP abilities, superpower ranks, and traits. Trait costs are tracked in real-time in <strong>Karma Points (KP)</strong> with optional GM campaign budget limits.</li>
+              <li><strong>⚖️ CMF Point-Buy:</strong> Classic Marvel Forever point-buy system. Start with a Character Point budget (300 CP default tier), choose a starting Physical Form with attribute modifiers, and spend points to purchase abilities and powers. Opens the Character Creation Setup Wizard.</li>
+            </ul>
+
+            <h3>Character Creation Phase, KP Lock &amp; Finalization Flow</h3>
+            <p>
+              To prevent exploits and uphold system balance, the editor enforces a strict separation between <strong>Character Creation</strong> and <strong>Session Play</strong>:
+            </p>
+            <ul class="feature-list">
+              <li><strong>Karma Points (KP) Locked to R+I+P:</strong> During the Character Creation Phase, Karma steppers (<code>-1</code>, <code>+1</code>) and manual KP adjustment fields are completely disabled. Starting Karma strictly tracks derived Reason + Intuition + Psyche. Karma cannot be spent to purchase traits or artificially inflated before play begins.</li>
+              <li><strong>Free Character Point (CP) Spending:</strong> Players freely allocate Character Points across primary abilities, superpowers, talents, contacts, and resources. Any changes legal under your selected form and tier are permitted in real-time. If total spending exceeds your CP budget, the interface issues clear warning alerts and turns meters red.</li>
+              <li><strong>Finalize Character Creation Button &amp; Persistent Topbar Throbber:</strong> Located in the persistent top toolbar (the pulsing <code>Creating</code> throbber / <code>Finalize</code> button), this button completes hero creation and permanently transitions your character into active <strong>Session Play</strong> from any tab. Finalization unlocks manual Karma adjustments, live Karma spending in the Universal Die Roller, and character advancement. Finalization requires that total CP spent does not exceed your assigned budget.</li>
+              <li><strong>Optional House Rule — Convert Unspent CP to KP:</strong> Located in <em>File &gt; Preferences / House Rules</em>, enabling this rule allows players who finalize their character with up to 5 leftover, unspent Character Points to convert those remaining points into bonus <strong>Starting Karma</strong> at a 1 CP to 5 KP rate (added directly to starting KP). When disabled, all Character Points must be spent (0 CP remaining) before a character can be finalized.</li>
+              <li><strong>Rewinding Creation:</strong> To return to the Character Creation Phase at any time, open <strong>📈 Progression</strong> and roll back to <strong>Revision #1 (Initial save point)</strong>. This returns the character to creation mode, re-enables free CP configuration, and relocks KP until finalized anew.</li>
+            </ul>
+
+            <h3>TSR 1986 Random Generation &amp; Vanilla Limitations (PB pp. 4–10)</h3>
+            <p>
+              In addition to modern CMF Point-Buy, the editor provides authentic, canonical support for the original <strong>1986 Advanced Set Player's Book</strong> random character generation system:
+            </p>
+            <ul class="feature-list">
+              <li><strong>Step 1: Physical Form &amp; Origin (UPB Table 1 &amp; Dragon #122):</strong> Roll d100 to determine physical form across 54 canonical forms and sub-forms (Normal Humans, Mutants, Altered Humans, High Humans, Demihumans, Cyborgs, Robots, Androids, Aliens, Energy Beings, Swarms, Deities). Sets the governing Table 1 column (Cols 1–5), physical/mental ability shifts (+1CS, +2CS), bonus talents/contacts, and power slots bounds.</li>
+              <li><strong>Step 2: Primary Abilities (PB p. 6, Table 1):</strong> Roll all seven FASERIP abilities on Table 1 according to the Physical Form's column, automatically applying form ability column shifts (+1CS/+2CS). Individual abilities can be re-rolled if allowed by campaign house rules. Resources are rolled on Table 1 or set to standard.</li>
+              <li><strong>Step 3: Superpowers (PB p. 10 Category Model):</strong> Roll the number of power slots on Table 2, then roll each power's Category on Table 4 (Defensive, Detection, Fighting, Travel, Matter Control, Energy Emission, Self-Alteration, Matter Conversion, Mental Enhancement, or Magical). Following the Player's Book page 10 example, the player chooses their specific power from that rolled category, then rolls its starting rank on Table 1.</li>
+              <li><strong>Vanilla Power Limitations (PB p. 9):</strong> In original TSR rules, accepting a limitation grants a <strong>+1CS (one column shift higher) rank bump</strong> to the power. Each limitation tier has a strict <strong>maximum ceiling</strong> (Maximum of Excellent, Remarkable, Incredible, Amazing, Monstrous, or Unearthly). A limitation can only raise a power rank up to that ceiling tier (e.g., a Remarkable ceiling can raise Good to Remarkable, but cannot raise a power that is already Remarkable or higher). If a power rank is already at or above the ceiling, the limitation cannot be applied.</li>
+              <li><strong>Step 4: Talents &amp; Contacts (PB pp. 7 &amp; 10 &amp; UPB):</strong> Roll talent slots on Table 3 (0 to 4 slots + form bonus). Select from all 56 canonical talents across all 7 disciplines (Weapon, Fighting, Professional, Scientific, Mystic/Mental, Piloting, Other) with interactive category filtering. Establish contacts across 19 canonical categories or add custom NPC contacts.</li>
+              <li><strong>Unified 3-Way Mode Switch &amp; Combined Pulsing Header Tag:</strong> Character creation strictly distinguishes between <strong>TSR standard</strong> (canonical 1986 random roll), <strong>TSR modeled</strong> (free-form modeling with Karma Point tracking), and <strong>CMF CP buy</strong> (Classic Marvel Forever point-buy). In the creation block on the Main Stats tab, these three modes are unified into an intuitive <strong>three-way switch</strong> where the active mode is brightly highlighted and clicking any segment seamlessly switches modes. In the top toolbar, the previous "Creating" and mode tags are combined into a single, pulsing status badge (displaying <code>TSR standard</code>, <code>TSR modeled</code>, or <code>CMF CP buy</code>) with theme-coordinated glow effects that stays visible throughout character creation and transitions to "Finalize" once all creation requirements are satisfied.</li>
+              <li><strong>Interactive TSR Submode Selection Dialog:</strong> Switching to TSR mode does not immediately open the random generator. Instead, an interactive selection modal appears presenting clear cards for both <strong>Random Roll Mode</strong> and <strong>Modeled Mode</strong> with explanations:
+                <br>• Choosing <strong>Random Roll Mode</strong> sets the character to TSR Random mode and launches the TSR Generator modal with 3D dice.
+                <br>• Choosing <strong>Modeled Mode</strong> sets the character to TSR Modeled mode and directly opens the character sheet without launching the generator, allowing free-form modeling immediately.
+                <br>• Users are reminded that they can switch from Random to Modeled mode at any time, but returning from Modeled to Random requires rolling back to Revision #1 in the Progression tab.</li>
+              <li><strong>TSR Modeled Mode &amp; Submode Split Toggle:</strong> When in TSR mode, the creation block displays an obvious submode split toggle between <strong>Random</strong> and <strong>Modeled</strong>:
+                <br>• <strong>Random Mode (Default):</strong> Pure canonical 1986 Advanced Set Player's Book rolling rules with strict rolled slot limits across powers, talents, and contacts.
+                <br>• <strong>Modeled Mode (Free-Form):</strong> Bypasses rolled slot limits and random roll requirements, allowing GMs and players to model established heroes or free-form concepts. Trait investment is tracked in real-time in <strong>Karma Points (KP)</strong> using canonical advancement scaling (Abilities: 10 KP per rank number; Powers: 100/200 KP base + 10/20 per rank number minus limitation discounts; Talents: 100/200 KP; Contacts: 50 KP each; Resources: 10 KP per rank number).
+                <br>• <strong>Campaign KP Budget Limit:</strong> In Modeled mode, GMs can optionally set a maximum campaign KP ceiling in the Mode Detail dialog, displaying live budget tracking (e.g. <code>2,450 / 3,000 KP (550 left)</code>) and warning when over budget.
+                <br>• <strong>Manual Trait Assignment Protection:</strong> If a user in TSR Random mode begins manually assigning or adjusting traits directly on the sheet (such as FASERIP ability ranks, Resources ranks, adding powers, changing power ranks on power cards, or adding talents/contacts), the application displays a confirmation prompt. The prompt warns that manual assignment switches the character to TSR Modeled mode (bypassing slot limits and switching to KP tracking) and that reverting back to Random mode will require a history rollback. If the user cancels, the manual edit is aborted and the sheet remains in TSR Random mode.
+                <br>• <strong>Irreversible Activation Warning:</strong> Because Modeled mode permits free-form creation without slot constraints, entering Modeled mode displays an explicit warning modal confirming that switching to Modeled mode is irreversible without rolling back character edit history to Revision #1 (or before Modeled mode was activated) on the Progression tab. Attempting to toggle back to Random from Modeled informs the user and offers direct navigation to the Progression tab.</li>
+              <li><strong>Multi-Window Pop-out &amp; Cheat Sheet Reference:</strong> The TSR 1986 Character Generator features an independent <strong>↗ Pop-out</strong> window mode, allowing you to detach the rolling workshop into a separate floating monitor window with preserved dimensions, live theme synchronization, and full interactive control. Additionally, click <strong>📖 Cheat Sheet</strong> directly in the generator header to open the Rules Cheat Sheet side-by-side during character rolling.</li>
             </ul>
           </div>
         </article>
@@ -844,6 +893,7 @@
               <li><strong>Column Shift Steppers:</strong> Adjust temporary combat modifiers (+1 CS, -2 CS) for environmental hazards, spells, or tactical positioning.</li>
               <li><strong>Live Health &amp; Karma Trackers:</strong> Dedicated rapid-click and accelerating stepper buttons (+1, +5, +10) let you adjust vitals during fast-paced combat rounds. Includes full recovery and quick-heal buttons.</li>
               <li><strong>Karma Modes:</strong> Switch between Standard TSR, CMF Option, and House Rule pool caps.</li>
+              <li><strong>Human Ability Rank Caps (House Rule):</strong> When enabled in <em>Preferences &amp; Options</em>, unpowered human characters are capped at <strong>Incredible (IN, 40)</strong> in TSR mode or <strong>Fantastic (FA, 35)</strong> in CMF mode for the physical FASE series (Fighting, Agility, Strength, Endurance), and capped at <strong>Amazing (AM, 50)</strong> in both modes for the mental RIP series (Reason, Intuition, Psyche). Ranks above these natural limits are disabled and marked <code>[Requires Power]</code> unless the character possesses an ability-enhancing superpower or equipment boost. Non-human origins (Mutants, Aliens, Androids, Deities, etc.) remain uncapped.</li>
             </ul>
 
             <h3>Calculated Combat &amp; Defense Table</h3>
@@ -941,7 +991,53 @@
               <li><strong>Instant Search &amp; Filter:</strong> Filter by name, code, or power categories (Physical Enhancement, Energy Emission, Matter Control, Mental Powers, Magic, Body Alterations, Sensory, Defense, etc.).</li>
               <li><strong>Power Options &amp; Sub-Powers:</strong> Many powers (e.g., Elemental Control, Teleportation, Power Simulation) feature configurable variants and sub-powers.</li>
               <li><strong>Power Stunts:</strong> Record acquired or attempted stunts, track Karma investment, and mark mastered maneuvers.</li>
-              <li><strong>Built-In Rules Inspector (?):</strong> Click the question mark icon on any power card or dropdown to open a rich modal displaying the verbatim TSR rules text, canonical range, duration, target limits, and area of effect.</li>
+              <li><strong>Built-In Rules Inspector (?):</strong> Click the question mark icon on any power card or dropdown to open a rich modal displaying the complete canonical mechanical rules text from the <em>Ultimate Powers Book</em> and <em>Player's Book</em>, including full FEAT charts, duration scales, ranges, area calculations, damage formulas, modifiers, and drawbacks (with narrative comic analogies and conversational asides trimmed for fast reference).</li>
+            </ul>
+
+            <h3>Power Limitations &amp; Restrictions Pop-up</h3>
+            <p>
+              Under both canonical TSR rulebooks and modern CMF Point-Buy design, superpowers can have <strong>Limitations and Restrictions</strong> that temper their scope, reflect narrative vulnerabilities, and provide Character Point (CP) discounts:
+            </p>
+            <ul class="feature-list">
+              <li><strong>Interactive Limitation Modal (⚖️ Limitations):</strong> Every power card features a <em>⚖️ Limitations</em> action in its card menu dropdown (and a clickable limitation tag in the card header when active). Clicking this opens the <strong>Power Limitation &amp; Restrictions</strong> pop-up dialog.</li>
+              <li><strong>Mandatory Limitations (Automatic Interception):</strong> Certain canonical powers are required by official rules to possess limitations to maintain game balance and Judge narrative control. These include <em>Precognition [M24]</em>, <em>Alter Ego [S1]</em>, <em>Induced Berserking</em>, <em>Energy Absorption [DT1]</em>, and <em>Split Form / Duplication [S23]</em>. When one of these powers is added to your hero, the Limitation Modal appears automatically in mandatory mode. <strong>The power cannot be added to the character sheet until a valid mandatory limitation is selected.</strong></li>
+              <li><strong>Provided Canonical Limitations vs. Custom Limitations:</strong> The dialog offers a curated library of canonical limitations with pre-configured default Intensity ranks and CP discounts (e.g., <em>Uncontrollable / Emotionally Triggered</em>, <em>Physical Contact Required</em>, <em>External Focus / Reversible Only</em>, <em>Berserk Psyche FEAT</em>, <em>Vulnerability to Specific Energy</em>). Alternatively, players can define <strong>Custom Limitations</strong> with user-defined names, detailed descriptions, custom Intensity ranks (from Feeble to Shift Z), and CP discount values (-5 to -20 CP).</li>
+              <li><strong>CP Discounts &amp; Minimum Cost Floor:</strong> Limitations provide a discount against the power's final Character Point cost (typically -10 CP for standard limitations, up to -20 CP for severe constraints). Under CMF point-buy balance guidelines, a power cannot be discounted below a minimum floor of <strong>5 CP</strong>.</li>
+            </ul>
+
+            <div class="callout callout-blue">
+              <strong>TSR Canonical Rules vs. CMF Point-Buy Limitations Explained:</strong>
+              <br><br>
+              <strong>1. Canonical TSR Rules (Ultimate Powers Book &amp; Dragon Magazine #122 / #134):</strong><br>
+              In original TSR rules, limitations were primarily narrative balancing mechanisms and GM-arbitrated intensity checks.
+              <ul>
+                <li><strong>Mandatory Narrative Constraints:</strong> High-reality-warping powers like <em>Precognition</em> were strictly forbidden from functioning as on-demand omniscience. The Judge dictated when visions struck (often through emotional trauma, physical contact, or dreams), or required Psyche FEAT rolls against specific intensities to perceive fragments of the future.</li>
+                <li><strong>Voluntary Limitations &amp; Column Shifts:</strong> When players voluntarily placed severe limitations on a standard power (e.g., Cyclops' ruby quartz visor requirement, or Thor's 60-second separation from Mjolnir reverting him to mortal form), the GM rewarded them with positive column shifts (usually +1CS or +2CS bonus to the power rank) or lowered intensity requirements when the power did function.</li>
+                <li><strong>Limitation Ranks:</strong> In TSR rules, the rank attached to a limitation represents the <strong>Intensity Rank of the FEAT</strong> required to resist, trigger, or operate the power (e.g., a Remarkable (30) Psyche FEAT to pull out of an induced berserk state, or a Typical (6) Intensity sensory trigger).</li>
+              </ul>
+              <strong>2. Classic Marvel Forever (CMF) Point-Buy Rules:</strong><br>
+              In the CMF Point-Buy system, power limitations are quantified mathematically into <strong>Character Point (CP) Cost Reductions</strong>:
+              <ul>
+                <li>Rather than granting variable column shifts, limitations reduce the point-buy cost by <strong>5 to 20 CP</strong> (with 10 CP as standard baseline).</li>
+                <li>This allows heroes with restricted or conditional powers (like Human Torch needing oxygen/heat to ignite, or Rogue unable to touch without draining) to be built accurately within street-level and mid-tier CP budgets without sacrificing core ability ranks.</li>
+              </ul>
+            </div>
+
+            <h3>TSR Mode Power Slot Limits, Starred Powers &amp; Bonus Slots</h3>
+            <p>
+              In authentic <strong>TSR 1986 Random Generation mode</strong>, superhero power acquisition is strictly governed by the number of power slots rolled on Table 2, canonical slot costs, and slot-granting powers:
+            </p>
+            <ul class="feature-list">
+              <li><strong>Strict Power Slot Enforcement:</strong> In TSR mode, the power builder limits your character to the exact number of superpower slots rolled during creation. The live slot tally is displayed in the tab badge (<code>Slots: X / Y (Z powers)</code>) and in the top creation mode strip.</li>
+              <li><strong>Starred (*) Heavyweight Powers (2 Slots):</strong> Exceptional, heavyweight powers marked with an asterisk (e.g., <em>Alter Ego</em>, <em>Energy Mastery</em>, <em>Power Simulation</em>, <em>Magic Control</em>) consume <strong>2 power slots</strong> per canonical TSR rules (Player's Book p. 19 &amp; UPB pp. 16–19). The builder automatically debits two slots when a starred power is added, and prevents adding a two-slot power if only one slot remains.</li>
+              <li><strong>Bonus Power Slot Grants (+1 Slot):</strong> Canonical powers from the <em>Ultimate Powers Book</em> that grant an additional power slot upon generation are fully supported:
+                <br>• <strong>PC5 Energy Source:</strong> Grants +1 additional power slot (<em>"If you roll this Power, go ahead and roll an additional Power."</em>).
+                <br>• <strong>MG2 Energy Source (Magic):</strong> Mystical equivalent granting +1 additional power slot.
+                <br>• <strong>PC7 Focus:</strong> Grants +1 additional power slot (<em>"Roll again for an additional Power."</em>).
+                <br>• <strong>PC12 Residual Absorption:</strong> Grants +1 additional power slot (<em>"When the player generates this Power, he gets to generate an additional Power as well."</em>).
+                <br>When any of these powers are added to the character, the hero's maximum power slot ceiling dynamically expands (e.g., <code>4 slot(s) total (3 rolled + 1 bonus)</code>), regardless of whether the power is chosen first, middle, or last.
+              </li>
+              <li><strong>Full Slot Protection &amp; Tooltips:</strong> Once all allocated slots are filled, the <code>+ Add Power to Sheet</code> button is disabled with an explanatory tooltip (<code>Power slots full: X/Y slots allocated</code>). The character creation finalizer verifies that all rolled slots are allocated before hero generation can be completed.</li>
             </ul>
           </div>
         </article>
@@ -1040,13 +1136,26 @@
               Click <strong>📖 Cheat Sheet</strong> in the top header to open a multi-tab quick-reference console designed for instantaneous tabletop lookups during live play:
             </p>
             <ul class="feature-list">
+              <li><strong>Rank Scheme Switcher &amp; App-Wide Sync:</strong> The header selector labeled <strong>Rank Scheme</strong> (toggling between <em>Modified CMF (22 Ranks)</em> and <em>Standard TSR (18 Ranks)</em>) is a two-way shortcut to the Preferences setting. Changing it alters the active rank scheme throughout the entire application—synchronizing the Universal Action Table matrix, movement speed charts, material strengths, integrated d100 dice roller color thresholds, and character sheet dropdowns—while displaying a confirmation status toast across all active windows. It does <em>not</em> alter character creation mode or point budgets.</li>
+              <li><strong>Action Table Matrix Tab:</strong> The complete Universal Action Table matrix showing exact percentile thresholds for every rank.</li>
               <li><strong>Combat Maneuvers Tab:</strong> Full rules text, trigger requirements, and consequences for Charging, Escaping, Grappling, Dodging, Evading, Blocking, and Catching.</li>
               <li><strong>Movement Tab:</strong> Canonical Ground and Flight speed charts showing miles-per-hour and tactical areas-per-round across all ranks. Dynamically toggles between CMF (21 ranks) and Standard (15/17 ranks).</li>
-              <li><strong>Action Table Matrix Tab:</strong> The complete Universal Action Table matrix showing exact percentile thresholds for every rank.</li>
               <li><strong>Material Strengths Tab:</strong> Comprehensive list of materials from cloth and glass to vibrant vibranium and adamantium. Synchronized with active ruleset mode.</li>
               <li><strong>Area Division Rules:</strong> Quick reference for standard 132-foot areas, 33-foot quadrants, six 22-foot subareas, or eight 16.5-foot tactical sub-grids.</li>
-              <li><strong>Persistent Multi-Window Pop-out:</strong> Detach the Cheat Sheet into an independent floating window. Enable <em>Remember Cheat Sheet Pop-out Across Sessions</em> in Preferences to automatically restore the window on startup!</li>
+              <li><strong>Persistent Multi-Window Pop-out:</strong> Detach the Cheat Sheet into an independent floating window via the <strong>↗ Pop-out</strong> button. Features multi-monitor geometry persistence, theme syncing, and synchronous blank document initialization that stays open reliably across focus shifts and desktop clicks. Enable <em>Remember Cheat Sheet Pop-out Across Sessions</em> in Preferences to automatically restore the window on startup!</li>
             </ul>
+            <div class="callout callout-info" style="margin-top: 14px;">
+              <strong>💡 Waterfox &amp; Gecko-Based Browsers — Opening as Standalone Windows:</strong>
+              <p style="margin: 6px 0 0 0; line-height: 1.5;">
+                Unlike standard Firefox (which defaults to opening sized pop-up windows in separate OS windows), Waterfox often diverts all pop-ups into browser tabs. If pop-outs open as tabs in Waterfox, check the following two preferences in <code>about:config</code>:
+              </p>
+              <ol style="margin: 6px 0 0 20px; padding: 0; line-height: 1.6;">
+                <li>Type <code>about:config</code> into your Waterfox address bar and press Enter (click <em>Accept the Risk and Continue</em> if prompted).</li>
+                <li>Search for: <code>browser.link.open_newwindow</code> — set its value to <code>2</code> (forces links that target new windows to open in a separate window instead of a new tab).</li>
+                <li>Search for: <code>browser.link.open_newwindow.restriction</code> — ensure its value is <code>2</code> (standard mode: allows scripted pop-ups with custom sizes to open in separate windows).</li>
+                <li>Alternatively, in Waterfox <strong>Settings ➔ General ➔ Tabs</strong>, ensure <em>"Open links in tabs instead of new windows"</em> is unchecked, and verify any third-party tab extensions (such as Tab Mix Plus) allow window pop-outs.</li>
+              </ol>
+            </div>
           </div>
         </article>
 
@@ -1070,8 +1179,9 @@
                 <br>• <strong>Manilla:</strong> Clean, soft light stationery palette with crisp dark typography.
                 <br>• <strong>Aqua:</strong> Radiant oceanic theme featuring cyans, sea greens, and deep navy tones.
               </li>
+              <li><strong>Campaign House Rules:</strong> Toggle optional rules in Preferences, including <em>Convert Unspent CP to KP</em> (awards bonus starting Karma for up to 5 unspent creation points), <em>Superior Option Tax</em> (retains or waives surcharge on superior power options), and <em>Human Ability Rank Caps</em> (caps natural unpowered human FASE at IN in TSR mode or FA in CMF mode, and RIP at AM in both modes).</li>
               <li><strong>Touch-Friendly Mode:</strong> Enlarges interactive buttons, steppers, and inputs for tablets and touchscreens. The File menu displays an intuitive vibrant green <strong>(ON)</strong> indicator when active.</li>
-              <li><strong>Sticky Navigation:</strong> Pins the hero header and tabs to the top of the screen during scrolling.</li>
+              <li><strong>Sticky Navigation (Persistent Top Bars):</strong> Pins the hero header and tabs bar to the top of the viewport during scrolling, ensuring character vitals and navigation remain accessible. When unchecked in Preferences, the header scrolls naturally with page content.</li>
               <li><strong>Automated Updates:</strong> Checks the GitHub repository for new program releases with one-click notifications.</li>
               <li><strong>Embedded Surprise:</strong> A hidden secret awaits curious players somewhere in the interface—which can be discovered simply by mousehovering somewhere briefly (see Section 13).</li>
             </ul>
@@ -1122,7 +1232,7 @@
       <p>
         Marvel Super Heroes Roleplaying Game (MSHRPG / FASERIP) &copy; TSR, Inc. / Marvel Entertainment.<br>
         Classic Marvel Forever (CMF) enhancements &copy; Classic Marvel Forever community.<br>
-        Application Suite v1.5.26 &bull; Built with pure offline web technologies.
+        Application Suite v1.5.81 &bull; Built with pure offline web technologies.
       </p>
     </footer>
 

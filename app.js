@@ -1,5 +1,6 @@
 /**
  * Marvel Super Heroes (FASERIP) - Application Controller
+ * Built by Psycros with lots of help from Gemini - 2026.
  * Connects CMF Point-Buy System, Top-Row Tabbed UI, Universal Action Table,
  * Machines of Doom Inventions Lab, Prebuilt Equipment Store, and 1080px Width Detection.
  */
@@ -7,12 +8,16 @@
 const App = {
   character: null,
   activeTab: 'main-stats',
-  activeCheatTab: 'combat',
+  activeCheatTab: 'table',
   cheatsheetPopoutWindow: null,
   cheatsheetPoppedOut: false,
   cheatsheetAutoPopout: true,
   isClientUnloading: false,
   cheatsheetPlaceholder: null,
+  tsrPopoutWindow: null,
+  tsrPoppedOut: false,
+  tsrPlaceholder: null,
+  _lastTsrPopoutToggleTime: 0,
   activeRoller: null,
   rollerShift: 0,
   rollerKarmaSpend: 0,
@@ -26,6 +31,15 @@ const App = {
   storeBlackMarketAccess: false,
   storeShieldAccess: false,
   activeProcurementItem: null,
+  equipmentSplitRatio: 50,
+  equipmentSplitCollapsed: null,
+  equipmentSplitMode: 'auto',
+  _justDraggedEquipmentSplitter: false,
+  storePopoutWindow: null,
+  storePoppedOut: false,
+  storeAutoPopout: true,
+  storePlaceholder: null,
+  _lastStorePopoutToggleTime: 0,
   areaDivisionRule: 'standard',
   currentInventionProject: null,
   invPowers: [],
@@ -47,11 +61,13 @@ const App = {
   set superiorOptionTax(val) {
     this.superiorOptionCost = !!val;
   },
-  VERSION: '1.5.26',
-  BUILD_DATE: '2026-09-25',
+  humanAbilityCaps: false,
+  VERSION: '1.5.81',
+  BUILD_DATE: '2026-10-12',
   COMMIT_SHA: '6a15ff5',
   REPO_OWNER: 'captainload',
   REPO_NAME: 'marvel-character-editor',
+  lastSavedFileSnapshot: null,
   currentDirectoryHandle: null,
   lastSaveDirectoryHandle: null,
   saveFolderName: null,
@@ -67,6 +83,8 @@ const App = {
   testModeSnapshot: null,
 
   init() {
+    globalThis.formatRulesTextToHtml = this.formatRulesTextToHtml.bind(this);
+
     // 1. Viewport Width 1080px Check
     this.checkViewportWidth();
     window.addEventListener('resize', () => this.checkViewportWidth());
@@ -85,10 +103,24 @@ const App = {
         this.character = FASERIPCharacter.fromJSON(JSON.parse(saved));
       } catch (e) {
         console.warn('Failed to parse saved character, loading fresh CMF hero', e);
-        this.character = FASERIPCharacter.createBlankCharacter('400');
+        this.character = FASERIPCharacter.createBlankCharacter('300');
       }
     } else {
-      this.character = FASERIPCharacter.createBlankCharacter('400');
+      this.character = FASERIPCharacter.createBlankCharacter('300');
+    }
+
+    // Ensure default CMF character uses modern 300 CP tier if unconfigured legacy 400 CP was loaded
+    if (this.character && this.character.creationMode !== 'tsr' && this.character.isCreationSetupPending) {
+      if (this.character.pointTier === '400' || this.character.pointTier === 'standard') {
+        const spent = (typeof this.character.calculateSpentPoints === 'function')
+          ? this.character.calculateSpentPoints().totalSpent
+          : 0;
+        if (spent <= 48 && (!this.character.name || this.character.name === 'New Superhero' || this.character.name === 'New Character')) {
+          this.character.setPointTier('300');
+          this.character.basePointBudget = 300;
+          this.character.pointBudget = 300;
+        }
+      }
     }
 
     // Ensure baseline editLog entry exists
@@ -98,8 +130,21 @@ const App = {
 
     // 4. Setup UI listeners and populate static selectors
     this.setupEventListeners();
+    this.initModalScrollLock();
+    if (typeof document !== 'undefined') {
+      const isEquipActive = !!(document.querySelector && document.querySelector('#tab-pane-equipment.active'));
+      if (document.body && document.body.classList) {
+        document.body.classList.toggle('tab-equipment-active', isEquipActive);
+      }
+      if (document.documentElement && document.documentElement.classList) {
+        document.documentElement.classList.toggle('tab-equipment-active', isEquipActive);
+      }
+    }
     this.initRollerWindow();
     this.initCheatSheetWindow();
+    this.initTsrWindow();
+    this.initEquipmentSplitter();
+    this.initEquipmentStoreWindow();
     this.populateDropdowns();
     this.updateStoreClearancesUI();
     this.render();
@@ -116,10 +161,20 @@ const App = {
           this.restoreCheatSheetPopoutOnStartup();
         }, 300);
       }
+
+      // Auto-restore Equipment Store popout if it was popped out when client closed
+      const wasStorePoppedOut = (localStorage.getItem('msh_store_popped_out') === 'true');
+      if (wasStorePoppedOut && this.storeAutoPopout !== false) {
+        setTimeout(() => {
+          this.restoreStorePopoutOnStartup();
+        }, 350);
+      }
     }
 
-    // Prompt Character Creation Setup Wizard if hero setup is pending
-    if (this.character && this.character.isCreationSetupPending) {
+    // Prompt Character Creation Mode selection on first visit without saved character, or wizard if CMF setup is pending
+    if (!saved && this.character && this.character.isCreationSetupPending) {
+      setTimeout(() => this.openNewCharacterModeModal(), 150);
+    } else if (this.character && this.character.isCreationSetupPending && this.character.creationMode !== 'tsr') {
       setTimeout(() => this.openCreationWizardModal(), 150);
     }
 
@@ -133,12 +188,43 @@ const App = {
   },
 
   checkViewportWidth() {
+    this.updateStickyHeaderHeight();
     const banner = document.getElementById('screen-width-warning');
     if (!banner || this.isWidthWarningDismissed) return;
     if (window.innerWidth < 1080) {
       banner.classList.add('visible');
     } else {
       banner.classList.remove('visible');
+    }
+  },
+
+  updateStickyHeaderHeight() {
+    if (typeof document === 'undefined') return;
+    const header = document.getElementById('app-sticky-header');
+    const topbar = document.querySelector('.topbar');
+    const creationBar = document.getElementById('point-buy-strip');
+    const tabsBar = document.querySelector('.top-tabs-bar');
+    if (document.documentElement && document.documentElement.style) {
+      const getH = (el, fallback) => {
+        if (!el) return fallback;
+        if (el.offsetHeight) return el.offsetHeight;
+        if (typeof el.getBoundingClientRect === 'function') {
+          return Math.round(el.getBoundingClientRect().height) || fallback;
+        }
+        return fallback;
+      };
+
+      const topbarH = getH(topbar, 44);
+      const isCreationVisible = creationBar && (typeof window !== 'undefined' && typeof window.getComputedStyle === 'function' ? window.getComputedStyle(creationBar).display !== 'none' : true);
+      const creationH = isCreationVisible ? getH(creationBar, 38) : 0;
+      const persistentRowsH = topbarH + creationH;
+      const tabsH = getH(tabsBar, 38);
+      const totalHeaderH = header ? getH(header, persistentRowsH + tabsH) : (persistentRowsH + tabsH);
+
+      document.documentElement.style.setProperty('--topbar-height', `${topbarH}px`);
+      document.documentElement.style.setProperty('--creation-bar-height', `${creationH}px`);
+      document.documentElement.style.setProperty('--app-persistent-rows-height', `${persistentRowsH}px`);
+      document.documentElement.style.setProperty('--app-sticky-header-height', `${totalHeaderH}px`);
     }
   },
 
@@ -212,6 +298,7 @@ const App = {
       nameInput.addEventListener('input', (e) => {
         this.character.name = e.target.value;
         this.saveState();
+        this.renderPointBuy();
       });
     }
 
@@ -250,18 +337,11 @@ const App = {
     }
 
     // CP Breakdown Modal & Slider Controls
-    const pointBuyBadge = document.getElementById('point-buy-badge');
-    if (pointBuyBadge) {
-      pointBuyBadge.addEventListener('click', (e) => {
-        if (e && e.target && e.target.closest('#btn-open-creation-wizard')) return;
-        this.openCpBreakdownModal();
-      });
-      pointBuyBadge.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          if (e.target && e.target.closest('#btn-open-creation-wizard')) return;
-          e.preventDefault();
-          this.openCpBreakdownModal();
-        }
+    // Point Tier Dropdown on Creation Bar
+    const selectPointTier = document.getElementById('select-point-tier');
+    if (selectPointTier) {
+      selectPointTier.addEventListener('change', (e) => {
+        this.handlePointTierDropdownChange(e.target.value);
       });
     }
 
@@ -269,15 +349,11 @@ const App = {
     if (stripTierBtn) {
       stripTierBtn.addEventListener('click', (e) => {
         e.stopPropagation();
-        this.openCpBreakdownModal();
-      });
-    }
-
-    const pointTierGroup = document.getElementById('point-tier-status-group');
-    if (pointTierGroup) {
-      pointTierGroup.addEventListener('click', (e) => {
-        if (e.target && e.target.closest('#btn-open-creation-wizard')) return;
-        this.openCpBreakdownModal();
+        if (this.character && this.character.creationMode === 'tsr') {
+          this.openTsrModeDialog();
+        } else {
+          this.openCpBreakdownModal();
+        }
       });
     }
 
@@ -310,6 +386,34 @@ const App = {
         this.closeCpBreakdownModal();
         this.openCreationWizardModal();
       });
+    }
+
+    const cpModalTierSelect = document.getElementById('cp-modal-tier-select');
+    if (cpModalTierSelect) {
+      cpModalTierSelect.addEventListener('change', () => {
+        const customRow = document.getElementById('cp-modal-custom-row');
+        if (customRow) {
+          customRow.style.display = (cpModalTierSelect.value === 'custom') ? 'flex' : 'none';
+        }
+        this.updateCpModalBudgetPreview();
+      });
+    }
+
+    const cpModalCustomBudget = document.getElementById('cp-modal-custom-budget');
+    if (cpModalCustomBudget) {
+      cpModalCustomBudget.addEventListener('input', () => this.updateCpModalBudgetPreview());
+      cpModalCustomBudget.addEventListener('change', () => this.updateCpModalBudgetPreview());
+    }
+
+    const cpModalAdjSlider = document.getElementById('cp-modal-adj-slider');
+    if (cpModalAdjSlider) {
+      cpModalAdjSlider.addEventListener('input', () => this.updateCpModalBudgetPreview());
+      cpModalAdjSlider.addEventListener('change', () => this.updateCpModalBudgetPreview());
+    }
+
+    const btnCpModalApplyBudget = document.getElementById('btn-cp-modal-apply-budget');
+    if (btnCpModalApplyBudget) {
+      btnCpModalApplyBudget.addEventListener('click', () => this.handleApplyCpModalBudget());
     }
 
     const cpBudgetSlider = document.getElementById('cp-budget-slider');
@@ -359,23 +463,45 @@ const App = {
 
     // Change Physical Form Modal Controls & Header Form Box (Dual Mode: Simple Dropdown vs Modal Pop-up)
     const headerFormBox = document.getElementById('header-form-box');
-    if (headerFormBox) {
+    const headerFormBtn = document.getElementById('header-form-btn');
+    const headerFormDisplay = document.getElementById('header-form-display');
+    const headerSel = document.getElementById('header-form-select');
+
+    if (headerFormBox && !headerFormBox.dataset.bound) {
+      headerFormBox.dataset.bound = 'true';
       headerFormBox.addEventListener('click', (e) => {
-        // If clicking on the active dropdown itself when unlocked, let native dropdown handle it
-        if (e.target && e.target.id === 'header-form-select' && !this.isFormChangeLocked()) {
+        const isLocked = this.isFormChangeLocked() || (headerFormBtn && headerFormBtn.style.display !== 'none');
+        if (isLocked) {
+          e.preventDefault();
+          this.openChangePhysicalFormModal();
           return;
         }
-        if (this.isFormChangeLocked()) {
-          this.openChangePhysicalFormModal();
+        // If clicking on the active dropdown itself when unlocked, let native dropdown handle it
+        if (e.target && e.target.id === 'header-form-select') {
+          return;
         }
+        if (headerSel) headerSel.focus();
       });
     }
 
-    const headerFormBtn = document.getElementById('header-form-btn');
-    if (headerFormBtn) {
+    if (headerFormBtn && !headerFormBtn.dataset.bound) {
+      headerFormBtn.dataset.bound = 'true';
       headerFormBtn.addEventListener('click', (e) => {
+        e.preventDefault();
         e.stopPropagation();
         this.openChangePhysicalFormModal();
+      });
+    }
+
+    if (headerFormDisplay && !headerFormDisplay.dataset.bound) {
+      headerFormDisplay.dataset.bound = 'true';
+      headerFormDisplay.addEventListener('click', (e) => {
+        const isLocked = this.isFormChangeLocked() || (headerFormBtn && headerFormBtn.style.display !== 'none');
+        if (isLocked) {
+          e.preventDefault();
+          e.stopPropagation();
+          this.openChangePhysicalFormModal();
+        }
       });
     }
 
@@ -448,12 +574,20 @@ const App = {
       const executeStep = () => {
         if (!this.character) return false;
         if (isKarma) {
+          if (!this.character.isCreationFinalized) {
+            this.showStatusToast('🔒 Karma cannot be changed manually during Character Creation. Finalize creation to start Session play.');
+            return false;
+          }
           if (this.karmaMode === 'test') {
             this.showStatusToast('🧪 Test Mode is active (Karma is already infinite: ∞ KP).');
             return false;
           }
           this.character.updateKarma(delta, delta > 0 ? 'Quick Karma Bonus' : 'Quick Karma Spend');
         } else {
+          if (!this.character.isCreationFinalized) {
+            this.showStatusToast('🔒 Health cannot be changed manually during Character Creation. Finalize creation to start Session play.');
+            return false;
+          }
           this.character.updateHealth(delta);
         }
         stepsApplied++;
@@ -574,6 +708,10 @@ const App = {
     const btnHealthReset = document.getElementById('btn-health-reset');
     if (btnHealthReset) {
       btnHealthReset.addEventListener('click', () => {
+        if (!this.character.isCreationFinalized) {
+          this.showStatusToast('🔒 Health cannot be changed manually during Character Creation. Finalize creation to start Session play.');
+          return;
+        }
         const fullHealth = typeof this.character.resetHealth === 'function'
           ? this.character.resetHealth()
           : (this.character.currentHealth = this.character.calculateMaxHealth());
@@ -598,6 +736,11 @@ const App = {
         }
 
         if (isKarma) {
+          if (!this.character.isCreationFinalized) {
+            this.showStatusToast('🔒 Karma cannot be changed manually during Character Creation. Finalize creation to start Session play.');
+            el.value = '';
+            return;
+          }
           if (this.karmaMode === 'test') {
             this.showStatusToast('🧪 Test Mode is active (Karma is already infinite: ∞ KP).');
           } else {
@@ -607,6 +750,11 @@ const App = {
             this.showStatusToast(`✨ Karma ${delta > 0 ? '+' : ''}${delta} KP applied (Total: ${this.character.currentKarma} KP)`);
           }
         } else {
+          if (!this.character.isCreationFinalized) {
+            this.showStatusToast('🔒 Health cannot be changed manually during Character Creation. Finalize creation to start Session play.');
+            el.value = '';
+            return;
+          }
           this.character.updateHealth(delta);
           this.saveState();
           this.renderVitals();
@@ -639,6 +787,45 @@ const App = {
 
     setupManualVitalInput('input-health-adjust', false);
     setupManualVitalInput('input-karma-adjust', true);
+
+    // Toggle Sign Prefix Buttons (HP -/+ & KP -/+)
+    const setupVitalSignToggle = (btnId, inputId, isKarma = false) => {
+      const btn = document.getElementById(btnId);
+      const inp = document.getElementById(inputId);
+      if (!btn || !inp) return;
+
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (!this.character.isCreationFinalized) {
+          this.showStatusToast(isKarma
+            ? '🔒 Karma cannot be changed manually during Character Creation. Finalize creation to start Session play.'
+            : '🔒 Health cannot be changed manually during Character Creation. Finalize creation to start Session play.'
+          );
+          return;
+        }
+
+        const raw = inp.value.trim();
+        if (!raw) {
+          inp.value = '-';
+        } else if (raw.startsWith('-')) {
+          inp.value = '+' + raw.slice(1).trim();
+        } else if (raw.startsWith('+')) {
+          inp.value = '-' + raw.slice(1).trim();
+        } else {
+          inp.value = '-' + raw;
+        }
+
+        inp.focus();
+        try {
+          const len = inp.value.length;
+          inp.setSelectionRange(len, len);
+        } catch (_) {}
+      });
+    };
+
+    setupVitalSignToggle('btn-health-sign-toggle', 'input-health-adjust', false);
+    setupVitalSignToggle('btn-karma-sign-toggle', 'input-karma-adjust', true);
 
     // Conditions Management
     const addCondBtn = document.getElementById('btn-add-condition');
@@ -913,12 +1100,14 @@ const App = {
         if (stickyOpt) stickyOpt.checked = false;
       }
     }
+    this.updateStickyHeaderHeight();
 
     if (stickyOpt) {
       stickyOpt.addEventListener('change', (e) => {
         const active = e.target.checked;
         if (document.body) document.body.classList.toggle('sticky-header-active', active);
         if (typeof localStorage !== 'undefined') localStorage.setItem('msh_option_sticky_header', active ? 'true' : 'false');
+        this.updateStickyHeaderHeight();
       });
     }
 
@@ -933,6 +1122,40 @@ const App = {
         if (typeof localStorage !== 'undefined') {
           localStorage.setItem('msh_cheatsheet_auto_popout', this.cheatsheetAutoPopout ? 'true' : 'false');
         }
+      });
+    }
+
+    // Equipment Store Auto-Popout Preference Init & Listener
+    const storeAutoPopoutOpt = document.getElementById('option-store-auto-popout');
+    const savedStoreAutoPopout = typeof localStorage !== 'undefined' ? localStorage.getItem('msh_store_auto_popout') : null;
+    this.storeAutoPopout = savedStoreAutoPopout !== 'false'; // default to true
+    if (storeAutoPopoutOpt) {
+      storeAutoPopoutOpt.checked = this.storeAutoPopout;
+      storeAutoPopoutOpt.addEventListener('change', (e) => {
+        this.storeAutoPopout = e.target.checked;
+        if (typeof localStorage !== 'undefined') {
+          localStorage.setItem('msh_store_auto_popout', this.storeAutoPopout ? 'true' : 'false');
+        }
+      });
+    }
+
+    // Dice Roller Restore Geometry Preference Init & Listener
+    const rollerRestoreOpt = document.getElementById('option-roller-restore-geometry');
+    const btnResetRollerGeo = document.getElementById('btn-reset-roller-geometry');
+    const savedRollerRestore = typeof localStorage !== 'undefined' ? localStorage.getItem('msh_option_roller_restore_geometry') : null;
+    this.rollerRestoreGeometry = savedRollerRestore !== 'false'; // default to true
+    if (rollerRestoreOpt) {
+      rollerRestoreOpt.checked = this.rollerRestoreGeometry;
+      rollerRestoreOpt.addEventListener('change', (e) => {
+        this.rollerRestoreGeometry = e.target.checked;
+        if (typeof localStorage !== 'undefined') {
+          localStorage.setItem('msh_option_roller_restore_geometry', this.rollerRestoreGeometry ? 'true' : 'false');
+        }
+      });
+    }
+    if (btnResetRollerGeo) {
+      btnResetRollerGeo.addEventListener('click', () => {
+        this.resetRollerPopoutGeometry();
       });
     }
 
@@ -951,22 +1174,15 @@ const App = {
 
     // Universal Action Table Preference Init & Listeners
     const tableOpt = document.getElementById('option-universal-table');
-    const cheatTableOpt = document.getElementById('cheat-table-mode-select');
     const savedTableMode = typeof localStorage !== 'undefined' ? localStorage.getItem('msh_option_universal_table') : null;
     this.universalTableMode = (savedTableMode === 'standard') ? 'standard' : 'cmf';
     if (typeof UniversalTableEngine !== 'undefined' && UniversalTableEngine.setTableMode) {
       UniversalTableEngine.setTableMode(this.universalTableMode);
     }
     if (tableOpt) tableOpt.value = this.universalTableMode;
-    if (cheatTableOpt) cheatTableOpt.value = this.universalTableMode;
 
     if (tableOpt) {
       tableOpt.addEventListener('change', (e) => {
-        this.setUniversalTableMode(e.target.value);
-      });
-    }
-    if (cheatTableOpt) {
-      cheatTableOpt.addEventListener('change', (e) => {
         this.setUniversalTableMode(e.target.value);
       });
     }
@@ -1008,6 +1224,26 @@ const App = {
       });
     }
 
+    // Convert Unspent CP to KP House Rule Preference Init & Listeners
+    const convertCpOpt = document.getElementById('option-convert-unspent-cp-to-kp');
+    const savedConvertCp = typeof localStorage !== 'undefined' ? localStorage.getItem('msh_option_convert_unspent_cp_to_kp') : null;
+    this.convertUnspentCpToKp = (savedConvertCp === 'true');
+    if (this.character && this.character.convertUnspentCpToKp !== undefined && savedConvertCp === null) {
+      this.convertUnspentCpToKp = !!this.character.convertUnspentCpToKp;
+    }
+    if (this.character) {
+      this.character.convertUnspentCpToKp = this.convertUnspentCpToKp;
+    }
+    if (convertCpOpt) {
+      convertCpOpt.checked = this.convertUnspentCpToKp;
+      convertCpOpt.addEventListener('change', (e) => {
+        this.setConvertUnspentCpToKp(e.target.checked);
+        this.showStatusToast(e.target.checked 
+          ? '✨ "Convert Unspent CP to KP (1:5 rate, max 5 CP)" house rule ENABLED' 
+          : '"Convert Unspent CP to KP" house rule disabled (0 CP remaining required)');
+      });
+    }
+
     // Superior Option Tax / Surcharge House Rule Preference Init & Listeners
     const supOptEl = document.getElementById('option-superior-option-cost') || document.getElementById('option-superior-option-tax');
     const savedSupOpt = typeof localStorage !== 'undefined' 
@@ -1027,6 +1263,26 @@ const App = {
         this.showStatusToast(e.target.checked 
           ? '⚡ Superior Option Tax house rule ENABLED (+100% Base CP surcharge for superior choices)' 
           : 'Superior Option Tax house rule disabled (0 CP surcharge for superior choices)');
+      });
+    }
+
+    // Human Ability Rank Caps House Rule Preference Init & Listeners
+    const humanCapsOpt = document.getElementById('option-human-ability-caps');
+    const savedHumanCaps = typeof localStorage !== 'undefined' ? localStorage.getItem('msh_option_human_ability_caps') : null;
+    this.humanAbilityCaps = (savedHumanCaps === 'true');
+    if (this.character && this.character.humanAbilityCaps !== undefined && savedHumanCaps === null) {
+      this.humanAbilityCaps = !!this.character.humanAbilityCaps;
+    }
+    if (this.character) {
+      this.character.humanAbilityCaps = this.humanAbilityCaps;
+    }
+    if (humanCapsOpt) {
+      humanCapsOpt.checked = this.humanAbilityCaps;
+      humanCapsOpt.addEventListener('change', (e) => {
+        this.setHumanAbilityCaps(e.target.checked);
+        this.showStatusToast(e.target.checked 
+          ? '✨ "Human Ability Rank Caps" house rule ENABLED (FASE: IN/FA, RIP: AM)' 
+          : '"Human Ability Rank Caps" house rule disabled');
       });
     }
 
@@ -1115,6 +1371,342 @@ const App = {
         this.applyTriggerPreset(chip.dataset.preset);
       });
     });
+
+    // Finalize Character Creation Button
+    const btnFinalizeCreation = document.getElementById('btn-finalize-creation');
+    if (btnFinalizeCreation) {
+      btnFinalizeCreation.addEventListener('click', (e) => this.handleFinalizeCharacterCreation(e));
+    }
+
+    // Power Limitation Modal Listeners
+    const btnCloseLimModal = document.getElementById('btn-close-limitation-modal');
+    const btnCancelLimModal = document.getElementById('btn-cancel-limitation');
+    const btnApplyLimModal = document.getElementById('btn-apply-limitation');
+    const btnRemoveLimModal = document.getElementById('btn-remove-limitation');
+    if (btnCloseLimModal) {
+      btnCloseLimModal.addEventListener('click', () => this.closePowerLimitationModal());
+    }
+    if (btnCancelLimModal) {
+      btnCancelLimModal.addEventListener('click', () => this.closePowerLimitationModal());
+    }
+    if (btnApplyLimModal) {
+      btnApplyLimModal.addEventListener('click', () => this.applyPowerLimitation());
+    }
+    if (btnRemoveLimModal) {
+      btnRemoveLimModal.addEventListener('click', () => this.removePowerLimitation());
+    }
+
+    // Radio change listener for limitation source (provided vs custom)
+    document.querySelectorAll('input[name="limitation-type-choice"]').forEach(radio => {
+      radio.addEventListener('change', (e) => {
+        const secProvided = document.getElementById('lim-section-provided');
+        const secCustom = document.getElementById('lim-section-custom');
+        const isCustom = e.target.value === 'custom';
+        if (secProvided) secProvided.style.display = isCustom ? 'none' : 'flex';
+        if (secCustom) secCustom.style.display = isCustom ? 'flex' : 'none';
+        this.updatePowerLimitationPreview();
+      });
+    });
+
+    const selProvidedLim = document.getElementById('select-provided-limitation');
+    if (selProvidedLim) {
+      selProvidedLim.addEventListener('change', () => this.updatePowerLimitationPreview());
+    }
+
+    const selCustomLimRank = document.getElementById('select-custom-lim-rank');
+    const selCustomLimDisc = document.getElementById('select-custom-lim-discount');
+    const inpCustomLimName = document.getElementById('input-custom-lim-name');
+    if (selCustomLimRank) {
+      selCustomLimRank.addEventListener('change', () => this.updatePowerLimitationPreview());
+    }
+    if (selCustomLimDisc) {
+      selCustomLimDisc.addEventListener('change', () => this.updatePowerLimitationPreview());
+    }
+    if (inpCustomLimName) {
+      inpCustomLimName.addEventListener('input', () => this.updatePowerLimitationPreview());
+    }
+
+    // TSR Limitation Modal Listeners (Player's Book p. 9)
+    const selTsrCeiling = document.getElementById('select-tsr-lim-ceiling');
+    const selTsrExample = document.getElementById('select-tsr-lim-example');
+    const inpTsrLimName = document.getElementById('input-tsr-lim-name');
+    const inpTsrLimDesc = document.getElementById('input-tsr-lim-desc');
+    if (selTsrCeiling) {
+      selTsrCeiling.addEventListener('change', () => this.handleTsrLimCeilingChange());
+    }
+    if (selTsrExample) {
+      selTsrExample.addEventListener('change', () => this.handleTsrLimExampleChange());
+    }
+    if (inpTsrLimName) {
+      inpTsrLimName.addEventListener('input', () => this.updateTsrLimitationPreview());
+    }
+    if (inpTsrLimDesc) {
+      inpTsrLimDesc.addEventListener('input', () => this.updateTsrLimitationPreview());
+    }
+
+    // Creation Mode Dropdown & TSR Generator Buttons
+    const btnOpenTsrGen = document.getElementById('btn-open-tsr-generator');
+    const btnCloseTsrGen = document.getElementById('btn-close-tsr-generator');
+    const btnCancelTsrGen = document.getElementById('btn-cancel-tsr-generator');
+    const btnApplyTsrChar = document.getElementById('btn-apply-tsr-character');
+    const btnTsrRollOrigin = document.getElementById('btn-tsr-roll-origin');
+    const selTsrOrigin = document.getElementById('tsr-select-origin');
+    const btnTsrRollAbilities = document.getElementById('btn-tsr-roll-abilities');
+    const btnTsrRollResources = document.getElementById('btn-tsr-roll-resources');
+    const btnTsrRollPowerSlots = document.getElementById('btn-tsr-roll-power-slots');
+    const btnTsrRollTalentsContacts = document.getElementById('btn-tsr-roll-talents-contacts');
+
+    const selCreationMode = document.getElementById('select-creation-mode');
+    if (selCreationMode) {
+      selCreationMode.addEventListener('change', (e) => {
+        const target = e.target.value;
+        selCreationMode.value = this.getCreationModeKey();
+        this.openCreationModeModal(target);
+      });
+    }
+    const btnCreationModePicker = document.getElementById('btn-creation-mode-picker');
+    if (btnCreationModePicker) {
+      btnCreationModePicker.addEventListener('click', (e) => {
+        if (e && e.stopPropagation) e.stopPropagation();
+        this.openCreationModeModal();
+      });
+    }
+    const topModeTag = document.getElementById('top-creation-mode-tag');
+    if (topModeTag) {
+      topModeTag.addEventListener('click', () => this.openCreationModeModal());
+    }
+
+    // TSR Submode (Random vs Modeled) Controls
+    const tsrSubModeToggle = document.getElementById('tsr-submode-split-toggle');
+    if (tsrSubModeToggle) {
+      tsrSubModeToggle.addEventListener('click', (e) => {
+        const seg = e.target && e.target.closest ? e.target.closest('.split-mode-segment') : null;
+        if (seg) {
+          const targetSubMode = seg.getAttribute('data-submode');
+          this.handleToggleTsrSubMode(targetSubMode);
+        }
+      });
+    }
+    const btnSubRandom = document.getElementById('btn-submode-random');
+    const btnSubModeled = document.getElementById('btn-submode-modeled');
+    if (btnSubRandom) {
+      btnSubRandom.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.handleToggleTsrSubMode('random');
+      });
+    }
+    if (btnSubModeled) {
+      btnSubModeled.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.handleToggleTsrSubMode('modeled');
+      });
+    }
+
+    const tsrKpPill = document.getElementById('tsr-kp-breakdown-pill');
+    if (tsrKpPill) {
+      tsrKpPill.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.openTsrModeDialog();
+      });
+    }
+    if (btnOpenTsrGen) {
+      btnOpenTsrGen.addEventListener('click', () => this.openTsrGeneratorModal());
+    }
+    if (btnCloseTsrGen) {
+      btnCloseTsrGen.addEventListener('click', () => this.closeTsrGeneratorModal());
+    }
+    if (btnCancelTsrGen) {
+      btnCancelTsrGen.addEventListener('click', () => this.closeTsrGeneratorModal());
+    }
+    if (btnApplyTsrChar) {
+      btnApplyTsrChar.addEventListener('click', () => this.applyTsrGeneratedCharacter());
+    }
+    const btnCloseTsrModeX = document.getElementById('btn-close-tsr-mode-modal-x');
+    if (btnCloseTsrModeX) {
+      btnCloseTsrModeX.addEventListener('click', () => this.closeTsrModeDialog());
+    }
+    const btnCloseTsrModeFooter = document.getElementById('btn-close-tsr-mode-modal-footer');
+    if (btnCloseTsrModeFooter) {
+      btnCloseTsrModeFooter.addEventListener('click', () => this.closeTsrModeDialog());
+    }
+    const btnTsrInfoOpenGen = document.getElementById('btn-tsr-info-open-gen');
+    if (btnTsrInfoOpenGen) {
+      btnTsrInfoOpenGen.addEventListener('click', () => {
+        this.closeTsrModeDialog();
+        this.openTsrGeneratorModal();
+      });
+    }
+    const btnTsrInfoSwitchCmf = document.getElementById('btn-tsr-info-switch-cmf');
+    if (btnTsrInfoSwitchCmf) {
+      btnTsrInfoSwitchCmf.addEventListener('click', () => {
+        this.closeTsrModeDialog();
+        this.handleToggleCreationMode('cmf');
+      });
+    }
+    const btnSaveModeledKpLimit = document.getElementById('btn-save-modeled-kp-limit');
+    if (btnSaveModeledKpLimit) {
+      btnSaveModeledKpLimit.addEventListener('click', () => {
+        const inp = document.getElementById('input-tsr-modeled-kp-limit');
+        const val = inp ? Math.max(0, parseInt(inp.value, 10) || 0) : 0;
+        if (this.character && this.character.setTsrModeledKPLimit) {
+          this.character.setTsrModeledKPLimit(val);
+          this.recordCharacterEdit(val > 0 ? `Set TSR Modeled Campaign KP limit to ${val.toLocaleString()} KP` : 'Removed TSR Modeled Campaign KP limit (unlimited)', 'creation');
+          this.saveState();
+          this.updateCPBlock();
+          this.renderTsrModeDialog();
+          this.showStatusToast(val > 0 ? `Campaign KP limit set to ${val.toLocaleString()} KP.` : 'Campaign KP limit set to Unlimited.');
+        }
+      });
+    }
+    const inpModeledKpLimit = document.getElementById('input-tsr-modeled-kp-limit');
+    if (inpModeledKpLimit) {
+      inpModeledKpLimit.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          const btn = document.getElementById('btn-save-modeled-kp-limit');
+          if (btn) btn.click();
+        }
+      });
+    }
+
+    // New Character Generation Mode Modal Controls
+    const btnNewCharTsrStandard = document.getElementById('btn-new-char-tsr-standard');
+    const btnNewCharTsrModeled = document.getElementById('btn-new-char-tsr-modeled');
+    const btnNewCharTsrCpBuy = document.getElementById('btn-new-char-tsr-cp-buy');
+    const btnNewCharCmfStandard = document.getElementById('btn-new-char-cmf-standard');
+    const btnNewCharCmfModeled = document.getElementById('btn-new-char-cmf-modeled');
+    const btnNewCharCmfCpBuy = document.getElementById('btn-new-char-cmf-cp-buy');
+    const btnNewCharCmf = document.getElementById('btn-new-char-cmf');
+    const btnCancelNewCharMode = document.getElementById('btn-cancel-new-char-mode');
+    const btnCloseNewCharModeX = document.getElementById('btn-close-new-char-mode-x');
+    const btnWizardSwitchMode = document.getElementById('btn-wizard-switch-mode');
+
+    if (btnNewCharTsrStandard) {
+      btnNewCharTsrStandard.addEventListener('click', () => this.handleNewCharacterModeSelection('tsr-standard'));
+    }
+    if (btnNewCharTsrModeled) {
+      btnNewCharTsrModeled.addEventListener('click', () => this.handleNewCharacterModeSelection('tsr-modeled'));
+    }
+    if (btnNewCharTsrCpBuy) {
+      btnNewCharTsrCpBuy.addEventListener('click', () => this.handleNewCharacterModeSelection('tsr-cp-buy'));
+    }
+    if (btnNewCharCmfStandard) {
+      btnNewCharCmfStandard.addEventListener('click', () => this.handleNewCharacterModeSelection('cmf-standard'));
+    }
+    if (btnNewCharCmfModeled) {
+      btnNewCharCmfModeled.addEventListener('click', () => this.handleNewCharacterModeSelection('cmf-modeled'));
+    }
+    if (btnNewCharCmfCpBuy) {
+      btnNewCharCmfCpBuy.addEventListener('click', () => this.handleNewCharacterModeSelection('cmf-cp-buy'));
+    }
+    if (btnNewCharCmf) {
+      btnNewCharCmf.addEventListener('click', () => this.handleNewCharacterModeSelection('cmf-cp-buy'));
+    }
+    if (btnCancelNewCharMode) {
+      btnCancelNewCharMode.addEventListener('click', () => this.closeNewCharacterModeModal());
+    }
+    if (btnCloseNewCharModeX) {
+      btnCloseNewCharModeX.addEventListener('click', () => this.closeNewCharacterModeModal());
+    }
+    if (btnWizardSwitchMode) {
+      btnWizardSwitchMode.addEventListener('click', () => {
+        this.closeCreationWizardModal();
+        this.openNewCharacterModeModal();
+      });
+    }
+
+    // TSR Mode Selection Modal (Random vs Modeled) Controls
+    const btnCloseTsrModeSelectX = document.getElementById('btn-close-tsr-mode-select-x');
+    const btnCancelTsrModeSelect = document.getElementById('btn-cancel-tsr-mode-select');
+    if (btnCloseTsrModeSelectX) {
+      btnCloseTsrModeSelectX.addEventListener('click', () => this.closeTsrModeSelectModal());
+    }
+    if (btnCancelTsrModeSelect) {
+      btnCancelTsrModeSelect.addEventListener('click', () => this.closeTsrModeSelectModal());
+    }
+
+    const btnChooseTsrRandom = document.getElementById('btn-choose-tsr-random');
+    if (btnChooseTsrRandom) {
+      btnChooseTsrRandom.addEventListener('click', () => {
+        this.closeTsrModeSelectModal();
+        this.handleToggleCreationMode('tsr-standard');
+      });
+    }
+
+    const btnChooseTsrModeled = document.getElementById('btn-choose-tsr-modeled');
+    if (btnChooseTsrModeled) {
+      btnChooseTsrModeled.addEventListener('click', () => {
+        this.closeTsrModeSelectModal();
+        this.handleToggleCreationMode('tsr-modeled');
+      });
+    }
+    if (btnTsrRollOrigin) {
+      btnTsrRollOrigin.addEventListener('click', () => this.tsrGenRollOrigin());
+    }
+    if (selTsrOrigin) {
+      selTsrOrigin.addEventListener('change', (e) => this.tsrGenSelectOrigin(e.target.value));
+    }
+    if (btnTsrRollAbilities) {
+      btnTsrRollAbilities.addEventListener('click', () => this.tsrGenRollAbilities());
+    }
+    const btnTsrUnassignAbilities = document.getElementById('btn-tsr-unassign-abilities');
+    if (btnTsrUnassignAbilities) {
+      btnTsrUnassignAbilities.addEventListener('click', () => this.tsrGenUnassignAllAbilities());
+    }
+    if (btnTsrRollResources) {
+      btnTsrRollResources.addEventListener('click', () => this.tsrGenRollResources());
+    }
+    if (btnTsrRollPowerSlots) {
+      btnTsrRollPowerSlots.addEventListener('click', () => this.tsrGenRollPowerSlots());
+    }
+    if (btnTsrRollTalentsContacts) {
+      btnTsrRollTalentsContacts.addEventListener('click', () => this.tsrGenRollTalentsContacts());
+    }
+    const btnAddCustomContact = document.getElementById('btn-tsr-add-custom-contact');
+    const inputCustomContact = document.getElementById('tsr-custom-contact-input');
+    if (btnAddCustomContact) {
+      btnAddCustomContact.addEventListener('click', () => this.tsrGenAddCustomContact());
+    }
+    if (inputCustomContact) {
+      inputCustomContact.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          this.tsrGenAddCustomContact();
+        }
+      });
+    }
+    const selTalentCat = document.getElementById('tsr-talent-category-filter');
+    if (selTalentCat) {
+      selTalentCat.addEventListener('change', () => this.renderTsrGeneratorUI());
+    }
+    const selSlotRuleset = document.getElementById('tsr-select-slot-ruleset');
+    if (selSlotRuleset) {
+      selSlotRuleset.addEventListener('change', (e) => this.tsrGenSetSlotRuleset(e.target.value));
+    }
+    const btnBuyPowerSlot = document.getElementById('btn-tsr-buy-power-slot');
+    if (btnBuyPowerSlot) {
+      btnBuyPowerSlot.addEventListener('click', () => this.tsrGenBuyPowerSlot());
+    }
+    const btnRefundPowerSlot = document.getElementById('btn-tsr-refund-power-slot');
+    if (btnRefundPowerSlot) {
+      btnRefundPowerSlot.addEventListener('click', () => this.tsrGenRefundPowerSlot());
+    }
+    const btnBuyTalentSlot = document.getElementById('btn-tsr-buy-talent-slot');
+    if (btnBuyTalentSlot) {
+      btnBuyTalentSlot.addEventListener('click', () => this.tsrGenBuyTalentSlot());
+    }
+    const btnRefundTalentSlot = document.getElementById('btn-tsr-refund-talent-slot');
+    if (btnRefundTalentSlot) {
+      btnRefundTalentSlot.addEventListener('click', () => this.tsrGenRefundTalentSlot());
+    }
+    const btnBuyContactSlot = document.getElementById('btn-tsr-buy-contact-slot');
+    if (btnBuyContactSlot) {
+      btnBuyContactSlot.addEventListener('click', () => this.tsrGenBuyContactSlot());
+    }
+    const btnRefundContactSlot = document.getElementById('btn-tsr-refund-contact-slot');
+    if (btnRefundContactSlot) {
+      btnRefundContactSlot.addEventListener('click', () => this.tsrGenRefundContactSlot());
+    }
 
     // File / Options Dropdown Menu Toggle
     const btnFileOptions = document.getElementById('btn-file-options');
@@ -1438,16 +2030,21 @@ const App = {
     }
 
     if (typeof document !== 'undefined' && document.addEventListener) {
+      // Track initial value on focus for input & textarea elements to support ESC canceling edits
+      document.addEventListener('focusin', (e) => {
+        if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable)) {
+          e.target._initialValueOnFocus = e.target.value ?? e.target.textContent;
+        }
+      }, true);
+
       document.addEventListener('keydown', (e) => {
         if ((e.ctrlKey || e.metaKey) && (e.key === 'p' || e.key === 'P')) {
           e.preventDefault();
           this.openPrintPreview();
+          return;
         }
         if (e.key === 'Escape') {
-          const ppm = document.getElementById('print-preview-modal');
-          if (ppm && ppm.classList.contains('open')) {
-            this.closePrintPreview();
-          }
+          this.handleGlobalEscape(e);
         }
       });
     }
@@ -1721,11 +2318,24 @@ const App = {
 
       if (equipStoreModal) {
         equipStoreModal.addEventListener('click', (e) => {
-          if (e.target.classList.contains('modal-close-btn') || e.target.classList.contains('modal-close') || e.target === equipStoreModal) {
+          if (e.target.closest('.store-close-btn, .modal-close-btn, .modal-close') || e.target === equipStoreModal) {
             hideStoreTooltip();
+          }
+          if (e.target.closest('.store-close-btn') || e.target === equipStoreModal) {
+            this.closeEquipmentStoreModal();
           }
         });
       }
+    }
+
+    // Equipment Store Modal Close Listeners
+    const btnCloseStore = document.getElementById('btn-close-store');
+    if (btnCloseStore) {
+      btnCloseStore.addEventListener('click', () => this.closeEquipmentStoreModal());
+    }
+    const btnCloseStoreFooter = document.getElementById('btn-close-store-footer');
+    if (btnCloseStoreFooter) {
+      btnCloseStoreFooter.addEventListener('click', () => this.closeEquipmentStoreModal());
     }
 
     // Procurement Modal Close Listeners
@@ -1788,8 +2398,116 @@ const App = {
     }
   },
 
+  handleGlobalEscape(e) {
+    if (!e || e.key !== 'Escape') return;
+
+    // 1. If an input or textarea is actively focused and has been edited, cancel the edit and revert
+    const activeEl = (typeof document !== 'undefined') ? document.activeElement : null;
+    if (activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA')) {
+      if (activeEl._initialValueOnFocus !== undefined && activeEl.value !== activeEl._initialValueOnFocus) {
+        activeEl.value = activeEl._initialValueOnFocus;
+        activeEl.dispatchEvent(new Event('input', { bubbles: true }));
+        activeEl.dispatchEvent(new Event('change', { bubbles: true }));
+        activeEl.blur();
+        e.preventDefault();
+        e.stopPropagation();
+        return;
+      }
+      activeEl.blur();
+    }
+
+    // 2. Close any open dropdown menus
+    const openMenus = (typeof document !== 'undefined') ? document.querySelectorAll('.power-dropdown-menu.show, .dropdown-menu.show') : [];
+    if (openMenus.length > 0) {
+      openMenus.forEach(m => m.classList.remove('show'));
+      e.preventDefault();
+      e.stopPropagation();
+      return;
+    }
+
+    // 3. Close in-UI alert/confirm dialog if open
+    const uiDialog = (typeof document !== 'undefined') ? document.getElementById('ui-dialog-modal') : null;
+    if (uiDialog && uiDialog.classList.contains('open')) {
+      const cancelBtn = document.getElementById('btn-ui-dialog-cancel');
+      const closeBtn = document.getElementById('btn-ui-dialog-close');
+      const okBtn = document.getElementById('btn-ui-dialog-ok');
+      if (cancelBtn && cancelBtn.style.display !== 'none') {
+        cancelBtn.click();
+      } else if (closeBtn) {
+        closeBtn.click();
+      } else if (okBtn) {
+        okBtn.click();
+      }
+      e.preventDefault();
+      e.stopPropagation();
+      return;
+    }
+
+    // 4. Close topmost open modal overlay
+    const openModals = (typeof document !== 'undefined') ? Array.from(document.querySelectorAll('.modal-overlay.open')) : [];
+    if (openModals.length > 0) {
+      const topModal = openModals[openModals.length - 1];
+      const modalId = topModal.id;
+
+      if (modalId === 'print-preview-modal') {
+        this.closePrintPreview();
+      } else if (modalId === 'modal-character-init') {
+        this.closeCreationWizardModal();
+      } else if (modalId === 'modal-change-physical-form') {
+        this.closeChangePhysicalFormModal();
+      } else if (modalId === 'modal-power-options') {
+        this.closePowerOptionsModal();
+      } else if (modalId === 'modal-power-trigger') {
+        this.closePowerTriggerModal();
+      } else if (modalId === 'modal-power-limitation') {
+        this.closePowerLimitationModal();
+      } else if (modalId === 'procurement-modal') {
+        this.closeProcurementModal();
+      } else if (modalId === 'equipment-store-modal') {
+        this.closeEquipmentStoreModal();
+      } else if (modalId === 'modal-tsr-generator') {
+        this.closeTsrGeneratorModal();
+      } else if (modalId === 'modal-new-character-mode') {
+        this.closeNewCharacterModeModal();
+      } else if (modalId === 'modal-tsr-mode-select') {
+        this.closeTsrModeSelectModal();
+      } else if (modalId === 'modal-cp-breakdown') {
+        this.closeCpBreakdownModal();
+      } else if (modalId === 'modal-load-save-folder') {
+        this.closeLoadSaveFolderModal();
+      } else if (modalId === 'roller-modal') {
+        this.closeRoller();
+      } else if (modalId === 'cheatsheet-modal') {
+        this.closeCheatSheet();
+      } else {
+        const cancelBtn = topModal.querySelector('.modal-cancel, button[id*="cancel"], button[id*="Cancel"], .btn-cancel');
+        const closeBtn = topModal.querySelector('.modal-close, button[id*="close"], button[id*="Close"], .modal-close-btn');
+        if (cancelBtn && cancelBtn.offsetParent !== null) {
+          cancelBtn.click();
+        } else if (closeBtn && closeBtn.offsetParent !== null) {
+          closeBtn.click();
+        } else {
+          topModal.classList.remove('open');
+        }
+      }
+      e.preventDefault();
+      e.stopPropagation();
+      return;
+    }
+  },
+
   switchTab(tabKey) {
     this.activeTab = tabKey;
+    const isEquipment = (tabKey === 'equipment');
+    if (document.body && document.body.classList) {
+      document.body.classList.toggle('tab-equipment-active', isEquipment);
+    }
+    if (document.documentElement && document.documentElement.classList) {
+      document.documentElement.classList.toggle('tab-equipment-active', isEquipment);
+    }
+    if (isEquipment && typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, behavior: 'instant' });
+    }
     document.querySelectorAll('.nav-tab-btn').forEach(btn => {
       btn.classList.toggle('active', btn.getAttribute('data-tab') === tabKey);
     });
@@ -1801,11 +2519,24 @@ const App = {
       this.handleCalculateInvention();
       this.renderKnownBlueprints();
     }
+    if (tabKey === 'equipment') {
+      this.updateStickyHeaderHeight();
+      if (typeof window !== 'undefined') {
+        window.scrollTo({ top: 0, behavior: 'instant' });
+      }
+      if (this.equipmentSplitCollapsed) {
+        this.setEquipmentSplit(this.equipmentSplitRatio, false, this.equipmentSplitCollapsed);
+      } else if (this.equipmentSplitMode === 'auto') {
+        this.setEquipmentSplitAuto(false);
+      } else {
+        this.setEquipmentSplit(this.equipmentSplitRatio, false, null);
+      }
+    }
   },
 
   switchCheatTab(tabKey) {
     this.activeCheatTab = tabKey;
-    ['combat', 'table', 'movement', 'health', 'materials'].forEach(t => {
+    ['table', 'combat', 'movement', 'health', 'materials'].forEach(t => {
       const btn = (typeof this.getCheatSheetEl === 'function') ? this.getCheatSheetEl(`cheat-tab-btn-${t}`) : document.getElementById(`cheat-tab-btn-${t}`);
       const sec = (typeof this.getCheatSheetEl === 'function') ? this.getCheatSheetEl(`cheat-section-${t}`) : document.getElementById(`cheat-section-${t}`);
       if (btn) btn.classList.toggle('active', t === tabKey);
@@ -1813,6 +2544,8 @@ const App = {
     });
     if (tabKey === 'table') {
       this.renderCheatSheetTable();
+    } else if (tabKey === 'combat') {
+      this.renderCheatSheetCombat();
     } else if (tabKey === 'materials') {
       this.renderCheatSheetMaterials();
     } else if (tabKey === 'movement') {
@@ -1836,20 +2569,65 @@ const App = {
     ['fighting', 'agility', 'strength', 'endurance', 'reason', 'intuition', 'psyche'].forEach(k => {
       const sel = document.getElementById(`select-rank-${k}`);
       if (sel) {
-        sel.innerHTML = rankOptionsHtml;
-        if (this.character && this.character.abilities && this.character.abilities[k]) {
-          sel.value = this.character.abilities[k].rankName;
+        const isHuman = this.character && typeof this.character.isHuman === 'function' && this.character.isHuman();
+        const hasPower = this.character && typeof this.character.hasPowerForAbility === 'function' && this.character.hasPowerForAbility(k);
+        const capApplies = this.humanAbilityCaps && isHuman && !hasPower;
+        const cap = (typeof UniversalTableEngine !== 'undefined' && UniversalTableEngine.getHumanAbilityCap)
+          ? UniversalTableEngine.getHumanAbilityCap(k, this.universalTableMode)
+          : null;
+
+        const currentRankName = (this.character && this.character.abilities && this.character.abilities[k])
+          ? this.character.abilities[k].rankName
+          : null;
+
+        const abilityOptionsHtml = activeRanks.map(r => {
+          const isAboveCap = capApplies && cap && r.num > cap.rankValue;
+          const isSelected = currentRankName === r.name;
+          if (isAboveCap) {
+            if (isSelected) {
+              return `<option value="${r.name}" style="color: #f87171; font-weight: 700;">${r.name} (${r.num}) - ${r.num} CP ⚠️ Exceeds Human Cap</option>`;
+            } else {
+              return `<option value="${r.name}" disabled style="color: var(--text-muted); opacity: 0.6;">${r.name} (${r.num}) - [Requires Power]</option>`;
+            }
+          }
+          return `<option value="${r.name}">${r.name} (${r.num}) - ${r.num} CP</option>`;
+        }).join('');
+
+        sel.innerHTML = abilityOptionsHtml;
+        if (currentRankName) {
+          sel.value = currentRankName;
         }
         if (!sel.dataset.bound) {
           sel.dataset.bound = 'true';
-          sel.addEventListener('change', (e) => {
-            if (this.character && this.character.isCreationSetupPending) {
+          sel.addEventListener('change', async (e) => {
+            if (this.character && this.character.isCreationSetupPending && this.character.creationMode !== 'tsr') {
               this.showStatusToast('⚠️ Please choose your Starting Tier and Physical Form before spending CP.');
               this.openCreationWizardModal();
               this.renderAbilities();
               return;
             }
             const capKey = k.charAt(0).toUpperCase() + k.slice(1);
+            if (this.character && this.character.creationMode === 'tsr' && (!this.character.isModeledMode || !this.character.isModeledMode())) {
+              const confirmed = await this.promptSwitchToModeledOnManualAssignment(`${capKey} Ability`);
+              if (!confirmed) {
+                e.target.value = this.character.abilities[k].rankName;
+                return;
+              }
+              this.applySwitchToModeledMode();
+            }
+            if (this.humanAbilityCaps && this.character && this.character.isHuman() && !this.character.hasPowerForAbility(k)) {
+              const hCap = (typeof UniversalTableEngine !== 'undefined' && UniversalTableEngine.getHumanAbilityCap)
+                ? UniversalTableEngine.getHumanAbilityCap(k, this.universalTableMode)
+                : null;
+              const targetRank = (typeof UniversalTableEngine !== 'undefined' && UniversalTableEngine.getRankByName)
+                ? UniversalTableEngine.getRankByName(e.target.value)
+                : null;
+              if (hCap && targetRank && targetRank.num > hCap.rankValue) {
+                this.showStatusToast(`⚠️ Human Ability Cap: Natural ${capKey} cannot exceed ${hCap.rankName} (${hCap.rankValue}) without an ability-enhancing power.`);
+                e.target.value = this.character.abilities[k].rankName;
+                return;
+              }
+            }
             this.character.setAbilityRank(k, e.target.value);
             this.recordCharacterEdit(`Updated ${capKey} to ${e.target.value}`, 'ability');
             this.render();
@@ -1867,13 +2645,21 @@ const App = {
       }
       if (!resSel.dataset.bound) {
         resSel.dataset.bound = 'true';
-        resSel.addEventListener('change', (e) => {
-          if (this.character && this.character.isCreationSetupPending) {
+        resSel.addEventListener('change', async (e) => {
+          if (this.character && this.character.isCreationSetupPending && this.character.creationMode !== 'tsr') {
             this.showStatusToast('⚠️ Please choose your Starting Tier and Physical Form before spending CP.');
             this.openCreationWizardModal();
             this.renderPointBuy();
             this.renderBackground();
             return;
+          }
+          if (this.character && this.character.creationMode === 'tsr' && (!this.character.isModeledMode || !this.character.isModeledMode())) {
+            const confirmed = await this.promptSwitchToModeledOnManualAssignment('Resources');
+            if (!confirmed) {
+              e.target.value = this.character.resources ? this.character.resources.rankName : 'Typical';
+              return;
+            }
+            this.applySwitchToModeledMode();
           }
           this.character.setResourceRank(e.target.value);
           this.recordCharacterEdit(`Updated Resources to ${e.target.value}`, 'ability');
@@ -1893,13 +2679,21 @@ const App = {
       }
       if (!bgResSel.dataset.bound) {
         bgResSel.dataset.bound = 'true';
-        bgResSel.addEventListener('change', (e) => {
-          if (this.character && this.character.isCreationSetupPending) {
+        bgResSel.addEventListener('change', async (e) => {
+          if (this.character && this.character.isCreationSetupPending && this.character.creationMode !== 'tsr') {
             this.showStatusToast('⚠️ Please choose your Starting Tier and Physical Form before spending CP.');
             this.openCreationWizardModal();
             this.renderPointBuy();
             this.renderBackground();
             return;
+          }
+          if (this.character && this.character.creationMode === 'tsr' && (!this.character.isModeledMode || !this.character.isModeledMode())) {
+            const confirmed = await this.promptSwitchToModeledOnManualAssignment('Resources');
+            if (!confirmed) {
+              e.target.value = this.character.resources ? this.character.resources.rankName : 'Typical';
+              return;
+            }
+            this.applySwitchToModeledMode();
           }
           this.character.setResourceRank(e.target.value);
           this.recordCharacterEdit(`Updated Resources to ${e.target.value}`, 'ability');
@@ -2047,7 +2841,7 @@ const App = {
     const stuntPowerSel = document.getElementById('stunt-emulated-power-select');
     if (stuntPowerSel && Array.isArray(globalThis.MSH_POWERS)) {
       const sorted = [...globalThis.MSH_POWERS].sort((a, b) => a.name.localeCompare(b.name));
-      stuntPowerSel.innerHTML = sorted.map(p => `<option value="${p.id}">${p.name} (${p.category})</option>`).join('');
+      stuntPowerSel.innerHTML = '<option value="">- Select emulated power -</option>' + sorted.map(p => `<option value="${p.id}">${p.name} (${p.category})</option>`).join('');
     }
   },
 
@@ -2065,10 +2859,12 @@ const App = {
     this.renderTalents();
     this.renderBackground();
     this.renderCheatSheetTable();
+    this.renderCheatSheetCombat();
     this.renderCheatSheetMaterials();
     this.renderCheatSheetMovement();
     this.renderKnownBlueprints();
     this.syncInventionTalentAutoDetect();
+    this.updateStickyHeaderHeight();
   },
 
   renderHeader() {
@@ -2087,6 +2883,10 @@ const App = {
     document.getElementById('tab-equipment-count').textContent = this.character.equipment.length;
   },
 
+  updateCPBlock() {
+    this.renderPointBuy();
+  },
+
   renderPointBuy() {
     const pts = this.character.calculateSpentPoints();
     document.getElementById('header-points-spent').textContent = pts.totalSpent;
@@ -2101,17 +2901,34 @@ const App = {
       badge.style.borderColor = pts.remaining < 0 ? '#ef4444' : 'var(--marvel-gold)';
     }
 
-    document.getElementById('spent-abilities').textContent = pts.breakdown.abilities;
-    document.getElementById('spent-powers').textContent = pts.breakdown.powers;
-    document.getElementById('spent-talents').textContent = pts.breakdown.talents;
-    document.getElementById('spent-contacts').textContent = pts.breakdown.contacts;
-    document.getElementById('spent-resources').textContent = pts.breakdown.resources;
+    // Legacy and compact breakdown elements
+    const spentAbil = document.getElementById('spent-abilities');
+    const spentPwr = document.getElementById('spent-powers');
+    const spentTal = document.getElementById('spent-talents');
+    const spentCon = document.getElementById('spent-contacts');
+    const spentRes = document.getElementById('spent-resources');
+    if (spentAbil) spentAbil.textContent = pts.breakdown.abilities;
+    if (spentPwr) spentPwr.textContent = pts.breakdown.powers;
+    if (spentTal) spentTal.textContent = pts.breakdown.talents;
+    if (spentCon) spentCon.textContent = pts.breakdown.contacts;
+    if (spentRes) spentRes.textContent = pts.breakdown.resources;
+
+    const compactAbil = document.getElementById('compact-spent-abilities');
+    const compactPwr = document.getElementById('compact-spent-powers');
+    const compactTal = document.getElementById('compact-spent-talents');
+    const compactCon = document.getElementById('compact-spent-contacts');
+    const compactRes = document.getElementById('compact-spent-resources');
+    if (compactAbil) compactAbil.textContent = pts.breakdown.abilities;
+    if (compactPwr) compactPwr.textContent = pts.breakdown.powers;
+    if (compactTal) compactTal.textContent = pts.breakdown.talents;
+    if (compactCon) compactCon.textContent = pts.breakdown.contacts;
+    if (compactRes) compactRes.textContent = pts.breakdown.resources;
 
     const isLocked = !!(this.character && this.character.isCreationSetupPending);
 
     const stripTierEl = document.getElementById('strip-tier-display');
     if (stripTierEl) {
-      const baseTierText = this.character ? (this.character.pointTier === 'custom' ? `${this.character.basePointBudget || this.character.pointBudget} CP (Custom)` : `${this.character.pointTier} CP`) : '400 CP';
+      const baseTierText = this.character ? (this.character.pointTier === 'custom' ? `${this.character.basePointBudget || this.character.pointBudget} CP (Custom)` : `${this.character.pointTier} CP`) : '300 CP';
       const adj = this.character ? (this.character.cpAdjustment || 0) : 0;
       let displayTier = baseTierText;
       if (adj !== 0) {
@@ -2119,6 +2936,11 @@ const App = {
       }
       stripTierEl.textContent = isLocked ? `${displayTier} [Setup Pending]` : displayTier;
       stripTierEl.style.color = isLocked ? '#f59e0b' : 'var(--marvel-gold)';
+    }
+
+    const stripTierName = document.getElementById('strip-tier-name');
+    if (stripTierName) {
+      stripTierName.textContent = this.getTierDisplayName(this.character ? this.character.pointTier : '300');
     }
 
     const stripTierBtn = document.getElementById('strip-tier-button');
@@ -2156,25 +2978,246 @@ const App = {
       stripFormEl.textContent = formName;
     }
 
+    const isTsr = (this.character && this.character.creationMode === 'tsr');
+    const isFinalized = !!(this.character && this.character.isCreationFinalized);
+
+    const cmfView = document.getElementById('cp-block-cmf-view');
+    const tsrView = document.getElementById('cp-block-tsr-view');
+    const modeIcon = document.getElementById('strip-mode-icon');
+    const btnOpenTsrGen = document.getElementById('btn-open-tsr-generator');
+    const budgetLabel = document.getElementById('strip-budget-label');
+
+    const isModeled = isTsr && !!(this.character && this.character.isModeledMode && this.character.isModeledMode());
+
+    const activeModeKey = this.getCreationModeKey();
+
+    const topModeTag = document.getElementById('top-creation-mode-tag');
+    if (topModeTag) {
+      topModeTag.style.display = 'none';
+      topModeTag.textContent = this.getCreationModeDisplayName(activeModeKey);
+    }
+
+    const activeModeDisplayName = this.getCreationModeDisplayName(activeModeKey);
+
+    const btnCreationModePicker = document.getElementById('btn-creation-mode-picker');
+    const modeBtnText = document.getElementById('creation-mode-btn-text');
+    if (btnCreationModePicker) {
+      btnCreationModePicker.style.display = isFinalized ? 'none' : 'inline-flex';
+      btnCreationModePicker.disabled = isFinalized;
+      if (modeBtnText) {
+        modeBtnText.textContent = `Mode: ${activeModeDisplayName}`;
+      } else {
+        btnCreationModePicker.innerHTML = `<span class="mode-btn-icon" aria-hidden="true">⚙️</span> <span id="creation-mode-btn-text">Mode: ${activeModeDisplayName}</span> <span class="mode-btn-caret" aria-hidden="true" style="font-size: 10pt; opacity: 0.85; margin-left: 2px;">▾</span>`;
+      }
+      btnCreationModePicker.title = `Current Creation Mode: ${activeModeDisplayName} (Click to switch ruleset or character generation mode)`;
+    }
+
+    const selCreationMode = document.getElementById('select-creation-mode');
+    const creationModeDropdownContainer = document.getElementById('creation-mode-dropdown-container');
+    if (creationModeDropdownContainer) {
+      creationModeDropdownContainer.style.display = 'none';
+    }
+    if (selCreationMode) {
+      selCreationMode.value = activeModeKey;
+      selCreationMode.disabled = isFinalized;
+    }
+
+    // Creation Bar Action Buttons (Roll Tables, Set Tier) & Tier Dropdown
+    const creationTierContainer = document.getElementById('creation-tier-container');
+    const selPointTier = document.getElementById('select-point-tier');
+    const tsrSubmodeToggle = document.getElementById('tsr-submode-split-toggle');
     const btnWizard = document.getElementById('btn-open-creation-wizard');
+
+    const isPointBuyMode = (activeModeKey === 'cmf-cp-buy' || activeModeKey === 'tsr-cp-buy' || (!isTsr && !activeModeKey.includes('standard') && !activeModeKey.includes('modeled')));
+    const isTsrRandomOrModeled = (activeModeKey === 'tsr-standard' || activeModeKey === 'tsr-modeled' || activeModeKey === 'cmf-standard' || activeModeKey === 'cmf-modeled' || isTsr);
+
+    // Move 'Roll Tables' and 'Set Tier' buttons next to generation mode dropdown
+    if (btnOpenTsrGen) {
+      btnOpenTsrGen.style.display = (isTsrRandomOrModeled && !isFinalized) ? 'inline-flex' : 'none';
+      btnOpenTsrGen.textContent = '🎲 Roll Tables';
+      btnOpenTsrGen.title = 'Open TSR 1986 Character Generator & Roll Tables';
+    }
+
     if (btnWizard) {
-      btnWizard.style.display = isLocked ? 'inline-flex' : 'none';
+      btnWizard.style.display = (isPointBuyMode && !isFinalized) ? 'inline-flex' : 'none';
+      btnWizard.textContent = '⚡ Set Tier';
+      btnWizard.title = 'Set Starting Tier, CP Budget & Physical Form';
     }
 
+    if (creationTierContainer) {
+      creationTierContainer.style.display = (isPointBuyMode && !isFinalized) ? 'inline-flex' : 'none';
+    }
+    if (selPointTier && this.character) {
+      selPointTier.value = this.character.pointTier || '300';
+      selPointTier.disabled = isFinalized;
+    }
+
+    // Submode toggle is redundant with Mode dropdown; hide it
+    if (tsrSubmodeToggle) {
+      tsrSubmodeToggle.style.display = 'none';
+    }
+
+    if (isTsr) {
+      if (cmfView) cmfView.style.display = 'none';
+      if (tsrView) tsrView.style.display = 'flex';
+      if (budgetLabel) budgetLabel.style.display = 'none';
+      if (stripTierEl) stripTierEl.style.display = 'none';
+      if (adjustBadge) adjustBadge.style.display = 'none';
+
+      const tsrLabel = document.getElementById('tsr-strip-label');
+      const tsrMidIcon = document.getElementById('tsr-middle-row-icon');
+      const tsrMidStats = document.getElementById('tsr-middle-row-stats');
+      const tsrKpPill = document.getElementById('tsr-kp-breakdown-pill');
+
+      const compactTsrRandom = document.getElementById('compact-tsr-random-breakdown');
+      const compactTsrModeled = document.getElementById('compact-tsr-modeled-breakdown');
+
+      if (isModeled) {
+        if (modeIcon) modeIcon.textContent = '📐';
+        if (tsrMidIcon) tsrMidIcon.textContent = '⚖️';
+        if (tsrLabel) tsrLabel.textContent = 'KP Cost:';
+
+        const kpData = this.character.calculateModeledKPCost ? this.character.calculateModeledKPCost() : null;
+        const totalKP = kpData ? kpData.totalKPCost : 0;
+        const kpLimit = kpData ? kpData.kpLimit : 0;
+        const remaining = kpData ? kpData.remaining : null;
+        const pCount = this.character.powers ? this.character.powers.length : 0;
+        const tCount = this.character.talents ? this.character.talents.length : 0;
+        const cCount = this.character.contacts ? this.character.contacts.length : 0;
+
+        if (tsrMidStats) {
+          if (kpLimit > 0) {
+            tsrMidStats.innerHTML = `<strong style="color: var(--marvel-gold); font-size: 10.5pt;">${totalKP.toLocaleString()} KP</strong> <span style="color: ${remaining >= 0 ? '#38bdf8' : '#ef4444'}; font-weight: 700; font-size: 10pt;">(${remaining >= 0 ? remaining.toLocaleString() + ' left' : Math.abs(remaining).toLocaleString() + ' OVER'})</span>`;
+          } else {
+            tsrMidStats.innerHTML = `<strong style="color: var(--marvel-gold); font-size: 10.5pt;">${totalKP.toLocaleString()} KP</strong> <span style="color: var(--text-muted); font-size: 10pt;">(${pCount} Pwr · ${tCount} Tal · ${cCount} Con)</span>`;
+          }
+        }
+        if (tsrKpPill) tsrKpPill.style.display = 'none';
+
+        if (compactTsrRandom) compactTsrRandom.style.display = 'none';
+        if (compactTsrModeled) compactTsrModeled.style.display = 'inline-flex';
+        const kpTotalEl = document.getElementById('compact-kp-total');
+        const kpAbilEl = document.getElementById('compact-kp-abilities');
+        const kpPwrEl = document.getElementById('compact-kp-powers');
+        const kpTalEl = document.getElementById('compact-kp-talents');
+        const kpConEl = document.getElementById('compact-kp-contacts');
+        if (kpTotalEl) kpTotalEl.textContent = totalKP.toLocaleString();
+        const kpBreakdown = (kpData && kpData.breakdown) || { abilities: 0, powers: 0, talents: 0, contacts: 0 };
+        if (kpAbilEl) kpAbilEl.textContent = kpBreakdown.abilities ? kpBreakdown.abilities.toLocaleString() : '0';
+        if (kpPwrEl) kpPwrEl.textContent = kpBreakdown.powers ? kpBreakdown.powers.toLocaleString() : '0';
+        if (kpTalEl) kpTalEl.textContent = kpBreakdown.talents ? kpBreakdown.talents.toLocaleString() : '0';
+        if (kpConEl) kpConEl.textContent = kpBreakdown.contacts ? kpBreakdown.contacts.toLocaleString() : '0';
+      } else {
+        if (modeIcon) modeIcon.textContent = '🎲';
+        if (tsrMidIcon) tsrMidIcon.textContent = '🎲';
+        if (tsrLabel) tsrLabel.textContent = 'Random rolls:';
+        if (tsrKpPill) tsrKpPill.style.display = 'none';
+
+        const pSlots = (this.character.getMaxPowerSlots ? this.character.getMaxPowerSlots() : this.character.tsrPowerSlots) ?? (this.character.powers ? this.character.powers.length : 0);
+        const tSlots = (this.character.tsrTalentSlots !== undefined && this.character.tsrTalentSlots !== null)
+          ? this.character.tsrTalentSlots
+          : 0;
+        const cSlots = (this.character.tsrContactSlots !== undefined && this.character.tsrContactSlots !== null)
+          ? this.character.tsrContactSlots
+          : 0;
+        const pUsed = this.character.getUsedPowerSlots ? this.character.getUsedPowerSlots() : (this.character.powers ? this.character.powers.length : 0);
+        const tCount = this.character.talents ? this.character.talents.length : 0;
+        const cCount = this.character.contacts ? this.character.contacts.length : 0;
+
+        if (tsrMidStats) {
+          tsrMidStats.innerHTML = `<span id="tsr-strip-powers-count">${pUsed}/${pSlots}</span> Pwr · <span id="tsr-strip-talents-count">${tCount}/${tSlots}</span> Tal · <span id="tsr-strip-contacts-count">${cCount}/${cSlots}</span> Con`;
+        }
+
+        const legacyPowersCount = document.getElementById('tsr-strip-powers-count');
+        const legacyTalentsCount = document.getElementById('tsr-strip-talents-count');
+        const legacyContactsCount = document.getElementById('tsr-strip-contacts-count');
+        if (legacyPowersCount) legacyPowersCount.textContent = `${pUsed}/${pSlots}`;
+        if (legacyTalentsCount) legacyTalentsCount.textContent = `${tCount}/${tSlots}`;
+        if (legacyContactsCount) legacyContactsCount.textContent = `${cCount}/${cSlots}`;
+
+        if (compactTsrRandom) compactTsrRandom.style.display = 'inline-flex';
+        if (compactTsrModeled) compactTsrModeled.style.display = 'none';
+        const tsrPwr = document.getElementById('compact-tsr-powers');
+        const tsrTal = document.getElementById('compact-tsr-talents');
+        const tsrCon = document.getElementById('compact-tsr-contacts');
+        if (tsrPwr) tsrPwr.textContent = `${pUsed}/${pSlots}`;
+        if (tsrTal) tsrTal.textContent = `${tCount}/${tSlots}`;
+        if (tsrCon) tsrCon.textContent = `${cCount}/${cSlots}`;
+      }
+    } else {
+      if (cmfView) cmfView.style.display = 'flex';
+      if (tsrView) tsrView.style.display = 'none';
+      if (modeIcon) modeIcon.textContent = '⚡';
+      if (budgetLabel) {
+        budgetLabel.style.display = 'none';
+      }
+      if (stripTierEl) {
+        stripTierEl.style.display = 'none';
+      }
+    }
+
+    const btnFinalize = document.getElementById('btn-finalize-creation');
+    if (btnFinalize) {
+      if (isFinalized) {
+        btnFinalize.style.display = 'none';
+      } else {
+        btnFinalize.style.display = 'inline-flex';
+        btnFinalize.classList.remove(
+          'mode-tsr-standard', 'mode-tsr-modeled', 'mode-tsr-cp-buy',
+          'mode-cmf-standard', 'mode-cmf-modeled', 'mode-cmf-cp-buy',
+          'mode-cmf', 'tsr-mode-tag', 'cmf-mode-tag', 'modeled-mode-tag', 'random-mode-tag'
+        );
+        const modeText = this.getCreationModeDisplayName(activeModeKey);
+        btnFinalize.classList.add(`mode-${activeModeKey}`);
+        if (activeModeKey === 'cmf-cp-buy') {
+          btnFinalize.classList.add('mode-cmf');
+        }
+
+        const validation = this.getCreationValidationState();
+        if (validation.ready) {
+          btnFinalize.textContent = `Finalize (${modeText})`;
+          btnFinalize.classList.remove('creating');
+          btnFinalize.classList.add('ready');
+          btnFinalize.title = `All creation conditions met for ${modeText}. Click to finalize character creation!`;
+        } else {
+          btnFinalize.textContent = modeText;
+          btnFinalize.classList.remove('ready');
+          btnFinalize.classList.add('creating');
+          btnFinalize.title = `Creation in progress (${modeText}):\n• ${validation.unmet.join('\n• ')}`;
+        }
+      }
+    }
+
+    const stripTierPrefixEl = document.getElementById('strip-tier-prefix-label');
     const stripTierNameEl = document.getElementById('strip-tier-name');
+    const tsrSubModeToggle = document.getElementById('tsr-submode-split-toggle');
+
     if (stripTierNameEl) {
-      const tierVal = this.character ? this.character.pointTier : '400';
-      stripTierNameEl.textContent = this.getTierName(tierVal);
+      // Kept permanently hidden to eliminate right-margin overrun; mode is displayed by the prominent mode button on the left
+      stripTierNameEl.style.display = 'none';
+      if (isTsr) {
+        const prefix = (this.universalTableMode === 'standard') ? 'TSR' : 'CMF';
+        stripTierNameEl.textContent = isModeled ? `${prefix} Modeled (Free-Form)` : `${prefix} 1986 Random Roll`;
+      } else {
+        const tierVal = this.character ? this.character.pointTier : '300';
+        stripTierNameEl.textContent = this.getTierName(tierVal);
+      }
+    }
+    if (stripTierPrefixEl) {
+      stripTierPrefixEl.textContent = 'Tier:';
+    }
+    if (tsrSubModeToggle) {
+      tsrSubModeToggle.style.display = 'none';
     }
 
-    this.updateCPSpendingLockUI(isLocked);
+    this.updateCPSpendingLockUI(isLocked && !isTsr);
 
     const tierSelect = document.getElementById('point-tier-select');
     if (tierSelect) tierSelect.value = this.character.pointTier;
   },
 
   getTierName(tier) {
-    const t = String(tier || (this.character ? this.character.pointTier : '400')).toLowerCase();
+    const t = String(tier || (this.character ? this.character.pointTier : '300')).toLowerCase();
     switch (t) {
       case '150':
       case 'tier_150':
@@ -2188,11 +3231,11 @@ const App = {
       case '300':
       case 'tier_300':
       case 'costumed_adventurer':
+      case 'standard':
         return 'Costumed Adventurer / Low-Powered';
       case '400':
       case 'tier_400':
       case 'established_hero':
-      case 'standard':
         return 'Established Hero / Mutant';
       case '500':
       case 'tier_500':
@@ -2276,25 +3319,95 @@ const App = {
       }
     }
 
-    const isTestMode = this.karmaMode === 'test';
-    const curK = isTestMode ? '∞' : this.character.currentKarma;
+    const isCreation = !this.character.isCreationFinalized;
+    const isTestMode = (this.karmaMode === 'test') && !isCreation;
+    const curK = isTestMode ? '∞' : (isCreation ? this.character.calculateBaseKarma() : this.character.currentKarma);
     const kCurEl = document.getElementById('vital-karma-cur');
     if (kCurEl) kCurEl.textContent = curK;
+    const progKarmaVal = document.getElementById('progression-karma-val');
+    if (progKarmaVal) progKarmaVal.textContent = curK;
 
-    // Render Karma Mode Badge
+    // Steppers and manual input lock during creation phase
+    const hMinusBtn = document.getElementById('btn-health-minus1');
+    const hPlusBtn = document.getElementById('btn-health-plus1');
+    const hInput = document.getElementById('input-health-adjust');
+    const hSignBtn = document.getElementById('btn-health-sign-toggle');
+    const hResetBtn = document.getElementById('btn-health-reset');
+    if (hMinusBtn) {
+      hMinusBtn.disabled = isCreation;
+      hMinusBtn.title = isCreation ? 'Disabled during Character Creation' : '-1 Health (Hold to auto-decrement)';
+    }
+    if (hPlusBtn) {
+      hPlusBtn.disabled = isCreation;
+      hPlusBtn.title = isCreation ? 'Disabled during Character Creation' : '+1 Health (Hold to auto-increment)';
+    }
+    if (hInput) {
+      hInput.disabled = isCreation;
+      hInput.placeholder = isCreation ? 'Lock' : '';
+      hInput.title = isCreation ? 'Health is locked during Character Creation.' : 'Manual Health adjustment (+### or -###). Type amount and press Enter.';
+    }
+    if (hSignBtn) {
+      hSignBtn.disabled = isCreation;
+      hSignBtn.title = isCreation ? 'Disabled during Character Creation' : 'Toggle -/+ sign prefix in Health edit field';
+    }
+    if (hResetBtn) {
+      hResetBtn.disabled = isCreation;
+      hResetBtn.title = isCreation ? 'Disabled during Character Creation' : 'Reset Health: Restore health to full normal amount';
+    }
+
+    const kMinusBtn = document.getElementById('btn-karma-minus1');
+    const kPlusBtn = document.getElementById('btn-karma-plus1');
+    const kInput = document.getElementById('input-karma-adjust');
+    const kSignBtn = document.getElementById('btn-karma-sign-toggle');
+    if (kMinusBtn) {
+      kMinusBtn.disabled = isCreation;
+      kMinusBtn.title = isCreation ? 'Disabled during Character Creation' : '-1 Karma (Hold to auto-decrement)';
+    }
+    if (kPlusBtn) {
+      kPlusBtn.disabled = isCreation;
+      kPlusBtn.title = isCreation ? 'Disabled during Character Creation' : '+1 Karma (Hold to auto-increment)';
+    }
+    if (kInput) {
+      kInput.disabled = isCreation;
+      kInput.placeholder = isCreation ? 'Lock' : '';
+      kInput.title = isCreation ? 'Karma is locked to R+I+P during Character Creation.' : 'Manual Karma adjustment (+### or -###). Type amount and press Enter.';
+    }
+    if (kSignBtn) {
+      kSignBtn.disabled = isCreation;
+      kSignBtn.title = isCreation ? 'Disabled during Character Creation' : 'Toggle -/+ sign prefix in Karma edit field';
+    }
+
+    // Render Karma Mode Trigger & Badge
+    const karmaTrigger = document.getElementById('vital-karma-mode-trigger');
+    if (karmaTrigger) {
+      karmaTrigger.title = isCreation
+        ? 'Karma Operating Mode: Locked during Character Creation Phase (Finalize creation to unlock)'
+        : 'Karma Operating Mode: Click to switch between Session, Advancement, and Test Mode';
+    }
+
     const modeBadge = document.getElementById('vital-karma-mode-badge');
     if (modeBadge) {
-      const mode = this.karmaMode || 'session';
-      modeBadge.className = `vital-karma-mode-badge mode-${mode}`;
-      if (mode === 'test') {
-        modeBadge.textContent = 'Test (∞)';
-        modeBadge.title = 'Current Mode: Test Mode (Infinite KP) — Click to change';
-      } else if (mode === 'advancement') {
-        modeBadge.textContent = 'Advancement';
-        modeBadge.title = 'Current Mode: Advancement Mode — Click to change';
+      if (isCreation) {
+        modeBadge.className = 'vital-karma-mode-badge mode-creation';
+        modeBadge.textContent = '';
+        modeBadge.style.display = 'none';
+        modeBadge.title = '';
       } else {
-        modeBadge.textContent = 'Session';
-        modeBadge.title = 'Current Mode: Session Mode (Standard Play) — Click to change';
+        const mode = this.karmaMode || 'session';
+        modeBadge.className = `vital-karma-mode-badge mode-${mode}`;
+        if (mode === 'test') {
+          modeBadge.style.display = 'inline-flex';
+          modeBadge.textContent = 'Test (∞)';
+          modeBadge.title = 'Current Mode: Test Mode (Infinite KP) — Click to change';
+        } else if (mode === 'advancement') {
+          modeBadge.style.display = 'inline-flex';
+          modeBadge.textContent = 'Advancement';
+          modeBadge.title = 'Current Mode: Advancement Mode — Click to change';
+        } else {
+          modeBadge.style.display = 'none';
+          modeBadge.textContent = 'Session';
+          modeBadge.title = 'Current Mode: Session Mode (Standard Play) — Click to change';
+        }
       }
     }
 
@@ -2370,7 +3483,25 @@ const App = {
       if (sel) sel.value = ab.rankName;
 
       const numEl = document.getElementById(`rank-num-${k}`);
-      if (numEl) numEl.textContent = ab.rankValue;
+      if (numEl) {
+        numEl.textContent = ab.rankValue;
+        if (this.humanAbilityCaps && this.character && this.character.isHuman()) {
+          const hasPower = this.character.hasPowerForAbility(k);
+          const hCap = (typeof UniversalTableEngine !== 'undefined' && UniversalTableEngine.getHumanAbilityCap)
+            ? UniversalTableEngine.getHumanAbilityCap(k, this.universalTableMode)
+            : null;
+          if (!hasPower && hCap && ab.rankValue > hCap.rankValue) {
+            numEl.title = `⚠️ Exceeds Human Cap: ${hCap.rankName} (${hCap.rankValue}). Exceeding requires an ability-enhancing power.`;
+            numEl.style.color = '#f87171';
+          } else {
+            numEl.title = '';
+            numEl.style.color = '';
+          }
+        } else if (numEl.style.color === 'rgb(248, 113, 113)') {
+          numEl.title = '';
+          numEl.style.color = '';
+        }
+      }
 
       const rollBtn = document.getElementById(`roll-btn-${k}`);
       if (rollBtn) {
@@ -2423,6 +3554,167 @@ const App = {
         }, e);
       };
     }
+
+    this.renderMainFormAdjustmentsBar();
+  },
+
+  renderMainFormAdjustmentsBar() {
+    const bar = document.getElementById('main-form-adjustments-bar');
+    if (!bar || !this.character) return;
+
+    const formDef = (typeof this.character.getFormDefinition === 'function')
+      ? this.character.getFormDefinition()
+      : null;
+
+    if (!formDef) {
+      bar.style.display = 'none';
+      bar.innerHTML = '';
+      return;
+    }
+
+    const isFinalized = !!this.character.isCreationFinalized;
+    const statLabels = {
+      F: 'Fighting (F)',
+      A: 'Agility (A)',
+      S: 'Strength (S)',
+      E: 'Endurance (E)',
+      R: 'Reason (R)',
+      I: 'Intuition (I)',
+      P: 'Psyche (P)'
+    };
+
+    const fixedChips = [];
+    if (formDef.abilityMods) {
+      Object.entries(formDef.abilityMods).forEach(([abbr, cs]) => {
+        if (cs !== 0) {
+          fixedChips.push(`<span class="meta-tag" style="background: ${cs > 0 ? 'rgba(34, 197, 94, 0.16)' : 'rgba(239, 68, 68, 0.16)'}; color: ${cs > 0 ? '#4ade80' : '#f87171'}; border-color: ${cs > 0 ? 'rgba(34, 197, 94, 0.35)' : 'rgba(239, 68, 68, 0.35)'}; font-size: 9pt; padding: 1px 6px;">${abbr} ${cs > 0 ? '+' : ''}${cs}CS</span>`);
+        }
+      });
+    }
+
+    const healthMult = (typeof this.character.getFormHealthMultiplier === 'function')
+      ? this.character.getFormHealthMultiplier()
+      : 1;
+    if (healthMult > 1) {
+      fixedChips.push(`<span class="meta-tag" style="background: rgba(56, 189, 248, 0.16); color: #38bdf8; border-color: rgba(56, 189, 248, 0.35); font-size: 9pt; padding: 1px 6px;">2× Health</span>`);
+    }
+
+    if (formDef.resourcesBase && formDef.resourcesBase !== 'Typical') {
+      fixedChips.push(`<span class="meta-tag" style="background: rgba(245, 158, 11, 0.14); color: var(--marvel-gold); border-color: rgba(245, 158, 11, 0.35); font-size: 9pt; padding: 1px 6px;">Base Res: ${formDef.resourcesBase}</span>`);
+    } else if (formDef.resourcesShift && formDef.resourcesShift !== 0) {
+      fixedChips.push(`<span class="meta-tag" style="background: rgba(245, 158, 11, 0.14); color: var(--marvel-gold); border-color: rgba(245, 158, 11, 0.35); font-size: 9pt; padding: 1px 6px;">Res ${formDef.resourcesShift > 0 ? '+' : ''}${formDef.resourcesShift}CS</span>`);
+    }
+
+    if (formDef.startingPopularity !== undefined && formDef.startingPopularity !== 10) {
+      fixedChips.push(`<span class="meta-tag" style="background: rgba(168, 85, 247, 0.15); color: #c084fc; border-color: rgba(168, 85, 247, 0.35); font-size: 9pt; padding: 1px 6px;">Base Pop: ${formDef.startingPopularity}</span>`);
+    }
+
+    let pickersHtml = '';
+
+    if (formDef.abilityChoice) {
+      const allowedCodes = (typeof this.character.getAllowedFormAbilityChoices === 'function')
+        ? this.character.getAllowedFormAbilityChoices(formDef.id)
+        : (formDef.abilityChoice.allowed || formDef.abilityChoice.allowedAbilities || ['F', 'A', 'S', 'E', 'R', 'I', 'P']).map(x => String(x).charAt(0).toUpperCase());
+      const curChoice = (typeof this.character.normalizeAbilityCode === 'function')
+        ? (this.character.normalizeAbilityCode(this.character.formAbilityChoice) || '')
+        : (this.character.formAbilityChoice || '');
+      const csVal = formDef.abilityChoice.shift ?? formDef.abilityChoice.cs ?? 1;
+      const opts = [
+        `<option value="" ${!curChoice ? 'selected' : ''}>-- Choose +${csVal}CS Ability --</option>`,
+        ...allowedCodes.map(abbr =>
+          `<option value="${abbr}" ${curChoice === abbr ? 'selected' : ''}>${statLabels[abbr] || abbr} (+${csVal}CS)</option>`
+        )
+      ].join('');
+
+      pickersHtml += `
+        <div style="display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+          <label for="main-form-ability-choice-select" style="font-size: 9.5pt; font-weight: 700; color: var(--marvel-gold); white-space: nowrap;">
+            ⚡ ${formDef.abilityChoice.label || `+${csVal}CS Ability Bonus`}:
+          </label>
+          <select id="main-form-ability-choice-select" class="field-input compact" ${isFinalized ? 'disabled' : ''} style="font-size: 9.5pt; font-weight: 700; padding: 2px 8px; width: auto; min-width: 155px; color: ${curChoice ? '#4ade80' : '#f59e0b'}; border-color: ${curChoice ? 'rgba(74, 222, 128, 0.5)' : 'rgba(245, 158, 11, 0.6)'};">
+            ${opts}
+          </select>
+        </div>
+      `;
+    }
+
+    if (Array.isArray(formDef.extraPartOptions) && formDef.extraPartOptions.length > 0) {
+      const curPart = this.character.formExtraPart || 'arms';
+      const partOpts = formDef.extraPartOptions.map(opt =>
+        `<option value="${opt.id}" ${curPart === opt.id ? 'selected' : ''}>${opt.name}</option>`
+      ).join('');
+
+      pickersHtml += `
+        <div style="display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+          <label for="main-form-extra-part-select" style="font-size: 9.5pt; font-weight: 700; color: #38bdf8; white-space: nowrap;">
+            🧬 Extra Anatomy:
+          </label>
+          <select id="main-form-extra-part-select" class="field-input compact" ${isFinalized ? 'disabled' : ''} style="font-size: 9.5pt; font-weight: 700; padding: 2px 8px; width: auto; min-width: 210px; color: #38bdf8;">
+            ${partOpts}
+          </select>
+        </div>
+      `;
+    }
+
+    const hasContent = fixedChips.length > 0 || pickersHtml !== '' || !!formDef.specialRules;
+    if (!hasContent) {
+      bar.style.display = 'none';
+      bar.innerHTML = '';
+      return;
+    }
+
+    bar.style.display = 'block';
+    bar.innerHTML = `
+      <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+        <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+          <strong style="font-size: 9.5pt; color: var(--marvel-gold); text-transform: uppercase; letter-spacing: 0.4px;">🧬 ${formDef.name} Adjustments:</strong>
+          ${fixedChips.length > 0 ? fixedChips.join('') : '<span style="font-size: 9pt; color: var(--text-muted);">Standard Baseline</span>'}
+        </div>
+        ${pickersHtml ? `<div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">${pickersHtml}</div>` : ''}
+      </div>
+      ${formDef.specialRules ? `<div style="font-size: 9pt; color: #cbd5e1; margin-top: 4px; line-height: 1.35;"><em style="color: var(--text-muted);">Form Rules:</em> ${formDef.specialRules}</div>` : ''}
+    `;
+
+    const choiceSel = document.getElementById('main-form-ability-choice-select');
+    if (choiceSel) {
+      choiceSel.addEventListener('change', (e) => {
+        const val = e.target.value || null;
+        const wasBaseline = (typeof this.character.hasManualStatInvestments === 'function')
+          ? !this.character.hasManualStatInvestments()
+          : false;
+        this.character.setFormAbilityChoice(val);
+        if (wasBaseline && this.character.editLog && this.character.editLog[0] && this.character.editHistoryIndex === 0) {
+          this.character.editLog[0].snapshot = (typeof this.character.getCleanSnapshot === 'function')
+            ? this.character.getCleanSnapshot()
+            : JSON.parse(JSON.stringify(this.character.toJSON()));
+        } else {
+          this.recordCharacterEdit(`Selected ${formDef.name} +1CS bonus: ${val ? (statLabels[val] || val) : 'None'}`, 'ability');
+        }
+        this.saveState();
+        this.render();
+      });
+    }
+
+    const extraPartSel = document.getElementById('main-form-extra-part-select');
+    if (extraPartSel) {
+      extraPartSel.addEventListener('change', (e) => {
+        const val = e.target.value || 'arms';
+        const wasBaseline = (typeof this.character.hasManualStatInvestments === 'function')
+          ? !this.character.hasManualStatInvestments()
+          : false;
+        this.character.setFormExtraPart(val);
+        const optObj = (formDef.extraPartOptions || []).find(o => o.id === val);
+        if (wasBaseline && this.character.editLog && this.character.editLog[0] && this.character.editHistoryIndex === 0) {
+          this.character.editLog[0].snapshot = (typeof this.character.getCleanSnapshot === 'function')
+            ? this.character.getCleanSnapshot()
+            : JSON.parse(JSON.stringify(this.character.toJSON()));
+        } else {
+          this.recordCharacterEdit(`Selected Extra Anatomy: ${optObj ? optObj.name : val}`, 'ability');
+        }
+        this.saveState();
+        this.render();
+      });
+    }
   },
 
   renderDefenses() {
@@ -2442,6 +3734,26 @@ const App = {
     const ff = this.character.defenses.forceField;
     document.getElementById('def-force-field').textContent = ff.protection > 0 ? `${ff.rankName} (${ff.protection})` : 'None';
     document.getElementById('def-force-field-notes').textContent = ff.notes || 'No active force field';
+
+    const resCont = document.getElementById('def-resistances-container');
+    if (resCont) {
+      const resList = (this.character.defenses && Array.isArray(this.character.defenses.resistances))
+        ? this.character.defenses.resistances
+        : [];
+      if (resList.length > 0) {
+        resCont.style.display = 'block';
+        resCont.innerHTML = `<div style="font-weight: 700; color: var(--marvel-gold); margin-bottom: 3px; font-size: 9pt; text-transform: uppercase; letter-spacing: 0.4px;">🛡️ Innate / Form Resistances &amp; Vulnerabilities:</div>` +
+          `<div style="display: flex; flex-wrap: wrap; gap: 4px;">` +
+          resList.map(r => {
+            const isVuln = /vuln|double damage|x2 damage|\+1cs|\+2cs|-1cs|-2cs|-3cs|suffocat|drown|spoil/i.test(r) && !/immune|no |cannot/i.test(r);
+            return `<span style="display: inline-block; background: ${isVuln ? 'rgba(239, 68, 68, 0.14)' : 'rgba(56, 189, 248, 0.12)'}; border: 1px solid ${isVuln ? 'rgba(239, 68, 68, 0.35)' : 'rgba(56, 189, 248, 0.3)'}; border-radius: 4px; padding: 2px 6px; font-size: 9pt; color: ${isVuln ? '#fca5a5' : '#e2e8f0'};">${r}</span>`;
+          }).join('') +
+          `</div>`;
+      } else {
+        resCont.style.display = 'none';
+        resCont.innerHTML = '';
+      }
+    }
   },
 
   renderConditions() {
@@ -2517,7 +3829,7 @@ const App = {
       card.innerHTML = `
         <div class="attack-header">
           <button class="attack-roll-chip" data-atk-id="${atk.id}">
-            <span style="font-size: 1.25rem; color: var(--marvel-gold);">🎲</span>
+            <span style="font-size: 1.05rem; color: var(--marvel-gold); line-height: 1;">🎲</span>
             <span>${atk.name}</span>
           </button>
           <span class="rank-pill" style="background-color: ${effRank.color};">
@@ -2585,11 +3897,29 @@ const App = {
     const totalSlots = this.character.getTotalPowerSlots ? this.character.getTotalPowerSlots() : this.character.powers.length;
     const slotsBadge = document.getElementById('powers-slots-badge');
     if (slotsBadge) {
-      slotsBadge.textContent = `Slots: ${totalSlots} (${this.character.powers.length} powers)`;
+      if (this.character.creationMode === 'tsr') {
+        if (this.character.isModeledMode && this.character.isModeledMode()) {
+          const kpData = this.character.calculateModeledKPCost ? this.character.calculateModeledKPCost() : null;
+          const kpStr = kpData ? `${kpData.breakdown.powers.toLocaleString()} KP` : '';
+          slotsBadge.textContent = `Modeled: ${this.character.powers.length} power(s)${kpStr ? ` (${kpStr})` : ''}`;
+        } else {
+          const maxSlots = this.character.getMaxPowerSlots ? this.character.getMaxPowerSlots() : null;
+          const maxStr = maxSlots !== null ? `${maxSlots}` : 'Not Rolled';
+          slotsBadge.textContent = `Slots: ${totalSlots} / ${maxStr} (${this.character.powers.length} powers)`;
+        }
+      } else {
+        slotsBadge.textContent = `Slots: ${totalSlots} (${this.character.powers.length} powers)`;
+      }
     }
 
     if (this.character.powers.length === 0) {
-      container.innerHTML = '<p style="color: var(--text-muted);">No superhuman powers added yet. Use the form above to purchase powers with your CMF CP budget.</p>';
+      const isModeled = this.character.creationMode === 'tsr' && this.character.isModeledMode && this.character.isModeledMode();
+      const emptyMsg = this.character.creationMode === 'tsr'
+        ? (isModeled
+            ? 'No superhuman powers added yet. Select and configure powers freely from the catalog above without slot limits.'
+            : 'No superhuman powers added yet. Use the TSR Generator (🎲 TSR 1986 Generator) to roll powers or select them above to fill your rolled slots.')
+        : 'No superhuman powers added yet. Use the form above to purchase powers with your CMF CP budget.';
+      container.innerHTML = `<p style="color: var(--text-muted);">${emptyMsg}</p>`;
       return;
     }
 
@@ -2613,14 +3943,23 @@ const App = {
       const rankMult = isExp ? 2 : 1;
       const isTaxActive = !!(this.superiorOptionCost || (this.character && this.character.superiorOptionCost));
       const surcharge = (isTaxActive && p.optionSurcharge) ? p.optionSurcharge : 0;
-      const cpCost = baseCost + (p.rankValue * rankMult) + surcharge;
+      let limitationDiscount = 0;
+      if (Array.isArray(p.limitations)) {
+        p.limitations.forEach(lim => {
+          limitationDiscount += (parseInt(lim.cpDiscount, 10) || 0);
+        });
+      } else if (p.limitation && p.limitation.cpDiscount) {
+        limitationDiscount = parseInt(p.limitation.cpDiscount, 10) || 0;
+      }
+      const rawCpCost = baseCost + (p.rankValue * rankMult) + surcharge;
+      const cpCost = Math.max(5, rawCpCost - limitationDiscount);
 
       const activeRanks = (typeof UniversalTableEngine !== 'undefined' && UniversalTableEngine.ranks)
         ? UniversalTableEngine.ranks.filter(r => r.name !== 'Shift 0' && !r.name.startsWith('Class') && r.name !== 'Beyond')
         : (typeof RANKS !== 'undefined' ? RANKS.slice(1, 14) : []);
 
       const rankSelectOptionsHtml = activeRanks.map(r => {
-        const costForRank = baseCost + (r.num * rankMult) + surcharge;
+        const costForRank = Math.max(5, baseCost + (r.num * rankMult) + surcharge - limitationDiscount);
         const isSelected = r.name.toLowerCase() === pRank.name.toLowerCase();
         return `<option value="${r.name}" ${isSelected ? 'selected' : ''}>${r.name} (${r.num}) - ${costForRank} CP</option>`;
       }).join('');
@@ -2667,7 +4006,16 @@ const App = {
         const curChoice = optDef.choices?.find(c => c.key === p.selectedOption);
         const choiceName = curChoice ? curChoice.label : p.selectedOption;
         const subText = p.optionSubChoice ? ` (${p.optionSubChoice})` : '';
-        if (p.optionAcquisitionMethod === 'rolled') {
+        const isTsr = (this.character && this.character.creationMode === 'tsr');
+        if (isTsr) {
+          if (p.optionAcquisitionMethod === 'rolled') {
+            optionBadgeHtml = `<span class="meta-tag tag-power-option" title="Rolled Manifestation - Click to configure">🎲 ${choiceName}${subText}</span>`;
+          } else if (curChoice?.isSuperior || p.isSuperiorOption) {
+            optionBadgeHtml = `<span class="meta-tag tag-power-option tag-option-superior" title="Superior Option - Click to configure">⚡ ${choiceName}${subText}</span>`;
+          } else {
+            optionBadgeHtml = `<span class="meta-tag tag-power-option" title="Configured Option - Click to configure">⚙️ ${choiceName}${subText}</span>`;
+          }
+        } else if (p.optionAcquisitionMethod === 'rolled') {
           optionBadgeHtml = `<span class="meta-tag tag-power-option" title="Rolled Manifestation (0 CP Surcharge) - Click to configure">🎲 ${choiceName}${subText}</span>`;
         } else if (p.optionSurcharge > 0 && isTaxActive) {
           optionBadgeHtml = `<span class="meta-tag tag-power-option tag-option-superior" title="Superior Option (+${p.optionSurcharge} CP Surcharge) - Click to configure">⚡ ${choiceName}${subText}</span>`;
@@ -2697,6 +4045,9 @@ const App = {
       if (details.speed) {
         detailItems.push(`<div class="power-detail-item"><span class="power-detail-label">⚡ Speed:</span> <span class="power-detail-val">${details.speed}</span></div>`);
       }
+      if (p.limitation) {
+        detailItems.push(`<div class="power-detail-item power-limitation-detail"><span class="power-detail-label">⚖️ Limitation:</span> <span class="power-detail-val"><strong>${p.limitation.name}</strong> (${p.limitation.rankName || 'Typical'}${p.limitation.cpDiscount ? `, -${p.limitation.cpDiscount} CP` : ''}) — ${p.limitation.description || ''}</span></div>`);
+      }
 
       // Check for custom player notes (filtering out legacy auto-generated 150-char description substrings and default placeholders)
       const catalogPower = (globalThis.MSH_POWERS || []).find(cp => cp.name === p.name || cp.code === p.code || cp.id === p.code);
@@ -2716,9 +4067,16 @@ const App = {
         adjustedBadgeHtml = `<span class="meta-tag tag-power-adjusted" title="Power Adjusted: +${p.adjustments.shift} CS ${incAspect}, -${p.adjustments.shift} CS ${decAspect}">⚡ Adjusted</span>`;
       }
 
+      let limitationBadgeHtml = '';
+      if (p.limitation) {
+        const limRank = p.limitation.rankName ? ` [${p.limitation.rankName}]` : '';
+        const limDisc = p.limitation.cpDiscount ? ` (-${p.limitation.cpDiscount} CP)` : '';
+        limitationBadgeHtml = `<span class="meta-tag tag-power-limitation" data-action="manage-power-limitation" data-power-idx="${idx}" title="Limitation: ${p.limitation.name}${limRank}${limDisc} — ${p.limitation.description || ''} (Click to edit)">⚖️ ${p.limitation.name}${limRank}</span>`;
+      }
+
       const powerTitleHtml = `
         <div class="power-title-container dropdown-container">
-          <button type="button" class="power-title-btn dropdown-toggle" data-power-menu-toggle="${idx}" title="Click for Power Menu (Change Rank, Triggers, Adjust, Disable, Remove)">
+          <button type="button" class="power-title-btn dropdown-toggle" data-power-menu-toggle="${idx}" title="Click for Power Menu (Change Rank, Triggers, Adjust, Limitations, Disable, Remove)">
             ${p.name} <span class="power-menu-caret">▾</span>
           </button>
           <div class="dropdown-menu power-dropdown-menu" id="power-menu-${idx}">
@@ -2735,6 +4093,9 @@ const App = {
             </button>
             <button type="button" class="dropdown-item power-menu-item" data-action="adjust-power" data-power-idx="${idx}">
               ⚡ Adjust Power
+            </button>
+            <button type="button" class="dropdown-item power-menu-item" data-action="manage-power-limitation" data-power-idx="${idx}">
+              ⚖️ Limitations ${p.limitation ? `(${p.limitation.name})` : ''}
             </button>
             <button type="button" class="dropdown-item power-menu-item ${isDisabled ? 'enable-item' : 'disable-item'}" data-action="toggle-disable-power" data-power-idx="${idx}">
               ${isDisabled ? '✅ Re-enable Power' : '🚫 Disable Power (Neutralized)'}
@@ -2755,6 +4116,7 @@ const App = {
             ${operationalBadgeHtml}
             ${adjustedBadgeHtml}
             ${optionBadgeHtml}
+            ${limitationBadgeHtml}
           </div>
           <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
             ${switchBtnHtml}
@@ -3035,9 +4397,17 @@ const App = {
       // Power Rank Selector Change Event
       const rankSelect = card.querySelector(`[data-power-rank-select="${idx}"]`);
       if (rankSelect) {
-        rankSelect.addEventListener('change', (e) => {
+        rankSelect.addEventListener('change', async (e) => {
           e.stopPropagation();
           const newRankName = e.target.value;
+          if (this.character && this.character.creationMode === 'tsr' && (!this.character.isModeledMode || !this.character.isModeledMode())) {
+            const confirmed = await this.promptSwitchToModeledOnManualAssignment(`${p.name} Rank`);
+            if (!confirmed) {
+              e.target.value = p.rankName;
+              return;
+            }
+            this.applySwitchToModeledMode();
+          }
           const res = this.character.setPowerRank(p.id, newRankName);
           if (res) {
             const isExpPwr = !!(p.isExceptional || p.isStarred);
@@ -3113,6 +4483,25 @@ const App = {
             }
           }
           this.openPowerAdjustmentModal(idx);
+        });
+      }
+
+      // Manage Power Limitation action from Menu
+      const manageLimBtn = card.querySelector(`[data-action="manage-power-limitation"][data-power-idx="${idx}"]`);
+      if (manageLimBtn) {
+        manageLimBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          if (menuEl) menuEl.classList.remove('show');
+          this.openPowerLimitationModal(idx, false);
+        });
+      }
+
+      // Limitation Badge Click to Configure
+      const limBadgeEl = card.querySelector(`.tag-power-limitation[data-power-idx="${idx}"]`);
+      if (limBadgeEl) {
+        limBadgeEl.addEventListener('click', (e) => {
+          e.stopPropagation();
+          this.openPowerLimitationModal(idx, false);
         });
       }
 
@@ -3206,6 +4595,8 @@ const App = {
     document.getElementById('stunt-desc-input').value = '';
     document.getElementById('stunt-emulate-check').checked = false;
     document.getElementById('stunt-emulate-select-row').style.display = 'none';
+    const stuntPowerSel = document.getElementById('stunt-emulated-power-select');
+    if (stuntPowerSel) stuntPowerSel.value = '';
     document.getElementById('stunt-learned-check').checked = false;
     const redInp = document.getElementById('stunt-red-successes');
     if (redInp) redInp.value = '0';
@@ -3236,9 +4627,9 @@ const App = {
 
     if (isEmulating) {
       const emPowerSel = document.getElementById('stunt-emulated-power-select');
-      emulatedPowerId = emPowerSel ? emPowerSel.value : null;
+      emulatedPowerId = (emPowerSel && emPowerSel.value) ? emPowerSel.value : null;
       const foundPower = (globalThis.MSH_POWERS || []).find(p => p.id === emulatedPowerId);
-      emulatedPowerName = foundPower ? foundPower.name : (emPowerSel ? emPowerSel.options[emPowerSel.selectedIndex]?.text : null);
+      emulatedPowerName = foundPower ? foundPower.name : null;
     }
 
     const isLearned = document.getElementById('stunt-learned-check').checked;
@@ -3706,8 +5097,8 @@ const App = {
     return globalThis.MSH_POWERS || [];
   },
 
-  handleAddPower(mouseEvent = null) {
-    if (this.character && this.character.isCreationSetupPending) {
+  async handleAddPower(mouseEvent = null) {
+    if (this.character && this.character.isCreationSetupPending && this.character.creationMode !== 'tsr') {
       this.showStatusToast('⚠️ Please choose your Starting Tier and Physical Form before spending CP.');
       this.openCreationWizardModal();
       return;
@@ -3725,6 +5116,14 @@ const App = {
     if (!catalogPower) {
       this.showCustomAlert('Please select a superpower from the dropdown before adding.', 'Select Power', mouseEvent);
       return;
+    }
+
+    if (this.character && this.character.creationMode === 'tsr' && (!this.character.isModeledMode || !this.character.isModeledMode())) {
+      const confirmed = await this.promptSwitchToModeledOnManualAssignment('Superpowers');
+      if (!confirmed) {
+        return;
+      }
+      this.applySwitchToModeledMode();
     }
 
     const isStarred = !!(catalogPower.isStarred || catalogPower.countsAsTwo || catalogPower.powerSlots > 1);
@@ -3762,6 +5161,46 @@ const App = {
       }
     }
 
+    const mandatoryLimDef = this.getMandatoryLimitationDef(catalogPower);
+    if (mandatoryLimDef) {
+      this.pendingPowerAddData = {
+        powerData: {
+          id: 'p_' + Date.now(),
+          code: catalogPower.code,
+          name: catalogPower.name,
+          category: catalogPower.category,
+          rankName: rObj.name,
+          rankValue: rObj.num,
+          powerSlots: isStarred ? 2 : 1,
+          bonusPowerSlots: catalogPower.bonusPowerSlots || (['PC5', 'MG2', 'PC7', 'PC12'].includes(catalogPower.code) ? 1 : 0),
+          isExceptional: isExceptional,
+          isStarred: isStarred,
+          isNpcArchetype: !!catalogPower.isNpcArchetype,
+          isCustom: !!catalogPower.isCustom,
+          templateKey: catalogPower.templateKey || catalogPower.code,
+          pool: catalogPower.pool ? JSON.parse(JSON.stringify(catalogPower.pool)) : null,
+          trigger: catalogPower.trigger ? JSON.parse(JSON.stringify(catalogPower.trigger)) : null,
+          traitModifiers: catalogPower.traitModifiers ? JSON.parse(JSON.stringify(catalogPower.traitModifiers)) : [],
+          range: catalogPower.range,
+          duration: catalogPower.duration,
+          areaOfEffect: catalogPower.areaOfEffect,
+          targets: catalogPower.targets,
+          speed: catalogPower.speed,
+          selectedOption: selectedOption,
+          optionSubChoice: optionSubChoice,
+          optionAcquisitionMethod: optionAcquisitionMethod,
+          optionSurcharge: optionSurcharge,
+          isSuperiorOption: isSuperiorOption,
+          notes: catalogPower.rulesText ? (catalogPower.errataNote ? `${catalogPower.rulesText} (${catalogPower.errataNote})` : catalogPower.rulesText) : '',
+          stunts: catalogPower.powerStunts || []
+        },
+        mandatoryLimDef: mandatoryLimDef
+      };
+
+      this.openPowerLimitationModal(null, true);
+      return;
+    }
+
     this.character.addPower({
       id: 'p_' + Date.now(),
       code: catalogPower.code,
@@ -3770,6 +5209,7 @@ const App = {
       rankName: rObj.name,
       rankValue: rObj.num,
       powerSlots: isStarred ? 2 : 1,
+      bonusPowerSlots: catalogPower.bonusPowerSlots || (['PC5', 'MG2', 'PC7', 'PC12'].includes(catalogPower.code) ? 1 : 0),
       isExceptional: isExceptional,
       isStarred: isStarred,
       isNpcArchetype: !!catalogPower.isNpcArchetype,
@@ -3972,6 +5412,31 @@ const App = {
       this.newPowerOptionMethod = 'chosen';
       this.newPowerRolledD100 = null;
     }
+
+    // Sync Add Power button state for TSR mode slot limits
+    const addPowerBtn = document.getElementById('btn-add-power');
+    if (addPowerBtn && this.character && this.character.creationMode === 'tsr') {
+      const isLocked = this.isCreationSetupLocked ? this.isCreationSetupLocked() : false;
+      if (!isLocked) {
+        if (this.character.isModeledMode && this.character.isModeledMode()) {
+          addPowerBtn.disabled = false;
+          addPowerBtn.title = '';
+        } else {
+          const maxSlots = this.character.getMaxPowerSlots ? this.character.getMaxPowerSlots() : null;
+          if (maxSlots === null) {
+            addPowerBtn.disabled = true;
+            addPowerBtn.title = 'Roll power slots in the TSR Generator first.';
+          } else if (selectedP && this.character.canAddPower && !this.character.canAddPower(selectedP)) {
+            const used = this.character.getUsedPowerSlots ? this.character.getUsedPowerSlots() : 0;
+            addPowerBtn.disabled = true;
+            addPowerBtn.title = `Power slots full: ${used}/${maxSlots} slots allocated`;
+          } else {
+            addPowerBtn.disabled = false;
+            addPowerBtn.title = '';
+          }
+        }
+      }
+    }
   },
 
   renderPowerOptionsSelector(optDef, selectedP) {
@@ -3982,6 +5447,7 @@ const App = {
     this.newPowerOptionMethod = 'chosen';
     this.newPowerRolledD100 = null;
 
+    const isTsr = (this.character && this.character.creationMode === 'tsr');
     const checkExp = document.getElementById('check-power-exceptional');
     const isStarred = !!(selectedP.isStarred || selectedP.countsAsTwo || selectedP.powerSlots > 1);
     const isExp = isStarred || (checkExp ? checkExp.checked : false);
@@ -4000,13 +5466,23 @@ const App = {
         </div>
       ` : '';
 
+      const superiorTag = isTsr
+        ? `<span class="meta-tag tag-option-superior" style="font-size: 10pt;">★ Superior Option</span>`
+        : (this.superiorOptionCost
+            ? `<span class="meta-tag tag-option-superior" style="font-size: 10pt;">★ Superior Option (+${surchargeAmount} CP if chosen manually)</span>`
+            : `<span class="meta-tag" style="font-size: 10pt; color: #38bdf8; border-color: rgba(56, 189, 248, 0.4);">★ Superior Option (0 CP Surcharge)</span>`);
+
+      const standardTag = isTsr
+        ? `<span class="meta-tag" style="font-size: 10pt;">Standard</span>`
+        : `<span class="meta-tag" style="font-size: 10pt;">Standard (0 CP Surcharge)</span>`;
+
       choicesHtml += `
         <label class="power-option-choice-card" style="display: flex; align-items: flex-start; gap: 10px; padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 6px; cursor: pointer; background: rgba(0,0,0,0.2);">
           <input type="radio" name="new-power-option-radio" value="${c.key}" style="margin-top: 3px;" ${isChecked}>
           <div style="flex: 1;">
             <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
               <strong style="color: var(--text-main); font-size: 10pt;">${c.label}</strong>
-              ${c.isSuperior ? (this.superiorOptionCost ? `<span class="meta-tag tag-option-superior" style="font-size: 10pt;">★ Superior Option (+${surchargeAmount} CP if chosen manually)</span>` : `<span class="meta-tag" style="font-size: 10pt; color: #38bdf8; border-color: rgba(56, 189, 248, 0.4);">★ Superior Option (0 CP Surcharge)</span>`) : '<span class="meta-tag" style="font-size: 10pt;">Standard (0 CP Surcharge)</span>'}
+              ${c.isSuperior ? superiorTag : standardTag}
             </div>
             <div style="font-size: 10pt; color: var(--text-muted); margin-top: 2px;">${c.description}</div>
             ${subChoiceHtml}
@@ -4022,8 +5498,8 @@ const App = {
           <div style="font-size: 10pt; color: var(--text-muted); margin-top: 1px;">Canonical choice required when obtaining this power. Choose manually or roll random manifestation on the canonical subtable.</div>
         </div>
         ${optDef.canRoll ? `
-          <button type="button" class="icon-btn" id="btn-roll-new-power-manifestation" style="font-size: 10pt; padding: 4px 10px; background: #1e3a8a; border-color: #3b82f6;" title="Roll d100 on subtable. Accepting roll incurs 0 CP surcharge even for superior options.">
-            🎲 Roll Random Manifestation (0 CP Surcharge)
+          <button type="button" class="icon-btn" id="btn-roll-new-power-manifestation" style="font-size: 10pt; padding: 4px 10px; background: #1e3a8a; border-color: #3b82f6;" title="${isTsr ? 'Roll d100 on subtable.' : 'Roll d100 on subtable. Accepting roll incurs 0 CP surcharge even for superior options.'}">
+            🎲 Roll Random Manifestation${isTsr ? '' : ' (0 CP Surcharge)'}
           </button>
         ` : ''}
       </div>
@@ -4082,7 +5558,10 @@ const App = {
         const rollBanner = document.getElementById('new-power-option-roll-result');
         if (rollBanner) {
           rollBanner.style.display = 'block';
-          rollBanner.innerHTML = `🎲 Rolled d100: <strong>${rolled.d100}</strong> ➔ <strong>${rolled.choiceObj.label}</strong> (Dice Accepted: <strong>0 CP Surcharge</strong> applied even if superior!)`;
+          const isTsr = (this.character && this.character.creationMode === 'tsr');
+          rollBanner.innerHTML = isTsr
+            ? `🎲 Rolled d100: <strong>${rolled.d100}</strong> ➔ <strong>${rolled.choiceObj.label}</strong> (Dice Accepted!)`
+            : `🎲 Rolled d100: <strong>${rolled.d100}</strong> ➔ <strong>${rolled.choiceObj.label}</strong> (Dice Accepted: <strong>0 CP Surcharge</strong> applied even if superior!)`;
         }
 
         this.updatePowerOptionsPreview();
@@ -4099,6 +5578,16 @@ const App = {
     if (!selectedP) return;
     const optDef = (typeof globalThis.getPowerOptionsDefinition === 'function') ? globalThis.getPowerOptionsDefinition(selectedP) : null;
     if (!optDef) return;
+
+    const isTsr = (this.character && this.character.creationMode === 'tsr');
+    const breakdownEl = document.getElementById('new-power-cost-breakdown');
+    const summaryCard = document.getElementById('new-power-option-summary');
+    if (isTsr) {
+      if (breakdownEl) breakdownEl.innerHTML = '';
+      if (summaryCard) summaryCard.style.display = 'none';
+      return;
+    }
+    if (summaryCard) summaryCard.style.display = 'block';
 
     const rankSel = document.getElementById('select-new-power-rank');
     const rankName = rankSel ? rankSel.value : 'Good';
@@ -4123,7 +5612,6 @@ const App = {
 
     const totalCP = baseUnlock + surcharge + rankCP;
 
-    const breakdownEl = document.getElementById('new-power-cost-breakdown');
     if (breakdownEl) {
       let surchargeText = '<strong style="color: #22c55e;">+0 CP</strong>';
       if (curChoice?.isSuperior && this.newPowerOptionMethod === 'chosen' && !isTaxActive) {
@@ -4176,11 +5664,14 @@ const App = {
     const curChoice = optDef.choices.find(c => c.key === power.selectedOption);
     const curLabel = curChoice ? curChoice.label : (power.selectedOption || 'Standard');
     const curSub = power.optionSubChoice ? ` (${power.optionSubChoice})` : '';
+    const isTsr = (this.character && this.character.creationMode === 'tsr');
     const isTaxActive = !!(this.superiorOptionCost || (this.character && this.character.superiorOptionCost));
     const effectiveSurcharge = isTaxActive ? (power.optionSurcharge || 0) : 0;
     const surchargeNote = (!isTaxActive && power.optionSurcharge) ? '+0 CP (Rule Off)' : `+${effectiveSurcharge} CP`;
     if (statusEl) {
-      statusEl.innerHTML = `<span style="color: var(--marvel-gold);">Active: ${curLabel}${curSub} [${power.optionAcquisitionMethod || 'chosen'}, ${surchargeNote}]</span>`;
+      statusEl.innerHTML = isTsr
+        ? `<span style="color: var(--marvel-gold);">Active: ${curLabel}${curSub} [${power.optionAcquisitionMethod || 'chosen'}]</span>`
+        : `<span style="color: var(--marvel-gold);">Active: ${curLabel}${curSub} [${power.optionAcquisitionMethod || 'chosen'}, ${surchargeNote}]</span>`;
     }
 
     this.renderModalPowerOptionsContent(optDef, power);
@@ -4193,6 +5684,7 @@ const App = {
     const contentArea = document.getElementById('modal-opt-content-area');
     if (!contentArea || !optDef) return;
 
+    const isTsr = (this.character && this.character.creationMode === 'tsr');
     const isExp = !!(power.isExceptional || power.isStarred);
     const surchargeAmount = isExp ? 20 : 10;
     const isTaxActive = !!(this.superiorOptionCost || (this.character && this.character.superiorOptionCost));
@@ -4210,9 +5702,15 @@ const App = {
         </div>
       ` : '';
 
-      const superiorTag = isTaxActive
-        ? `<span class="meta-tag tag-option-superior" style="font-size: 10pt;">★ Superior Option (+${surchargeAmount} CP if chosen manually)</span>`
-        : `<span class="meta-tag" style="font-size: 10pt; color: #38bdf8; border-color: rgba(56, 189, 248, 0.4);">★ Superior Option (0 CP Surcharge)</span>`;
+      const superiorTag = isTsr
+        ? `<span class="meta-tag tag-option-superior" style="font-size: 10pt;">★ Superior Option</span>`
+        : (isTaxActive
+            ? `<span class="meta-tag tag-option-superior" style="font-size: 10pt;">★ Superior Option (+${surchargeAmount} CP if chosen manually)</span>`
+            : `<span class="meta-tag" style="font-size: 10pt; color: #38bdf8; border-color: rgba(56, 189, 248, 0.4);">★ Superior Option (0 CP Surcharge)</span>`);
+
+      const standardTag = isTsr
+        ? `<span class="meta-tag" style="font-size: 10pt;">Standard</span>`
+        : `<span class="meta-tag" style="font-size: 10pt;">Standard (0 CP Surcharge)</span>`;
 
       choicesHtml += `
         <label class="power-option-choice-card" style="display: flex; align-items: flex-start; gap: 10px; padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 6px; cursor: pointer; background: rgba(0,0,0,0.2);">
@@ -4220,7 +5718,7 @@ const App = {
           <div style="flex: 1;">
             <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
               <strong style="color: var(--text-main); font-size: 10pt;">${c.label}</strong>
-              ${c.isSuperior ? superiorTag : '<span class="meta-tag" style="font-size: 10pt;">Standard (0 CP Surcharge)</span>'}
+              ${c.isSuperior ? superiorTag : standardTag}
             </div>
             <div style="font-size: 10pt; color: var(--text-muted); margin-top: 2px;">${c.description}</div>
             ${subChoiceHtml}
@@ -4234,7 +5732,7 @@ const App = {
         <span style="font-size: 10pt; color: var(--text-main); font-weight: 600;">Select Manifestation or Roll on Subtable:</span>
         ${optDef.canRoll ? `
           <button type="button" class="icon-btn" id="btn-roll-modal-power-manifestation" style="font-size: 10pt; padding: 4px 10px; background: #1e3a8a; border-color: #3b82f6;">
-            🎲 Roll Random Manifestation (0 CP Surcharge)
+            🎲 Roll Random Manifestation${isTsr ? '' : ' (0 CP Surcharge)'}
           </button>
         ` : ''}
       </div>
@@ -4297,7 +5795,10 @@ const App = {
         const rollBanner = document.getElementById('modal-opt-roll-result');
         if (rollBanner) {
           rollBanner.style.display = 'block';
-          rollBanner.innerHTML = `🎲 Rolled d100: <strong>${rolled.d100}</strong> ➔ <strong>${rolled.choiceObj.label}</strong> (Dice Accepted: <strong>0 CP Surcharge</strong> applied even if superior!)`;
+          const isTsr = (this.character && this.character.creationMode === 'tsr');
+          rollBanner.innerHTML = isTsr
+            ? `🎲 Rolled d100: <strong>${rolled.d100}</strong> ➔ <strong>${rolled.choiceObj.label}</strong> (Dice Accepted!)`
+            : `🎲 Rolled d100: <strong>${rolled.d100}</strong> ➔ <strong>${rolled.choiceObj.label}</strong> (Dice Accepted: <strong>0 CP Surcharge</strong> applied even if superior!)`;
         }
 
         this.updateModalPowerOptionsSummary(optDef, power);
@@ -4308,6 +5809,13 @@ const App = {
   updateModalPowerOptionsSummary(optDef, power) {
     const summaryEl = document.getElementById('modal-opt-surcharge-summary');
     if (!summaryEl || !optDef || !power) return;
+
+    const isTsr = (this.character && this.character.creationMode === 'tsr');
+    if (isTsr) {
+      summaryEl.style.display = 'none';
+      return;
+    }
+    summaryEl.style.display = 'inline';
 
     const isExp = !!(power.isExceptional || power.isStarred);
     const curChoice = optDef.choices.find(c => c.key === this.modalOptionSelectedKey);
@@ -4446,6 +5954,7 @@ const App = {
       if (otherPowers.length === 0) {
         masterSel.innerHTML = '<option value="">(No other powers available)</option>';
       } else {
+        masterSel.innerHTML = '<option value="">- Select master power -</option>';
         otherPowers.forEach(other => {
           const opt = document.createElement('option');
           opt.value = other.id;
@@ -4455,6 +5964,9 @@ const App = {
           }
           masterSel.appendChild(opt);
         });
+        if (!cfg.masterPowerId) {
+          masterSel.value = '';
+        }
       }
     }
 
@@ -4498,7 +6010,7 @@ const App = {
     const mode = isLinked ? 'linked' : 'default';
 
     const masterSel = document.getElementById('trigger-master-select');
-    const masterPowerId = (isLinked && masterSel) ? masterSel.value : null;
+    const masterPowerId = (isLinked && masterSel) ? (masterSel.value || null) : null;
 
     const invertCheck = document.getElementById('trigger-invert-check');
     const invert = isLinked && !!invertCheck?.checked;
@@ -4598,6 +6110,643 @@ const App = {
       if (invertCheck) invertCheck.checked = false;
       if (condInp) condInp.value = 'Adrenalin Surge / Anger Trigger';
     }
+  },
+
+  // =========================================================================
+  // POWER LIMITATIONS & RESTRICTIONS MODAL (CANONICAL TSR & CMF POINT-BUY)
+  // =========================================================================
+
+  getMandatoryLimitationDef(powerData) {
+    if (!powerData) return null;
+    const code = (powerData.code || powerData.id || '').toLowerCase();
+    const name = (powerData.name || '').toLowerCase();
+    const mandatoryMap = (typeof MANDATORY_POWER_LIMITATIONS !== 'undefined')
+      ? MANDATORY_POWER_LIMITATIONS
+      : ((typeof globalThis !== 'undefined' && globalThis.MANDATORY_POWER_LIMITATIONS) ? globalThis.MANDATORY_POWER_LIMITATIONS : null);
+    if (!mandatoryMap) return null;
+
+    if (code.includes('m24') || name.includes('precognition')) return mandatoryMap.precognition;
+    if (code.includes('s1') || name.includes('alter ego') || name.includes('alter-ego')) return mandatoryMap.alter_ego;
+    if (name.includes('induced berserk') || name.includes('berserk')) return mandatoryMap.induced_berserking;
+    if (name.includes('energy absorption') || code.includes('energy_absorption') || code.includes('dt1')) return mandatoryMap.energy_absorption;
+    if (code.includes('s23') || name.includes('split form') || name.includes('duplication')) return mandatoryMap.split_form;
+
+    for (const key of Object.keys(mandatoryMap)) {
+      if (code === key || name === key || name.includes(mandatoryMap[key].powerName.toLowerCase())) {
+        return mandatoryMap[key];
+      }
+    }
+    return null;
+  },
+
+  openPowerLimitationModal(powerIdx = null, isMandatoryAdd = false) {
+    let power = null;
+    let mandatoryDef = null;
+
+    if (isMandatoryAdd) {
+      if (!this.pendingPowerAddData) return;
+      power = this.pendingPowerAddData.powerData;
+      mandatoryDef = this.pendingPowerAddData.mandatoryLimDef;
+    } else {
+      if (powerIdx === null || !this.character || !this.character.powers || !this.character.powers[powerIdx]) return;
+      power = this.character.powers[powerIdx];
+      mandatoryDef = this.getMandatoryLimitationDef(power);
+    }
+
+    this.editingLimitationPowerIdx = powerIdx;
+    this.isMandatoryLimitationMode = !!isMandatoryAdd;
+
+    const modal = document.getElementById('modal-power-limitation');
+    if (!modal) return;
+
+    // Set Hidden Index
+    const idxInp = document.getElementById('modal-limitation-power-index');
+    if (idxInp) idxInp.value = powerIdx !== null ? powerIdx : 'pending';
+
+    // Power Info & Rank
+    const pRank = (typeof UniversalTableEngine !== 'undefined')
+      ? UniversalTableEngine.getRankByName(power.rankName)
+      : { name: power.rankName || 'Good', num: power.rankValue || 10 };
+    const nameEl = document.getElementById('modal-limitation-power-name');
+    const rankEl = document.getElementById('modal-limitation-power-rank');
+    const costBadge = document.getElementById('modal-limitation-cost-badge');
+    const metaEl = document.getElementById('modal-limitation-power-meta');
+
+    if (nameEl) nameEl.textContent = power.name;
+    if (rankEl) rankEl.textContent = `${pRank.name} (${power.rankValue})`;
+
+    const isExp = !!(power.isExceptional || power.isStarred);
+    const baseCost = isExp ? 20 : 10;
+    const rankMult = isExp ? 2 : 1;
+    const isTaxActive = !!(this.superiorOptionCost || (this.character && this.character.superiorOptionCost));
+    const surcharge = (isTaxActive && power.optionSurcharge) ? power.optionSurcharge : 0;
+    const basePwrCost = baseCost + (power.rankValue * rankMult) + surcharge;
+
+    if (costBadge) costBadge.textContent = `Base: ${basePwrCost} CP`;
+    if (metaEl) {
+      metaEl.textContent = `Category: ${power.category || 'Special'} | Slots: ${power.powerSlots || 1}${isExp ? ' (Starred/Exceptional)' : ''}`;
+    }
+
+    // Mandatory Alert Banner
+    const banner = document.getElementById('limitation-mandatory-banner');
+    const reasonEl = document.getElementById('limitation-mandatory-reason');
+    if (banner) {
+      banner.style.display = mandatoryDef ? 'block' : 'none';
+      if (mandatoryDef && reasonEl) {
+        reasonEl.textContent = mandatoryDef.reason || 'This power requires a mandatory limitation to preserve game balance and Judge control.';
+      }
+    }
+
+    // Remove Button
+    const btnRemove = document.getElementById('btn-remove-limitation');
+    if (btnRemove) {
+      btnRemove.style.display = (!isMandatoryAdd && power.limitation && !mandatoryDef) ? 'inline-block' : 'none';
+    }
+
+    // Check Creation Mode: TSR 1986 vs CMF Point-Buy
+    const isTsr = (this.character && this.character.creationMode === 'tsr');
+    const limContCmf = document.getElementById('lim-container-cmf');
+    const limContTsr = document.getElementById('lim-container-tsr');
+
+    if (isTsr) {
+      if (limContCmf) limContCmf.style.display = 'none';
+      if (limContTsr) limContTsr.style.display = 'flex';
+      if (costBadge) costBadge.style.display = 'none';
+      this.setupTsrLimitationUI(power);
+    } else {
+      if (limContCmf) limContCmf.style.display = 'flex';
+      if (limContTsr) limContTsr.style.display = 'none';
+      if (costBadge) costBadge.style.display = 'inline-block';
+
+      // Setup Provided Limitations Dropdown
+      const providedSel = document.getElementById('select-provided-limitation');
+      const standardTemplates = (typeof STANDARD_LIMITATION_TEMPLATES !== 'undefined')
+        ? STANDARD_LIMITATION_TEMPLATES
+        : ((typeof globalThis !== 'undefined' && globalThis.STANDARD_LIMITATION_TEMPLATES) ? globalThis.STANDARD_LIMITATION_TEMPLATES : []);
+
+      const availableProvided = mandatoryDef ? mandatoryDef.providedLimitations : standardTemplates;
+      this.currentAvailableLimitations = availableProvided;
+
+      if (providedSel) {
+        providedSel.innerHTML = '<option value="">- Select limitation -</option>';
+        availableProvided.forEach((lim, idx) => {
+          const opt = document.createElement('option');
+          opt.value = idx;
+          opt.textContent = `${lim.name} [${lim.defaultRank || 'Typical'}] (-${lim.cpDiscount} CP)`;
+          providedSel.appendChild(opt);
+        });
+        // If power already has a limitation that matches a provided one, select it
+        if (power.limitation && !power.limitation.isCustom) {
+          const matchIdx = availableProvided.findIndex(l => l.name === power.limitation.name);
+          if (matchIdx >= 0) {
+            providedSel.value = String(matchIdx);
+          } else {
+            providedSel.value = '';
+          }
+        } else {
+          providedSel.value = '';
+        }
+      }
+
+      // Setup Custom Limitation Rank Dropdown
+      const customRankSel = document.getElementById('select-custom-lim-rank');
+      if (customRankSel) {
+        customRankSel.innerHTML = '';
+        const allRanks = (typeof UniversalTableEngine !== 'undefined' && UniversalTableEngine.ranks)
+          ? UniversalTableEngine.ranks.filter(r => r.name !== 'Shift 0')
+          : (typeof RANKS !== 'undefined' ? RANKS.slice(1) : []);
+        allRanks.forEach(r => {
+          const opt = document.createElement('option');
+          opt.value = r.name;
+          opt.textContent = `${r.name} (${r.num})`;
+          if (r.name.toLowerCase() === 'typical') opt.selected = true;
+          customRankSel.appendChild(opt);
+        });
+        if (power.limitation && power.limitation.isCustom && power.limitation.rankName) {
+          customRankSel.value = power.limitation.rankName;
+        }
+      }
+
+      // Setup Inputs for Custom
+      const customNameInp = document.getElementById('input-custom-lim-name');
+      const customDescInp = document.getElementById('input-custom-lim-desc');
+      const customDiscSel = document.getElementById('select-custom-lim-discount');
+      const radProvided = document.getElementById('radio-lim-provided');
+      const radCustom = document.getElementById('radio-lim-custom');
+
+      const isCustom = !!(power.limitation && power.limitation.isCustom);
+      if (radProvided && radCustom) {
+        radProvided.checked = !isCustom;
+        radCustom.checked = isCustom;
+      }
+      const secProvided = document.getElementById('lim-section-provided');
+      const secCustom = document.getElementById('lim-section-custom');
+      if (secProvided) secProvided.style.display = isCustom ? 'none' : 'flex';
+      if (secCustom) secCustom.style.display = isCustom ? 'flex' : 'none';
+
+      if (customNameInp) customNameInp.value = (isCustom && power.limitation) ? power.limitation.name : '';
+      if (customDescInp) customDescInp.value = (isCustom && power.limitation) ? (power.limitation.description || '') : '';
+      if (customDiscSel && isCustom && power.limitation) {
+        customDiscSel.value = String(power.limitation.cpDiscount || 10);
+      }
+
+      this.updatePowerLimitationPreview();
+    }
+    modal.classList.add('open');
+  },
+
+  closePowerLimitationModal() {
+    const modal = document.getElementById('modal-power-limitation');
+    if (modal) modal.classList.remove('open');
+    if (this.pendingPowerAddData) {
+      this.pendingPowerAddData = null;
+      this.showStatusToast('⚠️ Power addition cancelled: Mandatory limitation was not applied.');
+    }
+    this.editingLimitationPowerIdx = null;
+    this.isMandatoryLimitationMode = false;
+  },
+
+  updatePowerLimitationPreview() {
+    let power = null;
+    if (this.isMandatoryLimitationMode && this.pendingPowerAddData) {
+      power = this.pendingPowerAddData.powerData;
+    } else if (this.editingLimitationPowerIdx !== null && this.character?.powers) {
+      power = this.character.powers[this.editingLimitationPowerIdx];
+    }
+    if (!power) return;
+
+    const isExp = !!(power.isExceptional || power.isStarred);
+    const baseCost = isExp ? 20 : 10;
+    const rankMult = isExp ? 2 : 1;
+    const isTaxActive = !!(this.superiorOptionCost || (this.character && this.character.superiorOptionCost));
+    const surcharge = (isTaxActive && power.optionSurcharge) ? power.optionSurcharge : 0;
+    const rawCost = baseCost + (power.rankValue * rankMult) + surcharge;
+
+    const radCustom = document.getElementById('radio-lim-custom');
+    const isCustom = !!radCustom?.checked;
+
+    let discount = 10;
+    let tsrInfo = 'Intensity Rank Check';
+
+    if (!isCustom) {
+      const providedSel = document.getElementById('select-provided-limitation');
+      const rawVal = providedSel ? providedSel.value : '';
+      const idx = (rawVal !== '' && !isNaN(parseInt(rawVal, 10))) ? parseInt(rawVal, 10) : -1;
+      const tmpl = (idx >= 0 && this.currentAvailableLimitations && this.currentAvailableLimitations[idx])
+        ? this.currentAvailableLimitations[idx]
+        : null;
+      if (tmpl) {
+        discount = tmpl.cpDiscount || 10;
+        tsrInfo = tmpl.tsrShift ? `TSR Shift / Rule: ${tmpl.tsrShift}` : 'Intensity FEAT Check';
+        const detailsEl = document.getElementById('provided-limitation-details');
+        if (detailsEl) {
+          detailsEl.innerHTML = `
+            <div><strong>${tmpl.name}</strong> (${tmpl.defaultRank || 'Typical'} Intensity)</div>
+            <div style="color: var(--text-muted); margin-top: 2px;">${tmpl.description || ''}</div>
+            <div style="color: #38bdf8; font-weight: 600; margin-top: 4px;">Discount: -${discount} CP | Rule: ${tmpl.tsrShift || 'Standard'}</div>
+          `;
+        }
+      } else {
+        discount = 0;
+        tsrInfo = 'Intensity FEAT Check';
+        const detailsEl = document.getElementById('provided-limitation-details');
+        if (detailsEl) {
+          detailsEl.innerHTML = `
+            <div style="color: var(--text-muted); font-style: italic;">Select a limitation template above to view details and discount.</div>
+          `;
+        }
+      }
+    } else {
+      const customDiscSel = document.getElementById('select-custom-lim-discount');
+      const customRankSel = document.getElementById('select-custom-lim-rank');
+      discount = customDiscSel ? (parseInt(customDiscSel.value, 10) || 10) : 10;
+      const rankName = customRankSel ? customRankSel.value : 'Typical';
+      tsrInfo = `TSR FEAT: ${rankName} Intensity Check`;
+    }
+
+    const finalCost = Math.max(5, rawCost - discount);
+
+    const origEl = document.getElementById('lim-preview-original-cost');
+    const discEl = document.getElementById('lim-preview-discount');
+    const finalEl = document.getElementById('lim-preview-final-cost');
+    const tsrEl = document.getElementById('lim-preview-tsr-info');
+
+    if (origEl) origEl.textContent = `${rawCost} CP`;
+    if (discEl) discEl.textContent = ` -${discount} CP`;
+    if (finalEl) finalEl.textContent = `${finalCost} CP`;
+    if (tsrEl) tsrEl.textContent = tsrInfo;
+  },
+
+  setupTsrLimitationUI(power) {
+    const ceilingSel = document.getElementById('select-tsr-lim-ceiling');
+    const ceilings = (typeof TSR_LIMITATION_CEILINGS !== 'undefined')
+      ? TSR_LIMITATION_CEILINGS
+      : ((typeof globalThis !== 'undefined' && globalThis.TSR_LIMITATION_CEILINGS) ? globalThis.TSR_LIMITATION_CEILINGS : []);
+
+    if (ceilingSel) {
+      ceilingSel.innerHTML = '';
+      ceilings.forEach(c => {
+        const opt = document.createElement('option');
+        opt.value = c.ceiling;
+        opt.textContent = `${c.label} (${c.ceilingNum})`;
+        ceilingSel.appendChild(opt);
+      });
+      if (power.limitation?.categoryCeiling) {
+        ceilingSel.value = power.limitation.categoryCeiling;
+      } else {
+        const curRank = power.originalRolledRank || power.rankName;
+        const curIdx = UniversalTableEngine.getRankIndex(curRank);
+        const suitable = ceilings.find(c => UniversalTableEngine.getRankIndex(c.ceiling) > curIdx);
+        if (suitable) ceilingSel.value = suitable.ceiling;
+      }
+    }
+    this.populateTsrLimitationExamples();
+    this.updateTsrLimitationPreview();
+  },
+
+  populateTsrLimitationExamples() {
+    const ceilingSel = document.getElementById('select-tsr-lim-ceiling');
+    const exampleSel = document.getElementById('select-tsr-lim-example');
+    const nameInp = document.getElementById('input-tsr-lim-name');
+    const descInp = document.getElementById('input-tsr-lim-desc');
+    if (!ceilingSel || !exampleSel) return;
+
+    const ceiling = ceilingSel.value;
+    const ceilings = (typeof TSR_LIMITATION_CEILINGS !== 'undefined')
+      ? TSR_LIMITATION_CEILINGS
+      : ((typeof globalThis !== 'undefined' && globalThis.TSR_LIMITATION_CEILINGS) ? globalThis.TSR_LIMITATION_CEILINGS : []);
+    const tier = ceilings.find(t => t.ceiling === ceiling);
+
+    exampleSel.innerHTML = '';
+    if (tier && Array.isArray(tier.examples)) {
+      tier.examples.forEach((ex, idx) => {
+        const opt = document.createElement('option');
+        opt.value = idx;
+        opt.textContent = ex.name;
+        exampleSel.appendChild(opt);
+      });
+    }
+    const custOpt = document.createElement('option');
+    custOpt.value = 'custom';
+    custOpt.textContent = '✏️ Custom Limitation...';
+    exampleSel.appendChild(custOpt);
+
+    let power = null;
+    if (this.isMandatoryLimitationMode && this.pendingPowerAddData) {
+      power = this.pendingPowerAddData.powerData;
+    } else if (this.editingLimitationPowerIdx !== null && this.character?.powers) {
+      power = this.character.powers[this.editingLimitationPowerIdx];
+    }
+
+    if (power?.limitation?.isTSRVanilla) {
+      if (power.limitation.isCustom) {
+        exampleSel.value = 'custom';
+        if (nameInp) nameInp.value = power.limitation.name || '';
+        if (descInp) descInp.value = power.limitation.description || '';
+      } else {
+        const exIdx = tier?.examples ? tier.examples.findIndex(e => e.name === power.limitation.name) : -1;
+        if (exIdx >= 0) {
+          exampleSel.value = exIdx;
+          if (nameInp) nameInp.value = tier.examples[exIdx].name;
+          if (descInp) descInp.value = tier.examples[exIdx].description;
+        } else {
+          exampleSel.value = 'custom';
+          if (nameInp) nameInp.value = power.limitation.name || '';
+          if (descInp) descInp.value = power.limitation.description || '';
+        }
+      }
+    } else {
+      if (tier && tier.examples && tier.examples[0]) {
+        if (nameInp) nameInp.value = tier.examples[0].name;
+        if (descInp) descInp.value = tier.examples[0].description;
+      }
+    }
+  },
+
+  handleTsrLimCeilingChange() {
+    this.populateTsrLimitationExamples();
+    this.updateTsrLimitationPreview();
+  },
+
+  handleTsrLimExampleChange() {
+    const ceilingSel = document.getElementById('select-tsr-lim-ceiling');
+    const exampleSel = document.getElementById('select-tsr-lim-example');
+    const nameInp = document.getElementById('input-tsr-lim-name');
+    const descInp = document.getElementById('input-tsr-lim-desc');
+    if (!ceilingSel || !exampleSel) return;
+
+    if (exampleSel.value === 'custom') {
+      if (nameInp) nameInp.value = '';
+      if (descInp) descInp.value = '';
+      if (nameInp) nameInp.focus();
+    } else {
+      const idx = parseInt(exampleSel.value, 10);
+      const ceilings = (typeof TSR_LIMITATION_CEILINGS !== 'undefined')
+        ? TSR_LIMITATION_CEILINGS
+        : ((typeof globalThis !== 'undefined' && globalThis.TSR_LIMITATION_CEILINGS) ? globalThis.TSR_LIMITATION_CEILINGS : []);
+      const tier = ceilings.find(t => t.ceiling === ceilingSel.value);
+      if (tier && tier.examples && tier.examples[idx]) {
+        if (nameInp) nameInp.value = tier.examples[idx].name;
+        if (descInp) descInp.value = tier.examples[idx].description;
+      }
+    }
+    this.updateTsrLimitationPreview();
+  },
+
+  updateTsrLimitationPreview() {
+    let power = null;
+    if (this.isMandatoryLimitationMode && this.pendingPowerAddData) {
+      power = this.pendingPowerAddData.powerData;
+    } else if (this.editingLimitationPowerIdx !== null && this.character?.powers) {
+      power = this.character.powers[this.editingLimitationPowerIdx];
+    }
+    if (!power) return;
+
+    const ceilingSel = document.getElementById('select-tsr-lim-ceiling');
+    const ceiling = ceilingSel ? ceilingSel.value : 'Remarkable';
+    const curRank = power.originalRolledRank || power.rankName;
+
+    const val = (typeof validateTsrLimitation === 'function')
+      ? validateTsrLimitation(curRank, ceiling)
+      : (typeof globalThis !== 'undefined' && typeof globalThis.validateTsrLimitation === 'function')
+        ? globalThis.validateTsrLimitation(curRank, ceiling)
+        : { valid: true, currentRank: curRank, ceilingRank: ceiling, newRank: curRank };
+
+    const curRankEl = document.getElementById('tsr-lim-preview-cur-rank');
+    const newRankEl = document.getElementById('tsr-lim-preview-new-rank');
+    const statusEl = document.getElementById('tsr-lim-preview-status');
+    const warningEl = document.getElementById('tsr-lim-blocked-warning');
+    const btnApply = document.getElementById('btn-apply-limitation');
+
+    if (curRankEl) curRankEl.textContent = curRank;
+    if (newRankEl) newRankEl.textContent = val.newRank;
+
+    if (val.valid) {
+      if (statusEl) {
+        statusEl.textContent = `✅ Valid (+1CS up to ${ceiling})`;
+        statusEl.style.color = '#4ade80';
+      }
+      if (warningEl) warningEl.style.display = 'none';
+      if (btnApply) btnApply.disabled = false;
+    } else {
+      if (statusEl) {
+        statusEl.textContent = `⚠️ Blocked by Ceiling (${ceiling})`;
+        statusEl.style.color = '#ef4444';
+      }
+      if (warningEl) {
+        warningEl.style.display = 'block';
+        warningEl.textContent = `⚠️ Cannot raise rank: Power rank (${curRank}) is already at or above the "${ceiling}" ceiling! Per PB p. 9, choose a higher ceiling tier (e.g. Amazing, Monstrous).`;
+      }
+      if (btnApply) btnApply.disabled = true;
+    }
+  },
+
+  applyPowerLimitation() {
+    let power = null;
+    const isPending = !!(this.isMandatoryLimitationMode && this.pendingPowerAddData);
+
+    if (isPending) {
+      power = this.pendingPowerAddData.powerData;
+    } else if (this.editingLimitationPowerIdx !== null && this.character?.powers) {
+      power = this.character.powers[this.editingLimitationPowerIdx];
+    }
+    if (!power) return;
+
+    let limitation = null;
+
+    // Check Creation Mode: TSR 1986 vs CMF Point-Buy
+    if (this.character && this.character.creationMode === 'tsr') {
+      const ceilingSel = document.getElementById('select-tsr-lim-ceiling');
+      const ceiling = ceilingSel ? ceilingSel.value : 'Remarkable';
+      const nameInp = document.getElementById('input-tsr-lim-name');
+      const descInp = document.getElementById('input-tsr-lim-desc');
+      const limName = (nameInp ? nameInp.value.trim() : '') || `${ceiling} Limitation`;
+      const limDesc = descInp ? descInp.value.trim() : '';
+
+      const currentRank = power.originalRolledRank || power.rankName;
+      const val = (typeof validateTsrLimitation === 'function')
+        ? validateTsrLimitation(currentRank, ceiling)
+        : (typeof globalThis !== 'undefined' && typeof globalThis.validateTsrLimitation === 'function')
+          ? globalThis.validateTsrLimitation(currentRank, ceiling)
+          : { valid: true, newRank: currentRank };
+
+      if (!val.valid) {
+        this.showCustomAlert(val.reason, 'Limitation Ceiling Exceeded');
+        return;
+      }
+
+      limitation = {
+        name: limName,
+        description: limDesc || `Vanilla limitation: raised ${currentRank} (+1CS) to ${val.newRank} (Maximum ceiling: ${ceiling}).`,
+        categoryCeiling: ceiling,
+        rankBoostCS: 1,
+        appliedRankBoost: val.newRank,
+        isTSRVanilla: true,
+        isCustom: (document.getElementById('select-tsr-lim-example')?.value === 'custom'),
+        isMandatory: !!(this.isMandatoryLimitationMode || this.getMandatoryLimitationDef(power))
+      };
+
+      if (isPending) {
+        power.limitation = limitation;
+        power.limitations = [limitation];
+        this.character.addPower(power);
+        this.pendingPowerAddData = null;
+        this.isMandatoryLimitationMode = false;
+        this.editingLimitationPowerIdx = null;
+
+        const modal = document.getElementById('modal-power-limitation');
+        if (modal) modal.classList.remove('open');
+
+        this.recordCharacterEdit(`Added power with vanilla limitation: ${power.name} (${val.newRank}) [${limitation.name}, Max: ${ceiling}]`, 'power');
+        this.saveState();
+        this.render();
+
+        const pCatSel = document.getElementById('select-power-catalog');
+        if (pCatSel) {
+          pCatSel.value = '';
+          this.syncPowerSelectionUI();
+        }
+
+        this.showStatusToast(`✨ Added "${power.name}" with vanilla limitation: ${limitation.name} (+1CS to ${val.newRank})`);
+      } else {
+        this.character.setPowerLimitation(this.editingLimitationPowerIdx, limitation);
+        const modal = document.getElementById('modal-power-limitation');
+        if (modal) modal.classList.remove('open');
+
+        this.recordCharacterEdit(`Updated vanilla limitation on ${power.name}: ${limitation.name} (+1CS to ${val.newRank}, Max: ${ceiling})`, 'power');
+        this.saveState();
+        this.render();
+        this.editingLimitationPowerIdx = null;
+        this.isMandatoryLimitationMode = false;
+
+        this.showStatusToast(`⚖️ Vanilla limitation saved for "${power.name}": +1CS to ${val.newRank}`);
+      }
+      return;
+    }
+
+    // CMF Point-Buy Mode
+    const radCustom = document.getElementById('radio-lim-custom');
+    const isCustom = !!radCustom?.checked;
+
+    if (!isCustom) {
+      const providedSel = document.getElementById('select-provided-limitation');
+      const rawVal = providedSel ? providedSel.value : '';
+      const idx = (rawVal !== '' && !isNaN(parseInt(rawVal, 10))) ? parseInt(rawVal, 10) : -1;
+      const tmpl = (idx >= 0 && this.currentAvailableLimitations && this.currentAvailableLimitations[idx])
+        ? this.currentAvailableLimitations[idx]
+        : null;
+      if (!tmpl) {
+        this.showCustomAlert('Please select a limitation from the list.', 'Limitation Required');
+        return;
+      }
+      const rankName = tmpl.defaultRank || 'Typical';
+      const rObj = UniversalTableEngine.getRankByName(rankName);
+      limitation = {
+        name: tmpl.name,
+        rankName: rankName,
+        rankValue: rObj ? rObj.num : 6,
+        cpDiscount: tmpl.cpDiscount || 10,
+        tsrShift: tmpl.tsrShift || 'Standard',
+        description: tmpl.description || '',
+        isCustom: false,
+        isMandatory: !!(this.isMandatoryLimitationMode || this.getMandatoryLimitationDef(power))
+      };
+    } else {
+      const nameInp = document.getElementById('input-custom-lim-name');
+      const limName = nameInp ? nameInp.value.trim() : '';
+      if (!limName) {
+        this.showCustomAlert('Please enter a name or condition for the custom limitation.', 'Limitation Name Required');
+        return;
+      }
+      const rankSel = document.getElementById('select-custom-lim-rank');
+      const rankName = rankSel ? rankSel.value : 'Typical';
+      const rObj = UniversalTableEngine.getRankByName(rankName);
+      const discSel = document.getElementById('select-custom-lim-discount');
+      const cpDiscount = discSel ? (parseInt(discSel.value, 10) || 10) : 10;
+      const descInp = document.getElementById('input-custom-lim-desc');
+      const desc = descInp ? descInp.value.trim() : '';
+
+      limitation = {
+        name: limName,
+        rankName: rankName,
+        rankValue: rObj ? rObj.num : 6,
+        cpDiscount: cpDiscount,
+        tsrShift: `${rankName} Intensity FEAT`,
+        description: desc,
+        isCustom: true,
+        isMandatory: !!(this.isMandatoryLimitationMode || this.getMandatoryLimitationDef(power))
+      };
+    }
+
+    if (isPending) {
+      power.limitation = limitation;
+      power.limitations = [limitation];
+      this.character.addPower(power);
+      this.pendingPowerAddData = null;
+      this.isMandatoryLimitationMode = false;
+      this.editingLimitationPowerIdx = null;
+
+      const modal = document.getElementById('modal-power-limitation');
+      if (modal) modal.classList.remove('open');
+
+      this.recordCharacterEdit(`Added power with limitation: ${power.name} (${power.rankName}) [${limitation.name} (${limitation.rankName})]`, 'power');
+      this.saveState();
+      this.render();
+
+      const pCatSel = document.getElementById('select-power-catalog');
+      if (pCatSel) {
+        pCatSel.value = '';
+        this.syncPowerSelectionUI();
+      }
+
+      this.showStatusToast(`✨ Added "${power.name}" with limitation: ${limitation.name} (-${limitation.cpDiscount} CP)`);
+    } else {
+      this.character.setPowerLimitation(this.editingLimitationPowerIdx, limitation);
+      const modal = document.getElementById('modal-power-limitation');
+      if (modal) modal.classList.remove('open');
+
+      this.recordCharacterEdit(`Updated limitation on ${power.name}: ${limitation.name} (${limitation.rankName}) [-${limitation.cpDiscount} CP]`, 'power');
+      this.saveState();
+      this.render();
+      this.editingLimitationPowerIdx = null;
+      this.isMandatoryLimitationMode = false;
+
+      this.showStatusToast(`⚖️ Limitation saved for "${power.name}": ${limitation.name} (-${limitation.cpDiscount} CP)`);
+    }
+  },
+
+  async removePowerLimitation() {
+    if (this.editingLimitationPowerIdx === null || !this.character?.powers) return;
+    const power = this.character.powers[this.editingLimitationPowerIdx];
+    if (!power) return;
+
+    const mandatoryDef = this.getMandatoryLimitationDef(power);
+    if (mandatoryDef) {
+      await this.showCustomAlert(
+        `This power (${power.name}) requires a mandatory limitation by canonical rules and cannot be removed.\n\nYou may select a different limitation from the list or create a custom one.`,
+        'Mandatory Limitation Required'
+      );
+      return;
+    }
+
+    const isTsr = (this.character.creationMode === 'tsr');
+    const msg = isTsr
+      ? `Remove limitation "${power.limitation?.name || 'Limitation'}" from ${power.name}?\n\nThis will remove the +1CS rank increase and revert the power rank from ${power.rankName} back to ${power.originalRolledRank || power.rankName}.`
+      : `Remove limitation "${power.limitation?.name || 'Limitation'}" from ${power.name}?\n\nThis will remove the -${power.limitation?.cpDiscount || 0} CP discount and restore standard CP cost.`;
+
+    const confirmed = await this.showCustomConfirm(msg, 'Remove Limitation');
+    if (!confirmed) return;
+
+    this.character.removePowerLimitation(this.editingLimitationPowerIdx);
+    const modal = document.getElementById('modal-power-limitation');
+    if (modal) modal.classList.remove('open');
+
+    this.recordCharacterEdit(`Removed limitation from ${power.name} (Rank: ${power.rankName})`, 'power');
+    this.saveState();
+    this.render();
+    this.editingLimitationPowerIdx = null;
+    this.isMandatoryLimitationMode = false;
+    this.showStatusToast(`🗑️ Limitation removed from "${power.name}".`);
   },
 
   renderInvPowerDropdown(filterText = '') {
@@ -4731,21 +6880,21 @@ const App = {
   },
 
   updateStoreClearancesUI() {
-    const milBtn = document.getElementById('toggle-store-military');
+    const milBtn = (typeof this.getStoreEl === 'function' ? this.getStoreEl('toggle-store-military') : null) || document.getElementById('toggle-store-military');
     if (milBtn && milBtn.classList && typeof milBtn.classList.toggle === 'function') {
       milBtn.classList.toggle('active', !!this.storeMilitaryAccess);
       const stat = milBtn.querySelector ? milBtn.querySelector('.toggle-status') : null;
       if (stat) stat.textContent = this.storeMilitaryAccess ? 'AUTHORIZED' : 'OFF';
     }
 
-    const bmBtn = document.getElementById('toggle-store-blackmarket');
+    const bmBtn = (typeof this.getStoreEl === 'function' ? this.getStoreEl('toggle-store-blackmarket') : null) || document.getElementById('toggle-store-blackmarket');
     if (bmBtn && bmBtn.classList && typeof bmBtn.classList.toggle === 'function') {
       bmBtn.classList.toggle('active', !!this.storeBlackMarketAccess);
       const stat = bmBtn.querySelector ? bmBtn.querySelector('.toggle-status') : null;
       if (stat) stat.textContent = this.storeBlackMarketAccess ? 'UNLOCKED' : 'OFF';
     }
 
-    const shieldBtn = document.getElementById('toggle-store-shield');
+    const shieldBtn = (typeof this.getStoreEl === 'function' ? this.getStoreEl('toggle-store-shield') : null) || document.getElementById('toggle-store-shield');
     if (shieldBtn && shieldBtn.classList && typeof shieldBtn.classList.toggle === 'function') {
       shieldBtn.classList.toggle('active', !!this.storeShieldAccess);
       const stat = shieldBtn.querySelector ? shieldBtn.querySelector('.toggle-status') : null;
@@ -4975,10 +7124,10 @@ const App = {
     const access = this.storeAccessFilter || ['all'];
 
     // 1. Render Rulebook Store in wide modal format (max 2 rows per item)
-    const tbody = document.getElementById('store-equipment-tbody');
+    const tbody = (typeof this.getStoreEl === 'function' ? this.getStoreEl('store-equipment-tbody') : null) || document.getElementById('store-equipment-tbody');
     if (tbody && globalThis.PREBUILT_EQUIPMENT_CATALOG) {
       tbody.innerHTML = '';
-      const descTooltip = document.getElementById('store-desc-hover-tooltip');
+      const descTooltip = (typeof this.getStoreEl === 'function' ? this.getStoreEl('store-desc-hover-tooltip') : null) || document.getElementById('store-desc-hover-tooltip');
       if (descTooltip) descTooltip.style.display = 'none';
       const totalCatalogItems = globalThis.PREBUILT_EQUIPMENT_CATALOG.filter(item => !item.notForSale && !item.isUnique).length;
       const filtered = globalThis.PREBUILT_EQUIPMENT_CATALOG.filter(item => {
@@ -4991,24 +7140,24 @@ const App = {
       // Ensure equipment is listed alphabetically by name (case-insensitive)
       filtered.sort((a, b) => (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base' }));
 
-      const countTag = document.getElementById('store-item-count-tag');
+      const countTag = (typeof this.getStoreEl === 'function' ? this.getStoreEl('store-item-count-tag') : null) || document.getElementById('store-item-count-tag');
       if (countTag) {
         let countText = `Showing ${filtered.length} of ${totalCatalogItems} TSR Items`;
         const isAllAccess = Array.isArray(access) ? access.includes('all') : access === 'all';
         if (!isAllAccess) {
           const activeList = Array.isArray(access) ? access : [access];
           const labels = activeList.map(a => {
-            const accBtn = (typeof document !== 'undefined' && typeof document.querySelector === 'function') 
-              ? document.querySelector(`#store-access-filter-group .store-access-filter-btn[data-store-access="${a}"]`) 
-              : null;
+            const accBtn = (typeof this.getStoreQuerySelector === 'function') 
+              ? this.getStoreQuerySelector(`#store-access-filter-group .store-access-filter-btn[data-store-access="${a}"]`) 
+              : ((typeof document !== 'undefined' && typeof document.querySelector === 'function') ? document.querySelector(`#store-access-filter-group .store-access-filter-btn[data-store-access="${a}"]`) : null);
             return accBtn ? accBtn.textContent.trim() : a;
           });
           countText += ` • Show: ${labels.join(', ')}`;
         }
         if (cat !== 'all') {
-          const activeBtn = (typeof document !== 'undefined' && typeof document.querySelector === 'function') 
-            ? document.querySelector(`#store-category-filter-group .store-filter-btn[data-store-cat="${cat}"]`) 
-            : null;
+          const activeBtn = (typeof this.getStoreQuerySelector === 'function') 
+            ? this.getStoreQuerySelector(`#store-category-filter-group .store-filter-btn[data-store-cat="${cat}"]`) 
+            : ((typeof document !== 'undefined' && typeof document.querySelector === 'function') ? document.querySelector(`#store-category-filter-group .store-filter-btn[data-store-cat="${cat}"]`) : null);
           const catLabel = activeBtn ? activeBtn.textContent.split('(')[0].trim() : cat;
           countText += ` • ${catLabel}`;
         }
@@ -5018,13 +7167,13 @@ const App = {
         countTag.textContent = countText;
       }
 
-      const storeBtn = document.getElementById('btn-open-equipment-store');
+      const storeBtn = (typeof this.getStoreEl === 'function' ? this.getStoreEl('btn-open-equipment-store') : null) || document.getElementById('btn-open-equipment-store');
       if (storeBtn) {
         storeBtn.innerHTML = `🛒 Open Rulebook Equipment Store (${totalCatalogItems} TSR Items)`;
       }
 
       // Update Top Store Resource Status Badge
-      const storeResBadge = document.getElementById('store-resource-status-badge');
+      const storeResBadge = (typeof this.getStoreEl === 'function' ? this.getStoreEl('store-resource-status-badge') : null) || document.getElementById('store-resource-status-badge');
       if (storeResBadge && this.character) {
         const resRank = this.character.resources.rankName;
         const resNum = this.character.resources.rankValue;
@@ -5127,57 +7276,83 @@ const App = {
 
     // 2. Render Carrying Inventory
     const invContainer = document.getElementById('equipment-container');
+    const eqList = (this.character && Array.isArray(this.character.equipment)) ? this.character.equipment : [];
+    const eqCount = eqList.length;
+
+    const invCountTag = document.getElementById('inv-item-count-tag');
+    if (invCountTag) {
+      invCountTag.textContent = eqCount === 1 ? '1 Item' : `${eqCount} Items`;
+    }
+    const tabEquipmentCount = document.getElementById('tab-equipment-count');
+    if (tabEquipmentCount) {
+      tabEquipmentCount.textContent = eqCount.toString();
+    }
+
     if (invContainer) {
       invContainer.innerHTML = '';
-      if (this.character.equipment.length === 0) {
-        invContainer.innerHTML = '<p style="color: var(--text-muted); padding: 12px 0;">No equipment carried. Click <strong>🛒 Open Rulebook Equipment Store</strong> above or manufacture items in the <strong>Invention Lab</strong>.</p>';
-        return;
-      }
-
-      this.character.equipment.forEach((eq, idx) => {
-        const card = document.createElement('div');
-        card.className = 'attack-card';
-        card.innerHTML = `
-          <div class="attack-header">
-            <div style="display: flex; align-items: center; gap: 6px;">
-              <button type="button" class="help-circle-btn" data-help-gear="${idx}" title="View details of ${eq.name}">?</button>
-              <strong style="color: #38bdf8; font-size: 11pt;">${eq.name}</strong>
-            </div>
-            <div style="display: flex; gap: 8px; align-items: center;">
-              <label class="checkbox-label"><input type="checkbox" data-equip-toggle="${idx}" ${eq.equipped ? 'checked' : ''}> Equipped</label>
-              <button class="icon-btn" style="padding: 2px 8px; min-height: 28px; background: #881337;" data-del-gear="${idx}">✕</button>
-            </div>
+      if (eqCount === 0) {
+        invContainer.innerHTML = `
+          <div class="equipment-empty-hint" style="color: var(--text-muted); padding: 8px 4px; font-size: 10pt; line-height: 1.4;">
+            No equipment acquired yet. Browse the <strong>Rulebook Equipment Store</strong> above to procure weapons, armor, and gear, or craft in the <strong>Invention Lab</strong>.
           </div>
-          <div class="attack-meta">
-            <span class="meta-tag">${eq.type}</span>
-            ${eq.damage ? `<span class="meta-tag" style="color:#38bdf8;">${eq.damage}</span>` : ''}
-            <span class="meta-tag">Range: ${eq.range || 'Contact'}</span>
-            <span class="meta-tag">Material: ${eq.materialStrength || 'Good'}</span>
-          </div>
-          <div class="attack-notes">${eq.notes || ''}</div>
         `;
+      } else {
+        eqList.forEach((eq, idx) => {
+          const card = document.createElement('div');
+          card.className = 'attack-card';
+          card.innerHTML = `
+            <div class="attack-header">
+              <div style="display: flex; align-items: center; gap: 6px;">
+                <button type="button" class="help-circle-btn" data-help-gear="${idx}" title="View details of ${eq.name}">?</button>
+                <strong style="color: #38bdf8; font-size: 11pt;">${eq.name}</strong>
+              </div>
+              <div style="display: flex; gap: 8px; align-items: center;">
+                <label class="checkbox-label"><input type="checkbox" data-equip-toggle="${idx}" ${eq.equipped ? 'checked' : ''}> Equipped</label>
+                <button class="icon-btn" style="padding: 2px 8px; min-height: 28px; background: #881337;" data-del-gear="${idx}">✕</button>
+              </div>
+            </div>
+            <div class="attack-meta">
+              <span class="meta-tag">${eq.type}</span>
+              ${eq.damage ? `<span class="meta-tag" style="color:#38bdf8;">${eq.damage}</span>` : ''}
+              <span class="meta-tag">Range: ${eq.range || 'Contact'}</span>
+              <span class="meta-tag">Material: ${eq.materialStrength || 'Good'}</span>
+            </div>
+            <div class="attack-notes">${eq.notes || ''}</div>
+          `;
 
-        const helpGearBtn = card.querySelector(`[data-help-gear="${idx}"]`);
-        if (helpGearBtn) {
-          helpGearBtn.addEventListener('click', () => {
-            this.showHelpModal('equipment', eq.name || eq.id);
+          const helpGearBtn = card.querySelector(`[data-help-gear="${idx}"]`);
+          if (helpGearBtn) {
+            helpGearBtn.addEventListener('click', () => {
+              this.showHelpModal('equipment', eq.name || eq.id);
+            });
+          }
+
+          card.querySelector(`[data-equip-toggle="${idx}"]`).addEventListener('change', (e) => {
+            this.character.equipment[idx].equipped = e.target.checked;
+            this.saveState();
+            this.renderAttacks();
           });
-        }
 
-        card.querySelector(`[data-equip-toggle="${idx}"]`).addEventListener('change', (e) => {
-          this.character.equipment[idx].equipped = e.target.checked;
-          this.saveState();
-          this.renderAttacks();
+          card.querySelector(`[data-del-gear="${idx}"]`).addEventListener('click', () => {
+            this.character.equipment.splice(idx, 1);
+            this.saveState();
+            this.render();
+          });
+
+          invContainer.appendChild(card);
         });
+      }
+    }
 
-        card.querySelector(`[data-del-gear="${idx}"]`).addEventListener('click', () => {
-          this.character.equipment.splice(idx, 1);
-          this.saveState();
-          this.render();
-        });
-
-        invContainer.appendChild(card);
-      });
+    // Update divider live ratio in auto mode
+    if (this.equipmentSplitMode === 'auto' && !this.equipmentSplitCollapsed) {
+      const layoutEl = document.getElementById('equipment-split-layout');
+      const storeSec = document.getElementById('equipment-store-section');
+      const dividerEl = document.getElementById('equipment-split-divider');
+      if (layoutEl && storeSec && dividerEl && layoutEl.offsetHeight > 0) {
+        const liveRatio = Math.round((storeSec.offsetHeight / layoutEl.offsetHeight) * 100);
+        dividerEl.setAttribute('aria-valuenow', Math.max(10, Math.min(90, liveRatio)).toString());
+      }
     }
   },
 
@@ -5392,6 +7567,13 @@ const App = {
     this.activeProcurementItem = null;
   },
 
+  closeEquipmentStoreModal() {
+    const modal = document.getElementById('equipment-store-modal');
+    if (modal) modal.classList.remove('open');
+    const storeDescTooltip = document.getElementById('store-desc-hover-tooltip');
+    if (storeDescTooltip) storeDescTooltip.style.display = 'none';
+  },
+
   finalizeItemAcquisition(item, reasonText = 'Purchased', mouseEvent = null) {
     this.character.equipment.push({
       id: 'eq_' + Date.now(),
@@ -5413,7 +7595,7 @@ const App = {
 
   setStoreCategory(catKey) {
     this.storeFilterCategory = catKey || 'all';
-    const storeCatBtns = document.querySelectorAll('#store-category-filter-group .store-filter-btn');
+    const storeCatBtns = (typeof this.getStoreQuerySelectorAll === 'function' ? this.getStoreQuerySelectorAll('#store-category-filter-group .store-filter-btn') : null) || document.querySelectorAll('#store-category-filter-group .store-filter-btn');
     storeCatBtns.forEach(b => {
       const bCat = (b.getAttribute('data-store-cat') || 'all').toLowerCase();
       b.classList.toggle('active', bCat === this.storeFilterCategory.toLowerCase());
@@ -5444,7 +7626,7 @@ const App = {
     }
 
     const isAll = this.storeAccessFilter.includes('all');
-    const storeAccessBtns = document.querySelectorAll('#store-access-filter-group .store-access-filter-btn');
+    const storeAccessBtns = (typeof this.getStoreQuerySelectorAll === 'function' ? this.getStoreQuerySelectorAll('#store-access-filter-group .store-access-filter-btn') : null) || document.querySelectorAll('#store-access-filter-group .store-access-filter-btn');
     storeAccessBtns.forEach(b => {
       const bAcc = (b.getAttribute('data-store-access') || 'all').toLowerCase();
       if (bAcc === 'all') {
@@ -5460,14 +7642,14 @@ const App = {
     this.storeFilterQuery = '';
     this.storeFilterCategory = 'all';
     this.storeAccessFilter = ['all'];
-    const searchInp = document.getElementById('filter-store-search');
+    const searchInp = (typeof this.getStoreEl === 'function' ? this.getStoreEl('filter-store-search') : null) || document.getElementById('filter-store-search');
     if (searchInp) searchInp.value = '';
-    const storeCatBtns = document.querySelectorAll('#store-category-filter-group .store-filter-btn');
+    const storeCatBtns = (typeof this.getStoreQuerySelectorAll === 'function' ? this.getStoreQuerySelectorAll('#store-category-filter-group .store-filter-btn') : null) || document.querySelectorAll('#store-category-filter-group .store-filter-btn');
     storeCatBtns.forEach(b => {
       const bCat = (b.getAttribute('data-store-cat') || 'all').toLowerCase();
       b.classList.toggle('active', bCat === 'all');
     });
-    const storeAccessBtns = document.querySelectorAll('#store-access-filter-group .store-access-filter-btn');
+    const storeAccessBtns = (typeof this.getStoreQuerySelectorAll === 'function' ? this.getStoreQuerySelectorAll('#store-access-filter-group .store-access-filter-btn') : null) || document.querySelectorAll('#store-access-filter-group .store-access-filter-btn');
     storeAccessBtns.forEach(b => {
       const bAcc = (b.getAttribute('data-store-access') || 'all').toLowerCase();
       b.classList.toggle('active', bAcc === 'all');
@@ -5475,13 +7657,378 @@ const App = {
     this.renderEquipment();
   },
 
+  initEquipmentSplitter() {
+    const dividerEl = document.getElementById('equipment-split-divider');
+    const layoutEl = document.getElementById('equipment-split-layout');
+    const btnCollapseStore = document.getElementById('btn-collapse-store');
+    const btnCollapseInv = document.getElementById('btn-collapse-inventory');
+
+    if (!dividerEl || !layoutEl) return;
+
+    // Load saved split state from localStorage
+    if (typeof localStorage !== 'undefined') {
+      const savedMode = localStorage.getItem('msh_equipment_split_mode');
+      if (savedMode === 'manual' || savedMode === 'auto') {
+        this.equipmentSplitMode = savedMode;
+      } else {
+        this.equipmentSplitMode = 'auto'; // Default is auto-positioning!
+      }
+      const savedRatio = parseFloat(localStorage.getItem('msh_equipment_split_ratio'));
+      if (!isNaN(savedRatio) && savedRatio >= 10 && savedRatio <= 90) {
+        this.equipmentSplitRatio = savedRatio;
+      }
+      const savedCollapsed = localStorage.getItem('msh_equipment_split_collapsed');
+      if (savedCollapsed === 'top' || savedCollapsed === 'bottom') {
+        this.equipmentSplitCollapsed = savedCollapsed;
+      }
+    } else {
+      this.equipmentSplitMode = 'auto';
+    }
+
+    // Apply initial state
+    if (this.equipmentSplitCollapsed) {
+      this.setEquipmentSplit(this.equipmentSplitRatio, false, this.equipmentSplitCollapsed);
+    } else if (this.equipmentSplitMode === 'auto') {
+      this.setEquipmentSplitAuto(false);
+    } else {
+      this.setEquipmentSplit(this.equipmentSplitRatio, false, null);
+    }
+
+    // Quick Collapse button in Store header
+    if (btnCollapseStore) {
+      btnCollapseStore.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (this.equipmentSplitCollapsed === 'top') {
+          if (this.equipmentSplitMode === 'auto') this.setEquipmentSplitAuto(true);
+          else this.setEquipmentSplit(this.equipmentSplitRatio || 50, true, null);
+        } else {
+          this.setEquipmentSplit(0, true, 'top');
+        }
+      });
+    }
+
+    // Quick Collapse button in Inventory header
+    if (btnCollapseInv) {
+      btnCollapseInv.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (this.equipmentSplitCollapsed === 'bottom') {
+          if (this.equipmentSplitMode === 'auto') this.setEquipmentSplitAuto(true);
+          else this.setEquipmentSplit(this.equipmentSplitRatio || 50, true, null);
+        } else {
+          this.setEquipmentSplit(100, true, 'bottom');
+        }
+      });
+    }
+
+    // Double-click on divider restores auto-positioning
+    dividerEl.addEventListener('dblclick', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      this.setEquipmentSplitAuto(true);
+    });
+
+    // Single-click on collapsed divider bar restores auto-positioning
+    this._justDraggedEquipmentSplitter = false;
+    dividerEl.addEventListener('click', (e) => {
+      if (this._justDraggedEquipmentSplitter) {
+        this._justDraggedEquipmentSplitter = false;
+        return;
+      }
+      if (this.equipmentSplitCollapsed) {
+        this.setEquipmentSplitAuto(true);
+      }
+    });
+
+    // Drag handling for pointer / mouse & touch
+    let isDragging = false;
+    let startY = 0;
+    let hasMoved = false;
+
+    const onStart = (e) => {
+      if (e.target && e.target.tagName === 'BUTTON') return;
+
+      isDragging = true;
+      hasMoved = false;
+      this._justDraggedEquipmentSplitter = false;
+      const clientY = (e.touches && e.touches[0]) ? e.touches[0].clientY : e.clientY;
+      startY = clientY;
+
+      document.body.classList.add('equipment-splitter-resizing');
+      window.addEventListener('mousemove', onMove, { passive: false });
+      window.addEventListener('touchmove', onMove, { passive: false });
+      window.addEventListener('mouseup', onEnd);
+      window.addEventListener('touchend', onEnd);
+      window.addEventListener('touchcancel', onEnd);
+    };
+
+    const onMove = (e) => {
+      if (!isDragging) return;
+      if (e.cancelable) e.preventDefault();
+
+      const clientY = (e.touches && e.touches[0]) ? e.touches[0].clientY : e.clientY;
+      if (clientY === undefined || clientY === null) return;
+
+      if (Math.abs(clientY - startY) > 3) {
+        hasMoved = true;
+      }
+
+      const rect = layoutEl.getBoundingClientRect();
+      const totalH = rect.height;
+      if (totalH <= 0) return;
+
+      const relY = clientY - rect.top;
+
+      // Edge snapping & collapse thresholds
+      if (relY <= 35 || relY / totalH <= 0.05) {
+        this.setEquipmentSplit(0, false, 'top');
+      } else if (relY >= totalH - 35 || relY / totalH >= 0.95) {
+        this.setEquipmentSplit(100, false, 'bottom');
+      } else {
+        const ratio = (relY / totalH) * 100;
+        this.setEquipmentSplit(ratio, false, null);
+      }
+    };
+
+    const onEnd = () => {
+      if (!isDragging) return;
+      isDragging = false;
+      document.body.classList.remove('equipment-splitter-resizing');
+
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('touchmove', onMove);
+      window.removeEventListener('mouseup', onEnd);
+      window.removeEventListener('touchend', onEnd);
+      window.removeEventListener('touchcancel', onEnd);
+
+      if (hasMoved) {
+        this._justDraggedEquipmentSplitter = true;
+        this.setEquipmentSplit(this.equipmentSplitRatio, true, this.equipmentSplitCollapsed);
+        setTimeout(() => {
+          this._justDraggedEquipmentSplitter = false;
+        }, 120);
+      }
+    };
+
+    dividerEl.addEventListener('mousedown', onStart);
+    dividerEl.addEventListener('touchstart', onStart, { passive: false });
+
+    // Keyboard navigation for accessibility
+    dividerEl.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        if (this.equipmentSplitCollapsed === 'bottom') {
+          this.setEquipmentSplit(85, true, null);
+        } else if (this.equipmentSplitRatio <= 15) {
+          this.setEquipmentSplit(0, true, 'top');
+        } else {
+          this.setEquipmentSplit(this.equipmentSplitRatio - 5, true, null);
+        }
+      } else if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        if (this.equipmentSplitCollapsed === 'top') {
+          this.setEquipmentSplit(15, true, null);
+        } else if (this.equipmentSplitRatio >= 85) {
+          this.setEquipmentSplit(100, true, 'bottom');
+        } else {
+          this.setEquipmentSplit(this.equipmentSplitRatio + 5, true, null);
+        }
+      } else if (e.key === 'Home') {
+        e.preventDefault();
+        this.setEquipmentSplit(0, true, 'top');
+      } else if (e.key === 'End') {
+        e.preventDefault();
+        this.setEquipmentSplit(100, true, 'bottom');
+      } else if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        this.setEquipmentSplitAuto(true);
+      }
+    });
+  },
+
+  setEquipmentSplitAuto(save = true) {
+    this.equipmentSplitMode = 'auto';
+    this.equipmentSplitCollapsed = null;
+
+    if (this.isStorePoppedOut && this.isStorePoppedOut()) {
+      if (save && typeof localStorage !== 'undefined') {
+        localStorage.setItem('msh_equipment_split_mode', 'auto');
+        localStorage.removeItem('msh_equipment_split_collapsed');
+      }
+      return;
+    }
+
+    const layoutEl = document.getElementById('equipment-split-layout');
+    const storeSec = document.getElementById('equipment-store-section');
+    const invSec = document.getElementById('equipment-inventory-section');
+    const dividerEl = document.getElementById('equipment-split-divider');
+    const labelEl = document.getElementById('equipment-divider-label');
+
+    if (layoutEl) {
+      layoutEl.classList.remove('collapsed-top', 'collapsed-bottom');
+      layoutEl.classList.add('split-auto');
+    }
+    if (dividerEl) {
+      dividerEl.classList.remove('collapsed-top', 'collapsed-bottom');
+      dividerEl.setAttribute('aria-expanded', 'true');
+      dividerEl.setAttribute('title', 'Auto-positioning active: Hugs obtained equipment (Max 50%). Drag to manually resize. Double-click to restore auto-fit.');
+    }
+    if (storeSec) {
+      storeSec.style.display = 'flex';
+      storeSec.style.flex = '';
+      storeSec.style.height = '';
+    }
+    if (invSec) {
+      invSec.style.display = 'flex';
+      invSec.style.flex = '';
+      invSec.style.height = '';
+      invSec.style.maxHeight = '';
+    }
+    if (labelEl) {
+      labelEl.textContent = '⇕ Auto-fit (Max 50%) · Drag to resize · Double-click to auto-fit';
+    }
+
+    if (layoutEl && storeSec && dividerEl && layoutEl.offsetHeight > 0) {
+      const liveRatio = Math.round((storeSec.offsetHeight / layoutEl.offsetHeight) * 100);
+      dividerEl.setAttribute('aria-valuenow', Math.max(10, Math.min(90, liveRatio)).toString());
+    }
+
+    if (save && typeof localStorage !== 'undefined') {
+      localStorage.setItem('msh_equipment_split_mode', 'auto');
+      localStorage.removeItem('msh_equipment_split_collapsed');
+      localStorage.removeItem('msh_equipment_split_ratio');
+    }
+  },
+
+  setEquipmentSplit(ratio = 50, save = true, collapsed = null) {
+    if (this.isStorePoppedOut && this.isStorePoppedOut()) {
+      if (typeof ratio === 'number') this.equipmentSplitRatio = Math.max(10, Math.min(90, ratio));
+      this.equipmentSplitCollapsed = collapsed;
+      if (save && typeof localStorage !== 'undefined') {
+        if (collapsed) {
+          localStorage.setItem('msh_equipment_split_collapsed', collapsed);
+        } else {
+          localStorage.removeItem('msh_equipment_split_collapsed');
+          localStorage.setItem('msh_equipment_split_mode', 'manual');
+          localStorage.setItem('msh_equipment_split_ratio', this.equipmentSplitRatio.toString());
+        }
+      }
+      return;
+    }
+
+    const layoutEl = document.getElementById('equipment-split-layout');
+    const storeSec = document.getElementById('equipment-store-section');
+    const invSec = document.getElementById('equipment-inventory-section');
+    const dividerEl = document.getElementById('equipment-split-divider');
+    const labelEl = document.getElementById('equipment-divider-label');
+
+    if (collapsed === 'top') {
+      this.equipmentSplitCollapsed = 'top';
+      if (layoutEl) {
+        layoutEl.classList.add('collapsed-top');
+        layoutEl.classList.remove('collapsed-bottom', 'split-auto');
+      }
+      if (dividerEl) {
+        dividerEl.classList.add('collapsed-top');
+        dividerEl.classList.remove('collapsed-bottom');
+        dividerEl.setAttribute('aria-valuenow', '0');
+        dividerEl.setAttribute('aria-expanded', 'false');
+      }
+      if (storeSec) {
+        storeSec.style.display = 'none';
+        storeSec.style.height = '0px';
+      }
+      if (invSec) {
+        invSec.style.display = 'flex';
+        invSec.style.flex = '1';
+        invSec.style.height = 'calc(100% - 28px)';
+      }
+      if (labelEl) {
+        labelEl.textContent = '▲ Store Collapsed — Click or double-click to auto-fit';
+      }
+    } else if (collapsed === 'bottom') {
+      this.equipmentSplitCollapsed = 'bottom';
+      if (layoutEl) {
+        layoutEl.classList.add('collapsed-bottom');
+        layoutEl.classList.remove('collapsed-top', 'split-auto');
+      }
+      if (dividerEl) {
+        dividerEl.classList.add('collapsed-bottom');
+        dividerEl.classList.remove('collapsed-top');
+        dividerEl.setAttribute('aria-valuenow', '100');
+        dividerEl.setAttribute('aria-expanded', 'false');
+      }
+      if (invSec) {
+        invSec.style.display = 'none';
+        invSec.style.height = '0px';
+      }
+      if (storeSec) {
+        storeSec.style.display = 'flex';
+        storeSec.style.flex = '1';
+        storeSec.style.height = 'calc(100% - 28px)';
+      }
+      if (labelEl) {
+        labelEl.textContent = '▼ Inventory Collapsed — Click or double-click to auto-fit';
+      }
+    } else {
+      this.equipmentSplitMode = 'manual';
+      this.equipmentSplitCollapsed = null;
+      const clampedRatio = Math.max(10, Math.min(90, typeof ratio === 'number' ? ratio : 50));
+      this.equipmentSplitRatio = clampedRatio;
+
+      if (layoutEl) {
+        layoutEl.classList.remove('collapsed-top', 'collapsed-bottom', 'split-auto');
+      }
+      if (dividerEl) {
+        dividerEl.classList.remove('collapsed-top', 'collapsed-bottom');
+        dividerEl.setAttribute('aria-valuenow', Math.round(clampedRatio).toString());
+        dividerEl.setAttribute('aria-expanded', 'true');
+        dividerEl.setAttribute('title', 'Manual split active. Drag to adjust. Double-click to restore auto-fit.');
+      }
+      if (storeSec) {
+        storeSec.style.display = 'flex';
+        storeSec.style.flex = 'none';
+        storeSec.style.height = `calc(${clampedRatio}% - 6px)`;
+      }
+      if (invSec) {
+        invSec.style.display = 'flex';
+        invSec.style.flex = '1';
+        invSec.style.height = '';
+        invSec.style.maxHeight = '';
+      }
+      if (labelEl) {
+        labelEl.textContent = '⇕ Drag to resize · Double-click to auto-fit';
+      }
+    }
+
+    if (save && typeof localStorage !== 'undefined') {
+      if (this.equipmentSplitCollapsed) {
+        localStorage.setItem('msh_equipment_split_collapsed', this.equipmentSplitCollapsed);
+      } else {
+        localStorage.removeItem('msh_equipment_split_collapsed');
+        localStorage.setItem('msh_equipment_split_mode', 'manual');
+        localStorage.setItem('msh_equipment_split_ratio', this.equipmentSplitRatio.toString());
+      }
+    }
+  },
+
   openEquipmentStore() {
+    if (this.isStorePoppedOut && this.isStorePoppedOut()) {
+      try {
+        this.storePopoutWindow.focus();
+      } catch (e) {}
+      return;
+    }
+    this.switchTab('equipment');
+    if (this.equipmentSplitCollapsed === 'top') {
+      if (this.equipmentSplitMode === 'auto') this.setEquipmentSplitAuto(true);
+      else this.setEquipmentSplit(50, true, null);
+    }
     this.updateStoreClearancesUI();
-    const searchInp = document.getElementById('filter-store-search');
+    const searchInp = (typeof this.getStoreEl === 'function' ? this.getStoreEl('filter-store-search') : null) || document.getElementById('filter-store-search');
     if (searchInp) {
       searchInp.value = this.storeFilterQuery || '';
     }
-    const storeCatBtns = document.querySelectorAll('#store-category-filter-group .store-filter-btn');
+    const storeCatBtns = (typeof this.getStoreQuerySelectorAll === 'function' ? this.getStoreQuerySelectorAll('#store-category-filter-group .store-filter-btn') : null) || document.querySelectorAll('#store-category-filter-group .store-filter-btn');
     storeCatBtns.forEach(b => {
       const bCat = (b.getAttribute('data-store-cat') || 'all').toLowerCase();
       b.classList.toggle('active', bCat === (this.storeFilterCategory || 'all').toLowerCase());
@@ -5490,7 +8037,7 @@ const App = {
       this.storeAccessFilter = [this.storeAccessFilter || 'all'];
     }
     const isAll = this.storeAccessFilter.includes('all');
-    const storeAccessBtns = document.querySelectorAll('#store-access-filter-group .store-access-filter-btn');
+    const storeAccessBtns = (typeof this.getStoreQuerySelectorAll === 'function' ? this.getStoreQuerySelectorAll('#store-access-filter-group .store-access-filter-btn') : null) || document.querySelectorAll('#store-access-filter-group .store-access-filter-btn');
     storeAccessBtns.forEach(b => {
       const bAcc = (b.getAttribute('data-store-access') || 'all').toLowerCase();
       if (bAcc === 'all') {
@@ -5502,6 +8049,513 @@ const App = {
     this.renderEquipment();
     const modal = document.getElementById('equipment-store-modal');
     if (modal) modal.classList.add('open');
+  },
+
+  /* Equipment Store Popout Window Logic */
+  getStoreBox() {
+    if (this.storePopoutWindow && !this.storePopoutWindow.closed) {
+      try {
+        const box = this.storePopoutWindow.document.querySelector('#equipment-store-section') || this.storePopoutWindow.document.querySelector('.equipment-store-section');
+        if (box) return box;
+      } catch (e) {}
+    }
+    return document.querySelector('#equipment-store-section') || document.querySelector('.equipment-store-section');
+  },
+
+  getStoreEl(id) {
+    const box = this.getStoreBox();
+    if (box) {
+      if (box.id === id) return box;
+      const el = box.querySelector(`#${id}`);
+      if (el) return el;
+    }
+    return document.getElementById(id);
+  },
+
+  getStoreQuerySelectorAll(selector) {
+    const box = this.getStoreBox();
+    if (box && typeof box.querySelectorAll === 'function') {
+      return box.querySelectorAll(selector);
+    }
+    return document.querySelectorAll(selector);
+  },
+
+  getStoreQuerySelector(selector) {
+    const box = this.getStoreBox();
+    if (box && typeof box.querySelector === 'function') {
+      return box.querySelector(selector);
+    }
+    return document.querySelector(selector);
+  },
+
+  isStorePoppedOut() {
+    return !!(this.storePopoutWindow && !this.storePopoutWindow.closed);
+  },
+
+  saveStorePopoutGeometry() {
+    const pop = this.storePopoutWindow;
+    if (!pop || pop.closed) return;
+    try {
+      const x = pop.screenX !== undefined ? pop.screenX : pop.screenLeft;
+      const y = pop.screenY !== undefined ? pop.screenY : pop.screenTop;
+      const w = pop.outerWidth || pop.innerWidth;
+      const h = pop.outerHeight || pop.innerHeight;
+      if (typeof x === 'number' && typeof y === 'number' && typeof w === 'number' && typeof h === 'number' && w >= 300 && h >= 300) {
+        const geo = {
+          width: Math.round(w),
+          height: Math.round(h),
+          left: Math.round(x),
+          top: Math.round(y)
+        };
+        localStorage.setItem('msh_store_popout_geometry', JSON.stringify(geo));
+      }
+    } catch (e) {}
+  },
+
+  getStorePopoutGeometry() {
+    try {
+      const stored = localStorage.getItem('msh_store_popout_geometry');
+      if (stored) {
+        const geo = JSON.parse(stored);
+        if (geo && typeof geo.width === 'number' && typeof geo.height === 'number') {
+          const width = Math.max(500, Math.min(geo.width, 3840));
+          const height = Math.max(400, Math.min(geo.height, 2160));
+          let left = (typeof geo.left === 'number' && !isNaN(geo.left) && Math.abs(geo.left) < 30000) ? Math.round(geo.left) : null;
+          let top = (typeof geo.top === 'number' && !isNaN(geo.top) && Math.abs(geo.top) < 30000) ? Math.round(geo.top) : null;
+          return { width, height, left, top };
+        }
+      }
+    } catch (e) {}
+    return null;
+  },
+
+  toggleEquipmentStorePopout() {
+    const now = Date.now();
+    if (this._lastStorePopoutToggleTime && (now - this._lastStorePopoutToggleTime) < 500) {
+      return;
+    }
+    this._lastStorePopoutToggleTime = now;
+
+    if (this.isStorePoppedOut()) {
+      this.dockEquipmentStore(true);
+    } else {
+      this.popoutEquipmentStore();
+    }
+  },
+
+  popoutEquipmentStore(isAutoStartup = false) {
+    const storeSec = this.getStoreBox();
+    if (!storeSec) return false;
+
+    if (this.isStorePoppedOut()) {
+      try {
+        this.storePopoutWindow.focus();
+      } catch (e) {}
+      return true;
+    }
+
+    const savedGeo = this.getStorePopoutGeometry();
+    let width = 1100;
+    let height = 760;
+    let left = null;
+    let top = null;
+
+    if (savedGeo) {
+      width = savedGeo.width;
+      height = savedGeo.height;
+      if (savedGeo.left !== null && savedGeo.top !== null) {
+        left = savedGeo.left;
+        top = savedGeo.top;
+      }
+    }
+
+    if (left === null || top === null) {
+      const screenLeft = (window.screenX !== undefined ? window.screenX : window.screenLeft || 0);
+      const screenTop = (window.screenY !== undefined ? window.screenY : window.screenTop || 0);
+      const outerW = window.outerWidth || window.innerWidth || 1200;
+      left = Math.max(20, screenLeft + Math.round((outerW - width) / 2));
+      top = Math.max(20, screenTop + 40);
+    }
+
+    let pop = null;
+    try {
+      pop = window.open('', '_blank', `popup=yes,width=${width},height=${height},left=${left},top=${top},menubar=no,toolbar=no,location=no,status=no,resizable=yes,scrollbars=yes`);
+      if (pop) {
+        try { pop.name = 'MSH_Equipment_Store'; } catch (e) {}
+      }
+      if (pop && !pop.closed) {
+        try {
+          pop.resizeTo(width, height);
+          pop.moveTo(left, top);
+        } catch (e) {}
+      }
+    } catch (err) {
+      console.warn('window.open error:', err);
+    }
+
+    if (!pop || pop.closed || typeof pop.closed === 'undefined') {
+      if (!isAutoStartup) {
+        this.showStatusToast('⚠️ Pop-out window blocked by browser. Please allow popups for this site.');
+      }
+      return false;
+    }
+
+    let popDoc = null;
+    try {
+      popDoc = pop.document;
+    } catch (e) {
+      console.warn('Cannot access pop.document:', e);
+    }
+    if (!popDoc) {
+      if (!isAutoStartup) {
+        this.showStatusToast('⚠️ Pop-out window blocked by browser. Please allow popups for this site.');
+      }
+      try { pop.close(); } catch (e) {}
+      return false;
+    }
+
+    this.storePopoutWindow = pop;
+    this.storePoppedOut = true;
+    try {
+      localStorage.setItem('msh_store_popped_out', 'true');
+    } catch (e) {}
+
+    const baseHref = (typeof document !== 'undefined' && document.baseURI) || (typeof window !== 'undefined' && window.location && window.location.href) || '';
+    popDoc.open();
+    popDoc.write(`<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Rulebook Equipment Store - Marvel Super Heroes</title>
+  ${baseHref ? `<base href="${baseHref}">` : ''}
+</head>
+<body>
+  <div class="store-popout-shell" id="store-popout-shell"></div>
+</body>
+</html>`);
+    popDoc.close();
+
+    // Copy head link & style elements for fonts and styling
+    document.querySelectorAll('link[rel="stylesheet"], style').forEach(node => {
+      try {
+        popDoc.head.appendChild(popDoc.importNode ? popDoc.importNode(node, true) : node.cloneNode(true));
+      } catch (e) {}
+    });
+
+    // Provide App and parent references to popup window scope
+    try {
+      pop.App = this;
+      pop.window.App = this;
+    } catch (e) {}
+
+    // Popout shell & container styling
+    const popStyle = popDoc.createElement('style');
+    popStyle.textContent = `
+      html, body {
+        margin: 0;
+        padding: 0;
+        min-height: 100%;
+        height: 100%;
+        box-sizing: border-box;
+      }
+      body {
+        padding: 10px;
+        background: var(--bg-dark, #0b0f19);
+        color: var(--text-main, #f1f5f9);
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        display: flex;
+        justify-content: center;
+        align-items: stretch;
+        overflow: hidden;
+      }
+      .store-popout-shell {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        flex: 1;
+        min-height: 0;
+      }
+      .equipment-store-section {
+        width: 100% !important;
+        max-width: 100% !important;
+        height: 100% !important;
+        max-height: 100% !important;
+        flex: 1 !important;
+        border-radius: 8px !important;
+        border: 1px solid var(--border-color, #334155) !important;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5) !important;
+        display: flex !important;
+        overflow: hidden !important;
+      }
+      .equipment-store-section .card-header {
+        padding: 6px 14px !important;
+      }
+      .equipment-store-section #btn-collapse-store {
+        display: none !important;
+      }
+    `;
+    popDoc.head.appendChild(popStyle);
+
+    // Sync theme
+    const theme = document.body.getAttribute('data-theme');
+    if (theme) popDoc.body.setAttribute('data-theme', theme);
+
+    // Move storeSec into popout document
+    if (!this.storePlaceholder) {
+      this.storePlaceholder = document.createComment('equipment-store-section-placeholder');
+    }
+    if (storeSec.parentNode) {
+      storeSec.parentNode.insertBefore(this.storePlaceholder, storeSec);
+    }
+    const mount = popDoc.getElementById('store-popout-shell');
+    if (mount) {
+      mount.appendChild(storeSec);
+    }
+
+    // Update Split Layout in main document to popped-out mode
+    const layoutEl = document.getElementById('equipment-split-layout');
+    if (layoutEl) layoutEl.classList.add('store-popped-out');
+    const bannerEl = document.getElementById('equipment-store-popped-banner');
+    if (bannerEl) bannerEl.style.display = 'flex';
+
+    // Update Pop-out button to Dock
+    const popBtn = this.getStoreEl('btn-popout-store');
+    if (popBtn) {
+      popBtn.textContent = '↘ Dock';
+      popBtn.title = 'Dock Equipment Store back into main window';
+    }
+
+    // Bind event listeners on popDoc for cross-window reliability
+    if (popDoc.addEventListener) {
+      popDoc.addEventListener('click', (e) => {
+        const btn = e.target.closest && e.target.closest('button');
+        if (!btn) return;
+        if (btn.id === 'btn-popout-store') {
+          this.toggleEquipmentStorePopout();
+        }
+      });
+    }
+
+    // Track resizing and movements
+    pop.addEventListener('resize', () => {
+      this.saveStorePopoutGeometry();
+    });
+
+    // Automatic restoration when popout window closes
+    let returned = false;
+    let isFullyInitialized = false;
+    setTimeout(() => { isFullyInitialized = true; }, 600);
+
+    const returnStore = () => {
+      if (returned) return;
+      if (!isFullyInitialized && pop && !pop.closed) return;
+      this.saveStorePopoutGeometry();
+      returned = true;
+
+      if (this.storePlaceholder && this.storePlaceholder.parentNode) {
+        this.storePlaceholder.parentNode.insertBefore(storeSec, this.storePlaceholder);
+        this.storePlaceholder.remove();
+        this.storePlaceholder = null;
+      } else {
+        const l = document.getElementById('equipment-split-layout');
+        if (l && !l.contains(storeSec)) {
+          const divEl = document.getElementById('equipment-split-divider');
+          if (divEl) l.insertBefore(storeSec, divEl);
+          else l.appendChild(storeSec);
+        }
+      }
+
+      this.storePopoutWindow = null;
+      this.storePoppedOut = false;
+      if (!this.isClientUnloading) {
+        try {
+          localStorage.setItem('msh_store_popped_out', 'false');
+        } catch (e) {}
+      }
+
+      const mainLayout = document.getElementById('equipment-split-layout');
+      if (mainLayout) mainLayout.classList.remove('store-popped-out');
+      const bEl = document.getElementById('equipment-store-popped-banner');
+      if (bEl) bEl.style.display = 'none';
+
+      storeSec.style.width = '';
+      storeSec.style.position = '';
+      storeSec.style.margin = '';
+      if (this.equipmentSplitCollapsed) {
+        this.setEquipmentSplit(this.equipmentSplitRatio, false, this.equipmentSplitCollapsed);
+      } else if (this.equipmentSplitMode === 'auto') {
+        this.setEquipmentSplitAuto(false);
+      } else {
+        this.setEquipmentSplit(this.equipmentSplitRatio, false, null);
+      }
+
+      const b = (typeof this.getStoreEl === 'function' ? this.getStoreEl('btn-popout-store') : null) || document.getElementById('btn-popout-store');
+      if (b) {
+        b.textContent = '↗ Pop-out';
+        b.title = 'Pop out Equipment Store into a separate window';
+      }
+      this.renderEquipment();
+    };
+
+    pop.addEventListener('beforeunload', returnStore);
+    pop.addEventListener('unload', returnStore);
+    pop.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        try { pop.close(); } catch (err) {}
+      }
+    });
+
+    // Watcher interval in case pop window is moved or terminated abruptly
+    const checkInterval = setInterval(() => {
+      if (!this.storePopoutWindow || this.storePopoutWindow.closed) {
+        clearInterval(checkInterval);
+        returnStore();
+      } else {
+        this.saveStorePopoutGeometry();
+      }
+    }, 400);
+
+    this.renderEquipment();
+
+    try {
+      pop.focus();
+    } catch (e) {}
+
+    if (!isAutoStartup) {
+      if (typeof navigator !== 'undefined' && /waterfox/i.test(navigator.userAgent) && pop && typeof window !== 'undefined' && window.screen && pop.outerWidth >= (window.screen.availWidth - 50)) {
+        this.showStatusToast('💡 Waterfox tip: If pop-outs open in tabs, set browser.link.open_newwindow to 2 in about:config, or uncheck "Open links in tabs instead of new windows" in Settings.', 10000);
+      } else {
+        this.showStatusToast('↗ Rulebook Equipment Store popped out into separate window');
+      }
+    }
+    return true;
+  },
+
+  dockEquipmentStore(keepOpenInPage = true) {
+    const storeSec = this.getStoreBox();
+    const pop = this.storePopoutWindow;
+
+    if (pop && !pop.closed) {
+      this.saveStorePopoutGeometry();
+    }
+
+    if (storeSec) {
+      if (this.storePlaceholder && this.storePlaceholder.parentNode) {
+        this.storePlaceholder.parentNode.insertBefore(storeSec, this.storePlaceholder);
+        this.storePlaceholder.remove();
+        this.storePlaceholder = null;
+      } else {
+        const l = document.getElementById('equipment-split-layout');
+        if (l && !l.contains(storeSec)) {
+          const divEl = document.getElementById('equipment-split-divider');
+          if (divEl) l.insertBefore(storeSec, divEl);
+          else l.appendChild(storeSec);
+        }
+      }
+      storeSec.style.width = '';
+      storeSec.style.position = '';
+      storeSec.style.margin = '';
+    }
+
+    if (pop && !pop.closed) {
+      try {
+        pop.close();
+      } catch (e) {}
+    }
+    this.storePopoutWindow = null;
+    this.storePoppedOut = false;
+    if (!this.isClientUnloading) {
+      try {
+        localStorage.setItem('msh_store_popped_out', 'false');
+      } catch (e) {}
+    }
+
+    const mainLayout = document.getElementById('equipment-split-layout');
+    if (mainLayout) mainLayout.classList.remove('store-popped-out');
+    const bEl = document.getElementById('equipment-store-popped-banner');
+    if (bEl) bEl.style.display = 'none';
+
+    if (this.equipmentSplitCollapsed) {
+      this.setEquipmentSplit(this.equipmentSplitRatio, false, this.equipmentSplitCollapsed);
+    } else if (this.equipmentSplitMode === 'auto') {
+      this.setEquipmentSplitAuto(false);
+    } else {
+      this.setEquipmentSplit(this.equipmentSplitRatio, false, null);
+    }
+
+    const b = (typeof this.getStoreEl === 'function' ? this.getStoreEl('btn-popout-store') : null) || document.getElementById('btn-popout-store');
+    if (b) {
+      b.textContent = '↗ Pop-out';
+      b.title = 'Pop out Equipment Store into a separate window';
+    }
+
+    this.renderEquipment();
+
+    if (keepOpenInPage) {
+      this.switchTab('equipment');
+      if (this.equipmentSplitCollapsed === 'top') {
+        if (this.equipmentSplitMode === 'auto') this.setEquipmentSplitAuto(true);
+        else this.setEquipmentSplit(50, true, null);
+      }
+    }
+    this.showStatusToast('↘ Equipment Store docked back into main window');
+  },
+
+  restoreStorePopoutOnStartup() {
+    if (this.isStorePoppedOut()) return;
+
+    const success = this.popoutEquipmentStore(true);
+    if (success && this.isStorePoppedOut()) {
+      this.showStatusToast('↗ Equipment Store auto-restored in separate window');
+    } else {
+      this.showStatusToast('↗ Equipment Store was popped out last session. Click to pop out', 8000, () => {
+        this.popoutEquipmentStore();
+      });
+    }
+  },
+
+  initEquipmentStoreWindow() {
+    const popBtn = document.getElementById('btn-popout-store');
+    if (popBtn) {
+      popBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        this.toggleEquipmentStorePopout();
+      });
+    }
+
+    const dockBannerBtn = document.getElementById('btn-dock-store-banner');
+    if (dockBannerBtn) {
+      dockBannerBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        this.dockEquipmentStore(true);
+      });
+    }
+
+    const focusBannerBtn = document.getElementById('btn-focus-store-popout');
+    if (focusBannerBtn) {
+      focusBannerBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (this.isStorePoppedOut()) {
+          try {
+            this.storePopoutWindow.focus();
+          } catch (err) {}
+        }
+      });
+    }
+
+    window.addEventListener('beforeunload', () => {
+      if (this.storePopoutWindow && !this.storePopoutWindow.closed) {
+        try {
+          this.isClientUnloading = true;
+          this.saveStorePopoutGeometry();
+          localStorage.setItem('msh_store_popped_out', 'true');
+          this.storePopoutWindow.close();
+        } catch (e) {}
+      }
+    });
   },
 
   setAreaDivisionRule(rule) {
@@ -5566,8 +8620,309 @@ const App = {
     this.setSuperiorOptionCost(enabled);
   },
 
-  setUniversalTableMode(mode, save = true) {
-    this.universalTableMode = (mode === 'standard') ? 'standard' : 'cmf';
+  setConvertUnspentCpToKp(enabled) {
+    this.convertUnspentCpToKp = !!enabled;
+    if (this.character) {
+      this.character.convertUnspentCpToKp = this.convertUnspentCpToKp;
+    }
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem('msh_option_convert_unspent_cp_to_kp', this.convertUnspentCpToKp ? 'true' : 'false');
+    }
+    const opt = document.getElementById('option-convert-unspent-cp-to-kp');
+    if (opt) opt.checked = this.convertUnspentCpToKp;
+    this.saveState();
+    this.renderPointBuy();
+  },
+
+  setHumanAbilityCaps(enabled) {
+    this.humanAbilityCaps = !!enabled;
+    if (this.character) {
+      this.character.humanAbilityCaps = this.humanAbilityCaps;
+    }
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem('msh_option_human_ability_caps', this.humanAbilityCaps ? 'true' : 'false');
+    }
+    const opt = document.getElementById('option-human-ability-caps');
+    if (opt) opt.checked = this.humanAbilityCaps;
+    this.populateDropdowns();
+    this.renderAbilities();
+    this.saveState();
+  },
+
+  getCreationValidationState() {
+    if (!this.character) return { ready: false, unmet: ['No character loaded'] };
+    if (this.character.isCreationFinalized) return { ready: true, unmet: [] };
+
+    const isTsr = (this.character.creationMode === 'tsr');
+    const unmet = [];
+
+    // 1. Character Named
+    const name = (this.character.name || '').trim();
+    if (!name || name === 'New Superhero' || name === 'New Character') {
+      unmet.push('Enter a custom Hero / Codename (currently "New Superhero" or empty)');
+    }
+
+    // 2. Physical Form Decided
+    if (isTsr) {
+      if (!this.character.formKey && !this.character.formName) {
+        unmet.push('Choose or roll a Physical Form / Origin');
+      }
+    } else {
+      if (this.character.isCreationSetupPending || !this.character.formKey) {
+        unmet.push('Choose a Physical Form and complete Starting Setup');
+      }
+    }
+
+    // 3. FASERIP Abilities Assigned (all 7 abilities must have rank value > 0 and assigned)
+    const abilities = this.character.abilities || {};
+    const stats = ['fighting', 'agility', 'strength', 'endurance', 'reason', 'intuition', 'psyche'];
+    const missingStats = stats.filter(s => !abilities[s] || !abilities[s].rankValue || abilities[s].rankValue <= 0 || abilities[s].rankName === 'Shift 0');
+    if (missingStats.length > 0) {
+      unmet.push(`Assign ranks to all 7 FASERIP abilities (${missingStats.join(', ')})`);
+    }
+
+    // 4. Powers & Required Limitations Chosen
+    if (isTsr) {
+      if (this.character.isModeledMode && this.character.isModeledMode()) {
+        const kpData = this.character.calculateModeledKPCost ? this.character.calculateModeledKPCost() : null;
+        if (kpData && kpData.kpLimit > 0 && kpData.totalKPCost > kpData.kpLimit) {
+          unmet.push(`Total KP cost (${kpData.totalKPCost.toLocaleString()} KP) exceeds campaign limit of ${kpData.kpLimit.toLocaleString()} KP`);
+        }
+      } else {
+        const usedSlots = this.character.getUsedPowerSlots ? this.character.getUsedPowerSlots() : (this.character.powers || []).length;
+        const maxSlots = this.character.getMaxPowerSlots ? this.character.getMaxPowerSlots() : (this.character.tsrPowerSlots ?? null);
+        if (maxSlots === null) {
+          unmet.push('Roll power slots on Table 2 in TSR Generator');
+        } else if (usedSlots < maxSlots) {
+          unmet.push(`All rolled power slots must be chosen (${usedSlots}/${maxSlots} slots allocated)`);
+        } else if (usedSlots > maxSlots) {
+          unmet.push(`Power slots allocated (${usedSlots}) exceeds rolled power slots (${maxSlots})`);
+        }
+      }
+    } else {
+      const currentPowers = (this.character.powers || []).length;
+      if (currentPowers === 0) {
+        unmet.push('Choose at least one superpower for your hero');
+      }
+    }
+
+    // Check required limitations on all powers
+    if (Array.isArray(this.character.powers)) {
+      for (const p of this.character.powers) {
+        if (p.requiresLimitation && (!p.limitation && (!p.limitations || p.limitations.length === 0))) {
+          unmet.push(`Select required limitation for power: ${p.name}`);
+        }
+        if (p.limitation && typeof validateTsrLimitation === 'function') {
+          const ceiling = p.limitation.ceiling || 'Remarkable';
+          const val = validateTsrLimitation(p.rankName, ceiling);
+          if (!val.valid) {
+            unmet.push(`Limitation for "${p.name}" exceeds ceiling (${ceiling})`);
+          }
+        }
+      }
+    }
+
+    // 5. All Talents Chosen
+    const currentTalents = (this.character.talents || []).length;
+    if (isTsr) {
+      if (!this.character.isModeledMode || !this.character.isModeledMode()) {
+        const maxTalents = (this.character.tsrTalentSlots !== undefined && this.character.tsrTalentSlots !== null)
+          ? this.character.tsrTalentSlots
+          : null;
+        if (maxTalents === null) {
+          unmet.push('Roll talent slots in TSR Generator');
+        } else if (currentTalents < maxTalents) {
+          unmet.push(`All rolled talents must be chosen (${currentTalents}/${maxTalents} selected)`);
+        } else if (currentTalents > maxTalents) {
+          unmet.push(`Talents chosen (${currentTalents}) exceeds rolled talent slots (${maxTalents})`);
+        }
+      }
+    } else {
+      if (currentTalents === 0) {
+        unmet.push('Choose at least one talent for your hero');
+      }
+    }
+
+    // 6. All Contacts Named
+    const currentContacts = (this.character.contacts || []).length;
+    if (isTsr) {
+      if (!this.character.isModeledMode || !this.character.isModeledMode()) {
+        const maxContacts = (this.character.tsrContactSlots !== undefined && this.character.tsrContactSlots !== null)
+          ? this.character.tsrContactSlots
+          : null;
+        if (maxContacts === null) {
+          unmet.push('Roll contact slots in TSR Generator');
+        } else if (currentContacts < maxContacts) {
+          unmet.push(`All rolled contacts must be named (${currentContacts}/${maxContacts} assigned)`);
+        } else if (currentContacts > maxContacts) {
+          unmet.push(`Contacts chosen (${currentContacts}) exceeds rolled contact slots (${maxContacts})`);
+        }
+      }
+    } else {
+      if (currentContacts === 0) {
+        unmet.push('Add and name at least one contact for your hero');
+      }
+    }
+
+    // Verify all contacts have names assigned (non-empty, not default 'New Contact')
+    if (Array.isArray(this.character.contacts) && this.character.contacts.length > 0) {
+      const unnamed = this.character.contacts.filter(c => !c.name || !c.name.trim() || c.name === 'New Contact');
+      if (unnamed.length > 0) {
+        unmet.push(`All contacts must have names assigned (${unnamed.length} unnamed)`);
+      }
+    }
+
+    // 7. Character Points (CP) Budget (CMF Mode Only)
+    if (!isTsr) {
+      const pts = (typeof this.character.calculateSpentPoints === 'function')
+        ? this.character.calculateSpentPoints()
+        : { remaining: 0, budget: 300, totalSpent: 300 };
+      const budget = this.character.pointBudget || pts.budget || 300;
+      const remaining = (pts.remaining !== undefined) ? pts.remaining : (budget - (pts.totalSpent || 0));
+
+      if (remaining < 0) {
+        unmet.push(`Point budget exceeded by ${Math.abs(remaining)} CP`);
+      } else if (this.convertUnspentCpToKp) {
+        if (remaining > 5) {
+          unmet.push(`Unspent Character Points (${remaining} CP remaining) exceeds allowed maximum of 5 CP for Karma conversion`);
+        }
+      } else {
+        if (remaining > 0) {
+          unmet.push(`All Character Points must be spent (${remaining} CP remaining out of ${budget} CP). Enable "Convert Unspent CP to KP" rule to convert up to 5 remaining CP`);
+        }
+      }
+    }
+
+    return {
+      ready: unmet.length === 0,
+      unmet
+    };
+  },
+
+  async handleFinalizeCharacterCreation(mouseEvent = null) {
+    if (!this.character) return;
+    if (this.character.isCreationFinalized) {
+      this.showStatusToast('Character creation is already finalized.');
+      return;
+    }
+
+    const activeModeKey = this.getCreationModeKey();
+    const modeName = this.getCreationModeDisplayName(activeModeKey);
+
+    const validation = this.getCreationValidationState();
+    if (!validation.ready) {
+      await this.showCustomAlert(
+        `Creation Mode: ${modeName}\n\nCharacter creation is still in progress.\n\nPlease satisfy the following creation conditions before finalizing:\n\n• ${validation.unmet.join('\n• ')}`,
+        'Creation In Progress',
+        mouseEvent,
+        { showCreationModeSelect: true, currentMode: activeModeKey }
+      );
+      return;
+    }
+
+    if (this.character.creationMode === 'tsr') {
+      const modeConfirmName = this.getCreationModeFullTitle(activeModeKey);
+      const confirmed = await this.showCustomConfirm(
+        `Finalize character creation for ${this.character.name}?\n\nThis will lock your ${modeConfirmName} character and transition to active Session Play, unlocking live Karma tracking and advancement.`,
+        `Finalize ${modeConfirmName} Character Creation`,
+        mouseEvent,
+        'Finalize Creation',
+        'Keep Editing'
+      );
+      if (!confirmed) return;
+
+      this.character.isCreationFinalized = true;
+      this.recordCharacterEdit(
+        `Finalized character creation (${modeConfirmName}) - Transitioned to Active Session Play`,
+        'finalize'
+      );
+      this.saveState();
+      this.render();
+      this.showStatusToast(`🎉 ${modeConfirmName} character creation finalized! Character is now active for Session Play.`);
+      return;
+    }
+
+    const spentData = (typeof this.character.calculateSpentPoints === 'function')
+      ? this.character.calculateSpentPoints()
+      : 0;
+    const spent = (typeof spentData === 'object' && spentData !== null) ? (spentData.totalSpent ?? 0) : spentData;
+    const budget = this.character.pointBudget || 0;
+    const remaining = (typeof spentData === 'object' && spentData !== null && spentData.remaining !== undefined)
+      ? spentData.remaining
+      : (budget - spent);
+
+    if (remaining < 0) {
+      await this.showCustomAlert(
+        `Creation Mode: ${modeName}\n\nCannot finalize character creation: You have spent ${spent} CP, which exceeds your point budget of ${budget} CP by ${Math.abs(remaining)} CP.\n\nPlease reduce traits or increase your point budget before finalizing.`,
+        'Over Point Budget',
+        mouseEvent,
+        { showCreationModeSelect: true, currentMode: activeModeKey }
+      );
+      return;
+    }
+
+    if (!this.convertUnspentCpToKp && remaining > 0) {
+      await this.showCustomAlert(
+        `Creation Mode: ${modeName}\n\nCannot finalize character creation: You have ${remaining} unspent Character Points (CP) remaining out of ${budget} CP.\n\nAll Character Points must be spent before finalizing, or enable the "Convert Unspent CP to KP" house rule in Preferences to convert up to 5 remaining CP into Starting Karma.`,
+        'Unspent Character Points',
+        mouseEvent,
+        { showCreationModeSelect: true, currentMode: activeModeKey }
+      );
+      return;
+    }
+
+    if (this.convertUnspentCpToKp && remaining > 5) {
+      await this.showCustomAlert(
+        `Creation Mode: ${modeName}\n\nCannot finalize character creation: You have ${remaining} unspent Character Points (CP).\n\nWith the "Convert Unspent CP to KP" rule enabled, a maximum of 5 unspent CP can be converted into Starting Karma. Please allocate at least ${remaining - 5} more CP before finalizing.`,
+        'Too Many Unspent CP',
+        mouseEvent,
+        { showCreationModeSelect: true, currentMode: activeModeKey }
+      );
+      return;
+    }
+
+    if (remaining > 0 && this.convertUnspentCpToKp) {
+      const kpBonus = remaining * 5;
+      const confirmed = await this.showCustomConfirm(
+        `You have ${remaining} unspent Character Points (CP).\n\nWith the "Convert Unspent CP to KP" house rule enabled, finalizing will convert your ${remaining} remaining CP into +${kpBonus} Starting Karma bonus (KP) at a 1 CP to 5 KP conversion rate.\n\nDo you want to finalize character creation now?`,
+        'Finalize Character Creation & Convert CP',
+        mouseEvent,
+        `Finalize (+${kpBonus} KP)`,
+        'Keep Editing'
+      );
+      if (!confirmed) return;
+      this.character.startingKarmaBonus = (this.character.startingKarmaBonus || 0) + kpBonus;
+      this.character.currentKarma = this.character.calculateBaseKarma();
+    } else {
+      const confirmed = await this.showCustomConfirm(
+        `You have allocated all ${budget} Character Points.\n\nFinalizing character creation will complete your initial build and transition this character into active Session Play, unlocking Karma adjustments and trait advancement.\n\nDo you wish to finalize?`,
+        'Finalize Character Creation',
+        mouseEvent,
+        'Finalize Creation',
+        'Keep Editing'
+      );
+      if (!confirmed) return;
+    }
+
+    const kpBonus = (remaining > 0 && this.convertUnspentCpToKp) ? (remaining * 5) : 0;
+    this.character.isCreationFinalized = true;
+    this.recordCharacterEdit(
+      `Finalized character creation (${spent}/${budget} CP spent${kpBonus > 0 ? `, +${kpBonus} KP bonus from ${remaining} leftover CP (1:5)` : ''}) - Transitioned to Active Session Play`,
+      'finalize'
+    );
+    this.saveState();
+    this.render();
+    if (kpBonus > 0) {
+      this.showStatusToast(`🎉 Character creation finalized! Converted ${remaining} unspent CP into +${kpBonus} Starting Karma.`);
+    } else {
+      this.showStatusToast('🎉 Character creation finalized! Character is now active for Session Play.');
+    }
+  },
+
+  setUniversalTableMode(mode, save = true, showToast = true) {
+    const targetMode = (mode === 'standard') ? 'standard' : 'cmf';
+    const modeChanged = (this.universalTableMode !== targetMode);
+    this.universalTableMode = targetMode;
     if (typeof UniversalTableEngine !== 'undefined' && UniversalTableEngine.setTableMode) {
       UniversalTableEngine.setTableMode(this.universalTableMode);
     }
@@ -5576,8 +8931,12 @@ const App = {
     }
     const tableOpt = document.getElementById('option-universal-table');
     if (tableOpt) tableOpt.value = this.universalTableMode;
-    const cheatTableOpt = (typeof this.getCheatSheetEl === 'function') ? this.getCheatSheetEl('cheat-table-mode-select') : document.getElementById('cheat-table-mode-select');
-    if (cheatTableOpt) cheatTableOpt.value = this.universalTableMode;
+    const schemeBadge = (typeof this.getCheatSheetEl === 'function')
+      ? this.getCheatSheetEl('cheat-table-scheme-badge')
+      : document.getElementById('cheat-table-scheme-badge');
+    if (schemeBadge) {
+      schemeBadge.textContent = (this.universalTableMode === 'standard') ? 'Standard TSR Scheme (18 Ranks)' : 'CMF Scheme (22 Ranks)';
+    }
 
     if (this.character && typeof this.character.syncRanksToActiveScheme === 'function') {
       this.character.syncRanksToActiveScheme();
@@ -5585,11 +8944,17 @@ const App = {
 
     this.populateDropdowns();
     this.renderCheatSheetTable();
+    this.renderCheatSheetCombat();
     this.renderCheatSheetMaterials();
     this.renderCheatSheetMovement();
     this.render();
     this.updateRollerPreview();
     this.saveState();
+
+    if (showToast && modeChanged) {
+      const schemeLabel = (this.universalTableMode === 'standard') ? 'Standard TSR (18 Ranks)' : 'Modified CMF (22 Ranks)';
+      this.showStatusToast(`🌐 App-wide rank scheme updated to ${schemeLabel}.`);
+    }
   },
 
   updateAreaDivisionDisplay() {
@@ -5651,6 +9016,7 @@ const App = {
     if (typeof this.adjustRollerModalBounds === 'function') {
       this.adjustRollerModalBounds();
     }
+    this.updateStickyHeaderHeight();
   },
 
   setTheme(themeName) {
@@ -5674,6 +9040,16 @@ const App = {
     if (this.isCheatSheetPoppedOut && this.isCheatSheetPoppedOut()) {
       try {
         this.cheatsheetPopoutWindow.document.body.setAttribute('data-theme', theme);
+      } catch (e) {}
+    }
+    if (this.isTsrPoppedOut && this.isTsrPoppedOut()) {
+      try {
+        this.tsrPopoutWindow.document.body.setAttribute('data-theme', theme);
+      } catch (e) {}
+    }
+    if (this.isStorePoppedOut && this.isStorePoppedOut()) {
+      try {
+        this.storePopoutWindow.document.body.setAttribute('data-theme', theme);
       } catch (e) {}
     }
     const themeSelect = typeof document !== 'undefined' ? document.getElementById('option-theme') : null;
@@ -7220,11 +10596,18 @@ const App = {
     }
   },
 
-  handleAddTalent(mouseEvent = null) {
-    if (this.character && this.character.isCreationSetupPending) {
+  async handleAddTalent(mouseEvent = null) {
+    if (this.character && this.character.isCreationSetupPending && this.character.creationMode !== 'tsr') {
       this.showStatusToast('⚠️ Please choose your Starting Tier and Physical Form before spending CP.');
       this.openCreationWizardModal();
       return;
+    }
+    if (this.character && this.character.creationMode === 'tsr' && (!this.character.isModeledMode || !this.character.isModeledMode())) {
+      const confirmed = await this.promptSwitchToModeledOnManualAssignment('Talents');
+      if (!confirmed) {
+        return;
+      }
+      this.applySwitchToModeledMode();
     }
     const tSel = document.getElementById('select-talent-catalog');
     if (!tSel) return;
@@ -7288,11 +10671,18 @@ const App = {
     }
   },
 
-  handleAddContact() {
-    if (this.character && this.character.isCreationSetupPending) {
+  async handleAddContact() {
+    if (this.character && this.character.isCreationSetupPending && this.character.creationMode !== 'tsr') {
       this.showStatusToast('⚠️ Please choose your Starting Tier and Physical Form before spending CP.');
       this.openCreationWizardModal();
       return;
+    }
+    if (this.character && this.character.creationMode === 'tsr' && (!this.character.isModeledMode || !this.character.isModeledMode())) {
+      const confirmed = await this.promptSwitchToModeledOnManualAssignment('Contacts');
+      if (!confirmed) {
+        return;
+      }
+      this.applySwitchToModeledMode();
     }
     const name = document.getElementById('input-contact-name').value.trim();
     const role = document.getElementById('input-contact-role').value.trim() || 'Ally';
@@ -7354,6 +10744,10 @@ const App = {
     const headerRow = (typeof this.getCheatSheetEl === 'function') ? this.getCheatSheetEl('cheatsheet-table-header-row') : document.getElementById('cheatsheet-table-header-row');
     const titleEl = (typeof this.getCheatSheetEl === 'function') ? this.getCheatSheetEl('cheat-table-title') : document.getElementById('cheat-table-title');
     const descEl = (typeof this.getCheatSheetEl === 'function') ? this.getCheatSheetEl('cheat-table-desc') : document.getElementById('cheat-table-desc');
+    const schemeBadge = (typeof this.getCheatSheetEl === 'function') ? this.getCheatSheetEl('cheat-table-scheme-badge') : document.getElementById('cheat-table-scheme-badge');
+    if (schemeBadge) {
+      schemeBadge.textContent = isCMF ? 'CMF Scheme (22 Ranks)' : 'Standard TSR Scheme (18 Ranks)';
+    }
 
     if (isCMF) {
       if (titleEl) titleEl.textContent = '🎲 Universal Action Table Matrix (CMF 22 Ranks)';
@@ -7388,7 +10782,8 @@ const App = {
         const yellowText = `${String(yellowMin).padStart(2, '0')} - ${String(redMin - 1).padStart(2, '0')}`;
         const redText = `${String(redMin).padStart(2, '0')} - 100`;
 
-        const tr = document.createElement('tr');
+        const doc = tbody.ownerDocument || document;
+        const tr = doc.createElement('tr');
         tr.innerHTML = `
           <td class="rank-name-cell" style="font-weight: 700; color: ${r.color};">${r.name} (${r.num})</td>
           <td class="cell-blue">${blueText}</td>
@@ -7416,7 +10811,8 @@ const App = {
 
       UniversalTableEngine.ranks.forEach(r => {
         const thresh = (UniversalTableEngine.table && UniversalTableEngine.table[r.name]) || [51, 81, 98];
-        const tr = document.createElement('tr');
+        const doc = tbody.ownerDocument || document;
+        const tr = doc.createElement('tr');
         tr.innerHTML = `
           <td class="rank-name-cell" style="font-weight: 700; color: ${r.color};">${r.name} (${r.num})</td>
           <td class="cell-white">01 - ${String(thresh[0] - 1).padStart(2, '0')}</td>
@@ -7427,6 +10823,92 @@ const App = {
         tbody.appendChild(tr);
       });
     }
+  },
+
+  renderCheatSheetCombat() {
+    const tbody = (typeof this.getCheatSheetEl === 'function')
+      ? this.getCheatSheetEl('cheatsheet-combat-body')
+      : document.getElementById('cheatsheet-combat-body');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+
+    const headerRow = (typeof this.getCheatSheetEl === 'function')
+      ? this.getCheatSheetEl('cheatsheet-combat-header-row')
+      : document.getElementById('cheatsheet-combat-header-row');
+
+    const badge = (typeof this.getCheatSheetEl === 'function')
+      ? this.getCheatSheetEl('cheat-combat-scheme-badge')
+      : document.getElementById('cheat-combat-scheme-badge');
+
+    const isCMF = (this.universalTableMode === 'cmf');
+    if (badge) {
+      badge.textContent = isCMF ? 'CMF Scheme (22 Ranks + Fumbles)' : 'Standard TSR Scheme (18 Ranks)';
+    }
+
+    if (headerRow) {
+      if (isCMF) {
+        headerRow.innerHTML = `
+          <th style="width: 17%;">Action / FEAT</th>
+          <th style="width: 9%;">Ability</th>
+          <th style="width: 16%;"><span class="feat-blue">Dark Blue (Fumble)</span></th>
+          <th style="width: 14%;"><span class="feat-white">White (Failure)</span></th>
+          <th style="width: 14%;"><span class="feat-green">Green (Standard)</span></th>
+          <th style="width: 15%;"><span class="feat-yellow">Yellow (Superior)</span></th>
+          <th style="width: 15%;"><span class="feat-red">Red (Critical)</span></th>
+        `;
+      } else {
+        headerRow.innerHTML = `
+          <th style="width: 18%;">Action / FEAT</th>
+          <th style="width: 10%;">Ability</th>
+          <th style="width: 14%;"><span class="feat-white">White (Failure)</span></th>
+          <th style="width: 18%;"><span class="feat-green">Green (Standard)</span></th>
+          <th style="width: 20%;"><span class="feat-yellow">Yellow (Superior)</span></th>
+          <th style="width: 20%;"><span class="feat-red">Red (Critical)</span></th>
+        `;
+      }
+    }
+
+    const rules = (typeof UniversalTableEngine !== 'undefined' && UniversalTableEngine.combatActionRules)
+      ? UniversalTableEngine.combatActionRules
+      : (globalThis.COMBAT_ACTION_RULES || []);
+
+    const formatCell = (cls, text) => {
+      if (!text) return '';
+      const idx = text.indexOf('(');
+      if (idx !== -1) {
+        const title = text.slice(0, idx).trim();
+        const desc = text.slice(idx).trim();
+        return `<span class="${cls}">${title}</span> ${desc}`;
+      }
+      return `<span class="${cls}">${text}</span>`;
+    };
+
+    const doc = tbody.ownerDocument || document;
+    rules.forEach(rule => {
+      const tr = doc.createElement('tr');
+      const actionTitle = rule.detail ? `<strong>${rule.name}</strong> <span style="font-size: 0.9em; color: var(--text-muted);">${rule.detail}</span>` : `<strong>${rule.name}</strong>`;
+      if (isCMF) {
+        tr.innerHTML = `
+          <td>${actionTitle}</td>
+          <td>${rule.ability}</td>
+          <td>${formatCell('feat-blue', rule.blue)}</td>
+          <td>${formatCell('feat-white', rule.white)}</td>
+          <td>${formatCell('feat-green', rule.green)}</td>
+          <td>${formatCell('feat-yellow', rule.yellow)}</td>
+          <td>${formatCell('feat-red', rule.red)}</td>
+        `;
+      } else {
+        tr.innerHTML = `
+          <td>${actionTitle}</td>
+          <td>${rule.ability}</td>
+          <td>${formatCell('feat-white', rule.white)}</td>
+          <td>${formatCell('feat-green', rule.green)}</td>
+          <td>${formatCell('feat-yellow', rule.yellow)}</td>
+          <td>${formatCell('feat-red', rule.red)}</td>
+        `;
+      }
+      tbody.appendChild(tr);
+    });
   },
 
   renderCheatSheetMaterials() {
@@ -7455,7 +10937,8 @@ const App = {
         : null;
       const rankColor = rObj ? rObj.color : '#38bdf8';
 
-      const tr = document.createElement('tr');
+      const doc = tbody.ownerDocument || document;
+      const tr = doc.createElement('tr');
       tr.innerHTML = `
         <td class="rank-name-cell" style="font-weight: 700; color: ${rankColor};">${m.rank}</td>
         <td style="font-weight: 600; text-align: center;">${m.num}</td>
@@ -7503,7 +10986,8 @@ const App = {
         const rankColor = rObj ? rObj.color : '#38bdf8';
         const numLabel = (row.num !== undefined && row.num < 10000) ? ` (${row.num})` : '';
 
-        const tr = document.createElement('tr');
+        const docGround = groundTbody.ownerDocument || document;
+        const tr = docGround.createElement('tr');
         tr.innerHTML = `
           <td class="rank-name-cell" style="font-weight: 700; color: ${rankColor};">${row.rank}${numLabel}</td>
           <td style="font-weight: 600; text-align: center;">${row.areas}</td>
@@ -7529,7 +11013,8 @@ const App = {
         const rankColor = rObj ? rObj.color : '#38bdf8';
         const numLabel = (row.num !== undefined && row.num < 10000) ? ` (${row.num})` : '';
 
-        const tr = document.createElement('tr');
+        const docAir = airTbody.ownerDocument || document;
+        const tr = docAir.createElement('tr');
         tr.innerHTML = `
           <td class="rank-name-cell" style="font-weight: 700; color: ${rankColor};">${row.rank}${numLabel}</td>
           <td style="font-weight: 600; text-align: center;">${row.combatAreas}</td>
@@ -7722,6 +11207,7 @@ const App = {
   },
 
   saveRollerPopoutGeometry() {
+    if (this.rollerRestoreGeometry === false) return;
     const pop = this.rollerPopoutWindow;
     if (!pop || pop.closed) return;
     try {
@@ -7742,13 +11228,14 @@ const App = {
   },
 
   getRollerPopoutGeometry() {
+    if (this.rollerRestoreGeometry === false) return null;
     try {
       const stored = localStorage.getItem('msh_roller_popout_geometry');
       if (stored) {
         const geo = JSON.parse(stored);
         if (geo && typeof geo.width === 'number' && typeof geo.height === 'number') {
-          const width = Math.max(320, Math.min(geo.width, 2560));
-          const height = Math.max(280, Math.min(geo.height, 1600));
+          const width = Math.max(320, Math.min(geo.width, 3840));
+          const height = Math.max(280, Math.min(geo.height, 2160));
           const left = (typeof geo.left === 'number' && !isNaN(geo.left) && Math.abs(geo.left) < 30000) ? Math.round(geo.left) : null;
           const top = (typeof geo.top === 'number' && !isNaN(geo.top) && Math.abs(geo.top) < 30000) ? Math.round(geo.top) : null;
           return { width, height, left, top };
@@ -7756,6 +11243,28 @@ const App = {
       }
     } catch (e) {}
     return null;
+  },
+
+  resetRollerPopoutGeometry() {
+    if (typeof localStorage !== 'undefined') {
+      localStorage.removeItem('msh_roller_popout_geometry');
+    }
+    if (this.isRollerPoppedOut()) {
+      try {
+        const pop = this.rollerPopoutWindow;
+        if (pop && !pop.closed) {
+          const defaultW = 440;
+          const defaultH = 420;
+          pop.resizeTo(defaultW, defaultH);
+          if (window && window.screen) {
+            const left = Math.round((window.screen.availWidth - defaultW) / 2);
+            const top = Math.round((window.screen.availHeight - defaultH) / 2);
+            pop.moveTo(left, top);
+          }
+        }
+      } catch (e) {}
+    }
+    this.showStatusToast('Dice roller pop-out size and position reset to default.');
   },
 
   toggleRollerPopout() {
@@ -7803,7 +11312,10 @@ const App = {
 
     let pop = null;
     try {
-      pop = window.open('', 'MSH_Universal_Table_Roller', `width=${width},height=${height},left=${left},top=${top},menubar=no,toolbar=no,location=no,status=no,resizable=yes,scrollbars=yes`);
+      pop = window.open('', '_blank', `popup=yes,width=${width},height=${height},left=${left},top=${top},menubar=no,toolbar=no,location=no,status=no,resizable=yes,scrollbars=yes`);
+      if (pop) {
+        try { pop.name = 'MSH_Universal_Table_Roller'; } catch (e) {}
+      }
       if (pop && !pop.closed) {
         try {
           pop.resizeTo(width, height);
@@ -7950,6 +11462,11 @@ const App = {
 
     pop.addEventListener('beforeunload', returnModal);
     pop.addEventListener('unload', returnModal);
+    pop.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        try { pop.close(); } catch (err) {}
+      }
+    });
 
     // Watcher interval in case pop window is moved or terminated abruptly
     const checkInterval = setInterval(() => {
@@ -8619,7 +12136,7 @@ const App = {
     modalBox.style.margin = '0';
   },
 
-  showCustomAlert(message, title = 'Notification', mouseEvent = null) {
+  showCustomAlert(message, title = 'Notification', mouseEvent = null, options = {}) {
     return new Promise((resolve) => {
       const modal = document.getElementById('ui-dialog-modal');
       const titleEl = document.getElementById('ui-dialog-title');
@@ -8627,6 +12144,9 @@ const App = {
       const okBtn = document.getElementById('btn-ui-dialog-ok');
       const cancelBtn = document.getElementById('btn-ui-dialog-cancel');
       const closeBtn = document.getElementById('btn-ui-dialog-close');
+      const modeContainer = document.getElementById('ui-dialog-creation-mode-container');
+      const modeSelect = document.getElementById('ui-dialog-creation-mode-select');
+      const modePickerBtn = document.getElementById('btn-ui-dialog-open-mode-picker');
 
       if (!modal || !msgEl || !okBtn) {
         if (typeof alert === 'function') alert(message);
@@ -8635,8 +12155,42 @@ const App = {
 
       if (titleEl) titleEl.textContent = title;
       msgEl.textContent = message;
+      const discardBtn = document.getElementById('btn-ui-dialog-discard');
       if (cancelBtn) cancelBtn.style.display = 'none';
+      if (discardBtn) discardBtn.style.display = 'none';
       okBtn.textContent = 'OK';
+
+      let onModeChange = null;
+      let onOpenModePicker = null;
+      if (modeContainer) {
+        if (options && options.showCreationModeSelect) {
+          modeContainer.style.display = 'flex';
+          let curM = options.currentMode || (typeof this.getCreationModeKey === 'function' ? this.getCreationModeKey() : 'cmf-cp-buy');
+          if (curM === 'cmf') curM = 'cmf-cp-buy';
+          if (modeSelect) {
+            modeSelect.value = curM;
+            onModeChange = (e) => {
+              const chosenMode = e.target.value;
+              if (chosenMode && chosenMode !== curM) {
+                cleanup();
+                this._forceSavePromptOnModeSwitch = true;
+                this.handleNewCharacterModeSelection(chosenMode);
+              }
+            };
+            modeSelect.addEventListener('change', onModeChange);
+          }
+          if (modePickerBtn) {
+            onOpenModePicker = () => {
+              cleanup();
+              this._forceSavePromptOnModeSwitch = true;
+              this.openCreationModeModal(curM);
+            };
+            modePickerBtn.addEventListener('click', onOpenModePicker);
+          }
+        } else {
+          modeContainer.style.display = 'none';
+        }
+      }
 
       let resolved = false;
       const cleanup = () => {
@@ -8646,16 +12200,34 @@ const App = {
         okBtn.removeEventListener('click', onOk);
         if (closeBtn) closeBtn.removeEventListener('click', onClose);
         modal.removeEventListener('click', onBackdrop);
+        document.removeEventListener('keydown', onKey);
+        if (modeSelect && onModeChange) {
+          modeSelect.removeEventListener('change', onModeChange);
+        }
+        if (modePickerBtn && onOpenModePicker) {
+          modePickerBtn.removeEventListener('click', onOpenModePicker);
+        }
+        if (modeContainer) {
+          modeContainer.style.display = 'none';
+        }
         resolve();
       };
 
       const onOk = () => cleanup();
       const onClose = () => cleanup();
       const onBackdrop = (e) => { if (e.target === modal) cleanup(); };
+      const onKey = (e) => {
+        if (e.key === 'Escape') {
+          e.preventDefault();
+          e.stopPropagation();
+          cleanup();
+        }
+      };
 
       okBtn.addEventListener('click', onOk);
       if (closeBtn) closeBtn.addEventListener('click', onClose);
       modal.addEventListener('click', onBackdrop);
+      document.addEventListener('keydown', onKey);
 
       modal.classList.add('open');
       this.positionCustomDialog(mouseEvent);
@@ -8672,7 +12244,16 @@ const App = {
       const msgEl = document.getElementById('ui-dialog-message');
       const okBtn = document.getElementById('btn-ui-dialog-ok');
       const cancelBtn = document.getElementById('btn-ui-dialog-cancel');
+      const discardBtn = document.getElementById('btn-ui-dialog-discard');
       const closeBtn = document.getElementById('btn-ui-dialog-close');
+      const modeContainer = document.getElementById('ui-dialog-creation-mode-container');
+
+      if (modeContainer) {
+        modeContainer.style.display = 'none';
+      }
+      if (discardBtn) {
+        discardBtn.style.display = 'none';
+      }
 
       if (!modal || !msgEl || !okBtn) {
         const fallback = typeof confirm === 'function' ? confirm(message) : true;
@@ -8696,17 +12277,26 @@ const App = {
         if (cancelBtn) cancelBtn.removeEventListener('click', onCancel);
         if (closeBtn) closeBtn.removeEventListener('click', onCancel);
         modal.removeEventListener('click', onBackdrop);
+        document.removeEventListener('keydown', onKey);
         resolve(result);
       };
 
       const onOk = () => cleanup(true);
       const onCancel = () => cleanup(false);
       const onBackdrop = (e) => { if (e.target === modal) cleanup(false); };
+      const onKey = (e) => {
+        if (e.key === 'Escape') {
+          e.preventDefault();
+          e.stopPropagation();
+          cleanup(false);
+        }
+      };
 
       okBtn.addEventListener('click', onOk);
       if (cancelBtn) cancelBtn.addEventListener('click', onCancel);
       if (closeBtn) closeBtn.addEventListener('click', onCancel);
       modal.addEventListener('click', onBackdrop);
+      document.addEventListener('keydown', onKey);
 
       modal.classList.add('open');
       this.positionCustomDialog(mouseEvent);
@@ -8714,6 +12304,248 @@ const App = {
         requestAnimationFrame(() => this.positionCustomDialog(mouseEvent));
       }
     });
+  },
+
+  showSavePromptDialog(message, title = 'Save Current Character?', mouseEvent = null) {
+    return new Promise((resolve) => {
+      const modal = document.getElementById('ui-dialog-modal');
+      const titleEl = document.getElementById('ui-dialog-title');
+      const msgEl = document.getElementById('ui-dialog-message');
+      const okBtn = document.getElementById('btn-ui-dialog-ok');
+      const discardBtn = document.getElementById('btn-ui-dialog-discard');
+      const cancelBtn = document.getElementById('btn-ui-dialog-cancel');
+      const closeBtn = document.getElementById('btn-ui-dialog-close');
+      const modeContainer = document.getElementById('ui-dialog-creation-mode-container');
+
+      if (modeContainer) {
+        modeContainer.style.display = 'none';
+      }
+
+      if (!modal || !msgEl || !okBtn) {
+        const saveConfirmed = typeof confirm === 'function' ? confirm(message) : false;
+        return resolve(saveConfirmed ? 'save' : 'discard');
+      }
+
+      if (titleEl) titleEl.textContent = title;
+      msgEl.textContent = message;
+
+      if (cancelBtn) {
+        cancelBtn.style.display = 'inline-flex';
+        cancelBtn.textContent = 'Cancel';
+      }
+      if (discardBtn) {
+        discardBtn.style.display = 'inline-flex';
+        discardBtn.textContent = "Don't Save";
+      }
+      okBtn.textContent = 'Save Character';
+
+      let resolved = false;
+      const cleanup = (result) => {
+        if (resolved) return;
+        resolved = true;
+        modal.classList.remove('open');
+        okBtn.removeEventListener('click', onSave);
+        if (discardBtn) discardBtn.removeEventListener('click', onDiscard);
+        if (cancelBtn) cancelBtn.removeEventListener('click', onCancel);
+        if (closeBtn) closeBtn.removeEventListener('click', onCancel);
+        modal.removeEventListener('click', onBackdrop);
+        document.removeEventListener('keydown', onKey);
+        resolve(result);
+      };
+
+      const onSave = () => cleanup('save');
+      const onDiscard = () => cleanup('discard');
+      const onCancel = () => cleanup('cancel');
+      const onBackdrop = (e) => { if (e.target === modal) cleanup('cancel'); };
+      const onKey = (e) => {
+        if (e.key === 'Escape') {
+          e.preventDefault();
+          e.stopPropagation();
+          cleanup('cancel');
+        }
+      };
+
+      okBtn.addEventListener('click', onSave);
+      if (discardBtn) discardBtn.addEventListener('click', onDiscard);
+      if (cancelBtn) cancelBtn.addEventListener('click', onCancel);
+      if (closeBtn) closeBtn.addEventListener('click', onCancel);
+      modal.addEventListener('click', onBackdrop);
+      document.addEventListener('keydown', onKey);
+
+      modal.classList.add('open');
+      this.positionCustomDialog(mouseEvent);
+      if (typeof requestAnimationFrame === 'function') {
+        requestAnimationFrame(() => this.positionCustomDialog(mouseEvent));
+      }
+    });
+  },
+
+  isCurrentCharacterUnsaved() {
+    if (!this.character) return false;
+    const currentJson = JSON.stringify(this.character.toJSON());
+    if (this.lastSavedFileSnapshot && this.lastSavedFileSnapshot === currentJson) {
+      return false; // Pristine match with file on disk
+    }
+
+    const char = this.character;
+    const defaultNames = ['new superhero', 'hero', 'the vanguard', 'vanguard', 'new character', 'unnamed hero'];
+    const charName = (char.name || '').trim().toLowerCase();
+    const hasCustomName = !!(charName && !defaultNames.includes(charName));
+    const hasRealName = !!(char.realName && char.realName.trim() !== '');
+    const hasPowers = Array.isArray(char.powers) && char.powers.length > 0;
+    const hasTalents = Array.isArray(char.talents) && char.talents.length > 0;
+    const hasContacts = Array.isArray(char.contacts) && char.contacts.length > 0;
+    const hasEquipment = (Array.isArray(char.equipment) && char.equipment.length > 0) ||
+                         (Array.isArray(char.weapons) && char.weapons.length > 0) ||
+                         (Array.isArray(char.armor) && char.armor.length > 0);
+    const hasInventions = Array.isArray(char.inventions) && char.inventions.length > 0;
+    const hasTsrRolls = !!(char.tsrRolls && (
+      (char.tsrRolls.origin && (char.tsrRolls.origin.name || char.tsrRolls.origin.roll)) ||
+      (Array.isArray(char.tsrRolls.powers) && char.tsrRolls.powers.length > 0) ||
+      (Array.isArray(char.tsrRolls.talents) && char.tsrRolls.talents.length > 0) ||
+      (Array.isArray(char.tsrRolls.contacts) && char.tsrRolls.contacts.length > 0) ||
+      (char.tsrRolls.abilities && Object.keys(char.tsrRolls.abilities).length > 0)
+    ));
+    const spentKp = (char.spentKarma || 0) + (char.spentAdvancementKarma || 0);
+
+    let hasSpentCustomCp = false;
+    if (typeof char.calculateSpentPoints === 'function' && char.creationMode !== 'tsr') {
+      const pts = char.calculateSpentPoints();
+      if (pts && pts.breakdown) {
+        if ((pts.breakdown.powers || 0) > 0 ||
+            (pts.breakdown.talents || 0) > 0 ||
+            (pts.breakdown.contacts || 0) > 0 ||
+            (pts.breakdown.abilities || 0) > 42 ||
+            (pts.breakdown.resources || 0) > 6) {
+          hasSpentCustomCp = true;
+        }
+      } else if (pts && pts.totalSpent > 48) {
+        hasSpentCustomCp = true;
+      }
+    }
+
+    const hasUserEdits = Array.isArray(char.editLog) && char.editLog.some(e => {
+      if (!e || !e.description) return false;
+      const desc = e.description.toLowerCase();
+      const cat = (e.category || '').toLowerCase();
+      if (cat === 'initial' || cat === 'creation') return false;
+      if (desc.includes('character created') ||
+          desc.includes('new character created') ||
+          desc.includes('initial save point') ||
+          desc.includes('character loaded') ||
+          desc.includes('imported character') ||
+          desc.includes('campaign kp limit')) {
+        return false;
+      }
+      return true;
+    });
+
+    let hasModifiedAbilities = false;
+    if (char.abilities) {
+      const abilityKeys = ['fighting', 'agility', 'strength', 'endurance', 'reason', 'intuition', 'psyche'];
+      for (const k of abilityKeys) {
+        const val = char.abilities[k];
+        const rank = (val && typeof val === 'object') ? (val.rankName || val.rank) : val;
+        if (rank && rank !== 'Typical' && rank !== 'Typ') {
+          hasModifiedAbilities = true;
+          break;
+        }
+      }
+    }
+
+    // A character with no actual edits (no powers, talents, contacts, equipment, inventions,
+    // rolls, spent karma, custom CP expenditures, user edit log entries, modified abilities,
+    // or customized names) is an empty character that should not prompt to save on mode change.
+    const hasActualEdits = hasPowers || hasTalents || hasContacts || hasEquipment ||
+                           hasInventions || hasTsrRolls || hasSpentCustomCp || spentKp > 0 ||
+                           hasUserEdits || hasModifiedAbilities || hasCustomName || hasRealName;
+
+    if (!hasActualEdits) {
+      return false;
+    }
+
+    return true;
+  },
+
+  getCreationModeKey() {
+    const tablePrefix = (this.universalTableMode === 'standard') ? 'tsr' : 'cmf';
+    const isTsr = (this.character && this.character.creationMode === 'tsr');
+    if (isTsr) {
+      const isModeled = !!(this.character.isModeledMode && this.character.isModeledMode());
+      return isModeled ? `${tablePrefix}-modeled` : `${tablePrefix}-standard`;
+    }
+    return `${tablePrefix}-cp-buy`;
+  },
+
+  getCreationModeDisplayName(mode) {
+    const norm = String(mode || '').toLowerCase().replace(/[\s_]+/g, '-');
+    if (norm === 'tsr-standard' || norm === 'tsr-random') return 'TSR standard';
+    if (norm === 'tsr-modeled') return 'TSR modeled';
+    if (norm === 'tsr-cp-buy' || norm === 'tsr-point-buy') return 'TSR CP buy';
+    if (norm === 'cmf-standard') return 'CMF standard';
+    if (norm === 'cmf-modeled') return 'CMF modeled';
+    if (norm === 'cmf-cp-buy' || norm === 'cmf' || norm === 'cmf-point-buy') return 'CMF CP buy';
+    if (norm === 'tsr') return 'TSR standard';
+    return 'CMF CP buy';
+  },
+
+  getCreationModeFullTitle(mode) {
+    const norm = String(mode || '').toLowerCase().replace(/[\s_]+/g, '-');
+    if (norm === 'tsr-standard' || norm === 'tsr-random' || norm === 'tsr') return 'TSR Standard (1986 Random Roll)';
+    if (norm === 'tsr-modeled' || norm === 'modeled') return 'TSR Modeled (Free-Form)';
+    if (norm === 'tsr-cp-buy' || norm === 'tsr-point-buy') return 'TSR CP Buy (Point-Buy Rules)';
+    if (norm === 'cmf-standard') return 'CMF Standard (1986 Random Roll)';
+    if (norm === 'cmf-modeled') return 'CMF Modeled (Free-Form)';
+    if (norm === 'cmf-cp-buy' || norm === 'cmf' || norm === 'cmf-point-buy') return 'CMF CP Buy (Point-Buy Rules)';
+    return 'CMF CP Buy (Point-Buy Rules)';
+  },
+
+  getModeDisplayName(mode) {
+    return this.getCreationModeFullTitle(mode);
+  },
+
+  async handleNewCharacterModeSelection(mode) {
+    let normTarget = mode ? String(mode).toLowerCase().replace(/[\s_]+/g, '-') : null;
+    if (normTarget === 'random') normTarget = 'tsr-standard';
+    if (normTarget === 'modeled') normTarget = 'tsr-modeled';
+    if (normTarget === 'cmf' || normTarget === 'cp-buy') normTarget = 'cmf-cp-buy';
+    if (normTarget === 'tsr') normTarget = 'tsr-standard';
+
+    const currentKey = this.getCreationModeKey();
+    if (normTarget === currentKey && this.character && !this.character.isCreationFinalized) {
+      this._forceSavePromptOnModeSwitch = false;
+      this.closeNewCharacterModeModal();
+      this.closeCreationWizardModal();
+      const dispName = this.getCreationModeDisplayName(currentKey);
+      this.showStatusToast(`Already in ${dispName} mode.`);
+      return;
+    }
+
+    if (this._forceSavePromptOnModeSwitch || this.isCurrentCharacterUnsaved()) {
+      const targetName = this.getModeDisplayName(normTarget);
+      const choice = await this.showSavePromptDialog(
+        `Switching generation mode to ${targetName} will replace your current character.\n\nWould you like to save your current character first?`,
+        'Save Current Character?'
+      );
+      if (choice === 'cancel') {
+        const selEl = document.getElementById('select-creation-mode');
+        if (selEl) selEl.value = currentKey;
+        return;
+      }
+      if (choice === 'save') {
+        const saved = await this.exportCharacter();
+        if (!saved) {
+          const selEl = document.getElementById('select-creation-mode');
+          if (selEl) selEl.value = currentKey;
+          return; // Save cancelled or failed, preserve current character
+        }
+      }
+      // 'discard' or saved successfully: continue to initialize new character
+    }
+    this._forceSavePromptOnModeSwitch = false;
+    this.closeNewCharacterModeModal();
+    this.closeCreationWizardModal();
+    this.applyNewCharacter(normTarget);
   },
 
   /* Rules Cheat Sheet Popout Window Logic */
@@ -8768,8 +12600,8 @@ const App = {
         if (geo && typeof geo.width === 'number' && typeof geo.height === 'number') {
           const width = Math.max(400, Math.min(geo.width, 3840));
           const height = Math.max(350, Math.min(geo.height, 2160));
-          const left = (typeof geo.left === 'number' && !isNaN(geo.left) && Math.abs(geo.left) < 30000) ? Math.round(geo.left) : null;
-          const top = (typeof geo.top === 'number' && !isNaN(geo.top) && Math.abs(geo.top) < 30000) ? Math.round(geo.top) : null;
+          let left = (typeof geo.left === 'number' && !isNaN(geo.left) && Math.abs(geo.left) < 30000) ? Math.round(geo.left) : null;
+          let top = (typeof geo.top === 'number' && !isNaN(geo.top) && Math.abs(geo.top) < 30000) ? Math.round(geo.top) : null;
           return { width, height, left, top };
         }
       }
@@ -8778,6 +12610,12 @@ const App = {
   },
 
   toggleCheatSheetPopout() {
+    const now = Date.now();
+    if (this._lastPopoutToggleTime && (now - this._lastPopoutToggleTime) < 500) {
+      return;
+    }
+    this._lastPopoutToggleTime = now;
+
     if (this.isCheatSheetPoppedOut()) {
       this.dockCheatSheet(true);
     } else {
@@ -8787,7 +12625,7 @@ const App = {
 
   popoutCheatSheet(isAutoStartup = false) {
     const modal = document.getElementById('cheatsheet-modal');
-    const modalBox = document.querySelector('.modal-box.cheatsheet-modal-box');
+    const modalBox = (typeof this.getCheatSheetBox === 'function') ? this.getCheatSheetBox() : (document.querySelector('.modal-box.cheatsheet-modal-box') || (this.getCheatSheetEl ? this.getCheatSheetEl('cheatsheet-modal-box') : null));
     if (!modalBox) return false;
 
     if (this.isCheatSheetPoppedOut()) {
@@ -8798,8 +12636,8 @@ const App = {
     }
 
     const savedGeo = this.getCheatSheetPopoutGeometry();
-    let width = 900;
-    let height = 800;
+    let width = 960;
+    let height = 820;
     let left = null;
     let top = null;
 
@@ -8822,7 +12660,10 @@ const App = {
 
     let pop = null;
     try {
-      pop = window.open('', 'MSH_Rules_Cheat_Sheet', `width=${width},height=${height},left=${left},top=${top},menubar=no,toolbar=no,location=no,status=no,resizable=yes,scrollbars=yes`);
+      pop = window.open('', '_blank', `popup=yes,width=${width},height=${height},left=${left},top=${top},menubar=no,toolbar=no,location=no,status=no,resizable=yes,scrollbars=yes`);
+      if (pop) {
+        try { pop.name = 'MSH_Rules_Cheat_Sheet'; } catch (e) {}
+      }
       if (pop && !pop.closed) {
         try {
           pop.resizeTo(width, height);
@@ -8840,6 +12681,20 @@ const App = {
       return false;
     }
 
+    let popDoc = null;
+    try {
+      popDoc = pop.document;
+    } catch (e) {
+      console.warn('Cannot access pop.document:', e);
+    }
+    if (!popDoc) {
+      if (!isAutoStartup) {
+        this.showStatusToast('⚠️ Pop-out window blocked by browser. Please allow popups for this site.');
+      }
+      try { pop.close(); } catch (e) {}
+      return false;
+    }
+
     this.cheatsheetPopoutWindow = pop;
     this.cheatsheetPoppedOut = true;
     try {
@@ -8850,13 +12705,14 @@ const App = {
       modal.classList.remove('open');
     }
 
-    const popDoc = pop.document;
+    const baseHref = (typeof document !== 'undefined' && document.baseURI) || (typeof window !== 'undefined' && window.location && window.location.href) || '';
     popDoc.open();
     popDoc.write(`<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <title>Rules Cheat Sheet - Marvel Super Heroes</title>
+  ${baseHref ? `<base href="${baseHref}">` : ''}
 </head>
 <body>
   <div class="cheatsheet-popout-shell" id="cheatsheet-popout-shell"></div>
@@ -8867,7 +12723,7 @@ const App = {
     // Copy head link & style elements for fonts and styling
     document.querySelectorAll('link[rel="stylesheet"], style').forEach(node => {
       try {
-        popDoc.head.appendChild(node.cloneNode(true));
+        popDoc.head.appendChild(popDoc.importNode ? popDoc.importNode(node, true) : node.cloneNode(true));
       } catch (e) {}
     });
 
@@ -8988,6 +12844,20 @@ const App = {
       popBtn.title = 'Dock cheat sheet back into main window';
     }
 
+    // Bind event listeners on popDoc for cross-window reliability
+    if (popDoc.addEventListener) {
+
+      popDoc.addEventListener('click', (e) => {
+        const btn = e.target.closest && e.target.closest('button');
+        if (!btn) return;
+        if (btn.id === 'btn-cheatsheet-popout') {
+          this.toggleCheatSheetPopout();
+        } else if (btn.id === 'btn-cheatsheet-close') {
+          this.closeCheatSheet();
+        }
+      });
+    }
+
     // Track resizing and movements
     pop.addEventListener('resize', () => {
       this.saveCheatSheetPopoutGeometry();
@@ -8995,8 +12865,12 @@ const App = {
 
     // Automatic restoration when popout window closes
     let returned = false;
+    let isFullyInitialized = false;
+    setTimeout(() => { isFullyInitialized = true; }, 600);
+
     const returnModal = () => {
       if (returned) return;
+      if (!isFullyInitialized && pop && !pop.closed) return;
       this.saveCheatSheetPopoutGeometry();
       returned = true;
       if (this.cheatsheetPlaceholder && this.cheatsheetPlaceholder.parentNode) {
@@ -9020,7 +12894,7 @@ const App = {
       modalBox.style.left = '';
       modalBox.style.top = '';
       modalBox.style.margin = '';
-      const b = document.getElementById('btn-cheatsheet-popout');
+      const b = (typeof this.getCheatSheetEl === 'function' ? this.getCheatSheetEl('btn-cheatsheet-popout') : null) || document.getElementById('btn-cheatsheet-popout');
       if (b) {
         b.textContent = '↗ Pop-out';
         b.title = 'Pop-out into separate window';
@@ -9029,6 +12903,11 @@ const App = {
 
     pop.addEventListener('beforeunload', returnModal);
     pop.addEventListener('unload', returnModal);
+    pop.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        try { pop.close(); } catch (err) {}
+      }
+    });
 
     // Watcher interval in case pop window is moved or terminated abruptly
     const checkInterval = setInterval(() => {
@@ -9042,6 +12921,8 @@ const App = {
 
     if (this.activeCheatTab === 'table') {
       this.renderCheatSheetTable();
+    } else if (this.activeCheatTab === 'combat') {
+      this.renderCheatSheetCombat();
     } else if (this.activeCheatTab === 'materials') {
       this.renderCheatSheetMaterials();
     } else if (this.activeCheatTab === 'movement') {
@@ -9052,15 +12933,41 @@ const App = {
     } catch (e) {}
 
     if (!isAutoStartup) {
-      this.showStatusToast('↗ Rules Cheat Sheet popped out into separate window');
+      if (typeof navigator !== 'undefined' && /waterfox/i.test(navigator.userAgent) && pop && typeof window !== 'undefined' && window.screen && pop.outerWidth >= (window.screen.availWidth - 50)) {
+        this.showStatusToast('💡 Waterfox tip: If pop-outs open in tabs, set browser.link.open_newwindow to 2 in about:config, or uncheck "Open links in tabs instead of new windows" in Settings.', 10000);
+      } else {
+        this.showStatusToast('↗ Rules Cheat Sheet popped out into separate window');
+      }
     }
     return true;
   },
 
   dockCheatSheet(keepOpenInPage = true) {
+    const modalBox = (typeof this.getCheatSheetBox === 'function') ? this.getCheatSheetBox() : (document.querySelector('.modal-box.cheatsheet-modal-box') || (this.getCheatSheetEl ? this.getCheatSheetEl('cheatsheet-modal-box') : null));
     const pop = this.cheatsheetPopoutWindow;
+
     if (pop && !pop.closed) {
       this.saveCheatSheetPopoutGeometry();
+    }
+
+    if (modalBox) {
+      if (this.cheatsheetPlaceholder && this.cheatsheetPlaceholder.parentNode) {
+        this.cheatsheetPlaceholder.parentNode.insertBefore(modalBox, this.cheatsheetPlaceholder);
+        this.cheatsheetPlaceholder.remove();
+        this.cheatsheetPlaceholder = null;
+      } else {
+        const m = document.getElementById('cheatsheet-modal');
+        if (m && !m.contains(modalBox)) m.appendChild(modalBox);
+      }
+      modalBox.style.width = '';
+      modalBox.style.height = '';
+      modalBox.style.position = '';
+      modalBox.style.left = '';
+      modalBox.style.top = '';
+      modalBox.style.margin = '';
+    }
+
+    if (pop && !pop.closed) {
       try {
         pop.close();
       } catch (e) {}
@@ -9073,29 +12980,10 @@ const App = {
       } catch (e) {}
     }
 
-    const modalBox = document.querySelector('.modal-box.cheatsheet-modal-box');
-    if (this.cheatsheetPlaceholder && this.cheatsheetPlaceholder.parentNode && modalBox) {
-      this.cheatsheetPlaceholder.parentNode.insertBefore(modalBox, this.cheatsheetPlaceholder);
-      this.cheatsheetPlaceholder.remove();
-      this.cheatsheetPlaceholder = null;
-    } else if (modalBox) {
-      const m = document.getElementById('cheatsheet-modal');
-      if (m && !m.contains(modalBox)) m.appendChild(modalBox);
-    }
-
-    if (modalBox) {
-      modalBox.style.width = '';
-      modalBox.style.height = '';
-      modalBox.style.position = '';
-      modalBox.style.left = '';
-      modalBox.style.top = '';
-      modalBox.style.margin = '';
-    }
-
-    const popBtn = document.getElementById('btn-cheatsheet-popout');
-    if (popBtn) {
-      popBtn.textContent = '↗ Pop-out';
-      popBtn.title = 'Pop-out into separate window';
+    const b = document.getElementById('btn-cheatsheet-popout');
+    if (b) {
+      b.textContent = '↗ Pop-out';
+      b.title = 'Pop-out into separate window';
     }
 
     const modal = document.getElementById('cheatsheet-modal');
@@ -9108,6 +12996,8 @@ const App = {
     }
     if (this.activeCheatTab === 'table') {
       this.renderCheatSheetTable();
+    } else if (this.activeCheatTab === 'combat') {
+      this.renderCheatSheetCombat();
     } else if (this.activeCheatTab === 'materials') {
       this.renderCheatSheetMaterials();
     } else if (this.activeCheatTab === 'movement') {
@@ -9156,12 +13046,6 @@ const App = {
       }
     });
 
-    modalBox.addEventListener('change', (e) => {
-      if (e.target && e.target.id === 'cheat-table-mode-select') {
-        this.setUniversalTableMode(e.target.value);
-      }
-    });
-
     window.addEventListener('beforeunload', () => {
       if (this.cheatsheetPopoutWindow && !this.cheatsheetPopoutWindow.closed) {
         try {
@@ -9188,8 +13072,8 @@ const App = {
 
     const wasPoppedOut = (typeof localStorage !== 'undefined' && localStorage.getItem('msh_cheatsheet_popped_out') === 'true');
     if (wasPoppedOut && this.cheatsheetAutoPopout !== false) {
-      this.popoutCheatSheet();
-      return;
+      const popped = this.popoutCheatSheet();
+      if (popped) return;
     }
 
     const modal = document.getElementById('cheatsheet-modal');
@@ -9215,6 +13099,76 @@ const App = {
         this.popoutCheatSheet();
       });
     }
+  },
+
+  formatRulesTextToHtml(fullText) {
+    if (!fullText) return '<p style="line-height: 1.68; font-size: 10pt;">Standard superhuman power effect.</p>';
+    const blocks = fullText.split(/\n\s*\n|\r\n\r\n/).map(s => s.trim()).filter(Boolean);
+    const htmlParts = [];
+    for (const block of blocks) {
+      const lines = block.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+      const isTable = lines.length >= 2 &&
+        lines[0].startsWith('|') && lines[0].endsWith('|') &&
+        lines.some(l => /^\|(\s*:?-+:?\s*\|)+$/.test(l));
+
+      if (isTable) {
+        const headerLine = lines[0];
+        const delimiterIdx = lines.findIndex(l => /^\|(\s*:?-+:?\s*\|)+$/.test(l));
+        const headers = headerLine.split('|').slice(1, -1).map(h => h.trim());
+        const dataRows = lines.slice(delimiterIdx + 1).filter(l => l.startsWith('|') && l.endsWith('|'));
+
+        let tableHtml = '<div style="overflow-x: auto; margin: 12px 0;">';
+        tableHtml += '<table class="rules-modal-table" style="width: 100%; border-collapse: collapse; font-size: 10pt; line-height: 1.45; border: 1px solid rgba(255, 255, 255, 0.15); background: rgba(0, 0, 0, 0.25); border-radius: 6px; overflow: hidden;">';
+        tableHtml += '<thead><tr style="background: rgba(255, 255, 255, 0.08); border-bottom: 2px solid rgba(255, 255, 255, 0.2);">';
+        headers.forEach(h => {
+          tableHtml += `<th style="padding: 7px 10px; text-align: left; font-weight: 700; color: var(--marvel-gold, #f59e0b); font-size: 10pt; letter-spacing: 0.3px;">${h}</th>`;
+        });
+        tableHtml += '</tr></thead><tbody>';
+        dataRows.forEach((rowLine, rIdx) => {
+          const cells = rowLine.split('|').slice(1, -1).map(c => c.trim());
+          const bg = rIdx % 2 === 1 ? 'background: rgba(255, 255, 255, 0.02);' : '';
+          tableHtml += `<tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.07); ${bg}">`;
+          cells.forEach((cell, cIdx) => {
+            const isFirst = cIdx === 0;
+            tableHtml += `<td style="padding: 6px 10px; font-size: 10pt; vertical-align: top; ${isFirst ? 'font-weight: 600; color: #f1f5f9;' : 'color: #cbd5e1;'}">${cell}</td>`;
+          });
+          tableHtml += '</tr>';
+        });
+        tableHtml += '</tbody></table></div>';
+        htmlParts.push(tableHtml);
+        continue;
+      }
+
+      const isBulletList = lines.every(l => /^([•\-*]|\d+\.)\s+/.test(l));
+      if (isBulletList) {
+        let listHtml = '<ul style="margin: 8px 0 12px 0; padding-left: 24px; font-size: 10pt; line-height: 1.65; color: #cbd5e1;">';
+        lines.forEach(l => {
+          const itemText = l.replace(/^([•\-*]|\d+\.)\s+/, '');
+          listHtml += `<li style="margin-bottom: 4px;">${itemText}</li>`;
+        });
+        listHtml += '</ul>';
+        htmlParts.push(listHtml);
+        continue;
+      }
+
+      const firstBulletIdx = lines.findIndex(l => /^([•\-*])\s+/.test(l));
+      if (firstBulletIdx > 0 && lines.slice(firstBulletIdx).every(l => /^([•\-*])\s+/.test(l))) {
+        const introText = lines.slice(0, firstBulletIdx).join(' ');
+        let mixedHtml = `<p style="margin-bottom: 6px; line-height: 1.68; font-size: 10pt;">${introText}</p>`;
+        mixedHtml += '<ul style="margin: 4px 0 12px 0; padding-left: 24px; font-size: 10pt; line-height: 1.65; color: #cbd5e1;">';
+        lines.slice(firstBulletIdx).forEach(l => {
+          const itemText = l.replace(/^([•\-*])\s+/, '');
+          mixedHtml += `<li style="margin-bottom: 4px;">${itemText}</li>`;
+        });
+        mixedHtml += '</ul>';
+        htmlParts.push(mixedHtml);
+        continue;
+      }
+
+      const joinedProse = lines.join(' ');
+      htmlParts.push(`<p style="margin-bottom: 12px; line-height: 1.68; font-size: 10pt;">${joinedProse}</p>`);
+    }
+    return htmlParts.join('');
   },
 
   showHelpModal(type, queryKey) {
@@ -9248,10 +13202,7 @@ const App = {
         title = `${isStarred ? '★ ' : '⚡ '}${codeBadge ? '[' + codeBadge + '] ' : ''}${p.name}`;
 
         const fullText = (p.rulesText || p.description || 'Standard superhuman power effect.').trim();
-        const paragraphs = fullText.split(/\n\s*\n|\r\n\r\n/).map(s => s.trim()).filter(Boolean);
-        const formattedDesc = paragraphs.length > 1
-          ? paragraphs.map(para => `<p style="margin-bottom: 12px; line-height: 1.68;">${para.replace(/\n/g, '<br/>')}</p>`).join('')
-          : `<p style="line-height: 1.68;">${fullText.replace(/\n/g, '<br/>')}</p>`;
+        const formattedDesc = this.formatRulesTextToHtml(fullText);
 
         const powerDetails = (typeof globalThis.getPowerDetails === 'function') ? globalThis.getPowerDetails(p, p.defaultRank || 'Typical') : {};
         const detailBadges = [];
@@ -9277,6 +13228,7 @@ const App = {
               const match = optDef.rollTable.find(([min, max, key]) => key === c.key);
               if (match) rollRange = match[0] === match[1] ? `${match[0]}` : `${match[0]}–${match[1]}`;
             }
+            const isTsr = (this.character && this.character.creationMode === 'tsr');
             const isTaxActive = !!(this.superiorOptionCost || (this.character && this.character.superiorOptionCost));
             const surchargeBadge = c.isSuperior
               ? (isTaxActive
@@ -9299,13 +13251,16 @@ const App = {
                   ${c.description || ''}
                   ${subChoices}
                 </td>
+                ${isTsr ? '' : `
                 <td style="padding: 6px 8px; text-align: right; vertical-align: top; white-space: nowrap;">
                   ${surchargeBadge}
                 </td>
+                `}
               </tr>
             `;
           }).join('');
 
+          const isTsrMode = (this.character && this.character.creationMode === 'tsr');
           optionsSection = `
             <div class="calc-rule-callout" style="margin-top: 14px; border-left: 4px solid var(--marvel-gold); background: rgba(245, 158, 11, 0.07); padding: 12px 14px; border-radius: 6px;">
               <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px; margin-bottom: 8px;">
@@ -9321,7 +13276,7 @@ const App = {
                       ${hasRoll ? `<th style="padding: 4px 8px; width: 65px;">d100</th>` : ''}
                       <th style="padding: 4px 8px; width: 28%;">Manifestation</th>
                       <th style="padding: 4px 8px;">Rules Effect</th>
-                      <th style="padding: 4px 8px; width: 110px; text-align: right;">CP Surcharge</th>
+                      ${isTsrMode ? '' : '<th style="padding: 4px 8px; width: 110px; text-align: right;">CP Surcharge</th>'}
                     </tr>
                   </thead>
                   <tbody>
@@ -9473,33 +13428,309 @@ const App = {
     modal.classList.add('open');
   },
 
-  async newCharacter(mouseEvent = null) {
-    const confirmed = await this.showCustomConfirm(
-      'Are you sure you want to create a new character?\n\nAny unsaved changes to your current character will be replaced with a fresh CMF point-buy sheet.',
-      '📄 New Character',
-      mouseEvent,
-      'Create New',
-      'Cancel'
-    );
-    if (!confirmed) return;
+  async newCharacter(mouseEvent = null, explicitMode = null) {
+    if (explicitMode) {
+      return this.handleNewCharacterModeSelection(explicitMode);
+    }
+    const modal = (typeof document !== 'undefined') ? document.getElementById('modal-new-character-mode') : null;
+    if (!modal) {
+      return this.handleNewCharacterModeSelection('cmf');
+    }
+    this.openNewCharacterModeModal();
+  },
 
-    const currentTier = (this.character && this.character.pointTier) ? this.character.pointTier : '400';
-    this.character = FASERIPCharacter.createBlankCharacter(currentTier);
-    this.character.isCreationSetupPending = true;
+  applyNewCharacter(mode = 'cmf-cp-buy') {
+    let normalizedMode = String(mode).toLowerCase().replace(/[\s_]+/g, '-');
+    if (normalizedMode === 'cmf') normalizedMode = 'cmf-cp-buy';
+    if (normalizedMode === 'tsr' || normalizedMode === 'random') normalizedMode = 'tsr-standard';
+    if (normalizedMode === 'modeled') normalizedMode = 'tsr-modeled';
+
+    let targetTableMode = this.universalTableMode || 'cmf';
+    let targetCreationMode = 'cmf';
+    let targetTsrSubMode = 'random';
+
+    if (normalizedMode.startsWith('tsr-')) {
+      targetTableMode = 'standard';
+      const suffix = normalizedMode.slice(4);
+      if (suffix === 'standard' || suffix === 'random') {
+        targetCreationMode = 'tsr';
+        targetTsrSubMode = 'random';
+      } else if (suffix === 'modeled') {
+        targetCreationMode = 'tsr';
+        targetTsrSubMode = 'modeled';
+      } else if (suffix === 'cp-buy' || suffix === 'point-buy') {
+        targetCreationMode = 'cmf';
+      }
+    } else if (normalizedMode.startsWith('cmf-')) {
+      targetTableMode = 'cmf';
+      const suffix = normalizedMode.slice(4);
+      if (suffix === 'standard' || suffix === 'random') {
+        targetCreationMode = 'tsr';
+        targetTsrSubMode = 'random';
+      } else if (suffix === 'modeled') {
+        targetCreationMode = 'tsr';
+        targetTsrSubMode = 'modeled';
+      } else if (suffix === 'cp-buy' || suffix === 'point-buy') {
+        targetCreationMode = 'cmf';
+      }
+    } else {
+      if (normalizedMode === 'tsr-standard') {
+        targetTableMode = 'standard';
+        targetCreationMode = 'tsr';
+        targetTsrSubMode = 'random';
+      } else if (normalizedMode === 'tsr-modeled') {
+        targetTableMode = 'standard';
+        targetCreationMode = 'tsr';
+        targetTsrSubMode = 'modeled';
+      } else {
+        targetCreationMode = 'cmf';
+      }
+    }
+
+    if (this.universalTableMode !== targetTableMode) {
+      this.setUniversalTableMode(targetTableMode, true, false);
+    }
+
+    this.character = FASERIPCharacter.createBlankCharacter('300');
     if (this.powerAdjustment !== undefined) {
       this.character.powerAdjustment = this.powerAdjustment;
     }
     if (this.superiorOptionCost !== undefined) {
       this.character.superiorOptionCost = this.superiorOptionCost;
     }
+    if (this.humanAbilityCaps !== undefined) {
+      this.character.humanAbilityCaps = this.humanAbilityCaps;
+    }
     this.karmaMode = 'session';
     this.advancementSnapshot = null;
     this.testModeSnapshot = null;
+    this.lastSavedFileSnapshot = null;
+
+    const fullTitle = this.getCreationModeFullTitle(normalizedMode);
+
+    if (targetCreationMode === 'tsr' && targetTsrSubMode === 'random') {
+      this.character.creationMode = 'tsr';
+      if (this.character.setTsrSubMode) {
+        this.character.setTsrSubMode('random');
+      } else {
+        this.character.tsrSubMode = 'random';
+      }
+      this.character.pointTier = (targetTableMode === 'cmf') ? 'CMF Standard' : 'TSR 1986';
+      this.character.isCreationSetupPending = false;
+      this.character.recordEdit(`New character created in ${fullTitle}`, 'initial');
+      this.saveState();
+      this.switchTab('main-stats');
+      this.render();
+      this.closeNewCharacterModeModal();
+      this.closeCreationWizardModal();
+      this.showStatusToast(`🎲 Fresh character initialized in ${this.getCreationModeDisplayName(normalizedMode)}. Roll traits in the TSR Generator to begin.`);
+    } else if (targetCreationMode === 'tsr' && targetTsrSubMode === 'modeled') {
+      this.character.creationMode = 'tsr';
+      if (this.character.setTsrSubMode) {
+        this.character.setTsrSubMode('modeled');
+      } else {
+        this.character.tsrSubMode = 'modeled';
+      }
+      this.character.pointTier = (targetTableMode === 'cmf') ? 'CMF Modeled' : 'TSR 1986 (Modeled)';
+      this.character.isCreationSetupPending = false;
+      this.character.recordEdit(`New character created in ${fullTitle}`, 'initial');
+      this.saveState();
+      this.switchTab('main-stats');
+      this.render();
+      this.closeNewCharacterModeModal();
+      this.closeCreationWizardModal();
+      this.showStatusToast(`📐 Fresh character initialized in ${this.getCreationModeDisplayName(normalizedMode)}. Assign abilities and traits freely.`);
+    } else {
+      // Point-Buy mode (tsr-cp-buy or cmf-cp-buy)
+      this.character.creationMode = 'cmf';
+      this.character.setPointTier('300');
+      this.character.isCreationSetupPending = true;
+      this.character.recordEdit(`New character created in ${fullTitle}`, 'initial');
+      this.saveState();
+      this.switchTab('main-stats');
+      this.render();
+      this.closeNewCharacterModeModal();
+      this.closeCreationWizardModal();
+      this.showStatusToast(`✨ Fresh character initialized in ${this.getCreationModeDisplayName(normalizedMode)}. Choose starting Tier and Physical Form to begin.`);
+    }
+    return this.character;
+  },
+
+  openNewCharacterModeModal(targetMode = null) {
+    const modal = document.getElementById('modal-new-character-mode');
+    if (!modal) return;
+
+    // Highlight current active mode
+    const activeKey = this.getCreationModeKey();
+    const allModes = ['tsr-standard', 'tsr-modeled', 'tsr-cp-buy', 'cmf-standard', 'cmf-modeled', 'cmf-cp-buy'];
+    allModes.forEach(m => {
+      const badge = document.getElementById(`badge-active-${m}`);
+      const card = document.getElementById(`card-mode-${m}`);
+      const btn = document.getElementById(`btn-new-char-${m}`);
+      const isActive = (m === activeKey);
+      if (badge) badge.style.display = isActive ? 'inline-block' : 'none';
+      if (card) {
+        if (isActive) {
+          card.style.borderColor = 'var(--marvel-gold)';
+          card.style.boxShadow = '0 0 12px rgba(245, 158, 11, 0.4)';
+        } else {
+          card.style.boxShadow = 'none';
+        }
+      }
+      if (btn) {
+        if (isActive) {
+          btn.textContent = `✓ Current (${this.getCreationModeDisplayName(m)})`;
+        } else {
+          const icon = m.includes('standard') ? '🎲' : (m.includes('modeled') ? '📐' : '⚖️');
+          btn.textContent = `${icon} Select ${this.getCreationModeDisplayName(m)}`;
+        }
+      }
+    });
+
+    modal.classList.add('open');
+  },
+
+  closeNewCharacterModeModal() {
+    this._forceSavePromptOnModeSwitch = false;
+    const modal = document.getElementById('modal-new-character-mode');
+    if (modal) modal.classList.remove('open');
+    const selEl = document.getElementById('select-creation-mode');
+    if (selEl) selEl.value = this.getCreationModeKey();
+  },
+
+  openCreationModeModal(targetMode = null) {
+    this.openNewCharacterModeModal(targetMode);
+  },
+
+  closeCreationModeModal() {
+    this.closeNewCharacterModeModal();
+  },
+
+  getTierDisplayName(tier) {
+    switch (String(tier).toLowerCase()) {
+      case '150': return 'Skilled Human (150 CP)';
+      case '200': return 'Street Vigilante (200 CP)';
+      case '300': return 'Costumed Adventurer (300 CP)';
+      case '400': return 'Established Hero (400 CP)';
+      case '500': return 'Major Superhero (500 CP)';
+      case '600': return 'World Class Hero (600 CP)';
+      case 'custom': return 'Custom Budget';
+      default: return `${tier} CP`;
+    }
+  },
+
+  async handlePointTierDropdownChange(newTierValue) {
+    if (!this.character) return;
+    const prevTier = this.character.pointTier || '300';
+    
+    if (newTierValue === 'custom') {
+      const currentBudget = this.character.basePointBudget || this.character.pointBudget || 300;
+      await this.promptCustomTierBudget(currentBudget, prevTier);
+      return;
+    }
+    
+    const targetBudget = this.character.getBaseTierBudget ? this.character.getBaseTierBudget(newTierValue) : parseInt(newTierValue, 10);
+    const pts = this.character.calculateSpentPoints ? this.character.calculateSpentPoints() : this.character.calculateTotalPointsSpent();
+    const totalSpent = pts.totalSpent;
+    
+    if (totalSpent > targetBudget) {
+      const deficit = totalSpent - targetBudget;
+      const tierName = this.getTierDisplayName(newTierValue);
+      await this.showBudgetDeficitWarningModal({
+        newTier: newTierValue,
+        prevTier: prevTier,
+        tierName: tierName,
+        targetBudget: targetBudget,
+        totalSpent: totalSpent,
+        deficit: deficit
+      });
+      return;
+    }
+    
+    this.character.setPointTier(newTierValue);
+    this.updateCPBlock();
     this.saveState();
-    this.switchTab('main-stats');
-    this.render();
-    this.showStatusToast('✨ Fresh character initialized. Choose starting Tier and Physical Form to begin.');
-    this.openCreationWizardModal();
+    this.recordCharacterEdit(`Point tier set to ${this.getTierDisplayName(newTierValue)} (${targetBudget} CP)`, 'creation');
+    this.showStatusToast(`Tier updated to ${this.getTierDisplayName(newTierValue)} (${targetBudget} CP).`);
+  },
+
+  async promptCustomTierBudget(currentBudget, prevTier) {
+    const entered = await this.showCustomPrompt(
+      `Enter custom Character Point (CP) budget allowance:`,
+      'Custom Point Budget',
+      String(currentBudget)
+    );
+    const tierSelect = document.getElementById('select-point-tier');
+    if (entered === null || entered.trim() === '') {
+      if (tierSelect) tierSelect.value = prevTier;
+      return;
+    }
+    const val = parseInt(entered.trim(), 10);
+    if (isNaN(val) || val <= 0) {
+      this.showCustomAlert('Please enter a valid positive number for the custom CP budget.', 'Invalid Budget');
+      if (tierSelect) tierSelect.value = prevTier;
+      return;
+    }
+    
+    const pts = this.character.calculateSpentPoints ? this.character.calculateSpentPoints() : this.character.calculateTotalPointsSpent();
+    const totalSpent = pts.totalSpent;
+    if (totalSpent > val) {
+      const deficit = totalSpent - val;
+      await this.showBudgetDeficitWarningModal({
+        newTier: 'custom',
+        prevTier: prevTier,
+        tierName: `Custom Budget (${val} CP)`,
+        targetBudget: val,
+        totalSpent: totalSpent,
+        deficit: deficit,
+        customBudget: val
+      });
+      return;
+    }
+    
+    this.character.setPointTier('custom', val);
+    this.updateCPBlock();
+    this.saveState();
+    this.recordCharacterEdit(`Custom point budget set to ${val} CP`, 'creation');
+    this.showStatusToast(`Custom budget set to ${val} CP.`);
+  },
+
+  async showBudgetDeficitWarningModal({ newTier, prevTier, tierName, targetBudget, totalSpent, deficit, customBudget = null }) {
+    const confirmed = await this.showCustomConfirm(
+      `Switching to "${tierName}" (${targetBudget} CP) will put your character over budget by ${deficit} CP!\n\n` +
+      `• Current CP Spent: ${totalSpent} CP\n` +
+      `• New Tier Allowance: ${targetBudget} CP\n` +
+      `• Budget Deficit: -${deficit} CP\n\n` +
+      `How to rectify this budget deficit:\n` +
+      `1. Lower Primary Abilities (FASERIP): Step down Fighting, Agility, Strength, Endurance, Reason, Intuition, or Psyche on Tab 1.\n` +
+      `2. Reduce Superpower Ranks: Lower power ranks or remove optional powers on Tab 2.\n` +
+      `3. Remove Talents & Contacts: Downgrade or remove purchased talents and bonus contacts on Tab 5.\n` +
+      `4. Lower Resources: Step down Resources rank to recoup CP on Tab 1.\n` +
+      `5. Revert to Higher Tier: Switch back to a higher tier with adequate CP allowance.\n\n` +
+      `Note: If you proceed, your character will remain in a budget deficit until rectified before creation can be finalized.\n\n` +
+      `Do you want to proceed with switching to this tier?`,
+      `⚠️ Budget Deficit Warning: -${deficit} CP Over Budget`,
+      null,
+      `Proceed with Deficit (-${deficit} CP)`,
+      `Cancel & Keep Current Tier`
+    );
+    
+    const tierSelect = document.getElementById('select-point-tier');
+    if (confirmed) {
+      if (newTier === 'custom') {
+        this.character.setPointTier('custom', customBudget || targetBudget);
+      } else {
+        this.character.setPointTier(newTier);
+      }
+      this.updateCPBlock();
+      this.saveState();
+      this.recordCharacterEdit(`Point tier changed to ${tierName} (${targetBudget} CP) with -${deficit} CP deficit`, 'creation');
+      this.showStatusToast(`Tier updated with ${deficit} CP deficit. Rectify on character tabs before finalizing.`);
+    } else {
+      if (tierSelect) {
+        tierSelect.value = prevTier;
+      }
+    }
   },
 
   // ==========================================
@@ -9949,6 +14180,10 @@ const App = {
   },
 
   openCpBreakdownModal() {
+    if (this.character && this.character.creationMode === 'tsr') {
+      this.openTsrModeDialog();
+      return;
+    }
     const modal = document.getElementById('modal-cp-breakdown');
     if (!modal) return;
     modal.classList.add('open');
@@ -9958,6 +14193,160 @@ const App = {
   closeCpBreakdownModal() {
     const modal = document.getElementById('modal-cp-breakdown');
     if (modal) modal.classList.remove('open');
+  },
+
+  openTsrModeSelectModal() {
+    const modal = document.getElementById('modal-tsr-mode-select');
+    if (modal) modal.classList.add('open');
+  },
+
+  closeTsrModeSelectModal() {
+    const modal = document.getElementById('modal-tsr-mode-select');
+    if (modal) modal.classList.remove('open');
+  },
+
+  openTsrModeDialog() {
+    const modal = document.getElementById('modal-tsr-mode-info');
+    if (!modal) return;
+    this.renderTsrModeDialog();
+    modal.classList.add('open');
+  },
+
+  closeTsrModeDialog() {
+    const modal = document.getElementById('modal-tsr-mode-info');
+    if (modal) modal.classList.remove('open');
+  },
+
+  renderTsrModeDialog() {
+    if (!this.character) return;
+    const formName = this.character.formName || 'Altered Human';
+    const originEl = document.getElementById('tsr-info-origin-name');
+    if (originEl) originEl.textContent = formName;
+
+    const isModeled = (this.character.isModeledMode && this.character.isModeledMode());
+    const modalTitleEl = document.getElementById('tsr-info-modal-title');
+    const modalTagEl = document.getElementById('tsr-info-modal-tag');
+    const modeDescEl = document.getElementById('tsr-info-mode-desc');
+    const randomViewEl = document.getElementById('tsr-info-random-view');
+    const modeledViewEl = document.getElementById('tsr-info-modeled-view');
+
+    if (isModeled) {
+      if (modalTitleEl) modalTitleEl.textContent = '📐 Creation Mode: MODELED';
+      if (modalTagEl) {
+        modalTagEl.textContent = 'MODELED';
+        modalTagEl.style.background = 'rgba(192, 132, 252, 0.2)';
+        modalTagEl.style.color = '#c084fc';
+        modalTagEl.style.borderColor = '#c084fc';
+      }
+      if (modeDescEl) {
+        modeDescEl.innerHTML = 'This character uses <strong>TSR Free-Form Modeled Mode</strong>. Trait slot limits and random roll requirements are bypassed. Trait investment is tracked via canonical Karma Point (KP) costs.';
+      }
+      if (randomViewEl) randomViewEl.style.display = 'none';
+      if (modeledViewEl) modeledViewEl.style.display = 'flex';
+
+      const kpData = this.character.calculateModeledKPCost ? this.character.calculateModeledKPCost() : null;
+      const totalKP = kpData ? kpData.totalKPCost : 0;
+      const kpLimit = kpData ? kpData.kpLimit : 0;
+      const remaining = kpData ? kpData.remaining : null;
+      const breakdown = kpData ? kpData.breakdown : { abilities: 0, powers: 0, talents: 0, contacts: 0, resources: 0 };
+
+      const pCount = this.character.powers ? this.character.powers.length : 0;
+      const tCount = this.character.talents ? this.character.talents.length : 0;
+      const cCount = this.character.contacts ? this.character.contacts.length : 0;
+
+      const pCountEl = document.getElementById('tsr-modeled-powers-count');
+      const pKpEl = document.getElementById('tsr-modeled-powers-kp');
+      if (pCountEl) pCountEl.textContent = pCount;
+      if (pKpEl) pKpEl.textContent = `${breakdown.powers.toLocaleString()} KP`;
+
+      const tCountEl = document.getElementById('tsr-modeled-talents-count');
+      const tKpEl = document.getElementById('tsr-modeled-talents-kp');
+      if (tCountEl) tCountEl.textContent = tCount;
+      if (tKpEl) tKpEl.textContent = `${breakdown.talents.toLocaleString()} KP`;
+
+      const cCountEl = document.getElementById('tsr-modeled-contacts-count');
+      const cKpEl = document.getElementById('tsr-modeled-contacts-kp');
+      if (cCountEl) cCountEl.textContent = cCount;
+      if (cKpEl) cKpEl.textContent = `${breakdown.contacts.toLocaleString()} KP`;
+
+      const totalBadge = document.getElementById('tsr-modeled-total-kp-badge');
+      if (totalBadge) totalBadge.textContent = `${totalKP.toLocaleString()} KP Total`;
+
+      const kpAbilitiesEl = document.getElementById('tsr-modeled-kp-abilities');
+      if (kpAbilitiesEl) kpAbilitiesEl.textContent = `${breakdown.abilities.toLocaleString()} KP`;
+
+      const kpPowersEl = document.getElementById('tsr-modeled-kp-powers');
+      if (kpPowersEl) kpPowersEl.textContent = `${breakdown.powers.toLocaleString()} KP`;
+
+      const kpTalentsEl = document.getElementById('tsr-modeled-kp-talents');
+      if (kpTalentsEl) kpTalentsEl.textContent = `${breakdown.talents.toLocaleString()} KP`;
+
+      const kpContactsEl = document.getElementById('tsr-modeled-kp-contacts');
+      if (kpContactsEl) kpContactsEl.textContent = `${breakdown.contacts.toLocaleString()} KP`;
+
+      const kpResourcesEl = document.getElementById('tsr-modeled-kp-resources');
+      if (kpResourcesEl) kpResourcesEl.textContent = `${breakdown.resources.toLocaleString()} KP`;
+
+      const kpTotalEl = document.getElementById('tsr-modeled-kp-total');
+      if (kpTotalEl) kpTotalEl.textContent = `${totalKP.toLocaleString()} KP`;
+
+      const limitInput = document.getElementById('input-tsr-modeled-kp-limit');
+      if (limitInput && document.activeElement !== limitInput) {
+        limitInput.value = kpLimit > 0 ? kpLimit : '';
+      }
+
+      const limitStatusEl = document.getElementById('tsr-modeled-kp-limit-status');
+      if (limitStatusEl) {
+        if (kpLimit > 0) {
+          if (remaining >= 0) {
+            limitStatusEl.innerHTML = `<span style="color: #38bdf8; font-weight: 700;">Budget Remaining: ${remaining.toLocaleString()} KP</span> (Campaign Limit: ${kpLimit.toLocaleString()} KP)`;
+          } else {
+            limitStatusEl.innerHTML = `<span style="color: #ef4444; font-weight: 700;">⚠️ Over Budget by ${Math.abs(remaining).toLocaleString()} KP!</span> (Campaign Limit: ${kpLimit.toLocaleString()} KP)`;
+          }
+        } else {
+          limitStatusEl.textContent = 'No KP limit set (Free-form modeling active). Enter a number to set a campaign budget ceiling.';
+        }
+      }
+    } else {
+      if (modalTitleEl) modalTitleEl.textContent = '🎲 Creation Mode: RANDOM';
+      if (modalTagEl) {
+        modalTagEl.textContent = 'RANDOM';
+        modalTagEl.style.background = 'rgba(245, 158, 11, 0.2)';
+        modalTagEl.style.color = 'var(--marvel-gold)';
+        modalTagEl.style.borderColor = 'var(--marvel-gold)';
+      }
+      if (modeDescEl) {
+        modeDescEl.innerHTML = 'This character uses the canonical <strong>TSR 1986 Advanced Set Player\'s Book</strong> random roll rules. Character Points (CP) and budget breakdowns do not apply in this mode.';
+      }
+      if (randomViewEl) randomViewEl.style.display = 'flex';
+      if (modeledViewEl) modeledViewEl.style.display = 'none';
+
+      const maxSlots = (this.character.getMaxPowerSlots ? this.character.getMaxPowerSlots() : this.character.tsrPowerSlots) ?? (this.character.powers?.length || 0);
+      const pAssigned = this.character.getUsedPowerSlots ? this.character.getUsedPowerSlots() : (this.character.powers?.length || 0);
+      const bonusSlots = this.character.getBonusPowerSlots ? this.character.getBonusPowerSlots() : 0;
+      const pCountEl = document.getElementById('tsr-info-powers-count');
+      const pStatusEl = document.getElementById('tsr-info-powers-status');
+      if (pCountEl) pCountEl.textContent = `${pAssigned} / ${maxSlots}`;
+      if (pStatusEl) pStatusEl.textContent = bonusSlots > 0 ? `${maxSlots} slot(s) total (${this.character.tsrPowerSlots || 0} rolled + ${bonusSlots} bonus)` : `${maxSlots} slot(s) rolled`;
+
+      const tRolled = (this.character.tsrTalentSlots !== undefined && this.character.tsrTalentSlots !== null)
+        ? this.character.tsrTalentSlots
+        : 0;
+      const tAssigned = this.character.talents?.length || 0;
+      const tCountEl = document.getElementById('tsr-info-talents-count');
+      const tStatusEl = document.getElementById('tsr-info-talents-status');
+      if (tCountEl) tCountEl.textContent = `${tAssigned} / ${tRolled}`;
+      if (tStatusEl) tStatusEl.textContent = `${tRolled} slot(s) rolled`;
+
+      const cRolled = (this.character.tsrContactSlots !== undefined && this.character.tsrContactSlots !== null)
+        ? this.character.tsrContactSlots
+        : 0;
+      const cAssigned = this.character.contacts?.length || 0;
+      const cCountEl = document.getElementById('tsr-info-contacts-count');
+      const cStatusEl = document.getElementById('tsr-info-contacts-status');
+      if (cCountEl) cCountEl.textContent = `${cAssigned} / ${cRolled}`;
+      if (cStatusEl) cStatusEl.textContent = `${cRolled} slot(s) rolled`;
+    }
   },
 
   setCpSlider(val) {
@@ -10056,6 +14445,154 @@ const App = {
     if (resEl) resEl.textContent = pts.breakdown.resources;
     const catTotEl = document.getElementById('cp-modal-cat-total');
     if (catTotEl) catTotEl.textContent = pts.totalSpent;
+
+    // Synchronize interactive budget controls
+    const modalTierSelect = document.getElementById('cp-modal-tier-select');
+    const modalCustomRow = document.getElementById('cp-modal-custom-row');
+    const modalCustomInput = document.getElementById('cp-modal-custom-budget');
+    const modalAdjSlider = document.getElementById('cp-modal-adj-slider');
+    const modalAdjReadout = document.getElementById('cp-modal-adj-readout');
+
+    if (modalTierSelect) {
+      modalTierSelect.value = this.character.pointTier;
+      if (modalCustomRow) {
+        modalCustomRow.style.display = (this.character.pointTier === 'custom') ? 'flex' : 'none';
+      }
+    }
+    if (modalCustomInput) {
+      modalCustomInput.value = this.character.basePointBudget || this.character.pointBudget || 300;
+    }
+    if (modalAdjSlider) {
+      modalAdjSlider.value = adj;
+    }
+    if (modalAdjReadout) {
+      modalAdjReadout.textContent = `${adj > 0 ? '+' : (adj === 0 ? '±' : '')}${adj}%`;
+    }
+
+    this.updateCpModalBudgetPreview();
+  },
+
+  updateCpModalBudgetPreview() {
+    if (!this.character) return;
+    const modalTierSelect = document.getElementById('cp-modal-tier-select');
+    const modalCustomRow = document.getElementById('cp-modal-custom-row');
+    const modalCustomInput = document.getElementById('cp-modal-custom-budget');
+    const modalAdjSlider = document.getElementById('cp-modal-adj-slider');
+    const modalAdjReadout = document.getElementById('cp-modal-adj-readout');
+    const warnBox = document.getElementById('cp-modal-budget-warning');
+    const warnText = document.getElementById('cp-modal-budget-warning-text');
+    const propValEl = document.getElementById('cp-modal-proposed-val');
+    const propRemEl = document.getElementById('cp-modal-proposed-rem');
+    const propRemWrap = document.getElementById('cp-modal-proposed-remaining-wrap');
+    const applyBtn = document.getElementById('btn-cp-modal-apply-budget');
+
+    const tier = modalTierSelect ? modalTierSelect.value : (this.character.pointTier || '300');
+    if (modalCustomRow) {
+      modalCustomRow.style.display = (tier === 'custom') ? 'flex' : 'none';
+    }
+
+    let base = 300;
+    if (tier === 'custom') {
+      base = modalCustomInput ? (parseInt(modalCustomInput.value, 10) || 300) : 300;
+    } else {
+      base = this.character.getBaseTierBudget(tier);
+    }
+
+    let adj = 0;
+    if (modalAdjSlider) {
+      let p = parseInt(modalAdjSlider.value, 10) || 0;
+      p = Math.round(p / 25) * 25;
+      adj = Math.max(-25, Math.min(50, p));
+      if (parseInt(modalAdjSlider.value, 10) !== adj) {
+        modalAdjSlider.value = adj;
+      }
+    }
+    if (modalAdjReadout) {
+      modalAdjReadout.textContent = `${adj > 0 ? '+' : (adj === 0 ? '±' : '')}${adj}%`;
+    }
+
+    const proposedBudget = Math.round(base * (1 + adj / 100));
+    const pts = this.character.calculateSpentPoints();
+    const currentSpent = pts.totalSpent || 0;
+    const remainingAfter = proposedBudget - currentSpent;
+
+    if (propValEl) propValEl.textContent = `${proposedBudget} CP`;
+
+    if (proposedBudget < currentSpent) {
+      const overAmount = currentSpent - proposedBudget;
+      if (warnBox) warnBox.style.display = 'block';
+      if (warnText) {
+        warnText.innerHTML = `Cannot reduce budget to <strong>${proposedBudget} CP</strong>: Character currently has <strong>${currentSpent} CP</strong> spent (<strong>${overAmount} CP over budget</strong>). Please reduce CP expenditure first (e.g. lower ability ranks, or remove powers/talents/contacts) before lowering the budget.`;
+      }
+      if (propRemWrap) propRemWrap.style.display = 'none';
+      if (applyBtn) {
+        applyBtn.disabled = true;
+        applyBtn.style.opacity = '0.4';
+        applyBtn.style.cursor = 'not-allowed';
+        applyBtn.title = `Cannot reduce budget below current expenditure of ${currentSpent} CP. Reduce CP spent first.`;
+      }
+    } else {
+      if (warnBox) warnBox.style.display = 'none';
+      if (propRemWrap) propRemWrap.style.display = 'inline';
+      if (propRemEl) propRemEl.textContent = `${remainingAfter} CP`;
+      if (applyBtn) {
+        applyBtn.disabled = false;
+        applyBtn.style.opacity = '1';
+        applyBtn.style.cursor = 'pointer';
+        applyBtn.title = 'Apply this budget configuration';
+      }
+    }
+  },
+
+  handleApplyCpModalBudget() {
+    if (!this.character) return;
+    const modalTierSelect = document.getElementById('cp-modal-tier-select');
+    const modalCustomInput = document.getElementById('cp-modal-custom-budget');
+    const modalAdjSlider = document.getElementById('cp-modal-adj-slider');
+
+    const tier = modalTierSelect ? modalTierSelect.value : (this.character.pointTier || '300');
+    const customBudget = modalCustomInput ? (parseInt(modalCustomInput.value, 10) || 300) : 300;
+    const adj = modalAdjSlider ? (parseInt(modalAdjSlider.value, 10) || 0) : 0;
+
+    let base = 300;
+    if (tier === 'custom') {
+      base = customBudget;
+    } else {
+      base = this.character.getBaseTierBudget(tier);
+    }
+    const proposedBudget = Math.round(base * (1 + adj / 100));
+    const pts = this.character.calculateSpentPoints();
+    const currentSpent = pts.totalSpent || 0;
+
+    if (proposedBudget < currentSpent) {
+      const overAmount = currentSpent - proposedBudget;
+      this.showCustomAlert(
+        `Cannot reduce CP budget to ${proposedBudget} CP because this character has already spent ${currentSpent} CP (${overAmount} CP over budget).\n\nPlease reduce CP expenditure first (e.g. lower ability ranks, remove powers, talents, or contacts) before lowering your budget.`,
+        'Over Budget'
+      );
+      return;
+    }
+
+    const prevBudget = this.character.pointBudget;
+    const res = this.character.changePointBudget(tier, customBudget, adj);
+    if (!res || !res.success) {
+      this.showCustomAlert(res?.reason || 'Could not update budget.', 'Over Budget');
+      return;
+    }
+
+    if (!this.character.isCreationSetupPending) {
+      this.recordCharacterEdit(`Updated CP budget to ${this.character.pointBudget} CP (${this.getTierName(this.character.pointTier)})`, 'budget');
+    } else {
+      if (Array.isArray(this.character.editLog) && this.character.editLog[0]) {
+        this.character.editLog[0].description = `Initial save point: ${this.character.name} (${this.character.pointBudget} CP, ${this.character.formName})`;
+      }
+    }
+
+    this.saveState();
+    this.renderPointBuy();
+    this.render();
+    this.renderCpBreakdownModal();
+    this.showStatusToast(`✨ CP budget updated from ${prevBudget} CP to ${this.character.pointBudget} CP (${this.getTierName(this.character.pointTier)})`);
   },
 
   updateWizardCpSliderReadout() {
@@ -10070,12 +14607,12 @@ const App = {
     if (parseInt(wizardSlider.value) !== adj) {
       wizardSlider.value = adj;
     }
-    let baseBudget = 400;
+    let baseBudget = 300;
     if (tierSelect) {
       if (tierSelect.value === 'custom') {
-        baseBudget = customBudgetInp ? (parseInt(customBudgetInp.value) || 400) : 400;
+        baseBudget = customBudgetInp ? (parseInt(customBudgetInp.value) || 300) : 300;
       } else {
-        baseBudget = parseInt(tierSelect.value) || 400;
+        baseBudget = parseInt(tierSelect.value) || 300;
       }
     }
     const eff = Math.round(baseBudget * (1 + adj / 100));
@@ -10122,6 +14659,7 @@ const App = {
       this.karmaMode = 'session';
       this.advancementSnapshot = null;
       this.testModeSnapshot = null;
+      this.lastSavedFileSnapshot = JSON.stringify(this.character.toJSON());
       if (!this.character.editLog || this.character.editLog.length === 0) {
         this.character.recordEdit(`Imported character: ${this.character.name}`, 'initial');
       }
@@ -10153,7 +14691,7 @@ const App = {
 
   async exportCharacter() {
     const char = this.character;
-    if (!char) return;
+    if (!char) return false;
     const jsonStr = JSON.stringify(char.toJSON(), null, 2);
     const cleanName = (char.name || 'Hero').replace(/[/\\?%*:|"<>]/g, '_').trim() || 'Hero';
     const fileName = `${cleanName.replace(/\s+/g, '_')}_FASERIP.msh`;
@@ -10182,11 +14720,12 @@ const App = {
             timestamp: Date.now()
           });
 
+          this.lastSavedFileSnapshot = JSON.stringify(char.toJSON());
           this.showStatusToast(`💾 Saved "${char.name}" to ${(this.saveFolderName || 'Documents')}!`);
-          return;
+          return true;
         }
       } catch (err) {
-        if (err.name === 'AbortError') return; // User cancelled save dialog
+        if (err.name === 'AbortError') return false; // User cancelled save dialog
         console.warn('showSaveFilePicker failed, falling back to download:', err);
       }
     }
@@ -10208,7 +14747,9 @@ const App = {
       data: char.toJSON(),
       timestamp: Date.now()
     });
+    this.lastSavedFileSnapshot = JSON.stringify(char.toJSON());
     this.showStatusToast(`💾 Saved "${char.name}" to Downloads/Documents!`);
+    return true;
   },
 
   openPrintPreview() {
@@ -10761,6 +15302,8 @@ const App = {
 
     if (targetIdx === 0) {
       this.character.isCreationSetupPending = true;
+      this.character.isCreationFinalized = false;
+      this.character.startingKarmaBonus = 0;
     }
 
     this.saveState();
@@ -10803,6 +15346,10 @@ const App = {
     const container = document.getElementById('character-edit-log-container');
     const badge = document.getElementById('edit-log-count-badge');
     if (!container) return;
+
+    if (typeof this.character.sanitizeEditLog === 'function') {
+      this.character.sanitizeEditLog();
+    }
 
     const log = this.character.editLog || [];
     const activeIdx = this.character.editHistoryIndex;
@@ -10889,49 +15436,100 @@ const App = {
 
   showStatusToast(message, duration = 2400, actionCallback = null) {
     if (typeof document === 'undefined') return;
-    let toast = document.getElementById('app-status-toast');
-    if (!toast) {
-      toast = document.createElement('div');
-      toast.id = 'app-status-toast';
-      toast.style.position = 'fixed';
-      toast.style.bottom = '20px';
-      toast.style.right = '20px';
-      toast.style.background = '#0f172a';
-      toast.style.color = '#38bdf8';
-      toast.style.border = '1px solid #38bdf8';
-      toast.style.borderRadius = '6px';
-      toast.style.padding = '8px 14px';
-      toast.style.fontSize = '10pt';
-      toast.style.fontWeight = '700';
-      toast.style.zIndex = '999999';
-      toast.style.boxShadow = '0 4px 16px rgba(0,0,0,0.8)';
-      toast.style.transition = 'opacity 0.25s ease, transform 0.25s ease';
-      toast.style.opacity = '0';
-      toast.style.transform = 'translateY(10px)';
-      document.body.appendChild(toast);
-    }
-    toast.textContent = message;
-    if (typeof actionCallback === 'function') {
-      toast.style.cursor = 'pointer';
-      toast.onclick = (e) => {
-        e.stopPropagation();
-        try {
-          actionCallback();
-        } catch (err) {}
+
+    const renderToastInDoc = (targetDoc) => {
+      if (!targetDoc || !targetDoc.body) return;
+      let toast = targetDoc.getElementById('app-status-toast');
+      if (!toast) {
+        toast = targetDoc.createElement('div');
+        toast.id = 'app-status-toast';
+        toast.style.position = 'fixed';
+        toast.style.bottom = '20px';
+        toast.style.right = '20px';
+        toast.style.background = '#0f172a';
+        toast.style.color = '#38bdf8';
+        toast.style.border = '1px solid #38bdf8';
+        toast.style.borderRadius = '6px';
+        toast.style.padding = '8px 14px';
+        toast.style.fontSize = '10pt';
+        toast.style.fontWeight = '700';
+        toast.style.zIndex = '999999';
+        toast.style.boxShadow = '0 4px 16px rgba(0,0,0,0.8)';
+        toast.style.transition = 'opacity 0.25s ease, transform 0.25s ease';
         toast.style.opacity = '0';
         toast.style.transform = 'translateY(10px)';
-      };
-    } else {
-      toast.style.cursor = 'default';
-      toast.onclick = null;
+        targetDoc.body.appendChild(toast);
+      }
+      toast.textContent = message;
+      if (typeof actionCallback === 'function') {
+        toast.style.cursor = 'pointer';
+        toast.onclick = (e) => {
+          e.stopPropagation();
+          try {
+            actionCallback();
+          } catch (err) {}
+          toast.style.opacity = '0';
+          toast.style.transform = 'translateY(10px)';
+        };
+      } else {
+        toast.style.cursor = 'default';
+        toast.onclick = null;
+      }
+      toast.style.opacity = '1';
+      toast.style.transform = 'translateY(0)';
+      if (targetDoc._toastTimer) clearTimeout(targetDoc._toastTimer);
+      targetDoc._toastTimer = setTimeout(() => {
+        if (toast) {
+          toast.style.opacity = '0';
+          toast.style.transform = 'translateY(10px)';
+        }
+      }, duration);
+    };
+
+    renderToastInDoc(document);
+    if (this.cheatsheetPopoutWindow && !this.cheatsheetPopoutWindow.closed) {
+      try {
+        renderToastInDoc(this.cheatsheetPopoutWindow.document);
+      } catch (e) {}
     }
-    toast.style.opacity = '1';
-    toast.style.transform = 'translateY(0)';
-    if (this._toastTimer) clearTimeout(this._toastTimer);
-    this._toastTimer = setTimeout(() => {
-      toast.style.opacity = '0';
-      toast.style.transform = 'translateY(10px)';
-    }, duration);
+    if (this.tsrPopoutWindow && !this.tsrPopoutWindow.closed) {
+      try {
+        renderToastInDoc(this.tsrPopoutWindow.document);
+      } catch (e) {}
+    }
+  },
+
+  initModalScrollLock() {
+    if (typeof document === 'undefined') return;
+
+    const syncModalLock = () => {
+      const hasOpenModal = !!(document.querySelector && document.querySelector('.modal-overlay.open'));
+      const isLocked = !!(document.body && document.body.classList && document.body.classList.contains('modal-open'));
+      if (hasOpenModal && !isLocked) {
+        if (document.body && document.body.classList) document.body.classList.add('modal-open');
+        if (document.documentElement && document.documentElement.classList) document.documentElement.classList.add('modal-open');
+      } else if (!hasOpenModal && isLocked) {
+        if (document.body && document.body.classList) document.body.classList.remove('modal-open');
+        if (document.documentElement && document.documentElement.classList) document.documentElement.classList.remove('modal-open');
+      }
+    };
+
+    if (typeof MutationObserver !== 'undefined' && document.body) {
+      try {
+        const observer = new MutationObserver(() => {
+          syncModalLock();
+        });
+        observer.observe(document.body, {
+          attributes: true,
+          attributeFilter: ['class'],
+          subtree: true,
+          childList: false
+        });
+      } catch (e) {
+        console.warn('Could not initialize modal scroll lock observer:', e);
+      }
+    }
+    syncModalLock();
   },
 
   initEasterEgg() {
@@ -11048,16 +15646,30 @@ const App = {
   // KARMA OPERATING MODES (SESSION, ADVANCEMENT, TEST)
   // =========================================================================
 
-  openKarmaModeModal() {
+  async openKarmaModeModal() {
     const modal = document.getElementById('modal-karma-mode');
     if (!modal) return;
+
+    const isCreation = !this.character?.isCreationFinalized;
+    if (isCreation) {
+      await this.showCustomAlert(
+        'Karma Operating Modes (Session Play, Trait Advancement, and Test Mode) are locked during the Character Creation Phase.\n\n' +
+        'During character creation, traits and rank increases are purchased freely using Character Points (CP).\n\n' +
+        'Finalize character creation first to activate live session play and trait advancement.',
+        'Creation Phase Active'
+      );
+      return;
+    }
 
     const curMode = this.karmaMode || 'session';
 
     // Update modal header badge
     const badge = document.getElementById('karma-mode-modal-badge');
     if (badge) {
-      if (curMode === 'test') {
+      if (isCreation) {
+        badge.textContent = 'Current: Creation Phase (KP Locked)';
+        badge.style.color = '#38bdf8';
+      } else if (curMode === 'test') {
         badge.textContent = 'Current: Test Mode (∞)';
         badge.style.color = '#fbbf24';
       } else if (curMode === 'advancement') {
@@ -11109,6 +15721,16 @@ const App = {
   },
 
   async promptAdvancementModeSwitch() {
+    if (this.character && !this.character.isCreationFinalized) {
+      await this.showCustomAlert(
+        'Trait Advancement via Karma is unavailable during the Character Creation Phase.\n\n' +
+        'During character creation, traits and rank increases are purchased freely using Character Points (CP).\n\n' +
+        'Finalize character creation when your build is complete to transition to active Session Play and unlock Karma advancement.',
+        'Creation Phase Active'
+      );
+      return;
+    }
+
     const confirmed = await this.showCustomConfirm(
       'Character Advancement is locked during Session Mode to prevent accidental Karma spending during live play.\n\n' +
       'Would you like to switch to Advancement Mode now to spend KP on permanent rank increases?',
@@ -11124,6 +15746,10 @@ const App = {
 
   async setKarmaMode(targetMode, force = false) {
     if (!targetMode) return false;
+    if (this.character && !this.character.isCreationFinalized) {
+      this.showStatusToast('⚠️ Karma Operating Modes are locked until character creation is finalized.');
+      return false;
+    }
     const currentMode = this.karmaMode || 'session';
     if (targetMode === currentMode) return true;
 
@@ -11275,6 +15901,15 @@ const App = {
 
   openAdvancementModal(category = 'ability', identifier = null) {
     if (!this.character) return;
+    if (!this.character.isCreationFinalized) {
+      this.showCustomAlert(
+        'Trait Advancement via Karma is unavailable during the Character Creation Phase.\n\n' +
+        'During character creation, traits and rank increases are purchased freely using Character Points (CP).\n\n' +
+        'Finalize character creation when your build is complete to transition to active Session Play and unlock Karma advancement.',
+        'Creation Phase Active'
+      );
+      return;
+    }
     const modal = document.getElementById('modal-advancement');
     if (!modal) return;
 
@@ -11306,7 +15941,7 @@ const App = {
     if (!catSelect || !itemSelect) return;
 
     const category = catSelect.value;
-    itemSelect.innerHTML = '';
+    itemSelect.innerHTML = '<option value="">- Select trait to advance -</option>';
 
     if (category === 'ability') {
       const abilities = [
@@ -11351,6 +15986,8 @@ const App = {
 
     if (preferredIdentifier && itemSelect.querySelector(`option[value="${preferredIdentifier}"]`)) {
       itemSelect.value = preferredIdentifier;
+    } else {
+      itemSelect.value = '';
     }
   },
 
@@ -11417,7 +16054,7 @@ const App = {
 
     if (!identifier) {
       if (curRankDisplay) curRankDisplay.textContent = '--';
-      if (targetRankSelect) targetRankSelect.innerHTML = '<option value="">--</option>';
+      if (targetRankSelect) targetRankSelect.innerHTML = '<option value="">- Select target rank -</option>';
       if (karmaCostEl) karmaCostEl.textContent = '0 KP';
       if (trainingDaysEl) trainingDaysEl.textContent = '0 Days';
       if (remainingKarmaEl) remainingKarmaEl.textContent = (mode === 'test') ? '∞ KP' : `${this.character.currentKarma || 0} KP`;
@@ -11455,7 +16092,7 @@ const App = {
     const curIdx = allRanks.findIndex(r => r.name.toLowerCase() === currentRankName.toLowerCase());
 
     const prevSelectedTarget = targetRankSelect.value;
-    targetRankSelect.innerHTML = '';
+    targetRankSelect.innerHTML = '<option value="">- Select target rank -</option>';
 
     if (curIdx === -1 || curIdx >= allRanks.length - 1) {
       const opt = document.createElement('option');
@@ -11480,10 +16117,17 @@ const App = {
     if (prevSelectedTarget && targetRankSelect.querySelector(`option[value="${prevSelectedTarget}"]`)) {
       targetRankSelect.value = prevSelectedTarget;
     } else {
-      targetRankSelect.selectedIndex = 0;
+      targetRankSelect.value = '';
     }
 
     const selectedTarget = targetRankSelect.value;
+    if (!selectedTarget) {
+      if (karmaCostEl) karmaCostEl.textContent = '0 KP';
+      if (trainingDaysEl) trainingDaysEl.textContent = '0 Days';
+      if (remainingKarmaEl) remainingKarmaEl.textContent = (mode === 'test') ? '∞ KP' : `${this.character.currentKarma} KP`;
+      if (applyBtn) applyBtn.disabled = true;
+      return;
+    }
     const calc = this.character.calculateAdvancement(category, currentRankName, selectedTarget);
 
     if (calc && calc.valid) {
@@ -11819,7 +16463,7 @@ const App = {
     }
 
     // Strategy 4: Fallback to local ./version.json if running via http:// or https:// web server
-    if (!remoteVersion && !isUpToDate && typeof window !== 'undefined' && window.location && window.location.protocol.startsWith('http')) {
+    if (!remoteVersion && !isUpToDate && typeof window !== 'undefined' && window.location && typeof window.location.protocol === 'string' && window.location.protocol.startsWith('http')) {
       try {
         const resp = await fetch(`./version.json?_t=${now}`, { cache: 'no-store' });
         if (resp && resp.ok) {
@@ -11914,13 +16558,16 @@ const App = {
     const customBudgetInp = document.getElementById('init-custom-budget');
 
     if (tierSelect && this.character) {
-      const curTier = this.character.pointTier || '400';
+      let curTier = this.character.pointTier || '300';
+      if (this.character.isCreationSetupPending && (curTier === '400' || curTier === 'standard')) {
+        curTier = '300';
+      }
       tierSelect.value = curTier;
       if (customRow) {
         customRow.style.display = curTier === 'custom' ? 'flex' : 'none';
       }
       if (customBudgetInp) {
-        customBudgetInp.value = this.character.basePointBudget || this.character.pointBudget || 400;
+        customBudgetInp.value = this.character.basePointBudget || this.character.pointBudget || 300;
       }
     }
 
@@ -11932,12 +16579,16 @@ const App = {
 
     const formSelect = document.getElementById('init-form-select');
     if (formSelect && globalThis.PHYSICAL_FORMS) {
-      formSelect.innerHTML = globalThis.PHYSICAL_FORMS.map(f =>
+      formSelect.innerHTML = '<option value="">- Select physical form -</option>' + globalThis.PHYSICAL_FORMS.map(f =>
         `<option value="${f.id}">${f.name} (${f.category || 'Standard'})</option>`
       ).join('');
       const curFormKey = (this.character && this.character.formKey) ? this.character.formKey : 'mutant';
       formSelect.value = curFormKey;
-      this.updateCreationFormPreview(curFormKey);
+      if (curFormKey) {
+        this.updateCreationFormPreview(curFormKey);
+      } else {
+        this.updateCreationFormPreview('');
+      }
     }
 
     modal.classList.add('open');
@@ -11950,13 +16601,20 @@ const App = {
 
   updateCreationFormPreview(formId) {
     const forms = globalThis.PHYSICAL_FORMS || [];
-    const f = forms.find(x => x.id === formId) || forms[0];
-    if (!f) return;
+    const f = forms.find(x => x.id === formId);
 
     const nameEl = document.getElementById('init-form-preview-name');
     const catEl = document.getElementById('init-form-preview-cat');
     const descEl = document.getElementById('init-form-preview-desc');
     const rulesEl = document.getElementById('init-form-preview-rules');
+
+    if (!f) {
+      if (nameEl) nameEl.textContent = 'None Selected';
+      if (catEl) catEl.textContent = 'Standard';
+      if (descEl) descEl.textContent = 'Select a physical form from the dropdown to preview origin traits and modifiers.';
+      if (rulesEl) rulesEl.textContent = '';
+      return;
+    }
 
     if (nameEl) nameEl.textContent = f.name;
     if (catEl) catEl.textContent = f.category || f.source || 'Standard';
@@ -11975,25 +16633,43 @@ const App = {
   /* Physical Form & Origin Management */
   isFormChangeLocked() {
     if (!this.character) return false;
-    // 1. If edit history index is past the first entry (index 0)
+    // 1. If creation has been finalized
+    if (this.character.isCreationFinalized) {
+      return true;
+    }
+    // 2. If edit history index is past the first entry (index 0)
     if (typeof this.character.editHistoryIndex === 'number' && this.character.editHistoryIndex > 0) {
       return true;
     }
-    // 2. If any starting CP has been spent beyond baseline
-    if (typeof this.character.calculateSpentPoints === 'function') {
+    // 3. If TSR mode with rolled / active character
+    if (this.character.creationMode === 'tsr') {
+      if (this.character.isTsrGenerated) return true;
+      if (this.character.powers && this.character.powers.length > 0) return true;
+      if (this.character.talents && this.character.talents.length > 0) return true;
+      if (this.character.contacts && this.character.contacts.length > 0) return true;
+      if (typeof this.character.hasManualStatInvestments === 'function' && this.character.hasManualStatInvestments()) {
+        return true;
+      }
+    }
+    // 4. If any starting CP or manual stat investments have been made beyond form baseline
+    if (typeof this.character.hasManualStatInvestments === 'function') {
+      if (this.character.hasManualStatInvestments()) return true;
+    } else if (typeof this.character.calculateSpentPoints === 'function') {
       const spent = this.character.calculateSpentPoints();
       if (spent.totalSpent > 48) return true;
       if (spent.breakdown) {
         if ((spent.breakdown.powers || 0) > 0) return true;
         if ((spent.breakdown.talents || 0) > 0) return true;
         if ((spent.breakdown.contacts || 0) > 0) return true;
+        if ((spent.breakdown.abilities || 0) !== 42) return true;
+        if ((spent.breakdown.resources || 0) !== 6) return true;
       }
     }
     if (this.character.powers && this.character.powers.length > 0) return true;
     if (this.character.talents && this.character.talents.length > 0) return true;
     if (this.character.contacts && this.character.contacts.length > 0) return true;
 
-    // 3. If any starting KP has been spent
+    // 5. If any starting KP has been spent
     if (this.character.advancementLog && this.character.advancementLog.length > 0) {
       return true;
     }
@@ -12007,7 +16683,7 @@ const App = {
   },
 
   applyPhysicalFormDirectly(formId) {
-    if (!this.character) return;
+    if (!formId || !this.character) return;
     if (this.isFormChangeLocked()) {
       this.openChangePhysicalFormModal();
       return;
@@ -12016,9 +16692,13 @@ const App = {
     const f = forms.find(x => x.id === formId);
     if (!f) return;
 
-    this.character.formKey = f.id;
-    this.character.formName = f.name;
-    this.character.isSwarmForm = (f.id === 's32_collective_mass' || f.id === 'swarm_collective');
+    if (typeof this.character.applyPhysicalForm === 'function') {
+      this.character.applyPhysicalForm(f.id, { applyPopularity: true, applyResources: true });
+    } else {
+      this.character.formKey = f.id;
+      this.character.formName = f.name;
+      this.character.isSwarmForm = (f.id === 's32_collective_mass' || f.id === 'swarm_collective');
+    }
 
     if (this.character.editLog && this.character.editLog[0]) {
       this.character.editLog[0].description = `Initial save point: ${this.character.name} (${this.character.pointBudget} CP, ${this.character.formName})`;
@@ -12034,25 +16714,77 @@ const App = {
   },
 
   setupPhysicalFormDropdowns() {
-    // 1. Header Select (Main Stats)
+    // 1. Header Select & Header Form Controls (Main Stats)
     const headerSel = document.getElementById('header-form-select');
+    const headerFormBtn = document.getElementById('header-form-btn');
+    const headerFormBox = document.getElementById('header-form-box');
+    const headerFormDisplay = document.getElementById('header-form-display');
+
     if (headerSel && globalThis.PHYSICAL_FORMS) {
-      headerSel.innerHTML = globalThis.PHYSICAL_FORMS.map(f =>
+      headerSel.innerHTML = '<option value="">- Select physical form -</option>' + globalThis.PHYSICAL_FORMS.map(f =>
         `<option value="${f.id}">${f.name}</option>`
       ).join('');
       if (!headerSel.dataset.bound) {
         headerSel.dataset.bound = 'true';
         headerSel.addEventListener('change', (e) => {
           const val = (e && e.target && e.target.value) || headerSel.value;
+          if (!val) {
+            headerSel.value = this.character ? (this.character.formKey || '') : '';
+            return;
+          }
           this.applyPhysicalFormDirectly(val);
+        });
+        headerSel.addEventListener('click', (e) => {
+          if (this.isFormChangeLocked() || (headerFormBtn && headerFormBtn.style.display !== 'none')) {
+            e.preventDefault();
+            e.stopPropagation();
+            this.openChangePhysicalFormModal();
+          }
         });
       }
     }
 
-    // 2. Bio Form Select (History Tab)
+    if (headerFormBtn && !headerFormBtn.dataset.bound) {
+      headerFormBtn.dataset.bound = 'true';
+      headerFormBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        this.openChangePhysicalFormModal();
+      });
+    }
+
+    if (headerFormBox && !headerFormBox.dataset.bound) {
+      headerFormBox.dataset.bound = 'true';
+      headerFormBox.addEventListener('click', (e) => {
+        const isLocked = this.isFormChangeLocked() || (headerFormBtn && headerFormBtn.style.display !== 'none');
+        if (isLocked) {
+          e.preventDefault();
+          this.openChangePhysicalFormModal();
+          return;
+        }
+        if (e.target && e.target.id === 'header-form-select') {
+          return;
+        }
+        if (headerSel) headerSel.focus();
+      });
+    }
+
+    if (headerFormDisplay && !headerFormDisplay.dataset.bound) {
+      headerFormDisplay.dataset.bound = 'true';
+      headerFormDisplay.addEventListener('click', (e) => {
+        const isLocked = this.isFormChangeLocked() || (headerFormBtn && headerFormBtn.style.display !== 'none');
+        if (isLocked) {
+          e.preventDefault();
+          e.stopPropagation();
+          this.openChangePhysicalFormModal();
+        }
+      });
+    }
+
+    // 2. Bio Form Select (Progression Tab)
     const formSel = document.getElementById('bio-physical-form');
     if (formSel && globalThis.PHYSICAL_FORMS) {
-      formSel.innerHTML = globalThis.PHYSICAL_FORMS.map(f => 
+      formSel.innerHTML = '<option value="">- Select physical form -</option>' + globalThis.PHYSICAL_FORMS.map(f => 
         `<option value="${f.id}">${f.name} (${f.source})</option>`
       ).join('');
       if (!formSel.dataset.bound) {
@@ -12060,10 +16792,14 @@ const App = {
         formSel.addEventListener('change', (e) => {
           if (this.isFormChangeLocked()) {
             this.openChangePhysicalFormModal();
-            formSel.value = this.character ? (this.character.formKey || 'normal_human') : 'normal_human';
+            formSel.value = this.character ? (this.character.formKey || '') : '';
             return;
           }
           const val = (e && e.target && e.target.value) || formSel.value;
+          if (!val) {
+            formSel.value = this.character ? (this.character.formKey || '') : '';
+            return;
+          }
           this.applyPhysicalFormDirectly(val);
         });
         formSel.addEventListener('click', (e) => {
@@ -12111,8 +16847,8 @@ const App = {
   updatePhysicalFormControlsUI() {
     if (!this.character) return;
     const isLocked = this.isFormChangeLocked();
-    const curFormKey = this.character.formKey || 'mutant';
-    const curFormName = this.character.formName || 'Mutant';
+    const curFormKey = this.character.formKey || '';
+    const curFormName = this.character.formName || (curFormKey ? 'Mutant' : 'None Selected');
 
     // 1. Main Stats / Top Bar Form Box
     const headerSel = document.getElementById('header-form-select');
@@ -12151,7 +16887,7 @@ const App = {
       }
     }
 
-    // 2. History & Log Tab Form Controls
+    // 2. Progression Tab Form Controls
     const bioSel = document.getElementById('bio-physical-form');
     const bioBtn = document.getElementById('bio-physical-form-btn');
     const bioDisplay = document.getElementById('bio-physical-form-display');
@@ -12186,12 +16922,16 @@ const App = {
 
     const formSelect = document.getElementById('change-form-select');
     if (formSelect && globalThis.PHYSICAL_FORMS) {
-      formSelect.innerHTML = globalThis.PHYSICAL_FORMS.map(f =>
+      formSelect.innerHTML = '<option value="">- Select physical form -</option>' + globalThis.PHYSICAL_FORMS.map(f =>
         `<option value="${f.id}">${f.name} (${f.category || 'Standard'})</option>`
       ).join('');
-      const curFormKey = this.character.formKey || 'mutant';
+      const curFormKey = (this.character && this.character.formKey) ? this.character.formKey : '';
       formSelect.value = curFormKey;
-      this.updateChangeFormPreview(curFormKey);
+      if (curFormKey) {
+        this.updateChangeFormPreview(curFormKey);
+      } else {
+        this.updateChangeFormPreview('');
+      }
     }
 
     const isLocked = this.isFormChangeLocked();
@@ -12232,13 +16972,20 @@ const App = {
 
   updateChangeFormPreview(formId) {
     const forms = globalThis.PHYSICAL_FORMS || [];
-    const f = forms.find(x => x.id === formId) || forms[0];
-    if (!f) return;
+    const f = forms.find(x => x.id === formId);
 
     const nameEl = document.getElementById('change-form-preview-name');
     const catEl = document.getElementById('change-form-preview-cat');
     const descEl = document.getElementById('change-form-preview-desc');
     const rulesEl = document.getElementById('change-form-preview-rules');
+
+    if (!f) {
+      if (nameEl) nameEl.textContent = 'None Selected';
+      if (catEl) catEl.textContent = 'Standard';
+      if (descEl) descEl.textContent = 'Select a physical form from the dropdown to preview origin traits and modifiers.';
+      if (rulesEl) rulesEl.textContent = '';
+      return;
+    }
 
     if (nameEl) nameEl.textContent = f.name;
     if (catEl) catEl.textContent = f.category || f.source || 'Standard';
@@ -12258,7 +17005,7 @@ const App = {
     if (!this.character) return;
     if (this.isFormChangeLocked()) {
       this.showCustomAlert(
-        'Physical form changes are locked because starting CP or KP has already been spent.\n\nRoll back to the first character history entry (Revision #1) in the History & Log tab to unlock.',
+        'Physical form changes are locked because starting CP or KP has already been spent.\n\nRoll back to the first character history entry (Revision #1) in the Progression tab to unlock.',
         '🔒 Form Selection Locked'
       );
       return;
@@ -12266,13 +17013,21 @@ const App = {
 
     const formSelect = document.getElementById('change-form-select');
     const formId = formSelect ? formSelect.value : (this.character.formKey || 'mutant');
+    if (!formId) {
+      this.showCustomAlert('Please select a physical form before applying.', 'Physical Form Required');
+      return;
+    }
     const forms = globalThis.PHYSICAL_FORMS || [];
     const f = forms.find(x => x.id === formId);
     if (!f) return;
 
-    this.character.formKey = f.id;
-    this.character.formName = f.name;
-    this.character.isSwarmForm = (f.id === 's32_collective_mass' || f.id === 'swarm_collective');
+    if (typeof this.character.applyPhysicalForm === 'function') {
+      this.character.applyPhysicalForm(f.id, { applyPopularity: true, applyResources: true });
+    } else {
+      this.character.formKey = f.id;
+      this.character.formName = f.name;
+      this.character.isSwarmForm = (f.id === 's32_collective_mass' || f.id === 'swarm_collective');
+    }
 
     if (this.character.editLog && this.character.editLog[0]) {
       this.character.editLog[0].description = `Initial save point: ${this.character.name} (${this.character.pointBudget} CP, ${this.character.formName})`;
@@ -12309,19 +17064,47 @@ const App = {
     const heroName = nameInput ? nameInput.value.trim() : '';
 
     const tierSelect = document.getElementById('init-tier-select');
-    const tier = tierSelect ? tierSelect.value : '400';
+    const tier = tierSelect ? tierSelect.value : '300';
 
     const customBudgetInp = document.getElementById('init-custom-budget');
-    const customBudget = customBudgetInp ? parseInt(customBudgetInp.value, 10) : 400;
+    const customBudget = customBudgetInp ? parseInt(customBudgetInp.value, 10) : 300;
 
     const formSelect = document.getElementById('init-form-select');
-    const formId = formSelect ? formSelect.value : 'mutant';
+    const formId = formSelect ? formSelect.value : (this.character.formKey || 'mutant');
+    if (!formId) {
+      this.showCustomAlert('Please select a physical form before continuing.', 'Physical Form Required');
+      return;
+    }
 
     const wizardSlider = document.getElementById('wizard-cp-slider');
     const cpAdj = wizardSlider ? (parseInt(wizardSlider.value) || 0) : 0;
 
+    // Validate budget against already spent CP
+    let base = 300;
+    if (tier === 'custom') {
+      base = customBudget;
+    } else {
+      base = this.character.getBaseTierBudget(tier);
+    }
+    const proposedBudget = Math.round(base * (1 + cpAdj / 100));
+    const pts = this.character.calculateSpentPoints();
+    const currentSpent = pts.totalSpent || 0;
+    if (proposedBudget < currentSpent) {
+      const overAmount = currentSpent - proposedBudget;
+      this.showCustomAlert(
+        `Cannot set CP budget to ${proposedBudget} CP because this character has already spent ${currentSpent} CP (${overAmount} CP over budget).\n\nPlease reduce CP expenditure first (e.g. lower ability ranks, remove powers, talents, or contacts) before lowering the budget.`,
+        'Over Budget Warning'
+      );
+      return;
+    }
+
+    const activeModeKey = this.getCreationModeKey();
     if (typeof this.character.applyCreationSetup === 'function') {
       this.character.applyCreationSetup(tier, formId, customBudget, heroName, cpAdj);
+      if (activeModeKey === 'tsr-cp-buy') {
+        this.character.creationMode = 'tsr';
+        this.character.isTsrCpBuy = true;
+      }
     } else {
       if (heroName) this.character.name = heroName;
       const forms = globalThis.PHYSICAL_FORMS || [];
@@ -12337,6 +17120,8 @@ const App = {
         this.character.setPointTier(tier);
       }
       this.character.isCreationSetupPending = false;
+      this.character.isCreationFinalized = false;
+      this.character.startingKarmaBonus = 0;
       this.character.editLog = [];
       this.character.editHistoryIndex = -1;
       this.character.recordEdit(`Initial save point: ${this.character.name} (${this.character.pointBudget} CP, ${this.character.formName})`, 'creation');
@@ -12372,11 +17157,29 @@ const App = {
     // 2. Add Power Button
     const addPowerBtn = document.getElementById('btn-add-power');
     if (addPowerBtn) {
-      addPowerBtn.disabled = isLocked;
       if (isLocked) {
+        addPowerBtn.disabled = true;
         addPowerBtn.classList.add('cp-spending-locked');
         addPowerBtn.title = 'Choose Starting Tier & Physical Form in the setup dialog to spend CP';
+      } else if (this.character && this.character.creationMode === 'tsr') {
+        addPowerBtn.classList.remove('cp-spending-locked');
+        const pCatSel = document.getElementById('select-power-catalog');
+        const allPowers = this.getAllAvailablePowers();
+        const selectedP = allPowers.find(p => pCatSel && (p.id === pCatSel.value || p.code === pCatSel.value));
+        const maxSlots = this.character.getMaxPowerSlots ? this.character.getMaxPowerSlots() : null;
+        if (maxSlots === null) {
+          addPowerBtn.disabled = true;
+          addPowerBtn.title = 'Roll power slots in the TSR Generator first.';
+        } else if (selectedP && this.character.canAddPower && !this.character.canAddPower(selectedP)) {
+          const used = this.character.getUsedPowerSlots ? this.character.getUsedPowerSlots() : 0;
+          addPowerBtn.disabled = true;
+          addPowerBtn.title = `Power slots full: ${used}/${maxSlots} slots allocated`;
+        } else {
+          addPowerBtn.disabled = false;
+          addPowerBtn.title = '';
+        }
       } else {
+        addPowerBtn.disabled = false;
         addPowerBtn.classList.remove('cp-spending-locked');
         addPowerBtn.title = '';
       }
@@ -12426,9 +17229,2582 @@ const App = {
         bgResSel.title = 'Choose Starting Tier & Physical Form in the setup dialog to spend CP';
       } else {
         bgResSel.classList.remove('cp-spending-locked');
-        bgResSel.title = '';
       }
     }
+  },
+
+  // ==========================================
+  // TSR 1986 ADVANCED SET CHARACTER GENERATOR (PB pp. 4-10)
+  // ==========================================
+
+  async handleToggleCreationMode(targetMode = null) {
+    if (!this.character) return;
+    if (this.character.isCreationFinalized) {
+      this.showStatusToast('Creation mode cannot be toggled after character creation is finalized.');
+      return;
+    }
+
+    if (!targetMode) {
+      this.openCreationModeModal();
+      return;
+    }
+
+    await this.handleNewCharacterModeSelection(targetMode);
+  },
+
+  async promptSwitchToModeledOnManualAssignment(traitType = 'traits and ranks') {
+    return await this.showCustomConfirm(
+      `You are manually assigning ${traitType} while in TSR Random Roll mode.\n\n` +
+      `Manually customizing traits switches your character to TSR Modeled (Free-Form) Mode.\n\n` +
+      `• Trait slot limits and random roll requirements will be bypassed.\n` +
+      `• Character trait investment is tracked in Karma Points (KP) instead of CP.\n` +
+      `• ⚠️ WARNING: Entering Modeled mode is IRREVERSIBLE without reverting to an earlier character history point (Revision #1) on the Progression tab.\n\n` +
+      `Would you like to switch to Modeled Mode and proceed with this assignment?`,
+      '⚠️ Switch to TSR Modeled Mode?',
+      null,
+      'Proceed to Modeled Mode',
+      'Cancel'
+    );
+  },
+
+  handleToggleTsrSubMode(targetSubMode) {
+    if (!this.character) return;
+    if (this.character.creationMode !== 'tsr') {
+      this.showStatusToast('Submode toggle is only available in TSR Creation Mode.');
+      return;
+    }
+    if (this.character.isCreationFinalized) {
+      this.showStatusToast('Creation mode cannot be toggled after character creation is finalized.');
+      return;
+    }
+
+    const isCurrentModeled = (this.character.isModeledMode && this.character.isModeledMode());
+    const currentSubMode = isCurrentModeled ? 'modeled' : 'random';
+
+    if (targetSubMode === currentSubMode) {
+      if (isCurrentModeled) {
+        this.openTsrModeDialog();
+      }
+      return;
+    }
+
+    if (targetSubMode === 'modeled') {
+      this.promptSwitchToModeledMode();
+    } else if (targetSubMode === 'random') {
+      this.promptCannotRevertToRandom();
+    }
+  },
+
+  async promptSwitchToModeledMode() {
+    const confirmed = await this.showCustomConfirm(
+      '⚠️ WARNING: Entering TSR Modeled Mode is IRREVERSIBLE without reverting to an earlier character history point!\n\n' +
+      '• Modeled mode enables TSR free-form creation without random rolls or trait slot limits.\n' +
+      '• Trait investment is tracked in Karma Points (KP) instead of CP, allowing GMs to apply campaign KP limits if desired.\n' +
+      '• Once activated, you cannot directly toggle back to Random Roll mode without rolling back character history on the Progression tab.\n\n' +
+      'Are you sure you want to proceed and switch to Modeled Mode?',
+      '⚠️ Enter TSR Modeled Mode?'
+    );
+    if (!confirmed) return;
+    this.applySwitchToModeledMode();
+  },
+
+  applySwitchToModeledMode() {
+    if (!this.character) return;
+    if (this.character.setTsrSubMode) {
+      this.character.setTsrSubMode('modeled');
+    } else {
+      this.character.tsrSubMode = 'modeled';
+    }
+    this.recordCharacterEdit('Switched TSR Creation to Free-Form Modeled Mode (irreversible without history rollback)', 'creation');
+    this.saveState();
+    this.render();
+    this.showStatusToast('📐 Switched to TSR Modeled (Free-form) Mode.');
+  },
+
+  async promptCannotRevertToRandom() {
+    const confirmed = await this.showCustomConfirm(
+      'Cannot directly switch from Modeled back to Random Roll mode because free-form modeling is irreversible.\n\n' +
+      'To restore canonical random rolling, you can roll back your character to an earlier history point (Revision #1 or before Modeled mode was activated) on the Progression tab.\n\n' +
+      'Would you like to open the Progression tab now to view your edit history and roll back?',
+      '⚠️ Modeled Mode is Irreversible',
+      null,
+      'Go to Progression',
+      'Cancel'
+    );
+    if (confirmed) {
+      this.switchTab('background');
+    }
+  },
+
+  /* TSR Character Generator Popout Window Logic */
+  getTsrGeneratorBox() {
+    if (this.tsrPopoutWindow && !this.tsrPopoutWindow.closed) {
+      try {
+        const box = this.tsrPopoutWindow.document.querySelector('.modal-box.tsr-generator-modal-box') || this.tsrPopoutWindow.document.querySelector('.tsr-generator-modal-box');
+        if (box) return box;
+      } catch (e) {}
+    }
+    return document.querySelector('.modal-box.tsr-generator-modal-box') || document.querySelector('#modal-tsr-generator .modal-box');
+  },
+
+  getTsrEl(id) {
+    const box = this.getTsrGeneratorBox();
+    if (box) {
+      if (box.id === id) return box;
+      const el = box.querySelector(`#${id}`);
+      if (el) return el;
+    }
+    return document.getElementById(id);
+  },
+
+  isTsrPoppedOut() {
+    return !!(this.tsrPopoutWindow && !this.tsrPopoutWindow.closed);
+  },
+
+  saveTsrPopoutGeometry() {
+    const pop = this.tsrPopoutWindow;
+    if (!pop || pop.closed) return;
+    try {
+      const x = pop.screenX !== undefined ? pop.screenX : pop.screenLeft;
+      const y = pop.screenY !== undefined ? pop.screenY : pop.screenTop;
+      const w = pop.outerWidth || pop.innerWidth;
+      const h = pop.outerHeight || pop.innerHeight;
+      if (typeof x === 'number' && typeof y === 'number' && typeof w === 'number' && typeof h === 'number' && w >= 300 && h >= 300) {
+        const geo = {
+          width: Math.round(w),
+          height: Math.round(h),
+          left: Math.round(x),
+          top: Math.round(y)
+        };
+        localStorage.setItem('msh_tsr_popout_geometry', JSON.stringify(geo));
+      }
+    } catch (e) {}
+  },
+
+  getTsrPopoutGeometry() {
+    try {
+      const stored = localStorage.getItem('msh_tsr_popout_geometry');
+      if (stored) {
+        const geo = JSON.parse(stored);
+        if (geo && typeof geo.width === 'number' && typeof geo.height === 'number') {
+          const width = Math.max(500, Math.min(geo.width, 3840));
+          const height = Math.max(400, Math.min(geo.height, 2160));
+          let left = (typeof geo.left === 'number' && !isNaN(geo.left) && Math.abs(geo.left) < 30000) ? Math.round(geo.left) : null;
+          let top = (typeof geo.top === 'number' && !isNaN(geo.top) && Math.abs(geo.top) < 30000) ? Math.round(geo.top) : null;
+          return { width, height, left, top };
+        }
+      }
+    } catch (e) {}
+    return null;
+  },
+
+  toggleTsrPopout() {
+    const now = Date.now();
+    if (this._lastTsrPopoutToggleTime && (now - this._lastTsrPopoutToggleTime) < 500) {
+      return;
+    }
+    this._lastTsrPopoutToggleTime = now;
+
+    if (this.isTsrPoppedOut()) {
+      this.dockTsr(true);
+    } else {
+      this.popoutTsr();
+    }
+  },
+
+  popoutTsr() {
+    const modal = document.getElementById('modal-tsr-generator');
+    const modalBox = this.getTsrGeneratorBox();
+    if (!modalBox) return false;
+
+    if (this.isTsrPoppedOut()) {
+      try {
+        this.tsrPopoutWindow.focus();
+      } catch (e) {}
+      return true;
+    }
+
+    const savedGeo = this.getTsrPopoutGeometry();
+    let width = 960;
+    let height = 860;
+    let left = null;
+    let top = null;
+
+    if (savedGeo) {
+      width = savedGeo.width;
+      height = savedGeo.height;
+      if (savedGeo.left !== null && savedGeo.top !== null) {
+        left = savedGeo.left;
+        top = savedGeo.top;
+      }
+    }
+
+    if (left === null || top === null) {
+      const screenLeft = (window.screenX !== undefined ? window.screenX : window.screenLeft || 0);
+      const screenTop = (window.screenY !== undefined ? window.screenY : window.screenTop || 0);
+      const outerW = window.outerWidth || window.innerWidth || 1200;
+      left = Math.max(20, screenLeft + Math.round((outerW - width) / 2));
+      top = Math.max(20, screenTop + 30);
+    }
+
+    let pop = null;
+    try {
+      pop = window.open('', '_blank', `popup=yes,width=${width},height=${height},left=${left},top=${top},menubar=no,toolbar=no,location=no,status=no,resizable=yes,scrollbars=yes`);
+      if (pop) {
+        try { pop.name = 'MSH_TSR_Generator'; } catch (e) {}
+      }
+      if (pop && !pop.closed) {
+        try {
+          pop.resizeTo(width, height);
+          pop.moveTo(left, top);
+        } catch (e) {}
+      }
+    } catch (err) {
+      console.warn('window.open error:', err);
+    }
+
+    if (!pop || pop.closed || typeof pop.closed === 'undefined') {
+      this.showStatusToast('⚠️ Pop-out window blocked by browser. Please allow popups for this site.');
+      return false;
+    }
+
+    let popDoc = null;
+    try {
+      popDoc = pop.document;
+    } catch (e) {
+      console.warn('Cannot access pop.document:', e);
+    }
+    if (!popDoc) {
+      this.showStatusToast('⚠️ Pop-out window blocked by browser. Please allow popups for this site.');
+      try { pop.close(); } catch (e) {}
+      return false;
+    }
+
+    this.tsrPopoutWindow = pop;
+    this.tsrPoppedOut = true;
+    try {
+      localStorage.setItem('msh_tsr_popped_out', 'true');
+    } catch (e) {}
+
+    if (modal) {
+      modal.classList.remove('open');
+    }
+
+    const baseHref = (typeof document !== 'undefined' && document.baseURI) || (typeof window !== 'undefined' && window.location && window.location.href) || '';
+    popDoc.open();
+    popDoc.write(`<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>TSR 1986 Character Generator - Marvel Super Heroes</title>
+  ${baseHref ? `<base href="${baseHref}">` : ''}
+</head>
+<body>
+  <div class="tsr-popout-shell" id="tsr-popout-shell"></div>
+</body>
+</html>`);
+    popDoc.close();
+
+    // Copy head link & style elements for fonts and styling
+    document.querySelectorAll('link[rel="stylesheet"], style').forEach(node => {
+      try {
+        popDoc.head.appendChild(popDoc.importNode ? popDoc.importNode(node, true) : node.cloneNode(true));
+      } catch (e) {}
+    });
+
+    // Provide App and parent references
+    try {
+      pop.App = this;
+      pop.window.App = this;
+    } catch (e) {}
+
+    // Popout shell & container styling
+    const popStyle = popDoc.createElement('style');
+    popStyle.textContent = `
+      html, body {
+        margin: 0;
+        padding: 0;
+        min-height: 100%;
+        height: 100%;
+        box-sizing: border-box;
+      }
+      body {
+        padding: 10px;
+        background: var(--bg-dark, #0b0f19);
+        color: var(--text-main, #f1f5f9);
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        display: flex;
+        justify-content: center;
+        align-items: stretch;
+        overflow: hidden;
+      }
+      .tsr-popout-shell {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        flex: 1;
+        min-height: 0;
+      }
+      .modal-box.tsr-generator-modal-box {
+        width: 100% !important;
+        max-width: 100% !important;
+        height: 100% !important;
+        max-height: 100% !important;
+        position: static !important;
+        margin: 0 !important;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5) !important;
+        border: 1px solid var(--border-color, #334155) !important;
+        resize: none !important;
+        display: flex !important;
+        flex-direction: column !important;
+      }
+      .modal-box.tsr-generator-modal-box .modal-header {
+        padding: 8px 18px !important;
+        flex-shrink: 0 !important;
+      }
+      .modal-box.tsr-generator-modal-box .modal-body {
+        flex: 1 !important;
+        overflow-y: auto !important;
+        min-height: 0 !important;
+      }
+      .modal-box.tsr-generator-modal-box .modal-footer {
+        flex-shrink: 0 !important;
+      }
+    `;
+    popDoc.head.appendChild(popStyle);
+
+    // Sync theme
+    const theme = document.body.getAttribute('data-theme');
+    if (theme) popDoc.body.setAttribute('data-theme', theme);
+
+    // Move modalBox into popout document
+    if (!this.tsrPlaceholder) {
+      this.tsrPlaceholder = document.createComment('tsr-generator-modal-box-placeholder');
+    }
+    if (modalBox.parentNode) {
+      modalBox.parentNode.insertBefore(this.tsrPlaceholder, modalBox);
+    }
+    const mount = popDoc.getElementById('tsr-popout-shell');
+    if (mount) {
+      mount.appendChild(modalBox);
+    }
+
+    // Update Pop-out button to Dock
+    const popBtn = this.getTsrEl('btn-tsr-popout');
+    if (popBtn) {
+      popBtn.textContent = '↘ Dock';
+      popBtn.title = 'Dock TSR generator back into main window';
+    }
+
+    // Ensure state and dropdown in popout window are properly populated & rendered
+    if (!this.tsrGenState) {
+      this.initTsrGenState();
+    }
+    this.populateTsrOriginsDropdown();
+    this.renderTsrGeneratorUI();
+
+    // Bind event listeners on popDoc for cross-window interactions
+    if (popDoc.addEventListener) {
+      popDoc.addEventListener('click', (e) => {
+        const btn = e.target.closest && e.target.closest('button');
+        if (!btn) return;
+        if (btn.id === 'btn-tsr-popout') {
+          this.toggleTsrPopout();
+        } else if (btn.id === 'btn-close-tsr-generator' || btn.id === 'btn-cancel-tsr-generator') {
+          this.closeTsrGeneratorModal();
+        } else if (btn.id === 'btn-apply-tsr-character') {
+          this.applyTsrGeneratedCharacter();
+        } else if (btn.id === 'btn-tsr-roll-origin') {
+          this.tsrGenRollOrigin();
+        } else if (btn.id === 'btn-tsr-roll-abilities') {
+          this.tsrGenRollAbilities();
+        } else if (btn.id === 'btn-tsr-unassign-abilities') {
+          this.tsrGenUnassignAllAbilities();
+        } else if (btn.id === 'btn-tsr-roll-resources') {
+          this.tsrGenRollResources();
+        } else if (btn.id === 'btn-tsr-roll-power-slots') {
+          this.tsrGenRollPowerSlots();
+        } else if (btn.id === 'btn-tsr-roll-talents-contacts') {
+          this.tsrGenRollTalentsContacts();
+        } else if (btn.id === 'btn-tsr-add-custom-contact') {
+          this.tsrGenAddCustomContact();
+        }
+      });
+      popDoc.addEventListener('keydown', (e) => {
+        if (e.target && e.target.id === 'tsr-custom-contact-input' && e.key === 'Enter') {
+          e.preventDefault();
+          this.tsrGenAddCustomContact();
+        }
+      });
+      popDoc.addEventListener('change', (e) => {
+        if (!e.target) return;
+        if (e.target.id === 'tsr-select-origin') {
+          this.tsrGenSelectOrigin(e.target.value);
+        } else if (e.target.id === 'tsr-talent-category-filter') {
+          this.renderTsrGeneratorUI();
+        }
+      });
+    }
+
+    pop.addEventListener('resize', () => {
+      this.saveTsrPopoutGeometry();
+    });
+
+    let returned = false;
+    let isFullyInitialized = false;
+    setTimeout(() => { isFullyInitialized = true; }, 300);
+
+    const returnModal = () => {
+      if (returned) return;
+      if (!isFullyInitialized && pop && !pop.closed) return;
+      this.saveTsrPopoutGeometry();
+      returned = true;
+      if (this.tsrPlaceholder && this.tsrPlaceholder.parentNode) {
+        this.tsrPlaceholder.parentNode.insertBefore(modalBox, this.tsrPlaceholder);
+        this.tsrPlaceholder.remove();
+        this.tsrPlaceholder = null;
+      } else {
+        const m = document.getElementById('modal-tsr-generator');
+        if (m && !m.contains(modalBox)) m.appendChild(modalBox);
+      }
+      this.tsrPopoutWindow = null;
+      this.tsrPoppedOut = false;
+      if (!this.isClientUnloading) {
+        try {
+          localStorage.setItem('msh_tsr_popped_out', 'false');
+        } catch (e) {}
+      }
+      modalBox.style.width = '';
+      modalBox.style.height = '';
+      modalBox.style.position = '';
+      modalBox.style.left = '';
+      modalBox.style.top = '';
+      modalBox.style.margin = '';
+      const b = this.getTsrEl('btn-tsr-popout');
+      if (b) {
+        b.textContent = '↗ Pop-out';
+        b.title = 'Pop-out into separate window';
+      }
+    };
+
+    pop.addEventListener('beforeunload', returnModal);
+    pop.addEventListener('unload', returnModal);
+    pop.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        try { pop.close(); } catch (err) {}
+      }
+    });
+
+    const checkInterval = setInterval(() => {
+      if (!this.tsrPopoutWindow || this.tsrPopoutWindow.closed) {
+        clearInterval(checkInterval);
+        returnModal();
+      } else {
+        this.saveTsrPopoutGeometry();
+      }
+    }, 400);
+
+    this.renderTsrGeneratorUI();
+    try {
+      pop.focus();
+    } catch (e) {}
+
+    if (typeof navigator !== 'undefined' && /waterfox/i.test(navigator.userAgent) && pop && typeof window !== 'undefined' && window.screen && pop.outerWidth >= (window.screen.availWidth - 50)) {
+      this.showStatusToast('💡 Waterfox tip: If pop-outs open in tabs, set browser.link.open_newwindow to 2 in about:config, or uncheck "Open links in tabs instead of new windows" in Settings.', 10000);
+    } else {
+      this.showStatusToast('↗ TSR 1986 Character Generator popped out into separate window');
+    }
+    return true;
+  },
+
+  dockTsr(keepOpenInPage = true) {
+    const modalBox = this.getTsrGeneratorBox();
+    const pop = this.tsrPopoutWindow;
+
+    if (pop && !pop.closed) {
+      this.saveTsrPopoutGeometry();
+    }
+
+    if (modalBox) {
+      if (this.tsrPlaceholder && this.tsrPlaceholder.parentNode) {
+        this.tsrPlaceholder.parentNode.insertBefore(modalBox, this.tsrPlaceholder);
+        this.tsrPlaceholder.remove();
+        this.tsrPlaceholder = null;
+      } else {
+        const m = document.getElementById('modal-tsr-generator');
+        if (m && !m.contains(modalBox)) m.appendChild(modalBox);
+      }
+      modalBox.style.width = '';
+      modalBox.style.height = '';
+      modalBox.style.position = '';
+      modalBox.style.left = '';
+      modalBox.style.top = '';
+      modalBox.style.margin = '';
+    }
+
+    if (pop && !pop.closed) {
+      try {
+        pop.close();
+      } catch (e) {}
+    }
+    this.tsrPopoutWindow = null;
+    this.tsrPoppedOut = false;
+    if (!this.isClientUnloading) {
+      try {
+        localStorage.setItem('msh_tsr_popped_out', 'false');
+      } catch (e) {}
+    }
+
+    const b = this.getTsrEl('btn-tsr-popout');
+    if (b) {
+      b.textContent = '↗ Pop-out';
+      b.title = 'Pop-out into separate window';
+    }
+
+    const modal = document.getElementById('modal-tsr-generator');
+    if (modal) {
+      if (keepOpenInPage) {
+        modal.classList.add('open');
+      } else {
+        modal.classList.remove('open');
+      }
+    }
+    this.populateTsrOriginsDropdown();
+    this.renderTsrGeneratorUI();
+    this.showStatusToast('↘ TSR 1986 Character Generator docked back into main window');
+  },
+
+  initTsrWindow() {
+    const modalBox = this.getTsrGeneratorBox();
+    if (!modalBox) return;
+
+    modalBox.addEventListener('click', (e) => {
+      const popBtn = e.target.closest('#btn-tsr-popout');
+      if (popBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        this.toggleTsrPopout();
+        return;
+      }
+    });
+
+    window.addEventListener('beforeunload', () => {
+      if (this.tsrPopoutWindow && !this.tsrPopoutWindow.closed) {
+        try {
+          this.isClientUnloading = true;
+          this.saveTsrPopoutGeometry();
+          this.tsrPopoutWindow.close();
+        } catch (e) {}
+      }
+    });
+  },
+
+  openTsrGeneratorModal() {
+    if (this.isTsrPoppedOut()) {
+      try {
+        this.tsrPopoutWindow.focus();
+      } catch (e) {}
+      return;
+    }
+
+    if (!this.tsrGenState) {
+      this.initTsrGenState();
+    }
+
+    this.populateTsrOriginsDropdown();
+    this.renderTsrGeneratorUI();
+
+    const modal = document.getElementById('modal-tsr-generator');
+    if (modal) modal.classList.add('open');
+  },
+
+  closeTsrGeneratorModal() {
+    if (this.isTsrPoppedOut()) {
+      this.dockTsr(false);
+    } else {
+      const modal = document.getElementById('modal-tsr-generator');
+      if (modal) modal.classList.remove('open');
+    }
+    if (this.character && this.character.creationMode === 'tsr') {
+      this.character.isCreationSetupPending = false;
+    }
+  },
+
+  populateTsrOriginsDropdown() {
+    const originSel = this.getTsrEl('tsr-select-origin');
+    if (!originSel) return;
+    const origins = (typeof UP_PHYSICAL_FORMS_ROLL_TABLE !== 'undefined')
+      ? UP_PHYSICAL_FORMS_ROLL_TABLE
+      : ((typeof globalThis !== 'undefined' && globalThis.UP_PHYSICAL_FORMS_ROLL_TABLE)
+          ? globalThis.UP_PHYSICAL_FORMS_ROLL_TABLE
+          : ((typeof TSR_ORIGINS_TABLE !== 'undefined') ? TSR_ORIGINS_TABLE : []));
+
+    originSel.innerHTML = '<option value="">- Select physical form -</option>' + origins.map(o =>
+      `<option value="${o.id}">${o.name} (${o.min}-${o.max === 100 ? '00' : o.max}%) [Col ${o.column}]</option>`
+    ).join('');
+
+    if (this.tsrGenState && this.tsrGenState.origin) {
+      originSel.value = this.tsrGenState.origin.id;
+    } else {
+      originSel.value = '';
+    }
+  },
+
+  isTsrPowerStarred(powerOrId) {
+    if (!powerOrId) return false;
+    let p = powerOrId;
+    if (typeof powerOrId === 'string') {
+      const catalog = (typeof POWERS_CATALOG !== 'undefined')
+        ? POWERS_CATALOG
+        : ((typeof globalThis !== 'undefined' && globalThis.MSH_POWERS) ? globalThis.MSH_POWERS : []);
+      p = catalog.find(x => x.id === powerOrId || x.code === powerOrId || x.name === powerOrId);
+    }
+    if (!p) return false;
+    return !!(p.isStarred || p.countsAsTwo || p.slotCost === 2 || (typeof p.name === 'string' && p.name.includes('*')));
+  },
+
+  getTsrUsedPowerSlots(powersArray = null) {
+    const arr = Array.isArray(powersArray) ? powersArray : (this.tsrGenState?.powers || []);
+    return arr.reduce((sum, slot) => {
+      const starred = slot.isStarred !== undefined ? slot.isStarred : this.isTsrPowerStarred(slot.powerId || slot.powerName);
+      return sum + (starred ? 2 : 1);
+    }, 0);
+  },
+
+  initTsrGenState(forceReset = false) {
+    const rollRankFn = (typeof rollRandomRank === 'function') ? rollRandomRank : globalThis?.rollRandomRank;
+    const rollSlotsFn = (typeof rollTsrPowerSlots === 'function') ? rollTsrPowerSlots : globalThis?.rollTsrPowerSlots;
+    const rollCatFn = (typeof rollTsrPowerCategory === 'function') ? rollTsrPowerCategory : globalThis?.rollTsrPowerCategory;
+    const rollTalFn = (typeof rollTsrTalentSlots === 'function') ? rollTsrTalentSlots : globalThis?.rollTsrTalentSlots;
+    const rollConFn = (typeof rollTsrContactSlots === 'function') ? rollTsrContactSlots : globalThis?.rollTsrContactSlots;
+    const rollModFn = (typeof rollAbilityModifier === 'function') ? rollAbilityModifier : globalThis?.rollAbilityModifier;
+
+    const slotRuleset = (this.tsrGenState && this.tsrGenState.slotRuleset) ? this.tsrGenState.slotRuleset : 'pb';
+    const origin = null;
+
+    const abilities = {};
+    const abilityRolls = [];
+    const statKeys = [
+      { key: 'fighting', label: 'Fighting', abbr: 'F' },
+      { key: 'agility', label: 'Agility', abbr: 'A' },
+      { key: 'strength', label: 'Strength', abbr: 'S' },
+      { key: 'endurance', label: 'Endurance', abbr: 'E' },
+      { key: 'reason', label: 'Reason', abbr: 'R' },
+      { key: 'intuition', label: 'Intuition', abbr: 'I' },
+      { key: 'psyche', label: 'Psyche', abbr: 'P' }
+    ];
+
+    statKeys.forEach(({ key: stat }, idx) => {
+      const col = 2;
+      const res = (typeof rollRankFn === 'function') ? rollRankFn(col) : { rankName: 'Typical', rankNumber: 6, roll: 50, column: col };
+      const rollObj = {
+        slotIndex: idx,
+        assignedStat: stat,
+        rankName: res.rankName,
+        rankValue: res.rankNumber,
+        baseRankName: res.rankName,
+        baseRankValue: res.rankNumber,
+        shift: 0,
+        roll: res.roll,
+        column: col
+      };
+      abilityRolls.push(rollObj);
+      abilities[stat] = { ...rollObj };
+    });
+
+    const modRoll = (typeof rollModFn === 'function') ? rollModFn() : { roll: 35, shift: 0, label: 'No Change (0CS)' };
+    const resources = {
+      baseRankName: 'Typical',
+      originShift: 0,
+      resModRoll: modRoll.roll,
+      resModShift: modRoll.shift,
+      initialRankName: 'Typical',
+      initialRankValue: 6,
+      slotCostCS: 0,
+      rankName: 'Typical',
+      rankValue: 6,
+      roll: modRoll.roll,
+      column: 2
+    };
+
+    const rawSlots = (typeof rollSlotsFn === 'function') ? rollSlotsFn(null, slotRuleset) : { roll: 50, slots: 3, initial: 3, max: 4 };
+    const powerSlotsInitial = Math.max(1, rawSlots.initial ?? rawSlots.slots ?? 3);
+    const powerSlotsMax = Math.max(powerSlotsInitial, rawSlots.max ?? powerSlotsInitial);
+    const totalSlots = powerSlotsInitial;
+
+    const powers = [];
+    let usedSlots = 0;
+    let slotIdx = 0;
+    while (usedSlots < totalSlots) {
+      const remaining = totalSlots - usedSlots;
+      const catRes = (typeof rollCatFn === 'function') ? rollCatFn() : { category: 'Energy Emission', roll: 55 };
+      const powersInCat = this.getPowersForTsrCategory(catRes.category);
+      const validPool = remaining < 2
+        ? powersInCat.filter(p => !this.isTsrPowerStarred(p))
+        : powersInCat;
+      const pool = validPool.length > 0 ? validPool : powersInCat;
+      const pickedPower = pool.length > 0
+        ? pool[Math.floor(Math.random() * pool.length)]
+        : (globalThis.MSH_POWERS ? globalThis.MSH_POWERS[0] : { id: 'p_fire', name: 'Fire Generation' });
+      const isStarred = this.isTsrPowerStarred(pickedPower) && remaining >= 2;
+      const pRankRoll = (typeof rollRankFn === 'function') ? rollRankFn(4) : { rankName: 'Good', rankNumber: 10, roll: 45, column: 4 };
+
+      powers.push({
+        slotIndex: slotIdx++,
+        category: catRes.category,
+        categoryRoll: catRes.roll,
+        powerId: pickedPower.id || pickedPower.code,
+        powerName: pickedPower.name,
+        isStarred,
+        slotCost: isStarred ? 2 : 1,
+        rankName: pRankRoll.rankName,
+        rankValue: pRankRoll.rankNumber,
+        rankRoll: pRankRoll.roll,
+        rankCol: pRankRoll.column || 4,
+        limitation: null
+      });
+      usedSlots += (isStarred ? 2 : 1);
+    }
+
+    const talRes = (typeof rollTalFn === 'function') ? rollTalFn(null, slotRuleset) : { roll: 50, slots: 2, initial: 2, max: 5 };
+    const talentSlotsInitial = Math.max(0, talRes.initial ?? talRes.slots ?? 2);
+    const talentSlotsMax = Math.max(talentSlotsInitial, talRes.max ?? talentSlotsInitial);
+
+    const conRes = (typeof rollConFn === 'function') ? rollConFn(null, slotRuleset) : { roll: 50, slots: 1, initial: 1, max: 4 };
+    const contactSlotsInitial = Math.max(0, conRes.initial ?? conRes.slots ?? 1);
+    const contactSlotsMax = Math.max(contactSlotsInitial, conRes.max ?? contactSlotsInitial);
+
+    const canonicalContacts = [
+      'Law Enforcement / Police (Local, State, Federal, SHIELD)',
+      'Scientific / Academic Community (Universities, Labs, Tech Institutes)'
+    ];
+    const initialContacts = canonicalContacts.slice(0, contactSlotsInitial);
+
+    this.tsrGenState = {
+      slotRuleset,
+      origin,
+      originAbilityChoice: null,
+      originExtraPart: 'arms',
+      abilityRolls,
+      abilities,
+      resources,
+      popularity: 10,
+      powers,
+      powerSlotsRoll: rawSlots.roll,
+      powerSlotsInitial,
+      powerSlotsMax,
+      purchasedPowerSlots: 0,
+      powerSlots: totalSlots,
+      talentSlotsRoll: talRes.roll,
+      talentSlotsInitial,
+      talentSlotsMax,
+      purchasedTalentSlots: 0,
+      talentSlots: talentSlotsInitial,
+      contactSlotsRoll: conRes.roll,
+      contactSlotsInitial,
+      contactSlotsMax,
+      purchasedContactSlots: 0,
+      contactSlots: contactSlotsInitial,
+      selectedTalents: [],
+      selectedContacts: initialContacts
+    };
+
+    this.tsrGenRecalcResources();
+  },
+
+  tsrGenSetSlotRuleset(ruleset) {
+    if (!this.tsrGenState) this.initTsrGenState();
+    this.tsrGenState.slotRuleset = (ruleset === 'upb') ? 'upb' : 'pb';
+    this.tsrGenRollPowerSlots();
+    this.tsrGenRollTalentsContacts();
+    this.showStatusToast(`📊 Switched slot table to ${this.tsrGenState.slotRuleset === 'upb' ? '1987 Ultimate Powers Book (UPB p. 14)' : "1986 Player's Book (PB p. 7)"}`);
+  },
+
+  tsrGenEnsureAbilityRolls() {
+    if (!this.tsrGenState) return [];
+    const statOrder = ['fighting', 'agility', 'strength', 'endurance', 'reason', 'intuition', 'psyche'];
+    if (!Array.isArray(this.tsrGenState.abilityRolls) || this.tsrGenState.abilityRolls.length !== 7) {
+      const abs = this.tsrGenState.abilities || {};
+      this.tsrGenState.abilityRolls = statOrder.map((stat, idx) => {
+        const existing = abs[stat] || { rankName: 'Typical', rankValue: 6, baseRankName: 'Typical', baseRankValue: 6, shift: 0, roll: 50, column: 2 };
+        return {
+          slotIndex: idx,
+          assignedStat: existing.unassigned ? '' : stat,
+          rankName: existing.rankName || 'Typical',
+          rankValue: existing.rankValue ?? 6,
+          baseRankName: existing.baseRankName || existing.rankName || 'Typical',
+          baseRankValue: existing.baseRankValue ?? existing.rankValue ?? 6,
+          shift: existing.shift || 0,
+          roll: existing.roll ?? 50,
+          column: existing.column || 2
+        };
+      });
+    }
+    return this.tsrGenState.abilityRolls;
+  },
+
+  tsrGenSyncAbilitiesFromRolls() {
+    if (!this.tsrGenState) return;
+    const rolls = this.tsrGenEnsureAbilityRolls();
+    const origin = this.tsrGenState.origin;
+    const statOrder = ['fighting', 'agility', 'strength', 'endurance', 'reason', 'intuition', 'psyche'];
+    const abilities = {};
+    statOrder.forEach(stat => {
+      abilities[stat] = {
+        rankName: 'Unassigned',
+        rankValue: 0,
+        baseRankName: 'Unassigned',
+        baseRankValue: 0,
+        shift: 0,
+        roll: '--',
+        column: origin?.column || 2,
+        unassigned: true
+      };
+    });
+    rolls.forEach((r, idx) => {
+      r.slotIndex = idx;
+      if (r.assignedStat && abilities[r.assignedStat]) {
+        abilities[r.assignedStat] = {
+          rankName: r.rankName,
+          rankValue: r.rankValue,
+          baseRankName: r.baseRankName,
+          baseRankValue: r.baseRankValue,
+          shift: r.shift || 0,
+          roll: r.roll,
+          column: r.column,
+          slotIndex: idx
+        };
+      }
+    });
+    this.tsrGenState.abilities = abilities;
+  },
+
+  getPowersForTsrCategory(categoryName) {
+    const catalog = (typeof POWERS_CATALOG !== 'undefined')
+      ? POWERS_CATALOG
+      : ((typeof globalThis !== 'undefined' && globalThis.MSH_POWERS) ? globalThis.MSH_POWERS : []);
+    if (!categoryName) return catalog;
+
+    return catalog.filter(x => {
+      if (x.category === categoryName) return true;
+      if (categoryName === 'Energy Emission' && x.category === 'Energy Control') return true;
+      if (categoryName === 'Matter Conversion' && x.category === 'Matter Creation') return true;
+      if (categoryName === 'Mental Enhancement' && (x.category === 'Illusory' || x.category === 'Lifeform Control')) return true;
+      if (categoryName === 'Self-Alteration' && x.category === 'Physical Enhancement') return true;
+      if (categoryName === 'Magical' && x.category === 'Power Control') return true;
+      return false;
+    });
+  },
+
+  tsrGenGetAvailableResourceCSAboveFeeble(rankName = null) {
+    const checkRank = rankName || (this.tsrGenState?.resources?.rankName || 'Typical');
+    if (typeof UniversalTableEngine === 'undefined' || !Array.isArray(UniversalTableEngine.ranks)) {
+      return 0;
+    }
+    const curIdx = UniversalTableEngine.ranks.findIndex(r => r.name.toLowerCase() === String(checkRank).toLowerCase());
+    const feebleIdx = UniversalTableEngine.ranks.findIndex(r => r.name === 'Feeble');
+    if (curIdx < 0 || feebleIdx < 0) return 0;
+    return Math.max(0, curIdx - feebleIdx);
+  },
+
+  tsrGenRecalcResources() {
+    if (!this.tsrGenState) return;
+    const origin = this.tsrGenState.origin;
+    const curRes = this.tsrGenState.resources || {};
+
+    const baseRankName = origin?.resourcesBase || 'Typical';
+    const originShift = (origin && typeof origin.resourcesShift === 'number') ? origin.resourcesShift : 0;
+    const isFixed = !!(origin && origin.resourcesFixed);
+    const resModRoll = curRes.resModRoll ?? curRes.roll ?? 35;
+    let resModShift = isFixed ? 0 : (curRes.resModShift ?? 0);
+
+    let initialRankName = baseRankName;
+    let initialRankValue = 6;
+    if (typeof UniversalTableEngine !== 'undefined') {
+      if (isFixed && baseRankName === 'Shift 0') {
+        initialRankName = 'Shift 0';
+        initialRankValue = 0;
+      } else {
+        const totalInitialShift = originShift + resModShift;
+        const shifted = UniversalTableEngine.applyColumnShift(baseRankName, totalInitialShift);
+        if (shifted) {
+          // Minimum rolled Resources is Feeble unless fixed at Shift 0
+          if (shifted.num < 2 && baseRankName !== 'Shift 0') {
+            initialRankName = 'Feeble';
+            initialRankValue = 2;
+          } else {
+            initialRankName = shifted.name;
+            initialRankValue = shifted.num;
+          }
+        }
+      }
+    }
+
+    // Ensure purchased slots don't drop Resources below Feeble
+    const maxAffordableCS = this.tsrGenGetAvailableResourceCSAboveFeeble(initialRankName);
+    let pPwr = this.tsrGenState.purchasedPowerSlots || 0;
+    let pTal = this.tsrGenState.purchasedTalentSlots || 0;
+    let pCon = this.tsrGenState.purchasedContactSlots || 0;
+
+    while ((2 * pPwr + pTal + pCon) > maxAffordableCS) {
+      if (pCon > 0) {
+        pCon--;
+      } else if (pTal > 0) {
+        pTal--;
+      } else if (pPwr > 0) {
+        pPwr--;
+      } else {
+        break;
+      }
+    }
+
+    this.tsrGenState.purchasedPowerSlots = pPwr;
+    this.tsrGenState.purchasedTalentSlots = pTal;
+    this.tsrGenState.purchasedContactSlots = pCon;
+    this.tsrGenState.powerSlots = (this.tsrGenState.powerSlotsInitial || 1) + pPwr;
+    this.tsrGenState.talentSlots = (this.tsrGenState.talentSlotsInitial || 0) + pTal;
+    this.tsrGenState.contactSlots = (this.tsrGenState.contactSlotsInitial || 0) + pCon;
+
+    const slotCostCS = (2 * pPwr) + pTal + pCon;
+    let finalRankName = initialRankName;
+    let finalRankValue = initialRankValue;
+
+    if (slotCostCS > 0 && typeof UniversalTableEngine !== 'undefined' && initialRankName !== 'Shift 0') {
+      const afterBuy = UniversalTableEngine.applyColumnShift(initialRankName, -slotCostCS);
+      if (afterBuy) {
+        finalRankName = afterBuy.num < 2 ? 'Feeble' : afterBuy.name;
+        finalRankValue = afterBuy.num < 2 ? 2 : afterBuy.num;
+      }
+    }
+
+    this.tsrGenState.resources = {
+      baseRankName,
+      originShift,
+      resModRoll,
+      resModShift,
+      initialRankName,
+      initialRankValue,
+      slotCostCS,
+      rankName: finalRankName,
+      rankValue: finalRankValue,
+      roll: resModRoll,
+      isFixed
+    };
+  },
+
+  tsrGenCalcPopularity() {
+    if (!this.tsrGenState) return 10;
+    const origin = this.tsrGenState.origin;
+    let pop = 10;
+    if (origin) {
+      if (origin.startingPopularity !== undefined && origin.startingPopularity !== null) {
+        pop = origin.startingPopularity;
+      } else if (typeof origin.popularityShift === 'number' && typeof UniversalTableEngine !== 'undefined') {
+        const shifted = UniversalTableEngine.applyColumnShift('Good', origin.popularityShift);
+        pop = shifted ? shifted.num : 10;
+      }
+    }
+    this.tsrGenState.popularity = pop;
+    return pop;
+  },
+
+  renderTsrGeneratorUI() {
+    if (!this.tsrGenState) return;
+    this.tsrGenSyncAbilitiesFromRolls();
+    this.tsrGenRecalcResources();
+    const popVal = this.tsrGenCalcPopularity();
+    const {
+      slotRuleset,
+      origin,
+      originAbilityChoice,
+      originExtraPart,
+      abilityRolls,
+      abilities,
+      resources,
+      powers,
+      powerSlots,
+      powerSlotsInitial,
+      powerSlotsMax,
+      purchasedPowerSlots,
+      talentSlots,
+      talentSlotsInitial,
+      talentSlotsMax,
+      purchasedTalentSlots,
+      contactSlots,
+      contactSlotsInitial,
+      contactSlotsMax,
+      purchasedContactSlots,
+      selectedTalents,
+      selectedContacts
+    } = this.tsrGenState;
+
+    const rulesetSel = this.getTsrEl('tsr-select-slot-ruleset');
+    if (rulesetSel) rulesetSel.value = slotRuleset || 'pb';
+
+    // 1. Origin View
+    const originSel = this.getTsrEl('tsr-select-origin');
+    if (originSel) originSel.value = (origin && origin.id) ? origin.id : '';
+
+    const originDet = this.getTsrEl('tsr-origin-details');
+    if (originDet) {
+      if (!origin) {
+        originDet.innerHTML = `
+          <div style="font-size: 10pt; color: #94a3b8; font-style: italic; line-height: 1.4;">
+            Roll or select a physical form to view column modifiers and origin rules.
+          </div>
+        `;
+      } else {
+        const abilityModsList = [];
+        if (origin.abilityMods) {
+          Object.entries(origin.abilityMods).forEach(([ab, cs]) => {
+            if (cs !== 0) abilityModsList.push(`${ab} ${cs > 0 ? '+' : ''}${cs}CS`);
+          });
+        }
+        if (origin.abilityChoice && originAbilityChoice) {
+          const cs = origin.abilityChoice.shift ?? origin.abilityChoice.cs ?? 1;
+          abilityModsList.push(`${originAbilityChoice} +${cs}CS (Chosen)`);
+        }
+        if (origin.id === 'modified_human_extra_parts' && originExtraPart === 'arms') {
+          abilityModsList.push('F +1CS (Extra Arms)');
+        }
+        const abilityModsStr = abilityModsList.join(', ') || (origin.abilityBonus || 'None');
+
+        const powerSlotsStr = origin.powerSlots
+          ? `${origin.powerSlots.min}–${origin.powerSlots.max} (Default: ${origin.powerSlots.default})`
+          : (origin.powerSlotsModifier !== undefined && origin.powerSlotsModifier !== 0 ? `${origin.powerSlotsModifier > 0 ? '+' : ''}${origin.powerSlotsModifier} Slot(s)` : 'Standard');
+
+        originDet.innerHTML = `
+          <div style="font-weight: 700; color: var(--marvel-gold); margin-bottom: 2px;">
+            ${origin.name} (Roll: ${origin.roll || '--'})
+          </div>
+          <div style="font-size: 10pt; color: #94a3b8; line-height: 1.35;">
+            <strong>Table 1 Column:</strong> Col ${origin.column}${origin.mentalColumn && origin.mentalColumn !== origin.column ? ` (Mental: Col ${origin.mentalColumn})` : ''} ·
+            <strong>Ability Shifts:</strong> ${abilityModsStr} ·
+            <strong>Power Slots Mod:</strong> ${powerSlotsStr}
+          </div>
+          <div style="font-size: 10pt; color: #cbd5e1; margin-top: 4px;">${origin.description || ''}</div>
+          ${origin.specialRules ? `<div style="font-size: 10pt; color: #f59e0b; margin-top: 2px;"><em>Rules: ${origin.specialRules}</em></div>` : ''}
+        `;
+      }
+    }
+
+    // Step 1 Origin Choice Row (+1CS Ability Bonus / Extra Anatomy)
+    const choiceRow = this.getTsrEl('tsr-origin-choice-row');
+    if (choiceRow) {
+      if (!origin || (!origin.abilityChoice && !origin.extraPartOptions)) {
+        choiceRow.style.display = 'none';
+        choiceRow.innerHTML = '';
+      } else {
+        const statLabels = {
+          F: 'Fighting (F)',
+          A: 'Agility (A)',
+          S: 'Strength (S)',
+          E: 'Endurance (E)',
+          R: 'Reason (R)',
+          I: 'Intuition (I)',
+          P: 'Psyche (P)'
+        };
+        let rowHtml = '';
+        if (origin.abilityChoice) {
+          const rawAllowed = origin.abilityChoice.allowed || origin.abilityChoice.allowedAbilities || ['F', 'A', 'S', 'E', 'R', 'I', 'P'];
+          const allowedCodes = rawAllowed.map(x => String(x).charAt(0).toUpperCase());
+          const csVal = origin.abilityChoice.shift ?? origin.abilityChoice.cs ?? 1;
+          const opts = allowedCodes.map(abbr =>
+            `<option value="${abbr}" ${originAbilityChoice === abbr ? 'selected' : ''}>${statLabels[abbr] || abbr} (+${csVal}CS)</option>`
+          ).join('');
+          rowHtml += `
+            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+              <label for="tsr-select-origin-ability-choice" style="font-size: 10pt; font-weight: 700; color: var(--marvel-gold);">
+                ⚡ ${origin.abilityChoice.label || `Choose +${csVal}CS Ability Bonus`}:
+              </label>
+              <select id="tsr-select-origin-ability-choice" class="field-input compact" style="font-size: 10pt; font-weight: 700; width: auto; min-width: 170px; color: #4ade80;">
+                ${opts}
+              </select>
+            </div>
+          `;
+        }
+        if (Array.isArray(origin.extraPartOptions) && origin.extraPartOptions.length > 0) {
+          const curPart = originExtraPart || 'arms';
+          const partOpts = origin.extraPartOptions.map(opt =>
+            `<option value="${opt.id}" ${curPart === opt.id ? 'selected' : ''}>${opt.name}</option>`
+          ).join('');
+          rowHtml += `
+            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+              <label for="tsr-select-origin-extra-part" style="font-size: 10pt; font-weight: 700; color: #38bdf8;">
+                🧬 Extra Anatomy Type:
+              </label>
+              <select id="tsr-select-origin-extra-part" class="field-input compact" style="font-size: 10pt; font-weight: 700; width: auto; min-width: 220px; color: #38bdf8;">
+                ${partOpts}
+              </select>
+            </div>
+          `;
+        }
+        choiceRow.style.display = 'flex';
+        choiceRow.innerHTML = rowHtml;
+
+        const abChoiceSel = this.getTsrEl('tsr-select-origin-ability-choice');
+        if (abChoiceSel) {
+          abChoiceSel.addEventListener('change', (e) => this.tsrGenSetOriginAbilityChoice(e.target.value));
+        }
+        const extraPartSel = this.getTsrEl('tsr-select-origin-extra-part');
+        if (extraPartSel) {
+          extraPartSel.addEventListener('change', (e) => this.tsrGenSetOriginExtraPart(e.target.value));
+        }
+      }
+    }
+
+    // 2. Primary Abilities View (7 Assignable Roll Slots)
+    const abGrid = this.getTsrEl('tsr-abilities-grid');
+    if (abGrid) {
+      const statKeys = [
+        { key: 'fighting', label: 'Fighting', abbr: 'F' },
+        { key: 'agility', label: 'Agility', abbr: 'A' },
+        { key: 'strength', label: 'Strength', abbr: 'S' },
+        { key: 'endurance', label: 'Endurance', abbr: 'E' },
+        { key: 'reason', label: 'Reason', abbr: 'R' },
+        { key: 'intuition', label: 'Intuition', abbr: 'I' },
+        { key: 'psyche', label: 'Psyche', abbr: 'P' }
+      ];
+
+      abGrid.innerHTML = abilityRolls.map((r, idx) => {
+        const assignedMeta = statKeys.find(s => s.key === r.assignedStat);
+        const isAssigned = !!assignedMeta;
+        const borderStyle = isAssigned ? 'var(--border-color)' : 'rgba(245, 158, 11, 0.7)';
+        const optionsHtml = [
+          `<option value="" ${!isAssigned ? 'selected' : ''}>-- Assign Ability --</option>`,
+          ...statKeys.map(s => {
+            const otherIdx = abilityRolls.findIndex((other, oIdx) => oIdx !== idx && other.assignedStat === s.key);
+            const suffix = otherIdx >= 0 ? ` (Roll #${otherIdx + 1})` : '';
+            return `<option value="${s.key}" ${r.assignedStat === s.key ? 'selected' : ''}>${s.abbr} - ${s.label}${suffix}</option>`;
+          })
+        ].join('');
+
+        return `
+          <div class="tsr-stat-box" style="background: rgba(0,0,0,0.3); border: 1px solid ${borderStyle}; border-radius: 6px; padding: 8px 6px; position: relative; display: flex; flex-direction: column; align-items: center;">
+            <div style="font-size: 9pt; font-weight: 700; color: var(--text-muted); margin-bottom: 3px;">Roll #${idx + 1} · d100: ${r.roll || '--'}</div>
+            <select class="field-input compact select-tsr-roll-ability" data-roll-idx="${idx}" title="Choose which Primary Ability receives Roll #${idx + 1}" style="width: 100%; font-size: 9.5pt; font-weight: 700; padding: 2px 4px; margin-bottom: 4px; text-align: center; color: ${isAssigned ? 'var(--marvel-gold)' : '#f59e0b'};">
+              ${optionsHtml}
+            </select>
+            <div style="font-weight: 800; font-size: 11pt; color: #38bdf8;">${r.rankName}</div>
+            <div style="font-size: 10pt; color: #94a3b8;">(${r.rankValue})</div>
+            <div style="font-size: 9pt; color: var(--text-muted); margin-top: 3px;">Col ${r.column}${r.shift ? ` · Base ${r.baseRankName} (${r.shift > 0 ? '+' : ''}${r.shift}CS)` : ''}</div>
+            <button type="button" class="icon-btn compact btn-tsr-reroll-stat" data-roll-idx="${idx}" data-stat="${r.assignedStat || ''}" style="margin-top: 6px; font-size: 10pt; padding: 1px 6px;" title="Re-roll Roll #${idx + 1}">🎲 Roll</button>
+          </div>
+        `;
+      }).join('');
+
+      abGrid.querySelectorAll('.select-tsr-roll-ability').forEach(sel => {
+        sel.addEventListener('change', (e) => {
+          const rIdx = parseInt(e.currentTarget.getAttribute('data-roll-idx'), 10);
+          const targetStat = e.currentTarget.value;
+          this.tsrGenAssignAbilityRoll(rIdx, targetStat);
+        });
+      });
+
+      abGrid.querySelectorAll('.btn-tsr-reroll-stat').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const rIdxAttr = e.currentTarget.getAttribute('data-roll-idx');
+          const stat = e.currentTarget.getAttribute('data-stat');
+          if (rIdxAttr !== null && rIdxAttr !== '') {
+            this.tsrGenRollSingleAbility(parseInt(rIdxAttr, 10));
+          } else {
+            this.tsrGenRollSingleAbility(stat);
+          }
+        });
+      });
+    }
+
+    // Health, Karma, Popularity & Resources
+    const rawHealth = (abilities.fighting?.rankValue || 0) + (abilities.agility?.rankValue || 0) +
+                      (abilities.strength?.rankValue || 0) + (abilities.endurance?.rankValue || 0);
+    const healthMult = (origin?.healthMultiplier === 2 || (origin?.id === 'modified_human_extra_parts' && originExtraPart === 'organs')) ? 2 : 1;
+    const health = rawHealth * healthMult;
+    const karma = (abilities.reason?.rankValue || 0) + (abilities.intuition?.rankValue || 0) +
+                  (abilities.psyche?.rankValue || 0);
+
+    const hEl = this.getTsrEl('tsr-calc-health');
+    if (hEl) hEl.textContent = healthMult > 1 ? `${health} (${rawHealth} × 2)` : `${health}`;
+    const kEl = this.getTsrEl('tsr-calc-karma');
+    if (kEl) kEl.textContent = karma;
+    const popEl = this.getTsrEl('tsr-calc-popularity');
+    if (popEl) popEl.textContent = popVal;
+    const rEl = this.getTsrEl('tsr-calc-resources');
+    if (rEl) {
+      rEl.textContent = `${resources.rankName} (${resources.rankValue})`;
+    }
+    const rDetEl = this.getTsrEl('tsr-calc-resources-detail');
+    if (rDetEl) {
+      if (resources.isFixed) {
+        rDetEl.textContent = `[Fixed by Form]`;
+      } else {
+        const modStr = `${resources.resModShift >= 0 ? '+' : ''}${resources.resModShift}CS (d100: ${resources.resModRoll || '--'})`;
+        const costStr = resources.slotCostCS > 0 ? `, -${resources.slotCostCS}CS bought slots` : '';
+        rDetEl.textContent = `[Rolled ${resources.initialRankName}: ${modStr}${costStr}]`;
+      }
+    }
+
+    // Available Resource CS above Feeble for slot purchasing
+    const availResCS = this.tsrGenGetAvailableResourceCSAboveFeeble(resources.rankName);
+    const usedPowerSlots = this.getTsrUsedPowerSlots(powers);
+
+    // Step 3 Power Slots Summary & Buy/Refund buttons
+    const pSummaryEl = this.getTsrEl('tsr-power-slots-summary');
+    if (pSummaryEl) {
+      const pInit = powerSlotsInitial ?? powerSlots;
+      const pMax = powerSlotsMax ?? powerSlots;
+      const pBought = purchasedPowerSlots || 0;
+      pSummaryEl.innerHTML = `(Used: <strong style="color: ${usedPowerSlots > powerSlots ? '#ef4444' : '#38bdf8'};">${usedPowerSlots}/${powerSlots}</strong> · Initial: ${pInit} / Max: ${pMax}${pBought > 0 ? ` · <span style="color: #4ade80;">+${pBought} Bought</span>` : ''})`;
+    }
+
+    const btnBuyPwr = this.getTsrEl('btn-tsr-buy-power-slot');
+    if (btnBuyPwr) {
+      const canBuyPwr = (powerSlots < (powerSlotsMax ?? powerSlots)) && (availResCS >= 2) && !resources.isFixed;
+      btnBuyPwr.disabled = !canBuyPwr;
+      btnBuyPwr.style.opacity = canBuyPwr ? '1' : '0.45';
+      if (powerSlots >= (powerSlotsMax ?? powerSlots)) {
+        btnBuyPwr.title = `Already at maximum power slots (${powerSlotsMax})`;
+      } else if (availResCS < 2) {
+        btnBuyPwr.title = `Requires Resources of at least Poor (+2CS above Feeble) to spend -2CS Resources`;
+      } else {
+        btnBuyPwr.title = `Spend -2CS Resources to buy +1 Power Slot (${powerSlots + 1}/${powerSlotsMax})`;
+      }
+    }
+    const btnRefundPwr = this.getTsrEl('btn-tsr-refund-power-slot');
+    if (btnRefundPwr) {
+      btnRefundPwr.style.display = (purchasedPowerSlots > 0) ? 'inline-flex' : 'none';
+    }
+
+    // 3. Superpowers (PB p. 10 Category Model & Col 4 Ranks & Starred 2-Slot Powers)
+    const pContainer = this.getTsrEl('tsr-powers-list-container');
+    if (pContainer) {
+      if (powers.length === 0) {
+        pContainer.innerHTML = '<div style="color: var(--text-muted); font-size: 10pt; font-style: italic; padding: 8px;">No power slots. Click "Roll Slots &amp; Categories" to generate.</div>';
+      } else {
+        const ceilings = (typeof TSR_LIMITATION_CEILINGS !== 'undefined')
+          ? TSR_LIMITATION_CEILINGS
+          : ((typeof globalThis !== 'undefined' && globalThis.TSR_LIMITATION_CEILINGS) ? globalThis.TSR_LIMITATION_CEILINGS : []);
+
+        const catOptions = (typeof TSR_POWER_CATEGORIES_TABLE !== 'undefined' ? TSR_POWER_CATEGORIES_TABLE : []).map(c =>
+          `<option value="${c.category}">${c.category} (${c.label})</option>`
+        ).join('');
+
+        pContainer.innerHTML = powers.map((slot, idx) => {
+          const availableInCat = this.getPowersForTsrCategory(slot.category);
+          const isSlotStarred = slot.isStarred !== undefined ? slot.isStarred : this.isTsrPowerStarred(slot.powerId || slot.powerName);
+          const otherSlotsUsed = usedPowerSlots - (isSlotStarred ? 2 : 1);
+          const freeSlotsForThisCard = Math.max(1, powerSlots - otherSlotsUsed);
+
+          const pOptions = availableInCat.map(p => {
+            const pStarred = this.isTsrPowerStarred(p);
+            const isSelected = (p.id === slot.powerId || p.code === slot.powerId);
+            const starLabel = pStarred ? ' ★ [2 Slots]' : '';
+            const disabledAttr = (pStarred && !isSelected && freeSlotsForThisCard < 2 && powers.length <= 1) ? 'disabled' : '';
+            return `<option value="${p.id || p.code}" ${isSelected ? 'selected' : ''} ${disabledAttr}>${p.name}${starLabel}</option>`;
+          }).join('');
+
+          const lim = slot.limitation;
+          const hasLim = !!lim;
+          const ceiling = lim?.ceiling || 'Remarkable';
+          const val = (typeof validateTsrLimitation === 'function')
+            ? validateTsrLimitation(slot.rankName, ceiling)
+            : { valid: true, newRank: slot.rankName };
+
+          const ceilingOpts = ceilings.map(c =>
+            `<option value="${c.ceiling}" ${c.ceiling === ceiling ? 'selected' : ''}>${c.label}</option>`
+          ).join('');
+
+          const curCeilObj = ceilings.find(c => c.ceiling === ceiling) || ceilings[1];
+          const exOpts = (curCeilObj?.examples || []).map((ex, exI) =>
+            `<option value="${exI}">${ex.name}</option>`
+          ).join('') + '<option value="custom">-- Custom Limitation --</option>';
+
+          return `
+            <div class="card tsr-power-slot-card" data-idx="${idx}" style="background: rgba(0, 0, 0, 0.35); border: 1px solid ${isSlotStarred ? 'rgba(245, 158, 11, 0.55)' : 'var(--border-color)'}; border-radius: 6px; padding: 12px; margin-bottom: 0;">
+              <div style="display: flex; align-items: center; margin-bottom: 8px; flex-wrap: wrap; gap: 6px;">
+                <strong style="color: var(--marvel-gold); font-size: 10pt; white-space: nowrap;">Power #${idx + 1}:</strong>
+                ${isSlotStarred ? `<span class="meta-tag" style="background: rgba(245, 158, 11, 0.2); color: var(--marvel-gold); border-color: rgba(245, 158, 11, 0.5); font-weight: 800; white-space: nowrap;" title="Starred (*) powers require 2 Power Slots per Player's Book p. 11">★ 2 Slots</span>` : `<span class="meta-tag" style="background: rgba(148, 163, 184, 0.15); color: #cbd5e1; white-space: nowrap;">1 Slot</span>`}
+                <span class="meta-tag" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; font-weight: 700; white-space: nowrap;">${slot.category}</span>
+                <span style="font-size: 10pt; color: var(--text-muted); white-space: nowrap;">(Roll: ${slot.categoryRoll || '--'})</span>
+                <button type="button" class="icon-btn compact btn-tsr-slot-reroll-cat" data-idx="${idx}" style="font-size: 10pt; padding: 1px 6px; white-space: nowrap;" title="Re-roll power category on Table 2">🎲 Re-roll Category</button>
+                <select class="field-input compact select-tsr-slot-cat" data-idx="${idx}" style="font-size: 10pt; padding: 1px 6px; flex: 1; min-width: 160px;">
+                  ${catOptions.replace(`value="${slot.category}"`, `value="${slot.category}" selected`)}
+                </select>
+                ${powers.length > 1 ? `<button type="button" class="icon-btn compact btn-tsr-slot-delete" data-idx="${idx}" style="font-size: 10pt; color: #ef4444; border-color: rgba(239, 68, 68, 0.4); white-space: nowrap; flex-shrink: 0;" title="Delete power slot">🗑️ Remove</button>` : ''}
+              </div>
+
+              <!-- Power & Rank Row -->
+              <div style="display: grid; grid-template-columns: 2fr 1.2fr auto; gap: 8px; align-items: center; margin-bottom: 8px;">
+                <div>
+                  <label style="display: block; font-size: 10pt; color: var(--text-muted); margin-bottom: 2px;">Select Power in Category (★ = 2 Power Slots):</label>
+                  <div style="display: flex; align-items: center; gap: 6px;">
+                    <select class="field-input select-tsr-slot-power" data-idx="${idx}" style="flex: 1; font-size: 10pt; font-weight: 700;">
+                      ${pOptions}
+                    </select>
+                    <button type="button" class="help-circle-btn compact btn-tsr-slot-preview-pwr" data-idx="${idx}" title="View details of selected power">?</button>
+                  </div>
+                </div>
+                <div>
+                  <label style="display: block; font-size: 10pt; color: var(--text-muted); margin-bottom: 2px;">Rolled Rank (Table 1, Col 4):</label>
+                  <div style="display: flex; align-items: center; gap: 4px;">
+                    <strong style="color: ${hasLim ? '#94a3b8' : '#38bdf8'}; font-size: 10pt; text-decoration: ${hasLim ? 'line-through' : 'none'};">
+                      ${slot.rankName} (${slot.rankValue})
+                    </strong>
+                    ${hasLim && val.valid ? `<strong style="color: #4ade80; font-size: 10.5pt; font-weight: 800;">→ ${val.newRank} (+1CS)</strong>` : ''}
+                  </div>
+                  <div style="font-size: 10pt; color: var(--text-muted);">d100: ${slot.rankRoll || '--'} [Col ${slot.rankCol || 4}]</div>
+                </div>
+                <div style="display: flex; gap: 4px; align-items: flex-end;">
+                  <button type="button" class="icon-btn compact btn-tsr-slot-random-pwr" data-idx="${idx}" style="font-size: 10pt; padding: 3px 6px;" title="Pick random power in this category">🎲 Random Pwr</button>
+                  <button type="button" class="icon-btn compact btn-tsr-slot-reroll-rank" data-idx="${idx}" style="font-size: 10pt; padding: 3px 6px;" title="Re-roll power rank on Column 4">🎲 Roll Rank</button>
+                </div>
+              </div>
+
+              <!-- Vanilla Limitation Section (PB p. 9) -->
+              <div style="background: rgba(15, 23, 42, 0.4); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 4px; padding: 8px 10px; margin-top: 6px;">
+                <label style="display: inline-flex; align-items: center; gap: 6px; cursor: pointer; font-size: 10pt; font-weight: 600; color: var(--marvel-gold);">
+                  <input type="checkbox" class="check-tsr-slot-lim" data-idx="${idx}" ${hasLim ? 'checked' : ''}>
+                  <span>Accept Vanilla Limitation (PB p. 9: +1CS Rank Bump with Ceiling)</span>
+                </label>
+
+                ${hasLim ? `
+                  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; padding-top: 6px; border-top: 1px solid rgba(255, 255, 255, 0.06);">
+                    <div>
+                      <label style="font-size: 10pt; color: var(--text-muted); display: block; margin-bottom: 2px;">Limitation Ceiling:</label>
+                      <select class="field-input compact select-tsr-slot-lim-ceiling" data-idx="${idx}" style="width: 100%; font-size: 10pt;">
+                        ${ceilingOpts}
+                      </select>
+                    </div>
+                    <div>
+                      <label style="font-size: 10pt; color: var(--text-muted); display: block; margin-bottom: 2px;">Canonical PB p. 9 Example:</label>
+                      <select class="field-input compact select-tsr-slot-lim-example" data-idx="${idx}" style="width: 100%; font-size: 10pt;">
+                        ${exOpts}
+                      </select>
+                    </div>
+                    <div style="grid-column: span 2;">
+                      <input type="text" class="field-input compact input-tsr-slot-lim-name" data-idx="${idx}" placeholder="Limitation Name" value="${lim.name || ''}" style="width: 100%; font-size: 10pt; margin-bottom: 4px;">
+                      <textarea class="field-input compact input-tsr-slot-lim-desc" data-idx="${idx}" rows="2" placeholder="Limitation Description..." style="width: 100%; font-size: 10pt;">${lim.description || ''}</textarea>
+                    </div>
+                  </div>
+                  <div style="margin-top: 6px; font-size: 10pt; font-weight: 600;">
+                    ${val.valid ? `
+                      <span style="color: #4ade80;">✅ Valid! Boosts from ${slot.rankName} to <strong>${val.newRank} (+1CS)</strong> [Ceiling: ${ceiling}]</span>
+                    ` : `
+                      <span style="color: #ef4444;">⚠️ Blocked by ceiling! Power rank (${slot.rankName}) is at or above ${ceiling}. Choose higher ceiling tier.</span>
+                    `}
+                  </div>
+                ` : ''}
+              </div>
+            </div>
+          `;
+        }).join('');
+
+        if (usedPowerSlots < powerSlots) {
+          pContainer.insertAdjacentHTML('beforeend', `
+            <div style="display: flex; justify-content: center; padding: 6px;">
+              <button type="button" class="action-btn secondary small-btn" id="btn-tsr-add-remaining-power-slot">
+                + Fill Remaining Power Slot (${powerSlots - usedPowerSlots} unused)
+              </button>
+            </div>
+          `);
+          const addRemBtn = pContainer.querySelector('#btn-tsr-add-remaining-power-slot');
+          if (addRemBtn) {
+            addRemBtn.addEventListener('click', () => this.tsrGenAddPowerSlot());
+          }
+        }
+
+        // Wire event listeners on power slot cards
+        pContainer.querySelectorAll('.btn-tsr-slot-reroll-cat').forEach(btn => {
+          btn.addEventListener('click', (e) => this.tsrGenRollCategoryForSlot(parseInt(e.currentTarget.dataset.idx, 10)));
+        });
+        pContainer.querySelectorAll('.select-tsr-slot-cat').forEach(sel => {
+          sel.addEventListener('change', (e) => this.tsrGenChangeCategoryForSlot(parseInt(e.currentTarget.dataset.idx, 10), e.target.value));
+        });
+        pContainer.querySelectorAll('.btn-tsr-slot-delete').forEach(btn => {
+          btn.addEventListener('click', (e) => this.tsrGenRemovePowerSlot(parseInt(e.currentTarget.dataset.idx, 10)));
+        });
+        pContainer.querySelectorAll('.select-tsr-slot-power').forEach(sel => {
+          sel.addEventListener('change', (e) => this.tsrGenChangePowerForSlot(parseInt(e.currentTarget.dataset.idx, 10), e.target.value));
+        });
+        pContainer.querySelectorAll('.btn-tsr-slot-preview-pwr').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            const idx = parseInt(e.currentTarget.dataset.idx, 10);
+            const sel = pContainer.querySelector(`.select-tsr-slot-power[data-idx="${idx}"]`);
+            const slot = this.tsrGenState?.powers?.[idx];
+            const pKey = (sel && sel.value) || slot?.powerId || slot?.powerName;
+            if (pKey) {
+              this.showHelpModal('power', pKey);
+            }
+          });
+        });
+        pContainer.querySelectorAll('.btn-tsr-slot-random-pwr').forEach(btn => {
+          btn.addEventListener('click', (e) => this.tsrGenRandomPowerInCat(parseInt(e.currentTarget.dataset.idx, 10)));
+        });
+        pContainer.querySelectorAll('.btn-tsr-slot-reroll-rank').forEach(btn => {
+          btn.addEventListener('click', (e) => this.tsrGenRollRankForSlot(parseInt(e.currentTarget.dataset.idx, 10)));
+        });
+        pContainer.querySelectorAll('.check-tsr-slot-lim').forEach(chk => {
+          chk.addEventListener('change', (e) => this.tsrGenToggleLimitationForSlot(parseInt(e.currentTarget.dataset.idx, 10), e.target.checked));
+        });
+        pContainer.querySelectorAll('.select-tsr-slot-lim-ceiling').forEach(sel => {
+          sel.addEventListener('change', (e) => this.tsrGenChangeLimCeilingForSlot(parseInt(e.currentTarget.dataset.idx, 10), e.target.value));
+        });
+        pContainer.querySelectorAll('.select-tsr-slot-lim-example').forEach(sel => {
+          sel.addEventListener('change', (e) => this.tsrGenChangeLimExampleForSlot(parseInt(e.currentTarget.dataset.idx, 10), e.target.value));
+        });
+        pContainer.querySelectorAll('.input-tsr-slot-lim-name').forEach(inp => {
+          inp.addEventListener('input', (e) => {
+            const idx = parseInt(e.currentTarget.dataset.idx, 10);
+            if (this.tsrGenState.powers[idx]?.limitation) {
+              this.tsrGenState.powers[idx].limitation.name = e.target.value;
+            }
+          });
+        });
+        pContainer.querySelectorAll('.input-tsr-slot-lim-desc').forEach(inp => {
+          inp.addEventListener('input', (e) => {
+            const idx = parseInt(e.currentTarget.dataset.idx, 10);
+            if (this.tsrGenState.powers[idx]?.limitation) {
+              this.tsrGenState.powers[idx].limitation.description = e.target.value;
+            }
+          });
+        });
+      }
+    }
+
+    // 4. Talents & Contacts View
+    const tSlotsEl = this.getTsrEl('tsr-talent-slots-display');
+    if (tSlotsEl) tSlotsEl.textContent = talentSlots;
+    const tMaxEl = this.getTsrEl('tsr-talent-max-display');
+    if (tMaxEl) tMaxEl.textContent = `(Init: ${talentSlotsInitial ?? talentSlots} / Max: ${talentSlotsMax ?? talentSlots})`;
+    const tChosenEl = this.getTsrEl('tsr-talent-chosen-display');
+    if (tChosenEl) {
+      tChosenEl.textContent = selectedTalents.length;
+      tChosenEl.style.color = selectedTalents.length > talentSlots ? '#f87171' : 'var(--marvel-gold)';
+    }
+
+    const btnBuyTal = this.getTsrEl('btn-tsr-buy-talent-slot');
+    if (btnBuyTal) {
+      const canBuyTal = (talentSlots < (talentSlotsMax ?? talentSlots)) && (availResCS >= 1) && !resources.isFixed;
+      btnBuyTal.disabled = !canBuyTal;
+      btnBuyTal.style.opacity = canBuyTal ? '1' : '0.45';
+      btnBuyTal.title = canBuyTal
+        ? `Spend -1CS Resources to buy +1 Talent Slot (${talentSlots + 1}/${talentSlotsMax})`
+        : (talentSlots >= (talentSlotsMax ?? talentSlots) ? `Already at maximum talent slots (${talentSlotsMax})` : `Requires Resources above Feeble to spend -1CS Resources`);
+    }
+    const btnRefundTal = this.getTsrEl('btn-tsr-refund-talent-slot');
+    if (btnRefundTal) {
+      btnRefundTal.style.display = (purchasedTalentSlots > 0) ? 'inline-flex' : 'none';
+    }
+
+    const cSlotsEl = this.getTsrEl('tsr-contact-slots-display');
+    if (cSlotsEl) cSlotsEl.textContent = contactSlots;
+    const cMaxEl = this.getTsrEl('tsr-contact-max-display');
+    if (cMaxEl) cMaxEl.textContent = `(Init: ${contactSlotsInitial ?? contactSlots} / Max: ${contactSlotsMax ?? contactSlots})`;
+    const cChosenEl = this.getTsrEl('tsr-contact-chosen-display');
+    if (cChosenEl) {
+      cChosenEl.textContent = selectedContacts.length;
+      cChosenEl.style.color = selectedContacts.length > contactSlots ? '#f87171' : '#38bdf8';
+    }
+
+    const btnBuyCon = this.getTsrEl('btn-tsr-buy-contact-slot');
+    if (btnBuyCon) {
+      const canBuyCon = (contactSlots < (contactSlotsMax ?? contactSlots)) && (availResCS >= 1) && !resources.isFixed;
+      btnBuyCon.disabled = !canBuyCon;
+      btnBuyCon.style.opacity = canBuyCon ? '1' : '0.45';
+      btnBuyCon.title = canBuyCon
+        ? `Spend -1CS Resources to buy +1 Contact Slot (${contactSlots + 1}/${contactSlotsMax})`
+        : (contactSlots >= (contactSlotsMax ?? contactSlots) ? `Already at maximum contact slots (${contactSlotsMax})` : `Requires Resources above Feeble to spend -1CS Resources`);
+    }
+    const btnRefundCon = this.getTsrEl('btn-tsr-refund-contact-slot');
+    if (btnRefundCon) {
+      btnRefundCon.style.display = (purchasedContactSlots > 0) ? 'inline-flex' : 'none';
+    }
+
+    // Talents List rendering with category filter
+    const tSelCont = this.getTsrEl('tsr-talents-selection');
+    if (tSelCont) {
+      const allTalents = (typeof TALENTS_CATALOG !== 'undefined')
+        ? TALENTS_CATALOG
+        : ((typeof globalThis !== 'undefined' && globalThis.TALENTS_CATALOG)
+            ? globalThis.TALENTS_CATALOG
+            : (typeof MSH_TALENTS !== 'undefined' ? MSH_TALENTS : (globalThis?.MSH_TALENTS || [])));
+
+      const filterSel = this.getTsrEl('tsr-talent-category-filter');
+      const selectedCategory = filterSel ? filterSel.value : 'all';
+
+      const filteredTalents = (selectedCategory && selectedCategory !== 'all')
+        ? allTalents.filter(t => t.category === selectedCategory)
+        : allTalents;
+
+      tSelCont.innerHTML = filteredTalents.map(t => {
+        const isChecked = selectedTalents.includes(t.name);
+        const bonusStr = t.csBonus ? `+${t.csBonus}CS ${t.statAffected}` : (t.bonus || t.statAffected || '+1CS');
+        return `
+          <label style="display: flex; align-items: center; justify-content: space-between; font-size: 10pt; margin-bottom: 4px; cursor: pointer; padding: 4px 6px; border-radius: 4px; background: ${isChecked ? 'rgba(56, 189, 248, 0.12)' : 'transparent'};" title="${t.description || ''}">
+            <span style="display: flex; align-items: center; gap: 6px;">
+              <input type="checkbox" class="tsr-talent-check" data-name="${t.name}" ${isChecked ? 'checked' : ''}>
+              <span style="font-weight: ${isChecked ? '700' : '400'}; color: ${isChecked ? '#38bdf8' : 'inherit'};">${t.name}</span>
+              <button type="button" class="help-circle-btn compact btn-tsr-talent-preview" data-name="${t.name}" title="View details of ${t.name}">?</button>
+            </span>
+            <span style="font-size: 10pt; color: var(--text-muted); background: rgba(0,0,0,0.3); padding: 2px 6px; border-radius: 3px;">${bonusStr}</span>
+          </label>
+        `;
+      }).join('');
+
+      tSelCont.querySelectorAll('.btn-tsr-talent-preview').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          const name = e.currentTarget.dataset.name;
+          this.showHelpModal('talent', name);
+        });
+      });
+
+      tSelCont.querySelectorAll('.tsr-talent-check').forEach(chk => {
+        chk.addEventListener('change', (e) => {
+          const name = e.currentTarget.dataset.name;
+          if (e.target.checked) {
+            if (this.tsrGenState.selectedTalents.length >= this.tsrGenState.talentSlots) {
+              e.target.checked = false;
+              this.showStatusToast(`⚠️ Cannot select more than ${this.tsrGenState.talentSlots} talent slot(s).`);
+              return;
+            }
+            if (!this.tsrGenState.selectedTalents.includes(name)) {
+              this.tsrGenState.selectedTalents.push(name);
+            }
+          } else {
+            this.tsrGenState.selectedTalents = this.tsrGenState.selectedTalents.filter(x => x !== name);
+          }
+          const chosen = this.getTsrEl('tsr-talent-chosen-display');
+          if (chosen) {
+            chosen.textContent = this.tsrGenState.selectedTalents.length;
+            chosen.style.color = this.tsrGenState.selectedTalents.length > this.tsrGenState.talentSlots ? '#f87171' : 'var(--marvel-gold)';
+          }
+        });
+      });
+    }
+
+    // Contacts List rendering (Custom + Canonical Categories)
+    const cSelCont = this.getTsrEl('tsr-contacts-selection');
+    if (cSelCont) {
+      const canonicalCategories = (typeof TSR_CANONICAL_CONTACT_CATEGORIES !== 'undefined')
+        ? TSR_CANONICAL_CONTACT_CATEGORIES
+        : ((typeof globalThis !== 'undefined' && globalThis.TSR_CANONICAL_CONTACT_CATEGORIES) ? globalThis.TSR_CANONICAL_CONTACT_CATEGORIES : []);
+
+      const customContacts = selectedContacts.filter(c => !canonicalCategories.some(cat => cat.name === c));
+
+      let html = '';
+      if (customContacts.length > 0) {
+        html += `<div style="font-size: 10pt; font-weight: 700; color: #38bdf8; text-transform: uppercase; margin-bottom: 2px; letter-spacing: 0.5px;">Custom Contacts:</div>`;
+        html += customContacts.map(c => `
+          <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(56, 189, 248, 0.12); border: 1px solid rgba(56, 189, 248, 0.35); border-radius: 4px; padding: 2px 6px; margin-bottom: 3px; font-size: 10pt;">
+            <span>⭐ ${c}</span>
+            <button type="button" class="btn-tsr-remove-contact" data-name="${c}" style="background: none; border: none; color: #ef4444; cursor: pointer; font-size: 12pt; padding: 0 4px; line-height: 1;" title="Remove ${c}">&times;</button>
+          </div>
+        `).join('');
+        html += `<div style="font-size: 10pt; font-weight: 700; color: var(--marvel-gold); text-transform: uppercase; margin-top: 6px; margin-bottom: 2px; letter-spacing: 0.5px;">Canonical Categories:</div>`;
+      }
+
+      html += canonicalCategories.map(cat => {
+        const isChecked = selectedContacts.includes(cat.name);
+        return `
+          <label style="display: flex; align-items: center; justify-content: space-between; font-size: 10pt; margin-bottom: 4px; cursor: pointer; padding: 4px 6px; border-radius: 4px; background: ${isChecked ? 'rgba(56, 189, 248, 0.12)' : 'transparent'};">
+            <span style="display: flex; align-items: center; gap: 6px;">
+              <input type="checkbox" class="tsr-contact-check" data-name="${cat.name}" ${isChecked ? 'checked' : ''}>
+              <span style="font-weight: ${isChecked ? '700' : '400'}; color: ${isChecked ? '#38bdf8' : 'inherit'};">${cat.name}</span>
+            </span>
+            <span style="font-size: 10pt; color: var(--text-muted); background: rgba(0,0,0,0.3); padding: 2px 6px; border-radius: 3px;">${cat.group}</span>
+          </label>
+        `;
+      }).join('');
+
+      cSelCont.innerHTML = html;
+
+      cSelCont.querySelectorAll('.tsr-contact-check').forEach(chk => {
+        chk.addEventListener('change', (e) => {
+          const name = e.currentTarget.dataset.name;
+          if (e.target.checked) {
+            if (this.tsrGenState.selectedContacts.length >= this.tsrGenState.contactSlots) {
+              e.target.checked = false;
+              this.showStatusToast(`⚠️ Cannot select more than ${this.tsrGenState.contactSlots} contact slot(s).`);
+              return;
+            }
+            if (!this.tsrGenState.selectedContacts.includes(name)) {
+              this.tsrGenState.selectedContacts.push(name);
+            }
+          } else {
+            this.tsrGenState.selectedContacts = this.tsrGenState.selectedContacts.filter(x => x !== name);
+          }
+          const chosen = this.getTsrEl('tsr-contact-chosen-display');
+          if (chosen) {
+            chosen.textContent = this.tsrGenState.selectedContacts.length;
+            chosen.style.color = this.tsrGenState.selectedContacts.length > this.tsrGenState.contactSlots ? '#f87171' : '#38bdf8';
+          }
+        });
+      });
+
+      cSelCont.querySelectorAll('.btn-tsr-remove-contact').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const name = e.currentTarget.dataset.name;
+          this.tsrGenRemoveContact(name);
+        });
+      });
+    }
+  },
+
+  // Step 1 Actions
+  tsrGenApplyOriginShifts() {
+    if (!this.tsrGenState) return;
+    const rolls = this.tsrGenEnsureAbilityRolls();
+    const origin = this.tsrGenState.origin;
+    const rollRankFn = (typeof rollRandomRank === 'function') ? rollRandomRank : globalThis?.rollRandomRank;
+    const statMap = {
+      fighting: 'F', agility: 'A', strength: 'S', endurance: 'E',
+      reason: 'R', intuition: 'I', psyche: 'P'
+    };
+
+    rolls.forEach((r, idx) => {
+      r.slotIndex = idx;
+      const stat = r.assignedStat || '';
+      const col = (origin && stat && ['reason', 'intuition', 'psyche'].includes(stat) && origin.mentalColumn)
+        ? origin.mentalColumn
+        : (origin?.column || 2);
+      r.column = col;
+
+      if (typeof r.roll === 'number' && typeof rollRankFn === 'function') {
+        const reCalc = rollRankFn(col, r.roll);
+        if (reCalc && reCalc.rankName) {
+          r.baseRankName = reCalc.rankName;
+          r.baseRankValue = reCalc.rankNumber;
+        }
+      }
+
+      const abbr = stat ? (statMap[stat] || stat.charAt(0).toUpperCase()) : '';
+      let shift = (stat && origin && origin.abilityMods && (origin.abilityMods[abbr] !== undefined ? origin.abilityMods[abbr] : origin.abilityMods[stat])) || 0;
+
+      // Add selectable +1CS Ability Bonus if chosen for this stat
+      if (abbr && origin && origin.abilityChoice && this.tsrGenState.originAbilityChoice === abbr) {
+        shift += (origin.abilityChoice.shift ?? origin.abilityChoice.cs ?? 1);
+      }
+      // Add Extra Arms +1CS Fighting if Modified Human (Extra Parts)
+      if (abbr === 'F' && origin && origin.id === 'modified_human_extra_parts' && this.tsrGenState.originExtraPart === 'arms') {
+        shift += 1;
+      }
+
+      let finalRank = r.baseRankName || r.rankName;
+      let finalNum = r.baseRankValue ?? r.rankValue;
+
+      if (shift !== 0 && typeof UniversalTableEngine !== 'undefined') {
+        const shiftedObj = UniversalTableEngine.applyColumnShift(r.baseRankName || r.rankName, shift);
+        if (shiftedObj) {
+          finalRank = shiftedObj.name;
+          finalNum = shiftedObj.num;
+        }
+      }
+
+      if (stat && this.humanAbilityCaps && origin) {
+        const isNormalHuman = origin.id === 'normal_human';
+        if (isNormalHuman && typeof UniversalTableEngine !== 'undefined' && UniversalTableEngine.getHumanAbilityCap) {
+          const cap = UniversalTableEngine.getHumanAbilityCap(stat, 'standard');
+          if (cap && finalNum > cap.rankValue) {
+            finalRank = cap.rankName;
+            finalNum = cap.rankValue;
+          }
+        }
+      }
+
+      r.shift = shift;
+      r.rankName = finalRank;
+      r.rankValue = finalNum;
+    });
+
+    this.tsrGenSyncAbilitiesFromRolls();
+    this.tsrGenRecalcResources();
+    this.tsrGenCalcPopularity();
+  },
+
+  tsrGenSetOriginAbilityChoice(abbr) {
+    if (!this.tsrGenState) return;
+    this.tsrGenState.originAbilityChoice = abbr || null;
+    this.tsrGenApplyOriginShifts();
+    this.renderTsrGeneratorUI();
+  },
+
+  tsrGenSetOriginExtraPart(partId) {
+    if (!this.tsrGenState) return;
+    this.tsrGenState.originExtraPart = partId || 'arms';
+    this.tsrGenApplyOriginShifts();
+    this.renderTsrGeneratorUI();
+  },
+
+  tsrGenRollOrigin() {
+    if (!this.tsrGenState) this.initTsrGenState();
+    const rollUpFormFn = (typeof rollUpPhysicalForm === 'function')
+      ? rollUpPhysicalForm
+      : ((typeof globalThis !== 'undefined' && globalThis.rollUpPhysicalForm) ? globalThis.rollUpPhysicalForm : null);
+    if (typeof rollUpFormFn === 'function') {
+      const res = rollUpFormFn();
+      this.tsrGenSelectOrigin(res.id, res.roll);
+      this.showStatusToast(`🎲 Rolled Physical Form: ${res.name} (d100: ${res.roll}) [Col ${res.column}]`);
+      return;
+    }
+    const rollOriginFn = (typeof rollTsrOrigin === 'function') ? rollTsrOrigin : globalThis?.rollTsrOrigin;
+    if (typeof rollOriginFn === 'function') {
+      const res = rollOriginFn();
+      this.tsrGenSelectOrigin(res.id, res.roll);
+      this.showStatusToast(`🎲 Rolled Origin: ${res.name} (d100: ${res.roll})`);
+    }
+  },
+
+  tsrGenSelectOrigin(originId, forcedRoll = null) {
+    if (!this.tsrGenState) this.initTsrGenState();
+    if (!originId) {
+      this.tsrGenState.origin = null;
+      this.tsrGenState.originAbilityChoice = null;
+      this.tsrGenApplyOriginShifts();
+      this.renderTsrGeneratorUI();
+      return;
+    }
+    const formsTable = (typeof UP_PHYSICAL_FORMS_ROLL_TABLE !== 'undefined')
+      ? UP_PHYSICAL_FORMS_ROLL_TABLE
+      : ((typeof globalThis !== 'undefined' && globalThis.UP_PHYSICAL_FORMS_ROLL_TABLE) ? globalThis.UP_PHYSICAL_FORMS_ROLL_TABLE : []);
+    const formsList = (typeof PHYSICAL_FORMS !== 'undefined')
+      ? PHYSICAL_FORMS
+      : ((typeof globalThis !== 'undefined' && globalThis.PHYSICAL_FORMS) ? globalThis.PHYSICAL_FORMS : []);
+
+    const matchTable = formsTable.find(o => o.id === originId);
+    let matchForm = formsList.find(f => f.id === originId);
+
+    if (!matchForm) {
+      const origins = (typeof TSR_ORIGINS_TABLE !== 'undefined') ? TSR_ORIGINS_TABLE : (globalThis?.TSR_ORIGINS_TABLE || []);
+      const matchTsr = origins.find(o => o.id === originId) || origins[0];
+      if (matchTsr) {
+        matchForm = {
+          ...matchTsr,
+          abilityMods: { F: 0, A: 0, S: 0, E: 0, R: 0, I: 0, P: 0 },
+          columnAssignment: matchTsr.column || 2
+        };
+      }
+    }
+
+    if (!matchForm) return;
+
+    const mergedOrigin = {
+      ...(matchTable || {}),
+      ...matchForm,
+      roll: forcedRoll || (matchTable ? matchTable.min : null),
+      column: matchTable?.column || matchForm.columnAssignment || 2,
+      mentalColumn: matchTable?.mentalColumn || matchForm.mentalColumn || matchTable?.column || matchForm.columnAssignment || 2
+    };
+
+    this.tsrGenState.origin = mergedOrigin;
+
+    if (mergedOrigin.abilityChoice) {
+      const rawAllowed = mergedOrigin.abilityChoice.allowed || mergedOrigin.abilityChoice.allowedAbilities || ['F', 'A', 'S', 'E', 'R', 'I', 'P'];
+      const allowedCodes = rawAllowed.map(x => String(x).charAt(0).toUpperCase());
+      if (!this.tsrGenState.originAbilityChoice || !allowedCodes.includes(this.tsrGenState.originAbilityChoice)) {
+        this.tsrGenState.originAbilityChoice = allowedCodes[0];
+      }
+    } else {
+      this.tsrGenState.originAbilityChoice = null;
+    }
+
+    if (Array.isArray(mergedOrigin.extraPartOptions) && mergedOrigin.extraPartOptions.length > 0) {
+      if (!this.tsrGenState.originExtraPart || !mergedOrigin.extraPartOptions.some(o => o.id === this.tsrGenState.originExtraPart)) {
+        this.tsrGenState.originExtraPart = mergedOrigin.extraPartOptions[0].id;
+      }
+    }
+
+    this.tsrGenApplyOriginShifts();
+    this.tsrGenRollPowerSlots();
+    this.tsrGenRollTalentsContacts();
+    this.renderTsrGeneratorUI();
+  },
+
+  // Step 2 Actions
+  tsrGenRollAbilities() {
+    if (!this.tsrGenState) return;
+    const origin = this.tsrGenState.origin;
+    const rollRankFn = (typeof rollRandomRank === 'function') ? rollRandomRank : globalThis.rollRandomRank;
+    const rolls = this.tsrGenEnsureAbilityRolls();
+
+    rolls.forEach((r, idx) => {
+      const stat = r.assignedStat || '';
+      const col = (origin && stat && ['reason', 'intuition', 'psyche'].includes(stat) && origin.mentalColumn)
+        ? origin.mentalColumn
+        : (origin?.column || 2);
+      const res = (typeof rollRankFn === 'function') ? rollRankFn(col) : { rankName: 'Typical', rankNumber: 6, roll: 50, column: col };
+
+      r.slotIndex = idx;
+      r.baseRankName = res.rankName;
+      r.baseRankValue = res.rankNumber;
+      r.rankName = res.rankName;
+      r.rankValue = res.rankNumber;
+      r.roll = res.roll;
+      r.column = col;
+    });
+
+    this.tsrGenApplyOriginShifts();
+    this.tsrGenRollResources();
+    this.renderTsrGeneratorUI();
+    this.showStatusToast('🎲 Rolled all 7 Primary Ability rolls on Table 1 & Resources on Ability Modifier Table!');
+  },
+
+  tsrGenRollSingleAbility(statOrSlotIndex) {
+    if (!this.tsrGenState) return;
+    const rolls = this.tsrGenEnsureAbilityRolls();
+    let targetRoll = null;
+    if (typeof statOrSlotIndex === 'number' && rolls[statOrSlotIndex]) {
+      targetRoll = rolls[statOrSlotIndex];
+    } else if (typeof statOrSlotIndex === 'string' && /^\d+$/.test(statOrSlotIndex) && rolls[parseInt(statOrSlotIndex, 10)]) {
+      targetRoll = rolls[parseInt(statOrSlotIndex, 10)];
+    } else if (typeof statOrSlotIndex === 'string') {
+      targetRoll = rolls.find(r => r.assignedStat === statOrSlotIndex);
+    }
+    if (!targetRoll) return;
+
+    const origin = this.tsrGenState.origin;
+    const rollRankFn = (typeof rollRandomRank === 'function') ? rollRandomRank : globalThis.rollRandomRank;
+    const statKey = targetRoll.assignedStat || '';
+    const col = (origin && statKey && ['reason', 'intuition', 'psyche'].includes(statKey) && origin.mentalColumn)
+      ? origin.mentalColumn
+      : (origin?.column || 2);
+    const res = (typeof rollRankFn === 'function') ? rollRankFn(col) : { rankName: 'Typical', rankNumber: 6, roll: 50, column: col };
+
+    targetRoll.baseRankName = res.rankName;
+    targetRoll.baseRankValue = res.rankNumber;
+    targetRoll.rankName = res.rankName;
+    targetRoll.rankValue = res.rankNumber;
+    targetRoll.roll = res.roll;
+    targetRoll.column = col;
+
+    this.tsrGenApplyOriginShifts();
+    this.renderTsrGeneratorUI();
+  },
+
+  tsrGenAssignAbilityRoll(rollIdx, targetStat) {
+    if (!this.tsrGenState) return;
+    const rolls = this.tsrGenEnsureAbilityRolls();
+    const currentRoll = rolls[rollIdx];
+    if (!currentRoll) return;
+
+    const prevStat = currentRoll.assignedStat || '';
+    const normTarget = targetStat || '';
+    if (prevStat === normTarget) return;
+
+    if (normTarget) {
+      const otherRoll = rolls.find((r, idx) => idx !== rollIdx && r.assignedStat === normTarget);
+      if (otherRoll) {
+        otherRoll.assignedStat = prevStat;
+      }
+    }
+    currentRoll.assignedStat = normTarget;
+
+    this.tsrGenApplyOriginShifts();
+    this.renderTsrGeneratorUI();
+  },
+
+  tsrGenUnassignAllAbilities() {
+    if (!this.tsrGenState) return;
+    const rolls = this.tsrGenEnsureAbilityRolls();
+    rolls.forEach(r => {
+      r.assignedStat = '';
+    });
+    this.tsrGenApplyOriginShifts();
+    this.renderTsrGeneratorUI();
+    this.showStatusToast('🔄 Cleared ability assignments. Choose an ability for each of the 7 rolls.');
+  },
+
+  tsrGenRollResources() {
+    if (!this.tsrGenState) return;
+    const rollModFn = (typeof rollAbilityModifier === 'function') ? rollAbilityModifier : globalThis?.rollAbilityModifier;
+    const modRes = (typeof rollModFn === 'function') ? rollModFn() : { roll: 50, shift: 0, label: 'No Change (0CS)' };
+
+    if (!this.tsrGenState.resources) this.tsrGenState.resources = {};
+    this.tsrGenState.resources.resModRoll = modRes.roll;
+    this.tsrGenState.resources.resModShift = modRes.shift;
+    this.tsrGenRecalcResources();
+    this.renderTsrGeneratorUI();
+  },
+
+  // Step 3 Actions
+  tsrGenRollPowerSlots() {
+    if (!this.tsrGenState) return;
+    const origin = this.tsrGenState.origin;
+    const ruleset = this.tsrGenState.slotRuleset || 'pb';
+    const rollSlotsFn = (typeof rollTsrPowerSlots === 'function') ? rollTsrPowerSlots : globalThis.rollTsrPowerSlots;
+    const rollCatFn = (typeof rollTsrPowerCategory === 'function') ? rollTsrPowerCategory : globalThis.rollTsrPowerCategory;
+    const rollRankFn = (typeof rollRandomRank === 'function') ? rollRandomRank : globalThis.rollRandomRank;
+
+    const raw = (typeof rollSlotsFn === 'function') ? rollSlotsFn(null, ruleset) : { roll: 50, slots: 3, initial: 3, max: 4 };
+    const mod = origin?.powerSlotsModifier || 0;
+    let initSlots = Math.max(1, (raw.initial ?? raw.slots ?? 3) + mod);
+    let maxSlots = Math.max(initSlots, (raw.max ?? initSlots) + mod);
+
+    if (origin?.powerSlots && typeof origin.powerSlots === 'object') {
+      if (typeof origin.powerSlots.min === 'number') initSlots = Math.max(origin.powerSlots.min, initSlots);
+      if (typeof origin.powerSlots.max === 'number') maxSlots = Math.min(origin.powerSlots.max, Math.max(initSlots, maxSlots));
+    }
+
+    this.tsrGenState.powerSlotsRoll = raw.roll;
+    this.tsrGenState.powerSlotsInitial = initSlots;
+    this.tsrGenState.powerSlotsMax = maxSlots;
+    this.tsrGenState.purchasedPowerSlots = 0;
+    this.tsrGenState.powerSlots = initSlots;
+    this.tsrGenRecalcResources();
+
+    const powers = [];
+    let usedSlots = 0;
+    let slotIdx = 0;
+    while (usedSlots < initSlots) {
+      const remaining = initSlots - usedSlots;
+      const catRes = (typeof rollCatFn === 'function') ? rollCatFn() : { category: 'Energy Emission', roll: 55 };
+      const powersInCat = this.getPowersForTsrCategory(catRes.category);
+      const validPool = remaining < 2
+        ? powersInCat.filter(p => !this.isTsrPowerStarred(p))
+        : powersInCat;
+      const pool = validPool.length > 0 ? validPool : powersInCat;
+      const pickedPower = pool.length > 0
+        ? pool[Math.floor(Math.random() * pool.length)]
+        : { id: 'p_fire', name: 'Fire Generation' };
+      const isStarred = this.isTsrPowerStarred(pickedPower) && remaining >= 2;
+      const pRankRoll = (typeof rollRankFn === 'function') ? rollRankFn(4) : { rankName: 'Good', rankNumber: 10, roll: 45, column: 4 };
+
+      powers.push({
+        slotIndex: slotIdx++,
+        category: catRes.category,
+        categoryRoll: catRes.roll,
+        powerId: pickedPower.id || pickedPower.code,
+        powerName: pickedPower.name,
+        isStarred,
+        slotCost: isStarred ? 2 : 1,
+        rankName: pRankRoll.rankName,
+        rankValue: pRankRoll.rankNumber,
+        rankRoll: pRankRoll.roll,
+        rankCol: pRankRoll.column || 4,
+        limitation: null
+      });
+      usedSlots += (isStarred ? 2 : 1);
+    }
+
+    this.tsrGenState.powers = powers;
+    this.renderTsrGeneratorUI();
+    this.showStatusToast(`🎲 Rolled ${initSlots}/${maxSlots} Power Slots (d100: ${raw.roll}) & Column 4 ranks.`);
+  },
+
+  tsrGenBuyPowerSlot() {
+    if (!this.tsrGenState) return;
+    const curSlots = this.tsrGenState.powerSlots || 1;
+    const maxSlots = this.tsrGenState.powerSlotsMax ?? curSlots;
+    if (curSlots >= maxSlots) {
+      this.showStatusToast(`⚠️ Cannot exceed maximum rolled power slots (${maxSlots}).`);
+      return;
+    }
+    const availCS = this.tsrGenGetAvailableResourceCSAboveFeeble();
+    if (availCS < 2 || this.tsrGenState.resources?.isFixed) {
+      this.showStatusToast('⚠️ Buying a Power Slot costs -2CS Resources (minimum Feeble). Insufficient Resources!');
+      return;
+    }
+
+    this.tsrGenState.purchasedPowerSlots = (this.tsrGenState.purchasedPowerSlots || 0) + 1;
+    this.tsrGenRecalcResources();
+
+    if (this.getTsrUsedPowerSlots() < this.tsrGenState.powerSlots) {
+      this.tsrGenAddPowerSlot();
+    } else {
+      this.renderTsrGeneratorUI();
+    }
+    this.showStatusToast(`✨ Purchased +1 Power Slot (-2CS Resources → ${this.tsrGenState.resources.rankName}).`);
+  },
+
+  tsrGenRefundPowerSlot() {
+    if (!this.tsrGenState || !(this.tsrGenState.purchasedPowerSlots > 0)) return;
+    this.tsrGenState.purchasedPowerSlots -= 1;
+    this.tsrGenRecalcResources();
+
+    while (this.tsrGenState.powers.length > 1 && this.getTsrUsedPowerSlots() > this.tsrGenState.powerSlots) {
+      this.tsrGenState.powers.pop();
+    }
+    this.renderTsrGeneratorUI();
+    this.showStatusToast(`↩️ Refunded 1 Power Slot (+2CS Resources → ${this.tsrGenState.resources.rankName}).`);
+  },
+
+  tsrGenAddPowerSlot() {
+    if (!this.tsrGenState) return;
+    const used = this.getTsrUsedPowerSlots();
+    const maxAllowed = this.tsrGenState.powerSlots || 1;
+    const remaining = maxAllowed - used;
+    if (remaining <= 0) return;
+
+    const rollCatFn = (typeof rollTsrPowerCategory === 'function') ? rollTsrPowerCategory : globalThis.rollTsrPowerCategory;
+    const rollRankFn = (typeof rollRandomRank === 'function') ? rollRandomRank : globalThis.rollRandomRank;
+
+    const catRes = (typeof rollCatFn === 'function') ? rollCatFn() : { category: 'Travel', roll: 35 };
+    const powersInCat = this.getPowersForTsrCategory(catRes.category);
+    const validPool = remaining < 2
+      ? powersInCat.filter(p => !this.isTsrPowerStarred(p))
+      : powersInCat;
+    const pool = validPool.length > 0 ? validPool : powersInCat;
+    const pickedPower = pool.length > 0
+      ? pool[Math.floor(Math.random() * pool.length)]
+      : { id: 'p_flight', name: 'Flight' };
+    const isStarred = this.isTsrPowerStarred(pickedPower) && remaining >= 2;
+    const pRankRoll = (typeof rollRankFn === 'function') ? rollRankFn(4) : { rankName: 'Good', rankNumber: 10, roll: 45, column: 4 };
+
+    const idx = this.tsrGenState.powers.length;
+    this.tsrGenState.powers.push({
+      slotIndex: idx,
+      category: catRes.category,
+      categoryRoll: catRes.roll,
+      powerId: pickedPower.id || pickedPower.code,
+      powerName: pickedPower.name,
+      isStarred,
+      slotCost: isStarred ? 2 : 1,
+      rankName: pRankRoll.rankName,
+      rankValue: pRankRoll.rankNumber,
+      rankRoll: pRankRoll.roll,
+      rankCol: pRankRoll.column || 4,
+      limitation: null
+    });
+    this.renderTsrGeneratorUI();
+  },
+
+  tsrGenRemovePowerSlot(idx) {
+    if (!this.tsrGenState || this.tsrGenState.powers.length <= 1) return;
+    this.tsrGenState.powers.splice(idx, 1);
+    this.renderTsrGeneratorUI();
+  },
+
+  tsrGenRollCategoryForSlot(idx) {
+    if (!this.tsrGenState || !this.tsrGenState.powers[idx]) return;
+    const rollCatFn = (typeof rollTsrPowerCategory === 'function') ? rollTsrPowerCategory : globalThis.rollTsrPowerCategory;
+    const catRes = (typeof rollCatFn === 'function') ? rollCatFn() : { category: 'Fighting', roll: 28 };
+    const slot = this.tsrGenState.powers[idx];
+    slot.category = catRes.category;
+    slot.categoryRoll = catRes.roll;
+
+    const otherUsed = this.getTsrUsedPowerSlots() - (slot.isStarred ? 2 : 1);
+    const freeSlots = Math.max(1, (this.tsrGenState.powerSlots || 1) - otherUsed);
+
+    const powersInCat = this.getPowersForTsrCategory(slot.category);
+    const validPool = freeSlots < 2 ? powersInCat.filter(p => !this.isTsrPowerStarred(p)) : powersInCat;
+    const pool = validPool.length > 0 ? validPool : powersInCat;
+    if (pool.length > 0) {
+      const randIdx = Math.floor(Math.random() * pool.length);
+      const picked = pool[randIdx];
+      slot.powerId = picked.id || picked.code;
+      slot.powerName = picked.name;
+      slot.isStarred = this.isTsrPowerStarred(picked);
+      slot.slotCost = slot.isStarred ? 2 : 1;
+    }
+    this.renderTsrGeneratorUI();
+  },
+
+  tsrGenChangeCategoryForSlot(idx, catName) {
+    if (!this.tsrGenState || !this.tsrGenState.powers[idx]) return;
+    const slot = this.tsrGenState.powers[idx];
+    slot.category = catName;
+    const otherUsed = this.getTsrUsedPowerSlots() - (slot.isStarred ? 2 : 1);
+    const freeSlots = Math.max(1, (this.tsrGenState.powerSlots || 1) - otherUsed);
+
+    const powersInCat = this.getPowersForTsrCategory(catName);
+    const validPool = freeSlots < 2 ? powersInCat.filter(p => !this.isTsrPowerStarred(p)) : powersInCat;
+    const pool = validPool.length > 0 ? validPool : powersInCat;
+    if (pool.length > 0) {
+      slot.powerId = pool[0].id || pool[0].code;
+      slot.powerName = pool[0].name;
+      slot.isStarred = this.isTsrPowerStarred(pool[0]);
+      slot.slotCost = slot.isStarred ? 2 : 1;
+    }
+    this.renderTsrGeneratorUI();
+  },
+
+  tsrGenChangePowerForSlot(idx, powerId) {
+    if (!this.tsrGenState || !this.tsrGenState.powers[idx]) return;
+    const catalog = (typeof POWERS_CATALOG !== 'undefined')
+      ? POWERS_CATALOG
+      : ((typeof globalThis !== 'undefined' && globalThis.MSH_POWERS) ? globalThis.MSH_POWERS : []);
+    const p = catalog.find(x => x.id === powerId || x.code === powerId);
+    if (!p) return;
+
+    const slot = this.tsrGenState.powers[idx];
+    const newStarred = this.isTsrPowerStarred(p);
+    const otherUsed = this.getTsrUsedPowerSlots() - (slot.isStarred ? 2 : 1);
+    const maxSlots = this.tsrGenState.powerSlots || 1;
+
+    if (newStarred && (otherUsed + 2) > maxSlots) {
+      // If another 1-slot power card exists (other than this one), offer/auto-drop the last 1-slot card or warn
+      if (maxSlots < 2) {
+        this.showStatusToast(`⚠️ "${p.name}" is a Starred (★) power requiring 2 Power Slots, but you only have ${maxSlots} total slot.`);
+        this.renderTsrGeneratorUI();
+        return;
+      }
+      // Remove the last power card (other than idx) to free a slot for this 2-slot power
+      for (let removeIdx = this.tsrGenState.powers.length - 1; removeIdx >= 0; removeIdx--) {
+        if (removeIdx !== idx) {
+          this.tsrGenState.powers.splice(removeIdx, 1);
+          break;
+        }
+      }
+      this.showStatusToast(`★ "${p.name}" counts as 2 Power Slots (PB p. 11). Consolidated 1 slot to fit within ${maxSlots} slots.`);
+    }
+
+    slot.powerId = p.id || p.code;
+    slot.powerName = p.name;
+    slot.isStarred = newStarred;
+    slot.slotCost = newStarred ? 2 : 1;
+    this.renderTsrGeneratorUI();
+  },
+
+  tsrGenRandomPowerInCat(idx) {
+    if (!this.tsrGenState || !this.tsrGenState.powers[idx]) return;
+    const slot = this.tsrGenState.powers[idx];
+    const otherUsed = this.getTsrUsedPowerSlots() - (slot.isStarred ? 2 : 1);
+    const freeSlots = Math.max(1, (this.tsrGenState.powerSlots || 1) - otherUsed);
+
+    const powersInCat = this.getPowersForTsrCategory(slot.category);
+    const validPool = freeSlots < 2 ? powersInCat.filter(p => !this.isTsrPowerStarred(p)) : powersInCat;
+    const pool = validPool.length > 0 ? validPool : powersInCat;
+    if (pool.length > 0) {
+      const randIdx = Math.floor(Math.random() * pool.length);
+      const picked = pool[randIdx];
+      slot.powerId = picked.id || picked.code;
+      slot.powerName = picked.name;
+      slot.isStarred = this.isTsrPowerStarred(picked);
+      slot.slotCost = slot.isStarred ? 2 : 1;
+    }
+    this.renderTsrGeneratorUI();
+  },
+
+  tsrGenRollRankForSlot(idx) {
+    if (!this.tsrGenState || !this.tsrGenState.powers[idx]) return;
+    const rollRankFn = (typeof rollRandomRank === 'function') ? rollRandomRank : globalThis.rollRandomRank;
+    // Per Player's Book p. 8: All Power ranks are rolled on Column 4 of the Random Ranks Table
+    const pRankRoll = (typeof rollRankFn === 'function') ? rollRankFn(4) : { rankName: 'Good', rankNumber: 10, roll: 45, column: 4 };
+    const slot = this.tsrGenState.powers[idx];
+    slot.rankName = pRankRoll.rankName;
+    slot.rankValue = pRankRoll.rankNumber;
+    slot.rankRoll = pRankRoll.roll;
+    slot.rankCol = pRankRoll.column || 4;
+    this.renderTsrGeneratorUI();
+  },
+
+  tsrGenToggleLimitationForSlot(idx, checked) {
+    if (!this.tsrGenState || !this.tsrGenState.powers[idx]) return;
+    const slot = this.tsrGenState.powers[idx];
+    if (checked) {
+      const ceilings = (typeof TSR_LIMITATION_CEILINGS !== 'undefined')
+        ? TSR_LIMITATION_CEILINGS
+        : ((typeof globalThis !== 'undefined' && globalThis.TSR_LIMITATION_CEILINGS) ? globalThis.TSR_LIMITATION_CEILINGS : []);
+      const defaultTier = ceilings[1] || ceilings[0]; // Remarkable default
+      const defaultExample = defaultTier.examples ? defaultTier.examples[0] : null;
+
+      slot.limitation = {
+        ceiling: defaultTier.ceiling,
+        name: defaultExample?.name || `${defaultTier.ceiling} Limitation`,
+        description: defaultExample?.description || `Vanilla limitation (+1CS bump up to ${defaultTier.ceiling})`,
+        isTSRVanilla: true
+      };
+    } else {
+      slot.limitation = null;
+    }
+    this.renderTsrGeneratorUI();
+  },
+
+  tsrGenChangeLimCeilingForSlot(idx, ceiling) {
+    if (!this.tsrGenState || !this.tsrGenState.powers[idx]?.limitation) return;
+    const slot = this.tsrGenState.powers[idx];
+    slot.limitation.ceiling = ceiling;
+
+    const ceilings = (typeof TSR_LIMITATION_CEILINGS !== 'undefined')
+      ? TSR_LIMITATION_CEILINGS
+      : ((typeof globalThis !== 'undefined' && globalThis.TSR_LIMITATION_CEILINGS) ? globalThis.TSR_LIMITATION_CEILINGS : []);
+    const tier = ceilings.find(c => c.ceiling === ceiling);
+    if (tier && tier.examples && tier.examples[0]) {
+      slot.limitation.name = tier.examples[0].name;
+      slot.limitation.description = tier.examples[0].description;
+    }
+    this.renderTsrGeneratorUI();
+  },
+
+  tsrGenChangeLimExampleForSlot(idx, exampleVal) {
+    if (!this.tsrGenState || !this.tsrGenState.powers[idx]?.limitation) return;
+    const slot = this.tsrGenState.powers[idx];
+    if (exampleVal === 'custom') {
+      slot.limitation.name = '';
+      slot.limitation.description = '';
+    } else {
+      const exIdx = parseInt(exampleVal, 10);
+      const ceilings = (typeof TSR_LIMITATION_CEILINGS !== 'undefined')
+        ? TSR_LIMITATION_CEILINGS
+        : ((typeof globalThis !== 'undefined' && globalThis.TSR_LIMITATION_CEILINGS) ? globalThis.TSR_LIMITATION_CEILINGS : []);
+      const tier = ceilings.find(c => c.ceiling === slot.limitation.ceiling);
+      if (tier && tier.examples && tier.examples[exIdx]) {
+        slot.limitation.name = tier.examples[exIdx].name;
+        slot.limitation.description = tier.examples[exIdx].description;
+      }
+    }
+    this.renderTsrGeneratorUI();
+  },
+
+  // Step 4 Actions
+  tsrGenRollTalentsContacts() {
+    if (!this.tsrGenState) return;
+    const origin = this.tsrGenState.origin;
+    const ruleset = this.tsrGenState.slotRuleset || 'pb';
+    const rollTalFn = (typeof rollTsrTalentSlots === 'function') ? rollTsrTalentSlots : globalThis.rollTsrTalentSlots;
+    const rollConFn = (typeof rollTsrContactSlots === 'function') ? rollTsrContactSlots : globalThis.rollTsrContactSlots;
+
+    const talRes = (typeof rollTalFn === 'function') ? rollTalFn(null, ruleset) : { roll: 50, slots: 2, initial: 2, max: 5 };
+    const talentBonus = (origin && origin.talentBonus !== undefined) ? origin.talentBonus : (origin?.id === 'normal_human' ? 2 : 0);
+    const tInit = Math.max(0, (talRes.initial ?? talRes.slots ?? 2) + talentBonus);
+    const tMax = Math.max(tInit, (talRes.max ?? tInit) + talentBonus);
+
+    this.tsrGenState.talentSlotsRoll = talRes.roll;
+    this.tsrGenState.talentSlotsInitial = tInit;
+    this.tsrGenState.talentSlotsMax = tMax;
+    this.tsrGenState.purchasedTalentSlots = 0;
+    this.tsrGenState.talentSlots = tInit;
+
+    const conRes = (typeof rollConFn === 'function') ? rollConFn(null, ruleset) : { roll: 50, slots: 1, initial: 1, max: 4 };
+    const contactsBonus = (origin && origin.contactsBonus !== undefined) ? origin.contactsBonus : (origin?.id === 'normal_human' ? 2 : 0);
+    let cInit = Math.max(0, (conRes.initial ?? conRes.slots ?? 1) + contactsBonus);
+    let cMax = Math.max(cInit, (conRes.max ?? cInit) + contactsBonus);
+
+    if (origin && typeof origin.minContacts === 'number') {
+      cInit = Math.max(origin.minContacts, cInit);
+      cMax = Math.max(cInit, cMax);
+    }
+    if (origin && typeof origin.maxContacts === 'number') {
+      cInit = Math.min(origin.maxContacts, cInit);
+      cMax = Math.min(origin.maxContacts, cMax);
+    }
+
+    this.tsrGenState.contactSlotsRoll = conRes.roll;
+    this.tsrGenState.contactSlotsInitial = cInit;
+    this.tsrGenState.contactSlotsMax = cMax;
+    this.tsrGenState.purchasedContactSlots = 0;
+    this.tsrGenState.contactSlots = cInit;
+    this.tsrGenRecalcResources();
+
+    // Enforce slot limits on existing selections if newly rolled count is smaller
+    if (this.tsrGenState.selectedTalents.length > this.tsrGenState.talentSlots) {
+      this.tsrGenState.selectedTalents = this.tsrGenState.selectedTalents.slice(0, this.tsrGenState.talentSlots);
+    }
+    if (this.tsrGenState.selectedContacts.length > this.tsrGenState.contactSlots) {
+      this.tsrGenState.selectedContacts = this.tsrGenState.selectedContacts.slice(0, this.tsrGenState.contactSlots);
+    }
+
+    this.renderTsrGeneratorUI();
+    this.showStatusToast(`🎲 Rolled Talents (${tInit}/${tMax}) & Contacts (${cInit}/${cMax}).`);
+  },
+
+  tsrGenBuyTalentSlot() {
+    if (!this.tsrGenState) return;
+    const cur = this.tsrGenState.talentSlots || 0;
+    const max = this.tsrGenState.talentSlotsMax ?? cur;
+    if (cur >= max) {
+      this.showStatusToast(`⚠️ Cannot exceed maximum rolled talent slots (${max}).`);
+      return;
+    }
+    const availCS = this.tsrGenGetAvailableResourceCSAboveFeeble();
+    if (availCS < 1 || this.tsrGenState.resources?.isFixed) {
+      this.showStatusToast('⚠️ Buying a Talent Slot costs -1CS Resources (minimum Feeble). Insufficient Resources!');
+      return;
+    }
+    this.tsrGenState.purchasedTalentSlots = (this.tsrGenState.purchasedTalentSlots || 0) + 1;
+    this.tsrGenRecalcResources();
+    this.renderTsrGeneratorUI();
+    this.showStatusToast(`✨ Purchased +1 Talent Slot (-1CS Resources → ${this.tsrGenState.resources.rankName}).`);
+  },
+
+  tsrGenRefundTalentSlot() {
+    if (!this.tsrGenState || !(this.tsrGenState.purchasedTalentSlots > 0)) return;
+    this.tsrGenState.purchasedTalentSlots -= 1;
+    this.tsrGenRecalcResources();
+    if (this.tsrGenState.selectedTalents.length > this.tsrGenState.talentSlots) {
+      this.tsrGenState.selectedTalents = this.tsrGenState.selectedTalents.slice(0, this.tsrGenState.talentSlots);
+    }
+    this.renderTsrGeneratorUI();
+    this.showStatusToast(`↩️ Refunded 1 Talent Slot (+1CS Resources → ${this.tsrGenState.resources.rankName}).`);
+  },
+
+  tsrGenBuyContactSlot() {
+    if (!this.tsrGenState) return;
+    const cur = this.tsrGenState.contactSlots || 0;
+    const max = this.tsrGenState.contactSlotsMax ?? cur;
+    if (cur >= max) {
+      this.showStatusToast(`⚠️ Cannot exceed maximum rolled contact slots (${max}).`);
+      return;
+    }
+    const availCS = this.tsrGenGetAvailableResourceCSAboveFeeble();
+    if (availCS < 1 || this.tsrGenState.resources?.isFixed) {
+      this.showStatusToast('⚠️ Buying a Contact Slot costs -1CS Resources (minimum Feeble). Insufficient Resources!');
+      return;
+    }
+    this.tsrGenState.purchasedContactSlots = (this.tsrGenState.purchasedContactSlots || 0) + 1;
+    this.tsrGenRecalcResources();
+    this.renderTsrGeneratorUI();
+    this.showStatusToast(`✨ Purchased +1 Contact Slot (-1CS Resources → ${this.tsrGenState.resources.rankName}).`);
+  },
+
+  tsrGenRefundContactSlot() {
+    if (!this.tsrGenState || !(this.tsrGenState.purchasedContactSlots > 0)) return;
+    this.tsrGenState.purchasedContactSlots -= 1;
+    this.tsrGenRecalcResources();
+    if (this.tsrGenState.selectedContacts.length > this.tsrGenState.contactSlots) {
+      this.tsrGenState.selectedContacts = this.tsrGenState.selectedContacts.slice(0, this.tsrGenState.contactSlots);
+    }
+    this.renderTsrGeneratorUI();
+    this.showStatusToast(`↩️ Refunded 1 Contact Slot (+1CS Resources → ${this.tsrGenState.resources.rankName}).`);
+  },
+
+  tsrGenAddCustomContact() {
+    if (!this.tsrGenState) return;
+    if (this.tsrGenState.selectedContacts && this.tsrGenState.selectedContacts.length >= this.tsrGenState.contactSlots) {
+      this.showStatusToast(`⚠️ Cannot add more than ${this.tsrGenState.contactSlots} contact slot(s).`);
+      return;
+    }
+    const inp = this.getTsrEl('tsr-custom-contact-input');
+    if (!inp) return;
+    const val = inp.value.trim();
+    if (!val) return;
+    if (!this.tsrGenState.selectedContacts) this.tsrGenState.selectedContacts = [];
+    if (!this.tsrGenState.selectedContacts.includes(val)) {
+      this.tsrGenState.selectedContacts.push(val);
+    }
+    inp.value = '';
+    this.renderTsrGeneratorUI();
+    this.showStatusToast(`Added custom contact: "${val}"`);
+  },
+
+  tsrGenRemoveContact(contactName) {
+    if (!this.tsrGenState || !this.tsrGenState.selectedContacts) return;
+    this.tsrGenState.selectedContacts = this.tsrGenState.selectedContacts.filter(c => c !== contactName);
+    this.renderTsrGeneratorUI();
+  },
+
+  // Final Step: Apply to Character Sheet
+  async applyTsrGeneratedCharacter() {
+    if (!this.tsrGenState || !this.character) return;
+    this.tsrGenSyncAbilitiesFromRolls();
+    this.tsrGenRecalcResources();
+    const popVal = this.tsrGenCalcPopularity();
+    const {
+      origin,
+      originAbilityChoice,
+      originExtraPart,
+      abilityRolls,
+      abilities,
+      resources,
+      powers,
+      powerSlots,
+      talentSlots,
+      contactSlots,
+      selectedTalents,
+      selectedContacts
+    } = this.tsrGenState;
+
+    if (!origin || !origin.id) {
+      await this.showCustomAlert(
+        'Please roll or select a Physical Form in Step 1 before applying character.',
+        'Physical Form Required'
+      );
+      return;
+    }
+
+    const statLabels = {
+      fighting: 'Fighting (F)',
+      agility: 'Agility (A)',
+      strength: 'Strength (S)',
+      endurance: 'Endurance (E)',
+      reason: 'Reason (R)',
+      intuition: 'Intuition (I)',
+      psyche: 'Psyche (P)'
+    };
+    const unassignedStats = Object.keys(statLabels).filter(stat => !abilities[stat] || abilities[stat].unassigned);
+    if (unassignedStats.length > 0) {
+      await this.showCustomAlert(
+        `Please assign all 7 random ability rolls in Step 2 before applying your character.\n\nUnassigned Abilities: ${unassignedStats.map(s => statLabels[s]).join(', ')}`,
+        'Unassigned Ability Rolls'
+      );
+      return;
+    }
+
+    const usedPwrSlots = this.getTsrUsedPowerSlots(powers);
+    if (usedPwrSlots > powerSlots) {
+      await this.showCustomAlert(
+        `Cannot apply: Selected powers use ${usedPwrSlots} power slots (Starred ★ powers count as 2 slots), which exceeds your available ${powerSlots} power slot(s).\n\nPlease remove a power, choose a non-starred power, or buy an extra power slot before applying.`,
+        'Power Slot Limit Exceeded'
+      );
+      return;
+    }
+
+    // Check talent and contact slot limits
+    if (selectedTalents.length > talentSlots) {
+      await this.showCustomAlert(
+        `Cannot apply: You have chosen ${selectedTalents.length} talents, which exceeds your limit of ${talentSlots} talent slot(s).\n\nPlease deselect ${selectedTalents.length - talentSlots} talent(s) before applying.`,
+        'Talent Slot Limit Exceeded'
+      );
+      return;
+    }
+    if (selectedContacts.length > contactSlots) {
+      await this.showCustomAlert(
+        `Cannot apply: You have chosen ${selectedContacts.length} contacts, which exceeds your limit of ${contactSlots} contact slot(s).\n\nPlease deselect ${selectedContacts.length - contactSlots} contact(s) before applying.`,
+        'Contact Slot Limit Exceeded'
+      );
+      return;
+    }
+
+    // Check for blocked limitations
+    for (let i = 0; i < powers.length; i++) {
+      const pSlot = powers[i];
+      if (pSlot.limitation) {
+        const val = (typeof validateTsrLimitation === 'function')
+          ? validateTsrLimitation(pSlot.rankName, pSlot.limitation.ceiling)
+          : { valid: true };
+        if (!val.valid) {
+          await this.showCustomAlert(
+            `Slot #${i + 1} (${pSlot.powerName}) has an invalid limitation:\n\nPower rank (${pSlot.rankName}) is already at or above ceiling (${pSlot.limitation.ceiling})!\n\nPlease select a higher ceiling tier or disable the limitation before applying.`,
+            'Limitation Ceiling Exceeded'
+          );
+          return;
+        }
+      }
+    }
+
+    // Set creationMode and pointTier
+    this.character.creationMode = 'tsr';
+    this.character.pointTier = 'TSR 1986';
+    this.character.pointBudget = 0;
+    this.character.basePointBudget = 0;
+    this.character.formKey = origin.id;
+    this.character.formName = origin.name;
+    this.character.isSwarmForm = (origin.id === 's32_collective_mass' || origin.id === 'swarm_collective');
+    this.character.formAbilityChoice = originAbilityChoice || null;
+    this.character.formExtraPart = originExtraPart || 'arms';
+
+    // Record applied form shifts so changing formAbilityChoice/formExtraPart on Tab 1 works seamlessly
+    if (typeof this.character.getTargetFormAbilityShifts === 'function') {
+      this.character.appliedFormShifts = this.character.getTargetFormAbilityShifts(origin, this.character.formAbilityChoice, this.character.formExtraPart);
+    }
+
+    // Persist rolled abilities & assignments
+    this.character.tsrRolls = {
+      origin: JSON.parse(JSON.stringify(origin)),
+      originAbilityChoice: this.character.formAbilityChoice,
+      originExtraPart: this.character.formExtraPart,
+      abilityRolls: JSON.parse(JSON.stringify(abilityRolls || [])),
+      abilities: JSON.parse(JSON.stringify(abilities)),
+      resources: resources ? JSON.parse(JSON.stringify(resources)) : null
+    };
+
+    // Apply primary abilities
+    ['fighting', 'agility', 'strength', 'endurance', 'reason', 'intuition', 'psyche'].forEach(stat => {
+      if (abilities[stat] && !abilities[stat].unassigned) {
+        this.character.setAbilityRank(stat, abilities[stat].rankName);
+      }
+    });
+
+    // Apply resources & popularity
+    if (resources) {
+      this.character.setResourceRank(resources.rankName);
+    }
+    this.character.basePopularity = popVal;
+    this.character.currentPopularity = popVal;
+
+    // Clear existing powers and apply generated powers
+    this.character.powers = [];
+    const catalog = (typeof POWERS_CATALOG !== 'undefined')
+      ? POWERS_CATALOG
+      : ((typeof globalThis !== 'undefined' && globalThis.MSH_POWERS) ? globalThis.MSH_POWERS : []);
+
+    powers.forEach(slot => {
+      const catDef = catalog.find(x => x.id === slot.powerId || x.code === slot.powerId);
+      const isStarred = slot.isStarred !== undefined ? !!slot.isStarred : this.isTsrPowerStarred(catDef || slot.powerId);
+      const newPower = {
+        id: slot.powerId || ('tsr_p_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4)),
+        name: slot.powerName || (catDef?.name || 'Power'),
+        category: slot.category || (catDef?.category || 'General'),
+        rankName: slot.rankName,
+        rankValue: slot.rankValue,
+        description: catDef?.description || '',
+        notes: `Rolled via TSR Table 1 (d100: ${slot.rankRoll || '--'} on Col ${slot.rankCol || 4})`,
+        isStarred,
+        countsAsTwo: isStarred,
+        stunts: []
+      };
+
+      if (slot.limitation) {
+        const ceiling = slot.limitation.ceiling || 'Remarkable';
+        const val = (typeof validateTsrLimitation === 'function')
+          ? validateTsrLimitation(slot.rankName, ceiling)
+          : { valid: true, newRank: slot.rankName };
+        const limObj = {
+          name: slot.limitation.name || `${ceiling} Limitation`,
+          description: slot.limitation.description || `Vanilla limitation (+1CS bump up to ${ceiling})`,
+          categoryCeiling: ceiling,
+          rankBoostCS: 1,
+          appliedRankBoost: val.newRank,
+          isTSRVanilla: true
+        };
+        newPower.originalRolledRank = slot.rankName;
+        newPower.originalRolledRankValue = slot.rankValue;
+        newPower.rankName = val.newRank;
+        const rankObj = (typeof UniversalTableEngine !== 'undefined') ? UniversalTableEngine.getRankByName(val.newRank) : null;
+        if (rankObj) newPower.rankValue = rankObj.num;
+        newPower.limitation = limObj;
+        newPower.limitations = [limObj];
+      }
+
+      this.character.powers.push(newPower);
+    });
+
+    // Apply Talents
+    this.character.talents = [];
+    const allTalentsList = (typeof TALENTS_CATALOG !== 'undefined')
+      ? TALENTS_CATALOG
+      : ((typeof globalThis !== 'undefined' && globalThis.TALENTS_CATALOG)
+          ? globalThis.TALENTS_CATALOG
+          : (typeof MSH_TALENTS !== 'undefined' ? MSH_TALENTS : (globalThis?.MSH_TALENTS || [])));
+
+    selectedTalents.forEach(tName => {
+      const mshTal = allTalentsList.find(x => x.name === tName);
+      this.character.talents.push({
+        id: mshTal?.id || ('t_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4)),
+        name: tName,
+        category: mshTal?.category || 'General',
+        bonus: mshTal?.csBonus ? `+${mshTal.csBonus}CS ${mshTal.statAffected}` : (mshTal?.bonus || '+1CS'),
+        description: mshTal?.description || ''
+      });
+    });
+
+    // Apply Contacts
+    this.character.contacts = [];
+    selectedContacts.forEach(cName => {
+      this.character.contacts.push({
+        id: 'c_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+        name: cName,
+        profession: 'Ally / Contact',
+        notes: `Canonical contact acquired during TSR character generation.`
+      });
+    });
+
+    // Set slots counts
+    this.character.tsrPowerSlots = powerSlots;
+    this.character.tsrTalentSlots = talentSlots;
+    this.character.tsrContactSlots = contactSlots;
+    this.character.isTsrGenerated = true;
+
+    // Recalculate health and karma
+    this.character.currentHealth = this.character.calculateMaxHealth();
+    this.character.currentKarma = this.character.calculateBaseKarma();
+    this.character.isCreationSetupPending = false;
+
+    this.recordCharacterEdit(`Generated character via TSR 1986 Random Roll: ${origin.name} (${powers.length} powers [${usedPwrSlots}/${powerSlots} slots], ${selectedTalents.length} talents)`, 'creation');
+    this.closeTsrGeneratorModal();
+    this.saveState();
+    this.render();
+    this.showStatusToast('🎉 TSR 1986 character generated and applied to sheet!');
   }
 };
 

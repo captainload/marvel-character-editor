@@ -1,5 +1,6 @@
 /**
  * Marvel Super Heroes (FASERIP) - Character Model & CMF Point-Buy Engine
+ * Built by Psycros with lots of help from Gemini - 2026.
  * Implements Classic Marvel Forever (CMF) Point-Buy system,
  * variable Health/Karma/Popularity, S32 Collective Mass (Swarm) dual-profile mechanics,
  * and dynamic Roll20-style Attack Compiler with automated Column Shifts & Talents.
@@ -105,8 +106,8 @@ class FASERIPCharacter {
     this.id = initialData.id || 'hero_' + Date.now();
     this.name = initialData.name || 'New Hero';
     this.realName = initialData.realName || '';
-    this.formKey = initialData.formKey || 'normal_human'; // Key in MSH_PHYSICAL_FORMS
-    this.formName = initialData.formName || 'Normal Human';
+    this.formKey = initialData.formKey || initialData.form || 'normal_human'; // Key in MSH_PHYSICAL_FORMS
+    this.formName = initialData.formName || (initialData.form ? String(initialData.form).replace(/_/g, ' ') : 'Normal Human');
     this.gender = initialData.gender || 'Unknown';
     this.age = initialData.age || 'Adult';
     this.height = initialData.height || "5'10\"";
@@ -118,17 +119,22 @@ class FASERIPCharacter {
     this.baseOfOperations = initialData.baseOfOperations || 'New York City';
 
     // CMF Point-Buy Configuration
-    // Tiers: 150 (Skilled Human), 200 (Street Vigilante), 300 (Costumed Adventurer),
-    // 400 (Established Hero - Default), 500 (Major Superhero), 600 (World-Class Hero), custom
-    this.pointTier = initialData.pointTier || '400';
+    // Tiers: 150 (Skilled Human), 200 (Street Vigilante), 300 (Costumed Adventurer - Default),
+    // 400 (Established Hero), 500 (Major Superhero), 600 (World-Class Hero), custom
+    this.pointTier = initialData.pointTier || '300';
     this.cpAdjustment = parseInt(initialData.cpAdjustment ?? 0);
     this.basePointBudget = parseInt(initialData.basePointBudget ?? (initialData.pointBudget !== undefined ? initialData.pointBudget : this.getBaseTierBudget(this.pointTier)));
     this.pointBudget = parseInt(initialData.pointBudget !== undefined && initialData.cpAdjustment === undefined ? initialData.pointBudget : Math.round(this.basePointBudget * (1 + this.cpAdjustment / 100)));
     this.isCreationSetupPending = initialData.isCreationSetupPending !== undefined ? !!initialData.isCreationSetupPending : false;
 
-    // Physical Form S32 Collective Mass (Swarm) toggle
+    // Physical Form S32 Collective Mass (Swarm) toggle & Physical Form Adjustments
     this.isSwarmForm = initialData.isSwarmForm || (this.formKey === 'swarm_collective' || this.formKey === 's32_collective_mass');
     this.activeSwarmProfile = initialData.activeSwarmProfile || 'swarm'; // 'swarm' | 'individual'
+    this.formAbilityChoice = initialData.formAbilityChoice || null; // e.g. 'F', 'A', 'S', 'E', 'R', 'I', 'P'
+    this.formExtraPart = initialData.formExtraPart || 'arms'; // 'arms' | 'organs' | 'tail' | 'wings'
+    this.appliedFormShifts = initialData.appliedFormShifts
+      ? { F: 0, A: 0, S: 0, E: 0, R: 0, I: 0, P: 0, ...initialData.appliedFormShifts }
+      : { F: 0, A: 0, S: 0, E: 0, R: 0, I: 0, P: 0 };
 
     // Primary FASERIP Abilities
     this.abilities = {
@@ -161,7 +167,19 @@ class FASERIPCharacter {
     this.manualMaxHealth = initialData.manualMaxHealth || null;
     this.currentHealth = parseInt(initialData.currentHealth ?? this.calculateMaxHealth());
     this.manualMaxKarma = initialData.manualMaxKarma || null;
+    this.startingKarmaBonus = parseInt(initialData.startingKarmaBonus || 0);
     this.currentKarma = parseInt(initialData.currentKarma ?? this.calculateBaseKarma());
+    this.isCreationFinalized = initialData.isCreationFinalized !== undefined 
+      ? !!initialData.isCreationFinalized 
+      : (initialData.isCreationSetupPending ? false : true);
+    this.convertUnspentCpToKp = initialData.convertUnspentCpToKp !== undefined ? !!initialData.convertUnspentCpToKp : false;
+    this.creationMode = initialData.creationMode || 'cmf'; // 'cmf' (default Point-Buy) | 'tsr' (1986 Player's Book Random Roll)
+    this.tsrSubMode = initialData.tsrSubMode || 'random'; // 'random' (Table 2/4 rolls) | 'modeled' (free-form TSR without random rolls or slot limits)
+    this.tsrModeledKPLimit = parseInt(initialData.tsrModeledKPLimit || 0); // Optional GM campaign KP cap (0 = unlimited)
+    this.tsrPowerSlots = initialData.tsrPowerSlots || null;
+    this.tsrTalentSlots = initialData.tsrTalentSlots || null;
+    this.tsrContactSlots = initialData.tsrContactSlots || null;
+    this.tsrRolls = initialData.tsrRolls ? JSON.parse(JSON.stringify(initialData.tsrRolls)) : null;
 
     // Active Conditions / Status
     this.conditions = Array.isArray(initialData.conditions) ? [...initialData.conditions] : [];
@@ -252,6 +270,12 @@ class FASERIPCharacter {
           invert: false,
           conditionLabel: ''
         },
+        limitation: p.limitation ? JSON.parse(JSON.stringify(p.limitation)) : null,
+        limitations: Array.isArray(p.limitations)
+          ? JSON.parse(JSON.stringify(p.limitations))
+          : (p.limitation ? [JSON.parse(JSON.stringify(p.limitation))] : []),
+        originalRolledRank: p.originalRolledRank || undefined,
+        originalRolledRankValue: p.originalRolledRankValue !== undefined ? p.originalRolledRankValue : undefined,
         notes: p.notes || '',
         stunts: Array.isArray(p.stunts) 
           ? p.stunts.map(s => normalizePowerStunt(s, s.isLearned !== undefined ? !!s.isLearned : true))
@@ -315,7 +339,11 @@ class FASERIPCharacter {
       materialStrength: eq.materialStrength || 'Good',
       notes: eq.notes || '',
       equipped: eq.equipped !== false,
-      abilityBoosts: Array.isArray(eq.abilityBoosts) ? [...eq.abilityBoosts] : [],
+      abilityBoosts: Array.isArray(eq.abilityBoosts)
+        ? [...eq.abilityBoosts]
+        : (eq.abilityBoosts && typeof eq.abilityBoosts === 'object'
+            ? Object.entries(eq.abilityBoosts).map(([ability, val]) => ({ ability, val }))
+            : []),
       powers: Array.isArray(eq.powers) ? [...eq.powers] : []
     })) : [];
 
@@ -361,6 +389,9 @@ class FASERIPCharacter {
       ? !!initialData.superiorOptionCost 
       : (initialData.superiorOptionTax !== undefined ? !!initialData.superiorOptionTax : false);
 
+    // Human Ability Rank Caps House Rule (per-character preference, default: false)
+    this.humanAbilityCaps = initialData.humanAbilityCaps !== undefined ? !!initialData.humanAbilityCaps : false;
+
     // Karma Ledger & Advancement History
     this.advancementLog = Array.isArray(initialData.advancementLog) ? [...initialData.advancementLog] : [];
     if (!this.lastKarmaSpentOnRankIncrease && this.advancementLog.length > 0) {
@@ -380,6 +411,7 @@ class FASERIPCharacter {
     // Character Edit Log & Timeline Navigation
     this.editLog = Array.isArray(initialData.editLog) ? [...initialData.editLog] : [];
     this.editHistoryIndex = typeof initialData.editHistoryIndex === 'number' ? initialData.editHistoryIndex : (this.editLog.length - 1);
+    this.sanitizeEditLog();
 
     this.syncRanksToActiveScheme();
   }
@@ -584,6 +616,23 @@ class FASERIPCharacter {
       activeAbs.strength.isBoosted = true;
     }
 
+    // Martial Arts Supremacy (F2): Power rank number added directly to Fighting rank
+    let fightBonus = 0;
+    const martialSupremacy = this.powers.find(p => (p.code === 'F2' || (p.name && (p.name.toLowerCase() === 'martial arts supremacy' || p.name.toLowerCase() === 'martial supremacy'))));
+    if (martialSupremacy && this.isPowerOperating(martialSupremacy.id)) {
+      fightBonus += (martialSupremacy.rankValue || 0);
+    }
+    if (fightBonus > 0 && activeAbs.fighting) {
+      const totalFightVal = (activeAbs.fighting.rankValue || 0) + fightBonus;
+      const fightRankObj = (typeof UniversalTableEngine !== 'undefined')
+        ? UniversalTableEngine.getRankByNum(totalFightVal)
+        : { name: activeAbs.fighting.rankName, num: totalFightVal };
+      activeAbs.fighting.rankName = fightRankObj.name;
+      activeAbs.fighting.rankValue = totalFightVal;
+      activeAbs.fighting.bonusFromPower = (activeAbs.fighting.bonusFromPower || 0) + fightBonus;
+      activeAbs.fighting.isBoosted = true;
+    }
+
     // 2. Reactive Trait Modifiers & Power Pools (Reverse-Engineered NPC & Custom Powers)
     this.powers.forEach(p => {
       if (!this.isPowerOperating(p.id)) return;
@@ -664,17 +713,243 @@ class FASERIPCharacter {
     return activeAbs;
   }
 
+  getFormDefinition(formKey = this.formKey) {
+    const key = formKey || this.formKey || 'normal_human';
+    const forms = globalThis.PHYSICAL_FORMS || [];
+    const found = forms.find(f => f.id === key);
+    if (found) return found;
+    if (globalThis.MSH_PHYSICAL_FORMS && globalThis.MSH_PHYSICAL_FORMS[key]) {
+      return globalThis.MSH_PHYSICAL_FORMS[key];
+    }
+    return null;
+  }
+
+  getFormHealthMultiplier() {
+    if (this.isSwarmForm && this.activeSwarmProfile === 'individual') return 1;
+    const f = this.getFormDefinition();
+    if (!f) return 1;
+    if (f.healthMultiplier && f.healthMultiplier > 1) return f.healthMultiplier;
+    if (Array.isArray(f.extraPartOptions) && this.formExtraPart) {
+      const part = f.extraPartOptions.find(p => p.id === this.formExtraPart);
+      if (part && part.healthMultiplier && part.healthMultiplier > 1) {
+        return part.healthMultiplier;
+      }
+    }
+    return 1;
+  }
+
+  normalizeAbilityCode(val) {
+    if (!val) return null;
+    const map = {
+      f: 'F', fighting: 'F',
+      a: 'A', agility: 'A',
+      s: 'S', strength: 'S',
+      e: 'E', endurance: 'E',
+      r: 'R', reason: 'R',
+      i: 'I', intuition: 'I',
+      p: 'P', psyche: 'P'
+    };
+    return map[String(val).toLowerCase().trim()] || null;
+  }
+
+  getAllowedFormAbilityChoices(formKey = this.formKey) {
+    const f = this.getFormDefinition(formKey);
+    if (!f || !f.abilityChoice) return [];
+    const rawList = f.abilityChoice.allowed || f.abilityChoice.allowedAbilities || ['F', 'A', 'S', 'E', 'R', 'I', 'P'];
+    return rawList.map(x => this.normalizeAbilityCode(x)).filter(Boolean);
+  }
+
+  getTargetFormAbilityShifts(formKey = this.formKey, abilityChoice = this.formAbilityChoice, extraPart = this.formExtraPart) {
+    const shifts = { F: 0, A: 0, S: 0, E: 0, R: 0, I: 0, P: 0 };
+    const f = this.getFormDefinition(formKey);
+    if (!f) return shifts;
+
+    if (f.abilityMods && typeof f.abilityMods === 'object') {
+      for (const [k, v] of Object.entries(f.abilityMods)) {
+        const code = this.normalizeAbilityCode(k);
+        if (code && shifts[code] !== undefined) {
+          shifts[code] += (parseInt(v, 10) || 0);
+        }
+      }
+    }
+
+    if (f.abilityChoice && abilityChoice) {
+      const choiceKey = this.normalizeAbilityCode(abilityChoice);
+      const allowed = this.getAllowedFormAbilityChoices(formKey);
+      if (choiceKey && shifts[choiceKey] !== undefined && allowed.includes(choiceKey)) {
+        shifts[choiceKey] += (parseInt(f.abilityChoice.shift ?? f.abilityChoice.cs, 10) || 1);
+      }
+    }
+
+    if (Array.isArray(f.extraPartOptions) && extraPart) {
+      const partObj = f.extraPartOptions.find(p => p.id === extraPart) || f.extraPartOptions[0];
+      if (partObj && partObj.abilityMods && typeof partObj.abilityMods === 'object') {
+        for (const [k, v] of Object.entries(partObj.abilityMods)) {
+          const code = this.normalizeAbilityCode(k);
+          if (code && shifts[code] !== undefined) {
+            shifts[code] += (parseInt(v, 10) || 0);
+          }
+        }
+      }
+    }
+
+    return shifts;
+  }
+
+  syncFormAbilityShifts() {
+    if (typeof UniversalTableEngine === 'undefined') return this.appliedFormShifts;
+    if (!this.appliedFormShifts) {
+      this.appliedFormShifts = { F: 0, A: 0, S: 0, E: 0, R: 0, I: 0, P: 0 };
+    }
+    const targetShifts = this.getTargetFormAbilityShifts(this.formKey, this.formAbilityChoice, this.formExtraPart);
+    const statMap = {
+      F: 'fighting',
+      A: 'agility',
+      S: 'strength',
+      E: 'endurance',
+      R: 'reason',
+      I: 'intuition',
+      P: 'psyche'
+    };
+
+    for (const [code, abKey] of Object.entries(statMap)) {
+      const prevShift = parseInt(this.appliedFormShifts[code] || 0, 10);
+      const nextShift = parseInt(targetShifts[code] || 0, 10);
+      const deltaCS = nextShift - prevShift;
+      if (deltaCS !== 0 && this.abilities && this.abilities[abKey]) {
+        const curRankName = this.abilities[abKey].rankName || 'Typical';
+        const shifted = UniversalTableEngine.applyColumnShift(curRankName, deltaCS);
+        const rankObj = (typeof shifted === 'object' && shifted.name)
+          ? shifted
+          : UniversalTableEngine.getRankByName(shifted);
+        if (rankObj) {
+          this.abilities[abKey].rankName = rankObj.name;
+          this.abilities[abKey].rankValue = rankObj.num;
+          this.abilities[abKey].baseRankName = rankObj.name;
+          this.abilities[abKey].baseRankValue = rankObj.num;
+        }
+      }
+      this.appliedFormShifts[code] = nextShift;
+    }
+
+    this.currentHealth = this.calculateMaxHealth();
+    this.currentKarma = this.calculateBaseKarma();
+    if (this.calculateDefenses) this.calculateDefenses();
+    return { ...this.appliedFormShifts };
+  }
+
+  setFormAbilityChoice(abilityCode) {
+    const clean = this.normalizeAbilityCode(abilityCode);
+    this.formAbilityChoice = clean;
+    return this.syncFormAbilityShifts();
+  }
+
+  setFormExtraPart(extraPartId) {
+    const clean = extraPartId ? String(extraPartId).toLowerCase().trim() : 'arms';
+    this.formExtraPart = ['arms', 'organs', 'tail', 'wings'].includes(clean) ? clean : 'arms';
+    return this.syncFormAbilityShifts();
+  }
+
+  applyPhysicalForm(formKey, options = {}) {
+    const f = this.getFormDefinition(formKey);
+    if (!f) return null;
+
+    this.formKey = f.id;
+    this.formName = f.name;
+    this.isSwarmForm = (f.id === 's32_collective_mass' || f.id === 'swarm_collective');
+
+    if (f.abilityChoice) {
+      if (options.abilityChoice !== undefined) {
+        this.formAbilityChoice = options.abilityChoice;
+      }
+    } else {
+      this.formAbilityChoice = null;
+    }
+
+    if (Array.isArray(f.extraPartOptions)) {
+      if (options.extraPart !== undefined) {
+        this.formExtraPart = options.extraPart;
+      } else if (!this.formExtraPart) {
+        this.formExtraPart = 'arms';
+      }
+    }
+
+    if (!options.skipAbilityShifts) {
+      this.syncFormAbilityShifts();
+    }
+
+    if (options.applyPopularity !== false) {
+      if (typeof f.startingPopularity === 'number') {
+        this.basePopularity = f.startingPopularity;
+        this.currentPopularity = f.startingPopularity;
+      } else if (f.popularityShift && f.popularityShift < 0) {
+        this.basePopularity = 5;
+        this.currentPopularity = 5;
+      } else {
+        this.basePopularity = 10;
+        this.currentPopularity = 10;
+      }
+    }
+
+    if (options.applyResources && f.resourcesBase) {
+      this.setResourceRank(f.resourcesBase);
+    }
+
+    this.currentHealth = this.calculateMaxHealth();
+    this.currentKarma = this.calculateBaseKarma();
+    if (this.calculateDefenses) this.calculateDefenses();
+    return f;
+  }
+
+  hasManualStatInvestments() {
+    if (this.powers && this.powers.length > 0) return true;
+    if (this.talents && this.talents.length > 0) return true;
+    if (this.contacts && this.contacts.length > 0) return true;
+
+    const statMap = {
+      F: 'fighting',
+      A: 'agility',
+      S: 'strength',
+      E: 'endurance',
+      R: 'reason',
+      I: 'intuition',
+      P: 'psyche'
+    };
+
+    if (typeof UniversalTableEngine !== 'undefined') {
+      const applied = this.appliedFormShifts || { F: 0, A: 0, S: 0, E: 0, R: 0, I: 0, P: 0 };
+      for (const [code, abKey] of Object.entries(statMap)) {
+        const expectedObj = UniversalTableEngine.applyColumnShift('Typical', applied[code] || 0);
+        const expectedVal = (typeof expectedObj === 'object' && expectedObj.num !== undefined) ? expectedObj.num : 6;
+        const actualVal = this.abilities?.[abKey]?.rankValue ?? 6;
+        if (actualVal !== expectedVal && actualVal !== 6) {
+          return true;
+        }
+      }
+    }
+
+    const f = this.getFormDefinition();
+    const resVal = this.resources?.rankValue ?? 6;
+    const formResRank = f?.resourcesBase ? UniversalTableEngine?.getRankByName(f.resourcesBase)?.num : 6;
+    if (resVal !== 6 && resVal !== formResRank) {
+      return true;
+    }
+
+    return false;
+  }
+
   getBaseHealth() {
     let baseAbs = this.abilities;
     if (this.isSwarmForm && this.activeSwarmProfile === 'individual' && this.individualAbilities) {
       baseAbs = this.individualAbilities;
     }
-    return (
+    const raw = (
       (baseAbs?.fighting?.rankValue || 0) +
       (baseAbs?.agility?.rankValue || 0) +
       (baseAbs?.strength?.rankValue || 0) +
       (baseAbs?.endurance?.rankValue || 0)
     );
+    return raw * this.getFormHealthMultiplier();
   }
 
   calculateHealthBreakdown() {
@@ -712,7 +987,7 @@ class FASERIPCharacter {
       (abs?.agility?.rankValue || 0) +
       (abs?.strength?.rankValue || 0) +
       (abs?.endurance?.rankValue || 0)
-    );
+    ) * this.getFormHealthMultiplier();
 
     // Incorporate active temporary health buffers from powers (e.g. Kinetic Absorption)
     let bufferHealthBonus = 0;
@@ -743,7 +1018,8 @@ class FASERIPCharacter {
     return (
       (abs.reason.rankValue || 0) +
       (abs.intuition.rankValue || 0) +
-      (abs.psyche.rankValue || 0)
+      (abs.psyche.rankValue || 0) +
+      (this.startingKarmaBonus || 0)
     );
   }
 
@@ -777,6 +1053,175 @@ class FASERIPCharacter {
       }
       return rankName;
     };
+
+    // 0. Innate Physical Form Defenses, Resistances, Immunities & Vulnerabilities
+    const f = this.getFormDefinition();
+    if (f) {
+      const endRank = this.abilities?.endurance?.rankName || 'Typical';
+      const psyRank = this.abilities?.psyche?.rankName || 'Typical';
+      const fk = f.id || this.formKey;
+
+      if (f.combatMods?.physicalResistanceShift) {
+        const rName = shift(endRank, f.combatMods.physicalResistanceShift);
+        defenses.resistances.push({
+          name: `Skeletal Reinforcement (+${f.combatMods.physicalResistanceShift}CS vs Physical)`,
+          type: 'Physical',
+          rank: rName,
+          rankName: rName,
+          rankValue: getRank(rName).num,
+          notes: 'Innate Physical Form trait (UPB p. 4).'
+        });
+      }
+      const dpRank = f.combatMods?.diseasePoisonResistanceRank || f.combatMods?.diseasePoisonResistance;
+      if (dpRank) {
+        defenses.resistances.push({
+          name: 'Mechanical Body: Disease & Poison Resistance',
+          type: 'Disease / Poison',
+          rank: dpRank,
+          rankName: dpRank,
+          rankValue: getRank(dpRank).num,
+          notes: 'Innate Cyborg Mechanical Body trait (UPB p. 5).'
+        });
+      }
+      if (fk === 'mineral') {
+        defenses.resistances.push({
+          name: 'Mineral Physiology (Immune to Normal Poisons & Diseases)',
+          type: 'Disease / Poison',
+          rank: 'Class 1000',
+          rankName: 'Class 1000',
+          rankValue: 1000,
+          notes: 'Innate Mineral Life trait (UPB p. 8): 2× Base Health & immunity to normal human poisons and diseases.'
+        });
+      }
+      if (fk === 'gaseous') {
+        defenses.resistances.push({
+          name: 'Gaseous Body (Natural Phasing & Physical Blow Immunity)',
+          type: 'Physical',
+          rank: 'Unearthly',
+          rankName: 'Unearthly',
+          rankValue: 100,
+          notes: 'Innate Gaseous Life trait (UPB p. 9): Natural Phasing through permeable solids; immune to normal physical blows.'
+        });
+      }
+      if (fk === 'liquid') {
+        defenses.resistances.push({
+          name: 'Liquid Body (Fluid Permeation / Phasing)',
+          type: 'Physical',
+          rank: endRank,
+          rankName: endRank,
+          rankValue: getRank(endRank).num,
+          notes: 'Innate Liquid Life trait (UPB p. 8): Permeates porous materials; vulnerable to freezing (immobilization) and vaporization.'
+        });
+      }
+      if (f.combatMods?.toxicBloodDamage) {
+        defenses.resistances.push({
+          name: 'Abnormal Biochemistry (Toxic Blood vs Biters/Bio-Vampires)',
+          type: 'Biological Counter',
+          rank: 'Good',
+          rankName: 'Good',
+          rankValue: f.combatMods.toxicBloodDamage,
+          notes: 'Innate Abnormal Biochemistry trait (UPB p. 8): Anything that bites or feeds on the hero takes Good (10) poison damage.'
+        });
+      }
+      if (f.combatMods?.fastHealingMultiplier) {
+        defenses.resistances.push({
+          name: `Accelerated Organic Recovery (${f.combatMods.fastHealingMultiplier}× Normal Healing Rate)`,
+          type: 'Regeneration / Recovery',
+          rank: endRank,
+          rankName: endRank,
+          rankValue: getRank(endRank).num,
+          notes: 'Innate Modified Human / Surgical Composite trait (UPB p. 4): Heals twice as fast as Normal Humans.'
+        });
+      }
+      if (['robot_android', 'robot_human_shape', 'robot_usuform', 'robot_metamorphic', 'robot_computer', 'robot_humanoid', 'robot_giant', 'robot_utility', 'android', 'cyborg_ai'].includes(fk)) {
+        defenses.resistances.push({
+          name: 'Synthetic Physiology (Immune to Disease, Poison & Organic Telepathy)',
+          type: 'Biological / Mental',
+          rank: 'Class 1000',
+          rankName: 'Class 1000',
+          rankValue: 1000,
+          notes: 'Innate Robotic/Android immunity to biological toxins, disease, and organic mind control.'
+        });
+      }
+      if (['undead', 'undead_vampire'].includes(fk)) {
+        defenses.resistances.push({
+          name: 'Undead Physiology (Immune to Disease, Poison & Aging)',
+          type: 'Biological',
+          rank: 'Class 1000',
+          rankName: 'Class 1000',
+          rankValue: 1000,
+          notes: 'Innate Undead immunity to biological toxins, disease, and aging (UPB p. 9).'
+        });
+      }
+      if (f.combatMods?.physicalAttackReductionCS) {
+        const absRed = Math.abs(f.combatMods.physicalAttackReductionCS);
+        defenses.resistances.push({
+          name: `Ethereal Intangibility (-${absRed}CS to Incoming Physical Attacks)`,
+          type: 'Physical',
+          rank: 'Unearthly',
+          rankName: 'Unearthly',
+          rankValue: 100,
+          notes: 'Innate Ethereal Form trait (UPB p. 9).'
+        });
+      }
+      const swarmShift = f.combatMods?.swarmResistanceShift || f.combatMods?.swarmDefenseShift;
+      if (swarmShift) {
+        const rName = shift(endRank, swarmShift);
+        defenses.resistances.push({
+          name: `Swarm Dispersion (+${swarmShift}CS vs Physical & Energy)`,
+          type: 'Physical / Energy',
+          rank: rName,
+          rankName: rName,
+          rankValue: getRank(rName).num,
+          notes: 'Innate Collective Mass trait (Dragon #134).'
+        });
+      }
+      const mentalShift = f.combatMods?.mentalDominationResistanceShift || f.combatMods?.mentalResistanceShift;
+      if (mentalShift) {
+        const rName = shift(psyRank, mentalShift);
+        defenses.resistances.push({
+          name: `Surgical Alteration (${mentalShift}CS vs Mental Domination)`,
+          type: 'Mental Vulnerability',
+          rank: rName,
+          rankName: rName,
+          rankValue: getRank(rName).num,
+          notes: 'Innate Surgical Composite drawback (UPB p. 4).'
+        });
+      }
+      if (f.combatMods?.electricalMagneticVulnerabilityShift) {
+        const rName = shift(endRank, f.combatMods.electricalMagneticVulnerabilityShift);
+        defenses.resistances.push({
+          name: `Mainframe Sensitivity (${f.combatMods.electricalMagneticVulnerabilityShift}CS vs Electrical, Magnetic & Phasing)`,
+          type: 'Vulnerability',
+          rank: rName,
+          rankName: rName,
+          rankValue: getRank(rName).num,
+          notes: 'Innate Sentient Computer vulnerability (UPB p. 6).'
+        });
+      }
+      if (f.combatMods?.plasmaVulnerabilityShift) {
+        const rName = shift(endRank, f.combatMods.plasmaVulnerabilityShift);
+        defenses.resistances.push({
+          name: `Energy Body Vulnerability (${f.combatMods.plasmaVulnerabilityShift}CS vs Plasma Control)`,
+          type: 'Vulnerability',
+          rank: rName,
+          rankName: rName,
+          rankValue: getRank(rName).num,
+          notes: 'Innate Energy Body vulnerability (UPB p. 9).'
+        });
+      }
+      if (f.combatMods?.vulnerability) {
+        const rName = shift(endRank, -1);
+        defenses.resistances.push({
+          name: `Innate Vulnerability: ${f.combatMods.vulnerability}`,
+          type: 'Vulnerability',
+          rank: rName,
+          rankName: rName,
+          rankValue: getRank(rName).num,
+          notes: 'Innate Physical Form vulnerability (UPB p. 9).'
+        });
+      }
+    }
 
     if (Array.isArray(this.powers)) {
       this.powers.forEach(p => {
@@ -1005,6 +1450,13 @@ class FASERIPCharacter {
     if (!powerData) return null;
     if (!Array.isArray(this.powers)) this.powers = [];
 
+    if (this.creationMode === 'tsr' && !this.isModeledMode()) {
+      const maxSlots = this.getMaxPowerSlots();
+      if (maxSlots !== null && !this.canAddPower(powerData)) {
+        return null;
+      }
+    }
+
     const allCatalogPowers = [
       ...(globalThis.MSH_POWERS || []),
       ...(globalThis.MSH_NPC_PRESET_POWERS || [])
@@ -1037,6 +1489,13 @@ class FASERIPCharacter {
       ? [...powerData.traitModifiers]
       : (catalogPower && catalogPower.traitModifiers ? JSON.parse(JSON.stringify(catalogPower.traitModifiers)) : []);
 
+    const bonusPowerCodes = ['PC5', 'MG2', 'PC7', 'PC12'];
+    const bonusPowerSlots = (powerData.bonusPowerSlots !== undefined && powerData.bonusPowerSlots !== null)
+      ? parseInt(powerData.bonusPowerSlots, 10)
+      : (catalogPower?.bonusPowerSlots !== undefined && catalogPower?.bonusPowerSlots !== null
+          ? parseInt(catalogPower.bonusPowerSlots, 10)
+          : ((bonusPowerCodes.includes(powerData.code) || bonusPowerCodes.includes(powerData.id) || (catalogPower && bonusPowerCodes.includes(catalogPower.code))) ? 1 : 0));
+
     const newPower = {
       id: powerData.id || 'p_' + Date.now() + Math.random().toString(36).substr(2, 4),
       code: powerData.code || (catalogPower ? catalogPower.code : null),
@@ -1045,6 +1504,7 @@ class FASERIPCharacter {
       rankName: rankName,
       rankValue: rankVal,
       powerSlots: powerSlots,
+      bonusPowerSlots: bonusPowerSlots,
       isStarred: isStarred,
       isExceptional: isExceptional,
       isNpcArchetype: !!(powerData.isNpcArchetype || (catalogPower && catalogPower.isNpcArchetype)),
@@ -1075,6 +1535,12 @@ class FASERIPCharacter {
         invert: false,
         conditionLabel: ''
       },
+      limitation: powerData.limitation ? JSON.parse(JSON.stringify(powerData.limitation)) : null,
+      limitations: Array.isArray(powerData.limitations)
+        ? JSON.parse(JSON.stringify(powerData.limitations))
+        : (powerData.limitation ? [JSON.parse(JSON.stringify(powerData.limitation))] : []),
+      originalRolledRank: powerData.originalRolledRank || undefined,
+      originalRolledRankValue: powerData.originalRolledRankValue !== undefined ? powerData.originalRolledRankValue : undefined,
       notes: powerData.notes || '',
       stunts: Array.isArray(powerData.stunts)
         ? powerData.stunts.map(s => normalizePowerStunt(s, s.isLearned !== undefined ? !!s.isLearned : true))
@@ -1084,6 +1550,50 @@ class FASERIPCharacter {
     this.powers.push(newPower);
     if (this.calculateDefenses) this.calculateDefenses();
     return newPower;
+  }
+
+  setPowerLimitation(powerId, limitation) {
+    if (!Array.isArray(this.powers)) return null;
+    const power = typeof powerId === 'number' ? this.powers[powerId] : this.powers.find(p => p.id === powerId);
+    if (!power) return null;
+
+    // If removing limitation or replacing a vanilla TSR limitation
+    if (power.limitation && power.limitation.isTSRVanilla && power.originalRolledRank) {
+      power.rankName = power.originalRolledRank;
+      power.rankValue = power.originalRolledRankValue;
+      delete power.originalRolledRank;
+      delete power.originalRolledRankValue;
+    }
+
+    power.limitation = limitation ? JSON.parse(JSON.stringify(limitation)) : null;
+
+    // If applying a vanilla TSR limitation (+1CS rank boost with ceiling)
+    if (power.limitation && power.limitation.isTSRVanilla) {
+      power.originalRolledRank = power.rankName;
+      power.originalRolledRankValue = power.rankValue;
+      const ceiling = power.limitation.categoryCeiling || 'Excellent';
+      const val = (typeof validateTsrLimitation === 'function')
+        ? validateTsrLimitation(power.originalRolledRank, ceiling)
+        : (typeof globalThis !== 'undefined' && typeof globalThis.validateTsrLimitation === 'function')
+          ? globalThis.validateTsrLimitation(power.originalRolledRank, ceiling)
+          : { valid: true, newRank: power.rankName, newRankNum: power.rankValue };
+      if (val.valid && val.newRank) {
+        power.rankName = val.newRank;
+        power.rankValue = val.newRankNum;
+        power.limitation.appliedRankBoost = val.newRank;
+      }
+    }
+
+    if (power.limitation) {
+      power.limitations = [power.limitation];
+    } else {
+      power.limitations = [];
+    }
+    return power;
+  }
+
+  removePowerLimitation(powerId) {
+    return this.setPowerLimitation(powerId, null);
   }
 
   setPowerRank(powerId, newRankName) {
@@ -1423,6 +1933,25 @@ class FASERIPCharacter {
    * - Resources: point-for-point by rank number.
    */
   calculateSpentPoints() {
+    if (this.creationMode === 'tsr') {
+      return {
+        budget: 0,
+        baseBudget: 0,
+        cpAdjustment: 0,
+        tier: 'TSR 1986',
+        totalSpent: 0,
+        remaining: 0,
+        isTSRMode: true,
+        breakdown: {
+          abilities: 0,
+          powers: 0,
+          talents: 0,
+          contacts: 0,
+          resources: 0
+        }
+      };
+    }
+
     let abilitiesTotal = 0;
     const abs = this.abilities;
     ['fighting', 'agility', 'strength', 'endurance', 'reason', 'intuition', 'psyche'].forEach(k => {
@@ -1436,7 +1965,17 @@ class FASERIPCharacter {
       const rankMultiplier = isExp ? 2 : 1;
       const isTaxActive = !!(this.superiorOptionCost || this.superiorOptionTax);
       const surcharge = (isTaxActive && p.optionSurcharge !== undefined) ? parseInt(p.optionSurcharge || 0) : 0;
-      powersTotal += baseCost + (p.rankValue * rankMultiplier) + surcharge;
+      let powerCost = baseCost + (p.rankValue * rankMultiplier) + surcharge;
+      let totalDiscount = 0;
+      if (Array.isArray(p.limitations)) {
+        p.limitations.forEach(lim => {
+          totalDiscount += (parseInt(lim.cpDiscount, 10) || 0);
+        });
+      } else if (p.limitation && p.limitation.cpDiscount) {
+        totalDiscount += (parseInt(p.limitation.cpDiscount, 10) || 0);
+      }
+      powerCost = Math.max(5, powerCost - totalDiscount);
+      powersTotal += powerCost;
     });
 
     const talentsTotal = this.talents.reduce((sum, t) => sum + (t.costCP !== undefined ? t.costCP : (t.isStarred ? 20 : 10)), 0);
@@ -1463,12 +2002,166 @@ class FASERIPCharacter {
     };
   }
 
+  setTsrSubMode(subMode) {
+    this.tsrSubMode = (subMode === 'modeled') ? 'modeled' : 'random';
+  }
+
+  isModeledMode() {
+    return this.creationMode === 'tsr' && this.tsrSubMode === 'modeled';
+  }
+
+  setTsrModeledKPLimit(limit) {
+    this.tsrModeledKPLimit = Math.max(0, parseInt(limit) || 0);
+  }
+
+  /**
+   * TSR MODELED KP COST ENGINE
+   * Tracks total Karma Point (KP) investment for free-form TSR characters.
+   * - Primary Abilities: 10 KP per rank number (e.g. Good 10 = 100 KP, Rm 30 = 300 KP).
+   * - Powers: 100 KP base + (10 * rankValue) for standard powers; 200 KP base + (20 * rankValue) for starred powers.
+   *   Minus limitations (10 * cpDiscount; min 50 KP floor).
+   * - Talents: 100 KP standard, 200 KP starred.
+   * - Contacts: 50 KP each.
+   * - Resources: 10 KP per rank number.
+   */
+  calculateModeledKPCost() {
+    let abilitiesTotal = 0;
+    const abs = this.abilities || {};
+    ['fighting', 'agility', 'strength', 'endurance', 'reason', 'intuition', 'psyche'].forEach(k => {
+      abilitiesTotal += ((abs[k]?.rankValue || 0) * 10);
+    });
+
+    let powersTotal = 0;
+    (this.powers || []).forEach(p => {
+      const isExp = !!(p.isExceptional || p.isStarred);
+      const baseCost = isExp ? 200 : 100;
+      const rankMultiplier = isExp ? 20 : 10;
+      const isTaxActive = !!(this.superiorOptionCost || this.superiorOptionTax);
+      const surcharge = (isTaxActive && p.optionSurcharge !== undefined) ? (parseInt(p.optionSurcharge || 0) * 10) : 0;
+      let powerCost = baseCost + ((p.rankValue || 0) * rankMultiplier) + surcharge;
+      let totalDiscount = 0;
+      if (Array.isArray(p.limitations)) {
+        p.limitations.forEach(lim => {
+          totalDiscount += ((parseInt(lim.cpDiscount, 10) || 0) * 10);
+        });
+      } else if (p.limitation && p.limitation.cpDiscount) {
+        totalDiscount += ((parseInt(p.limitation.cpDiscount, 10) || 0) * 10);
+      }
+      powerCost = Math.max(50, powerCost - totalDiscount);
+      powersTotal += powerCost;
+    });
+
+    const talentsTotal = (this.talents || []).reduce((sum, t) => {
+      const cost = t.costCP !== undefined ? t.costCP : (t.isStarred ? 20 : 10);
+      return sum + (cost * 10);
+    }, 0);
+
+    const contactsTotal = (this.contacts || []).length * 50;
+    const resourcesTotal = ((this.resources?.rankValue) || 0) * 10;
+
+    const totalKPCost = abilitiesTotal + powersTotal + talentsTotal + contactsTotal + resourcesTotal;
+    const kpLimit = this.tsrModeledKPLimit || 0;
+
+    return {
+      totalKPCost,
+      kpLimit,
+      remaining: kpLimit > 0 ? (kpLimit - totalKPCost) : null,
+      breakdown: {
+        abilities: abilitiesTotal,
+        powers: powersTotal,
+        talents: talentsTotal,
+        contacts: contactsTotal,
+        resources: resourcesTotal
+      }
+    };
+  }
+
   /**
    * Calculates total power slots allocated across all active powers.
-   * Starred powers count as 2 slots each.
+   * Starred powers (or countsAsTwo) count as 2 slots each.
    */
   getTotalPowerSlots() {
-    return this.powers.reduce((sum, p) => sum + (p.powerSlots || (p.isStarred ? 2 : 1)), 0);
+    if (!Array.isArray(this.powers)) return 0;
+    return this.powers.reduce((sum, p) => sum + (p.powerSlots || (p.isStarred || p.countsAsTwo ? 2 : 1)), 0);
+  }
+
+  /**
+   * Alias for getTotalPowerSlots to represent currently consumed power slots.
+   */
+  getUsedPowerSlots() {
+    return this.getTotalPowerSlots();
+  }
+
+  /**
+   * Calculates extra power slots granted by possessed powers (such as Energy Source, Focus, Residual Absorption).
+   */
+  getBonusPowerSlots() {
+    if (!Array.isArray(this.powers)) return 0;
+    const bonusPowerCodes = ['PC5', 'MG2', 'PC7', 'PC12'];
+    return this.powers.reduce((sum, p) => {
+      if (p.bonusPowerSlots !== undefined && p.bonusPowerSlots !== null) {
+        return sum + parseInt(p.bonusPowerSlots, 10);
+      }
+      const code = p.code || p.id;
+      if (code && bonusPowerCodes.includes(code)) return sum + 1;
+      return sum;
+    }, 0);
+  }
+
+  /**
+   * Calculates the maximum number of power slots available to this character.
+   * In CMF mode, returns 999. In TSR mode, returns rolled slots plus any bonus slots from powers.
+   */
+  getMaxPowerSlots() {
+    if (this.creationMode !== 'tsr' || this.isModeledMode()) return 999;
+    const base = (this.tsrPowerSlots !== null && this.tsrPowerSlots !== undefined)
+      ? this.tsrPowerSlots
+      : (this.creationData?.tsrPowerSlots ?? null);
+    if (base === null) return null;
+    return base + this.getBonusPowerSlots();
+  }
+
+  /**
+   * Returns remaining available power slots.
+   */
+  getAvailablePowerSlots() {
+    const max = this.getMaxPowerSlots();
+    if (max === null) return 0;
+    return Math.max(0, max - this.getUsedPowerSlots());
+  }
+
+  /**
+   * Evaluates whether a new power can be added given current slot capacity.
+   * Starred powers require 2 slots. Powers granting bonus slots (e.g., Energy Source) expand capacity.
+   */
+  canAddPower(powerData) {
+    if (!powerData) return false;
+    if (this.creationMode !== 'tsr' || this.isModeledMode()) return true;
+    const maxSlots = this.getMaxPowerSlots();
+    if (maxSlots === null) return false;
+
+    const allCatalogPowers = [
+      ...(globalThis.MSH_POWERS || []),
+      ...(globalThis.MSH_NPC_PRESET_POWERS || [])
+    ];
+    const catalogPower = allCatalogPowers.find(cp => 
+      (powerData.code && (cp.id === powerData.code || cp.code === powerData.code)) ||
+      (powerData.id && (cp.id === powerData.id || cp.code === powerData.id)) ||
+      (powerData.catalogId && (cp.id === powerData.catalogId || cp.code === powerData.catalogId)) ||
+      (powerData.name && cp.name.toLowerCase() === powerData.name.toLowerCase())
+    );
+
+    const isStarred = !!(powerData.isStarred || powerData.countsAsTwo || (catalogPower && (catalogPower.isStarred || catalogPower.countsAsTwo || catalogPower.powerSlots > 1)));
+    const incomingCost = isStarred ? 2 : (powerData.powerSlots || (catalogPower ? catalogPower.powerSlots : 1));
+    const bonusPowerCodes = ['PC5', 'MG2', 'PC7', 'PC12'];
+    const incomingBonus = (powerData.bonusPowerSlots !== undefined && powerData.bonusPowerSlots !== null)
+      ? parseInt(powerData.bonusPowerSlots, 10)
+      : (catalogPower?.bonusPowerSlots !== undefined && catalogPower?.bonusPowerSlots !== null
+          ? parseInt(catalogPower.bonusPowerSlots, 10)
+          : ((bonusPowerCodes.includes(powerData.code) || bonusPowerCodes.includes(powerData.id) || (catalogPower && bonusPowerCodes.includes(catalogPower.code))) ? 1 : 0));
+
+    const usedSlots = this.getUsedPowerSlots();
+    return (usedSlots + incomingCost) <= (maxSlots + incomingBonus);
   }
 
   /**
@@ -1532,11 +2225,11 @@ class FASERIPCharacter {
       case '300':
       case 'tier_300':
       case 'costumed_adventurer':
+      case 'standard':
         return 300;
       case '400':
       case 'tier_400':
       case 'established_hero':
-      case 'standard':
         return 400;
       case '500':
       case 'tier_500':
@@ -1549,10 +2242,10 @@ class FASERIPCharacter {
       case 'cosmic':
         return 600;
       case 'custom':
-        return this.basePointBudget || 400;
+        return this.basePointBudget || 300;
       default: {
         const parsed = parseInt(tier);
-        return (!isNaN(parsed) && parsed > 0) ? parsed : (this.basePointBudget || 400);
+        return (!isNaN(parsed) && parsed > 0) ? parsed : (this.basePointBudget || 300);
       }
     }
   }
@@ -1571,7 +2264,7 @@ class FASERIPCharacter {
 
   setPointTier(tier, customBudget = null) {
     this.pointTier = String(tier);
-    let base = 400;
+    let base = 300;
     switch (String(tier).toLowerCase()) {
       case '150':
       case 'tier_150':
@@ -1587,12 +2280,12 @@ class FASERIPCharacter {
       case '300':
       case 'tier_300':
       case 'costumed_adventurer':
+      case 'standard':
         base = 300;
         break;
       case '400':
       case 'tier_400':
       case 'established_hero':
-      case 'standard':
         base = 400;
         break;
       case '500':
@@ -1612,6 +2305,8 @@ class FASERIPCharacter {
           base = parseInt(customBudget);
         } else if (this.basePointBudget) {
           base = this.basePointBudget;
+        } else {
+          base = 300;
         }
         break;
       default: {
@@ -1619,7 +2314,7 @@ class FASERIPCharacter {
         if (!isNaN(parsed) && parsed > 0) {
           base = parsed;
         } else {
-          base = 400;
+          base = 300;
         }
       }
     }
@@ -1627,10 +2322,171 @@ class FASERIPCharacter {
     this.pointBudget = Math.round(base * (1 + (this.cpAdjustment || 0) / 100));
   }
 
+  canChangeBudget(targetBudget) {
+    const pts = this.calculateSpentPoints();
+    const target = parseInt(targetBudget) || 0;
+    if (target < pts.totalSpent) {
+      return {
+        allowed: false,
+        currentSpent: pts.totalSpent,
+        targetBudget: target,
+        overAmount: pts.totalSpent - target,
+        reason: `Cannot reduce budget to ${target} CP: Character currently has ${pts.totalSpent} CP spent (${pts.totalSpent - target} CP over budget). Reduce CP expenditure first.`
+      };
+    }
+    return {
+      allowed: true,
+      currentSpent: pts.totalSpent,
+      targetBudget: target,
+      remainingAfter: target - pts.totalSpent
+    };
+  }
+
+  changePointBudget(tier, customBudget = null, cpAdjustment = null) {
+    let base = 300;
+    const tierStr = String(tier || '300').toLowerCase();
+    if (tierStr === 'custom') {
+      base = parseInt(customBudget) || this.basePointBudget || 300;
+    } else {
+      base = this.getBaseTierBudget(tier);
+    }
+    let adj = this.cpAdjustment || 0;
+    if (cpAdjustment !== null && cpAdjustment !== undefined) {
+      let p = parseInt(cpAdjustment) || 0;
+      p = Math.round(p / 25) * 25;
+      adj = Math.max(-25, Math.min(50, p));
+    }
+    const proposedBudget = Math.round(base * (1 + adj / 100));
+    const check = this.canChangeBudget(proposedBudget);
+    if (!check.allowed) {
+      return { success: false, ...check };
+    }
+    this.cpAdjustment = adj;
+    this.setPointTier(tier, customBudget);
+    return { success: true, budget: this.pointBudget, tier: this.pointTier };
+  }
+
+  /**
+   * Determines if the character's physical form is human.
+   */
+  isHuman() {
+    const formKey = (this.formKey || '').toLowerCase();
+    const formName = (this.formName || '').toLowerCase();
+
+    // Explicit non-humans
+    if (formKey.includes('robot') || formKey.includes('android') || formKey.includes('synthezoid') ||
+        formKey.includes('alien') || formKey.includes('cyborg') || formKey.includes('demihuman') ||
+        formKey.includes('deity') || formKey.includes('animal') || formKey.includes('undead') ||
+        formKey.includes('energy_being') || formKey.includes('gaseous') || formKey.includes('liquid') ||
+        formKey.includes('mineral') || formKey.includes('vegetable') || formKey.includes('swarm') ||
+        formKey.includes('merhuman') || formKey.includes('changeling') || formKey.includes('compound') ||
+        formKey.includes('ethereal') || formKey.includes('gestalt')) {
+      return false;
+    }
+    // Mutants are Homo superior (metahumans)
+    if (formKey.includes('mutant') || formName.includes('mutant')) {
+      return false;
+    }
+    // Normal humans & human forms
+    if (formKey.startsWith('normal_human') || formKey === 'human') {
+      return true;
+    }
+    if (formKey.includes('human') || formName.includes('human')) {
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * Checks if the character possesses a superpower, trait modifier, or equipped item
+   * that enhances, boosts, sets, or targets the specified ability.
+   */
+  hasPowerForAbility(abilityKey) {
+    const key = (abilityKey || '').toLowerCase();
+    if (Array.isArray(this.powers)) {
+      const found = this.powers.some(p => {
+        if (!p) return false;
+        const pCode = (p.code || '').toUpperCase();
+        const pName = (p.name || '').toLowerCase();
+        const pDesc = (p.description || '').toLowerCase();
+        const pNotes = (p.notes || '').toLowerCase();
+
+        // Direct UPB codes
+        if (key === 'strength' && (pCode === 'P20' || pCode === 'S16' || pCode === 'S8')) return true;
+        if (key === 'endurance' && (pCode === 'P21' || pCode === 'P5')) return true;
+        if (key === 'fighting' && (pCode === 'F2')) return true;
+        if (key === 'reason' && (pCode === 'M13' || pCode === 'M14')) return true;
+
+        // Name checks
+        if (key === 'strength' && (pName.includes('strength') || pName.includes('growth') || pName.includes('density manipulation') || pName.includes('body transformation') || pName.includes('hyper-digging'))) return true;
+        if (key === 'fighting' && (pName.includes('fighting') || pName.includes('martial') || pName.includes('weapons master') || pName.includes('combat supremacy'))) return true;
+        if (key === 'agility' && (pName.includes('agility') || pName.includes('speed') || pName.includes('hyper-speed') || pName.includes('reflexes') || pName.includes('acrobatic'))) return true;
+        if (key === 'endurance' && (pName.includes('endurance') || pName.includes('body resistance') || pName.includes('invulnerability'))) return true;
+        if (key === 'reason' && (pName.includes('intelligence') || pName.includes('reason') || pName.includes('invention') || pName.includes('lingualism'))) return true;
+        if (key === 'intuition' && (pName.includes('intuition') || pName.includes('danger sense') || pName.includes('combat sense') || pName.includes('sixth sense') || pName.includes('hyper-hearing') || pName.includes('hyper-touch') || pName.includes('hyper-olfactory'))) return true;
+        if (key === 'psyche' && (pName.includes('psyche') || pName.includes('iron will') || pName.includes('telepath') || pName.includes('magic') || pName.includes('astral') || pName.includes('mind') || pName.includes('psionic') || pName.includes('willpower'))) return true;
+
+        // Trait modifiers
+        if (Array.isArray(p.traitModifiers)) {
+          const touches = p.traitModifiers.some(mod => {
+            const targets = Array.isArray(mod.targetStats) ? mod.targetStats : (mod.targetStat ? [mod.targetStat] : []);
+            return targets.some(t => (t || '').toLowerCase().trim() === key);
+          });
+          if (touches) return true;
+        }
+
+        // Explicit ability property or notes
+        if ((p.statAffected && p.statAffected.toLowerCase() === key) || (p.ability && p.ability.toLowerCase() === key)) return true;
+        if (pNotes.includes(`enhances ${key}`) || pDesc.includes(`increases ${key}`) || pDesc.includes(`raises ${key}`)) return true;
+
+        return false;
+      });
+      if (found) return true;
+    }
+
+    // Equipped items with abilityBoosts
+    if (Array.isArray(this.equipment)) {
+      const hasBoost = this.equipment.some(e => {
+        if (!e.equipped) return false;
+        if (Array.isArray(e.abilityBoosts)) {
+          if (e.abilityBoosts.some(b => (b.ability || b.name || '').toLowerCase() === key)) return true;
+        } else if (e.abilityBoosts && typeof e.abilityBoosts === 'object') {
+          if (Object.keys(e.abilityBoosts).some(k => k.toLowerCase() === key)) return true;
+        }
+        if (e.boosts && typeof e.boosts === 'object') {
+          if (Object.keys(e.boosts).some(k => k.toLowerCase() === key)) return true;
+        }
+        return false;
+      });
+      if (hasBoost) return true;
+    }
+
+    return false;
+  }
+
+  /**
+   * Retrieves the human ability cap for a given ability.
+   */
+  getHumanAbilityCap(abilityKey) {
+    const mode = (typeof UniversalTableEngine !== 'undefined' && UniversalTableEngine.activeMode)
+      ? UniversalTableEngine.activeMode
+      : (this.creationMode === 'tsr' ? 'standard' : 'cmf');
+    return (typeof UniversalTableEngine !== 'undefined' && UniversalTableEngine.getHumanAbilityCap)
+      ? UniversalTableEngine.getHumanAbilityCap(abilityKey, mode)
+      : null;
+  }
+
   setAbilityRank(abilityKey, rankName) {
     const key = abilityKey.toLowerCase();
     if (!this.abilities[key]) return;
-    const r = UniversalTableEngine.getRankByName(rankName);
+    let r = UniversalTableEngine.getRankByName(rankName);
+    if (this.humanAbilityCaps && this.isHuman() && !this.hasPowerForAbility(key)) {
+      const cap = this.getHumanAbilityCap(key);
+      if (cap && r.num > cap.rankValue) {
+        const capRank = UniversalTableEngine.getRankByName(cap.rankName);
+        if (capRank) r = capRank;
+      }
+    }
     this.abilities[key].rankName = r.name;
     this.abilities[key].rankValue = r.num;
     this.currentHealth = this.calculateMaxHealth();
@@ -1680,6 +2536,16 @@ class FASERIPCharacter {
         success: false, 
         error: `Please specify a specialization for "${baseName}" (e.g. ${specPlaceholder || 'specific specialty'}).` 
       };
+    }
+
+    // Check TSR slot limit
+    if (this.creationMode === 'tsr' && !this.isModeledMode() && this.tsrTalentSlots !== null && this.tsrTalentSlots !== undefined) {
+      if (this.talents && this.talents.length >= this.tsrTalentSlots) {
+        return {
+          success: false,
+          error: `In TSR Random Roll mode, talents are limited to ${this.tsrTalentSlots} rolled slot(s).`
+        };
+      }
     }
 
     // Check duplicate rules
@@ -1853,6 +2719,18 @@ class FASERIPCharacter {
       const key = identifier.toLowerCase();
       if (!this.abilities[key]) return { success: false, error: `Invalid ability: ${identifier}` };
       currentRankName = this.abilities[key].rankName;
+
+      if (this.humanAbilityCaps && this.isHuman() && !this.hasPowerForAbility(key)) {
+        const cap = this.getHumanAbilityCap(key);
+        const tgtRank = UniversalTableEngine.getRankByName(targetRankName);
+        if (cap && tgtRank && tgtRank.num > cap.rankValue) {
+          return {
+            success: false,
+            error: `Human Ability Cap: Natural ${key.toUpperCase()} for humans cannot be advanced beyond ${cap.rankName} (${cap.rankValue}). Exceeding this limit requires an ability-enhancing power.`,
+            reason: `Human Ability Cap: Natural ${key.toUpperCase()} for humans cannot be advanced beyond ${cap.rankName} (${cap.rankValue}). Exceeding this limit requires an ability-enhancing power.`
+          };
+        }
+      }
     } else if (category === 'power') {
       const power = this.powers.find(p => p.id === identifier || p.name.toLowerCase() === identifier.toLowerCase());
       if (!power) return { success: false, error: `Power not found: ${identifier}` };
@@ -1954,6 +2832,10 @@ class FASERIPCharacter {
     if (hasMartialD) {
       unarmedNotes.push('+2CS to damage or Called Shot (Martial Arts D)');
     }
+    const martialSupremacyPower = (this.powers || []).find(p => (p.code === 'F2' || (p.name && (p.name.toLowerCase() === 'martial arts supremacy' || p.name.toLowerCase() === 'martial supremacy'))));
+    if (martialSupremacyPower && this.isPowerOperating(martialSupremacyPower.id)) {
+      unarmedNotes.push(`+${martialSupremacyPower.rankValue} to Fighting from Martial Arts Supremacy (${martialSupremacyPower.rankName})`);
+    }
 
     attacks.push({
       id: 'atk_slugfest',
@@ -1969,6 +2851,22 @@ class FASERIPCharacter {
       notes: unarmedNotes.join('; ') || 'Standard slugfest attack. Yellow = Slam, Red = Stun.'
     });
 
+    if (martialSupremacyPower && this.isPowerOperating(martialSupremacyPower.id)) {
+      attacks.push({
+        id: 'atk_martial_supremacy_sunder',
+        name: 'Martial Arts Supremacy (Matter Sunder)',
+        category: 'Power',
+        actionType: 'sunder',
+        abilityName: 'Fighting',
+        baseRank: abs.fighting.rankName,
+        columnShift: unarmedCS,
+        damage: `${martialSupremacyPower.rankValue} Rank Damage (${martialSupremacyPower.rankName})`,
+        damageValue: martialSupremacyPower.rankValue,
+        range: 'Touch',
+        notes: `Red Fighting FEAT allows splitting or sundering non-living matter (iron, concrete, glass) inflicting ${martialSupremacyPower.rankValue} rank damage.`
+      });
+    }
+
     // 2. Grappling / Hold
     let grappleCS = 0;
     let grappleNotes = [];
@@ -1979,6 +2877,14 @@ class FASERIPCharacter {
     if (hasMartialC) {
       grappleCS += 1;
       grappleNotes.push('+1CS Martial Arts C');
+    }
+    if (this.formKey === 'modified_human_extra_parts' && this.formExtraPart === 'arms') {
+      grappleCS += 1;
+      grappleNotes.push('+1CS Extra Arms (Physical Form)');
+    }
+    if (this.formKey === 'demihuman_ursinoid' || this.formKey === 'demihuman') {
+      grappleCS += 1;
+      grappleNotes.push('+1CS Demihuman Grapple (Physical Form)');
     }
 
     attacks.push({
@@ -2009,6 +2915,10 @@ class FASERIPCharacter {
     } else if (escapeAbility === 'Agility' && hasAcrobatics) {
       escapeCS += 1;
       escapeNotes.push('+1CS Acrobatics');
+    }
+    if (this.formKey === 'lamian' || this.formKey === 'demihuman_lamian') {
+      escapeCS += 1;
+      escapeNotes.push('+1CS Lamian Serpentine Body (Physical Form)');
     }
 
     attacks.push({
@@ -2154,6 +3064,199 @@ class FASERIPCharacter {
       range: 'Self',
       notes: blockNotes.join('; ') || 'Strength FEAT (or Shield Material) providing temporary Body Armor. Green = Str -2CS armor, Yellow = Full Str armor, Red = Str +1CS armor.'
     });
+
+    // 9b. Innate Physical Form Natural Attacks & Combat Capabilities
+    const fk = this.formKey || '';
+    if (fk === 'modified_human_extra_parts') {
+      if (this.formExtraPart === 'tail') {
+        attacks.push({
+          id: 'atk_form_tail',
+          name: 'Prehensile Tail Strike (+1 Attack/Round)',
+          category: 'Melee',
+          actionType: 'slugfest',
+          abilityName: 'Fighting',
+          baseRank: abs.fighting.rankName,
+          columnShift: unarmedCS,
+          damage: `${abs.strength.rankValue} Blunt (Str: ${abs.strength.rankName})`,
+          damageValue: abs.strength.rankValue,
+          range: 'Touch',
+          notes: 'Innate Extra Anatomy (UPB p. 4): Grants +1 additional Blunt melee attack per combat round.'
+        });
+      } else if (this.formExtraPart === 'wings') {
+        attacks.push({
+          id: 'atk_form_wings',
+          name: 'Innate Winged Flight (Extra Anatomy)',
+          category: 'Tactical',
+          actionType: 'movement',
+          abilityName: 'Agility',
+          baseRank: abs.agility.rankName,
+          columnShift: 0,
+          damage: 'Flight: Typical (6 areas/turn)',
+          damageValue: 0,
+          range: 'Self',
+          notes: 'Innate Extra Anatomy (UPB p. 4): Biomechanical or feathered wings granting natural flight.'
+        });
+      }
+    } else if (fk === 'equiman' || fk === 'demihuman_equiman') {
+      const kickShifted = (typeof UniversalTableEngine !== 'undefined')
+        ? UniversalTableEngine.applyColumnShift(abs.strength.rankName, 1)
+        : { name: abs.strength.rankName, num: abs.strength.rankValue };
+      const kickRank = (typeof kickShifted === 'object' && kickShifted.name) ? kickShifted.name : abs.strength.rankName;
+      const kickVal = (typeof kickShifted === 'object' && kickShifted.num !== undefined) ? kickShifted.num : abs.strength.rankValue;
+      attacks.push({
+        id: 'atk_form_equiman_kick',
+        name: 'Equiman Hoof Kick (+1CS Damage)',
+        category: 'Melee',
+        actionType: 'slugfest',
+        abilityName: 'Fighting',
+        baseRank: abs.fighting.rankName,
+        columnShift: unarmedCS,
+        damage: `${kickVal} Blunt (Str +1CS: ${kickRank})`,
+        damageValue: kickVal,
+        range: 'Touch',
+        notes: 'Innate Equiman trait (UPB p. 4): Powerful hind-leg structure inflicts +1CS blunt damage on kick attacks.'
+      });
+    } else if (fk === 'centaur' || fk === 'centaur_faun' || fk === 'demihuman_centaur') {
+      attacks.push({
+        id: 'atk_form_centaur_hooves',
+        name: 'Centaur Hooves Strike',
+        category: 'Melee',
+        actionType: 'slugfest',
+        abilityName: 'Fighting',
+        baseRank: abs.fighting.rankName,
+        columnShift: unarmedCS,
+        damage: `${abs.strength.rankValue} Blunt (Str: ${abs.strength.rankName})`,
+        damageValue: abs.strength.rankValue,
+        range: 'Touch',
+        notes: 'Innate Centaur trait (UPB p. 4): Hoof strike & 4 areas/turn horizontal land movement.'
+      });
+    } else if (fk === 'felinoid' || fk === 'demihuman_felinoid') {
+      attacks.push({
+        id: 'atk_form_felinoid_claws',
+        name: 'Felinoid Claws & Fangs',
+        category: 'Melee',
+        actionType: 'edged',
+        abilityName: 'Fighting',
+        baseRank: abs.fighting.rankName,
+        columnShift: unarmedCS,
+        damage: `${abs.strength.rankValue} Edged (Str: ${abs.strength.rankName})`,
+        damageValue: abs.strength.rankValue,
+        range: 'Touch',
+        notes: 'Innate Felinoid trait (UPB p. 4): Natural retractile claws/fangs (Edged attack), Excellent Night Vision & +1CS Climbing FEATs.'
+      });
+    } else if (fk === 'lupinoid' || fk === 'demihuman_lupinoid') {
+      attacks.push({
+        id: 'atk_form_lupinoid_claws',
+        name: 'Lupinoid Fangs & Claws',
+        category: 'Melee',
+        actionType: 'edged',
+        abilityName: 'Fighting',
+        baseRank: abs.fighting.rankName,
+        columnShift: unarmedCS,
+        damage: `${abs.strength.rankValue} Edged (Str: ${abs.strength.rankName})`,
+        damageValue: abs.strength.rankValue,
+        range: 'Touch',
+        notes: 'Innate Lupinoid trait (UPB p. 5): Predatory jaws/claws (Edged attack) & Excellent (20) Olfactory tracking.'
+      });
+    } else if (fk === 'demihuman' || fk === 'demihuman_ursinoid') {
+      attacks.push({
+        id: 'atk_form_ursinoid_claws',
+        name: 'Demihuman Natural Claws / Strike',
+        category: 'Melee',
+        actionType: 'edged',
+        abilityName: 'Fighting',
+        baseRank: abs.fighting.rankName,
+        columnShift: unarmedCS,
+        damage: `${abs.strength.rankValue} Edged (Str: ${abs.strength.rankName})`,
+        damageValue: abs.strength.rankValue,
+        range: 'Touch',
+        notes: 'Innate Demihuman trait (UPB p. 5): Natural claws (Edged attack) & +1CS Grapple.'
+      });
+    } else if (fk === 'avian_harpy' || fk === 'avian_angelic' || fk === 'demihuman_avian') {
+      attacks.push({
+        id: 'atk_form_avian_talons',
+        name: fk === 'avian_angelic' ? 'Avian Winged Flight' : 'Harpy Talon Claws & Winged Flight',
+        category: fk === 'avian_angelic' ? 'Tactical' : 'Melee',
+        actionType: fk === 'avian_angelic' ? 'movement' : 'edged',
+        abilityName: fk === 'avian_angelic' ? 'Agility' : 'Fighting',
+        baseRank: fk === 'avian_angelic' ? abs.agility.rankName : abs.fighting.rankName,
+        columnShift: fk === 'avian_angelic' ? 0 : unarmedCS,
+        damage: fk === 'avian_angelic' ? 'Winged Flight' : `${abs.strength.rankValue} Edged (Str: ${abs.strength.rankName})`,
+        damageValue: fk === 'avian_angelic' ? 0 : abs.strength.rankValue,
+        range: fk === 'avian_angelic' ? 'Self' : 'Touch',
+        notes: 'Innate Avian trait (UPB p. 5): Natural winged flight' + (fk === 'avian_angelic' ? '.' : ' and raking bird-claw talons (Edged attack).')
+      });
+    } else if (fk === 'chiropteran' || fk === 'demihuman_chiropteran') {
+      attacks.push({
+        id: 'atk_form_chiropteran_fangs',
+        name: 'Chiropteran Fangs & Active Sonar (Good)',
+        category: 'Melee',
+        actionType: 'edged',
+        abilityName: 'Fighting',
+        baseRank: abs.fighting.rankName,
+        columnShift: unarmedCS,
+        damage: `${abs.strength.rankValue} Edged (Str: ${abs.strength.rankName})`,
+        damageValue: abs.strength.rankValue,
+        range: 'Touch',
+        notes: 'Innate Chiropteran trait (UPB p. 5): Leathery winged flight, bite/claws, and Good (10) Active Sonar.'
+      });
+    } else if (fk === 'lamian' || fk === 'demihuman_lamian') {
+      attacks.push({
+        id: 'atk_form_lamian_bite',
+        name: 'Lamian Fang Bite (Venomous) / Coils',
+        category: 'Melee',
+        actionType: 'edged',
+        abilityName: 'Fighting',
+        baseRank: abs.fighting.rankName,
+        columnShift: unarmedCS,
+        damage: `${abs.strength.rankValue} Edged + Excellent (20) Venom`,
+        damageValue: abs.strength.rankValue,
+        range: 'Touch',
+        notes: 'Innate Lamian trait (UPB p. 5): Serpentine coils (+1CS Escape) and venomous fangs (Excellent 20 poison).'
+      });
+    } else if (fk === 'faun') {
+      attacks.push({
+        id: 'atk_form_faun_hypnosis',
+        name: 'Faun Hypnotic Charm (Feeble)',
+        category: 'Power',
+        actionType: 'energy',
+        abilityName: 'Psyche',
+        baseRank: 'Feeble',
+        columnShift: 0,
+        damage: 'Hypnotic Control (Feeble 2)',
+        damageValue: 2,
+        range: '1 area',
+        notes: 'Innate Faun trait (UPB p. 4): Feeble Mental Domination (Hypnotic Control) over females of any humanoid race.'
+      });
+    } else if (fk === 'energy_being') {
+      attacks.push({
+        id: 'atk_form_energy_contact',
+        name: 'Energy Body Contact Aura (Feeble)',
+        category: 'Power',
+        actionType: 'energy',
+        abilityName: 'Endurance',
+        baseRank: abs.endurance.rankName,
+        columnShift: 0,
+        damage: '2 Energy (Feeble Contact Aura)',
+        damageValue: 2,
+        range: 'Touch',
+        notes: 'Innate Energy Being trait (UPB p. 9): Inflicts Feeble (2) energy damage automatically upon physical contact.'
+      });
+    } else if (fk === 'angel_demon') {
+      attacks.push({
+        id: 'atk_form_planar_weapon',
+        name: 'Planar Manifestation (Magical Sword Ex 20 / Hellfire Gd 10)',
+        category: 'Power',
+        actionType: 'edged',
+        abilityName: 'Fighting',
+        baseRank: abs.fighting.rankName,
+        columnShift: 0,
+        damage: '20 Edged (Angelic Sword) or 10 Hellfire',
+        damageValue: 20,
+        range: 'Touch / 3 areas',
+        notes: 'Innate Angel/Demon trait (UPB p. 7): Angels manifest an Excellent (20) Magical Sword; Demons possess Good (10) Fire Generation & Heat/Fire Invulnerability.'
+      });
+    }
 
     // 10. Equipped Weapons
     this.equipment.filter(eq => eq.equipped).forEach(eq => {
@@ -2487,6 +3590,9 @@ class FASERIPCharacter {
       realName: this.realName,
       formKey: this.formKey,
       formName: this.formName,
+      formAbilityChoice: this.formAbilityChoice || null,
+      formExtraPart: this.formExtraPart || 'arms',
+      appliedFormShifts: this.appliedFormShifts || { F: 0, A: 0, S: 0, E: 0, R: 0, I: 0, P: 0 },
       gender: this.gender,
       age: this.age,
       height: this.height,
@@ -2522,8 +3628,19 @@ class FASERIPCharacter {
       advancementLog: this.advancementLog,
       karmicSuccess: this.karmicSuccess,
       superiorOptionCost: this.superiorOptionCost,
+      humanAbilityCaps: !!this.humanAbilityCaps,
       lastKarmaSpentOnRoll: this.lastKarmaSpentOnRoll,
       lastKarmaSpentOnRankIncrease: this.lastKarmaSpentOnRankIncrease,
+      startingKarmaBonus: this.startingKarmaBonus || 0,
+      isCreationFinalized: !!this.isCreationFinalized,
+      convertUnspentCpToKp: !!this.convertUnspentCpToKp,
+      creationMode: this.creationMode || 'cmf',
+      tsrSubMode: this.tsrSubMode || 'random',
+      tsrModeledKPLimit: this.tsrModeledKPLimit || 0,
+      tsrPowerSlots: this.tsrPowerSlots || null,
+      tsrTalentSlots: this.tsrTalentSlots || null,
+      tsrContactSlots: this.tsrContactSlots || null,
+      tsrRolls: this.tsrRolls || null,
       editLog: this.editLog,
       editHistoryIndex: this.editHistoryIndex,
       notes: this.notes
@@ -2537,8 +3654,40 @@ class FASERIPCharacter {
     return JSON.parse(JSON.stringify(data));
   }
 
+  sanitizeEditLog() {
+    if (!Array.isArray(this.editLog)) {
+      this.editLog = [];
+      this.editHistoryIndex = -1;
+      return;
+    }
+    const currentEntry = (this.editHistoryIndex >= 0 && this.editHistoryIndex < this.editLog.length)
+      ? this.editLog[this.editHistoryIndex]
+      : null;
+
+    const isModeSwitch = (desc) => {
+      if (!desc || typeof desc !== 'string') return false;
+      return /switched creation mode|changed creation mode|switched rank mode|switched rank scheme|changed rank mode|changed rank scheme|set rank mode|set universal table mode/i.test(desc.trim());
+    };
+
+    this.editLog = this.editLog.filter(entry => {
+      if (!entry || !entry.description) return false;
+      return !isModeSwitch(entry.description);
+    });
+
+    if (currentEntry && !isModeSwitch(currentEntry.description)) {
+      const newIdx = this.editLog.indexOf(currentEntry);
+      this.editHistoryIndex = (newIdx >= 0) ? newIdx : (this.editLog.length - 1);
+    } else {
+      this.editHistoryIndex = this.editLog.length - 1;
+    }
+  }
+
   recordEdit(description, category = 'general') {
     if (!description) return null;
+    const descTrimmed = description.trim();
+    if (/switched creation mode|changed creation mode|switched rank mode|switched rank scheme|changed rank mode|changed rank scheme|set rank mode|set universal table mode/i.test(descTrimmed)) {
+      return null;
+    }
     const snapshot = this.getCleanSnapshot();
 
     // If we've navigated backward in history, truncate forward history
@@ -2610,35 +3759,46 @@ class FASERIPCharacter {
     const forms = globalThis.PHYSICAL_FORMS || [];
     const f = forms.find(x => x.id === formKey);
     if (f) {
-      this.formKey = f.id;
-      this.formName = f.name;
-      this.isSwarmForm = (f.id === 's32_collective_mass' || f.id === 'swarm_collective');
+      this.applyPhysicalForm(f.id, { applyPopularity: true, applyResources: true });
     }
     if (cpAdjustment !== null && cpAdjustment !== undefined) {
       let p = parseInt(cpAdjustment) || 0;
       p = Math.round(p / 25) * 25;
       this.cpAdjustment = Math.max(-25, Math.min(50, p));
     }
-    if (tier === 'custom') {
-      const budget = parseInt(customBudget) || 400;
+    if (tier === 'tsr') {
+      this.creationMode = 'tsr';
+      this.pointTier = 'TSR 1986';
+      this.pointBudget = 0;
+      this.basePointBudget = 0;
+    } else if (tier === 'custom') {
+      this.creationMode = 'cmf';
+      const budget = parseInt(customBudget) || 300;
       this.setPointTier('custom', budget);
     } else {
-      this.setPointTier(tier || '400');
+      this.creationMode = 'cmf';
+      this.setPointTier(tier || '300');
     }
     this.isCreationSetupPending = false;
+    this.isCreationFinalized = false;
+    this.startingKarmaBonus = 0;
     this.editLog = [];
     this.editHistoryIndex = -1;
-    this.recordEdit(`Initial save point: ${this.name} (${this.pointBudget} CP, ${this.formName})`, 'creation');
+    this.recordEdit(`Initial save point: ${this.name} (${this.creationMode === 'tsr' ? 'TSR 1986' : `${this.pointBudget} CP`}, ${this.formName})`, 'creation');
   }
 
-  static createBlankCharacter(tier = '400') {
+  static createBlankCharacter(tier = '300', mode = 'cmf') {
+    const isTsr = (mode === 'tsr');
     const char = new FASERIPCharacter({
       name: 'New Superhero',
       realName: '',
-      formKey: 'mutant',
-      formName: 'Mutant (Homo Superior)',
-      pointTier: tier,
-      isCreationSetupPending: true,
+      creationMode: isTsr ? 'tsr' : 'cmf',
+      formKey: isTsr ? 'altered_human' : 'mutant',
+      formName: isTsr ? 'Altered Human' : 'Mutant (Homo Superior)',
+      pointTier: isTsr ? 'TSR 1986' : tier,
+      isCreationSetupPending: !isTsr,
+      isCreationFinalized: false,
+      startingKarmaBonus: 0,
       abilities: {
         fighting: 'Typical', // 6
         agility: 'Typical', // 6
@@ -2652,10 +3812,17 @@ class FASERIPCharacter {
       basePopularity: 10,
       currentPopularity: 10
     });
-    char.setPointTier(tier);
+    if (isTsr) {
+      char.creationMode = 'tsr';
+      char.pointTier = 'TSR 1986';
+    } else {
+      char.setPointTier(tier);
+    }
+    char.isCreationFinalized = false;
+    char.startingKarmaBonus = 0;
     char.currentHealth = char.calculateMaxHealth();
     char.currentKarma = char.calculateBaseKarma();
-    char.recordEdit(`Character created: ${char.name} (CMF ${tier} CP)`, 'creation');
+    char.recordEdit(`Character created: ${char.name} (${isTsr ? 'TSR 1986 Random Roll' : `CMF ${tier} CP`})`, 'creation');
     return char;
   }
 }

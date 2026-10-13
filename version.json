@@ -1,7 +1,7 @@
 {
-  "version": "1.5.87",
+  "version": "1.5.88",
   "releaseDate": "2026-10-13",
   "name": "Marvel Super Heroes Character Editor",
   "repo": "https://github.com/captainload/marvel-character-editor",
-  "notes": "v1.5.87: Renamed creation modes to standardized 'TSR random with TSR tables', 'TSR random with CMF tables', 'TSR modeled with TSR tables', 'TSR modeled with CMF tables', 'CMF point buy with TSR tables', 'CMF point buy with CMF tables'. Build mode dropdown displays 'Choose build mode' placeholder while the currently selected build mode is featured on the top row with subtle pulsing. Added dedicated Physical Form card above Primary Abilities with 'Choose physical form' dropdown, live trait modifications display, and sourcebook description toggle via '?' button."
+  "notes": "v1.5.88: Removed redundant non-pulsing build mode tag from the top row, making the pulsing header badge clickable for creation status and finalization. Replaced the 'Set Tier' button with a native tier dropdown featuring placeholder 'set hero tier' with active tier checkmarks, appearing only when point-buy modes are chosen. Renamed the Roll Tables button to 'Roll Hero', ensuring it opens the TSR generator modal in-page directly when random roll modes are selected."
 }

@@ -62,7 +62,7 @@ const App = {
     this.superiorOptionCost = !!val;
   },
   humanAbilityCaps: false,
-  VERSION: '1.5.87',
+  VERSION: '1.5.88',
   BUILD_DATE: '2026-10-13',
   COMMIT_SHA: '6a15ff5',
   REPO_OWNER: 'captainload',
@@ -1329,7 +1329,11 @@ const App = {
       });
     });
 
-    // Finalize Character Creation Button
+    // Finalize Character Creation / Status Check (Top-row mode badge)
+    const headerBuildModeBox = document.getElementById('header-build-mode-box');
+    if (headerBuildModeBox) {
+      headerBuildModeBox.addEventListener('click', (e) => this.handleFinalizeCharacterCreation(e));
+    }
     const btnFinalizeCreation = document.getElementById('btn-finalize-creation');
     if (btnFinalizeCreation) {
       btnFinalizeCreation.addEventListener('click', (e) => this.handleFinalizeCharacterCreation(e));
@@ -3020,37 +3024,42 @@ const App = {
       selCreationMode.disabled = isFinalized;
     }
 
-    // Creation Bar Action Buttons (Roll Tables, Set Tier) & Tier Dropdown
+    // Creation Bar Action Buttons (Roll Hero) & Tier Dropdown (Set Hero Tier)
     const creationTierContainer = document.getElementById('creation-tier-container');
     const selPointTier = document.getElementById('select-point-tier');
     const tsrSubmodeToggle = document.getElementById('tsr-submode-split-toggle');
-    const btnWizard = document.getElementById('btn-open-creation-wizard');
 
     // Visibility rules per user instructions:
-    // - The 'set tier' and 'roll tables' buttons won't be visible yet (modeled or unselected)
-    // - The "set tier" button will appear if a point-buy mode is selected
-    // - If a random mode is selected then the 'roll tables' button will appear instead
+    // - The 'set tier' button is replaced by the 'set tier' dropdown (with placeholder 'set hero tier') and shown when point-buy modes are chosen
+    // - The 'roll tables' button is renamed 'Roll Hero' and only appears when modes that require random rolls are chosen
     const isPointBuyMode = (activeModeKey === 'cmf-cp-buy' || activeModeKey === 'tsr-cp-buy');
     const isRandomMode = (activeModeKey === 'tsr-standard' || activeModeKey === 'cmf-standard');
 
     if (btnOpenTsrGen) {
       btnOpenTsrGen.style.display = (isRandomMode && !isFinalized) ? 'inline-flex' : 'none';
-      btnOpenTsrGen.textContent = '🎲 Roll Tables';
-      btnOpenTsrGen.title = 'Open TSR 1986 Character Generator & Roll Tables';
-    }
-
-    if (btnWizard) {
-      btnWizard.style.display = (isPointBuyMode && !isFinalized) ? 'inline-flex' : 'none';
-      btnWizard.textContent = '⚡ Set Tier';
-      btnWizard.title = 'Set Starting Tier, CP Budget & Physical Form';
+      btnOpenTsrGen.textContent = '🎲 Roll Hero';
+      btnOpenTsrGen.title = 'Open TSR 1986 Character Generator Modal & Roll Hero';
     }
 
     if (creationTierContainer) {
       creationTierContainer.style.display = (isPointBuyMode && !isFinalized) ? 'inline-flex' : 'none';
     }
     if (selPointTier && this.character) {
-      selPointTier.value = this.character.pointTier || '300';
+      const curTier = String(this.character.pointTier || '300');
+      Array.from(selPointTier.options).forEach(opt => {
+        if (!opt.value) return;
+        const baseName = opt.getAttribute('data-base-label') || opt.textContent.replace(/^✓\s*|\s*\(Current\)$/g, '');
+        opt.setAttribute('data-base-label', baseName);
+        if (opt.value === curTier) {
+          opt.textContent = `✓ ${baseName} (Current)`;
+        } else {
+          opt.textContent = baseName;
+        }
+      });
+      selPointTier.value = ''; // Always keep placeholder "set hero tier" visible on the face of the dropdown
       selPointTier.disabled = isFinalized;
+      const curTierName = this.getTierDisplayName(curTier);
+      selPointTier.title = `Starting CP Budget: ${curTierName} (${this.character.pointBudget} CP). Click to set hero tier.`;
     }
 
     // Submode toggle is redundant with Mode dropdown; hide it
@@ -3157,34 +3166,16 @@ const App = {
       }
     }
 
-    const btnFinalize = document.getElementById('btn-finalize-creation');
-    if (btnFinalize) {
+    const headerModeBadge = document.getElementById('header-build-mode-display');
+    if (headerModeBadge) {
       if (isFinalized) {
-        btnFinalize.style.display = 'none';
+        headerModeBadge.title = `Build Mode: ${activeModeDisplayName} (Finalized). Character is active for Session Play.`;
       } else {
-        btnFinalize.style.display = 'inline-flex';
-        btnFinalize.classList.remove(
-          'mode-tsr-standard', 'mode-tsr-modeled', 'mode-tsr-cp-buy',
-          'mode-cmf-standard', 'mode-cmf-modeled', 'mode-cmf-cp-buy',
-          'mode-cmf', 'tsr-mode-tag', 'cmf-mode-tag', 'modeled-mode-tag', 'random-mode-tag'
-        );
-        const modeText = this.getCreationModeDisplayName(activeModeKey);
-        btnFinalize.classList.add(`mode-${activeModeKey}`);
-        if (activeModeKey === 'cmf-cp-buy') {
-          btnFinalize.classList.add('mode-cmf');
-        }
-
         const validation = this.getCreationValidationState();
         if (validation.ready) {
-          btnFinalize.textContent = `Finalize (${modeText})`;
-          btnFinalize.classList.remove('creating');
-          btnFinalize.classList.add('ready');
-          btnFinalize.title = `All creation conditions met for ${modeText}. Click to finalize character creation!`;
+          headerModeBadge.title = `All creation conditions met for ${activeModeDisplayName}. Click to finalize character!`;
         } else {
-          btnFinalize.textContent = modeText;
-          btnFinalize.classList.remove('ready');
-          btnFinalize.classList.add('creating');
-          btnFinalize.title = `Creation in progress (${modeText}):\n• ${validation.unmet.join('\n• ')}`;
+          headerModeBadge.title = `Creation in progress (${activeModeDisplayName}):\n• ${validation.unmet.join('\n• ')}\n\n(Click to review requirements or finalize)`;
         }
       }
     }
@@ -18019,11 +18010,20 @@ const App = {
   },
 
   openTsrGeneratorModal() {
-    if (this.isTsrPoppedOut()) {
-      try {
-        this.tsrPopoutWindow.focus();
-      } catch (e) {}
+    if (this.isTsrPoppedOut && this.isTsrPoppedOut()) {
+      this.dockTsr(true);
       return;
+    }
+
+    const modal = document.getElementById('modal-tsr-generator');
+    if (!modal) return;
+
+    const modalBox = (typeof this.getTsrBox === 'function' ? this.getTsrBox() : null) || document.querySelector('.modal-box.tsr-generator-modal-box') || this.tsrModalBox;
+    if (modalBox && !modal.contains(modalBox)) {
+      if (document.adoptNode && modalBox.ownerDocument !== document) {
+        try { document.adoptNode(modalBox); } catch (e) {}
+      }
+      modal.appendChild(modalBox);
     }
 
     if (!this.tsrGenState) {
@@ -18033,8 +18033,7 @@ const App = {
     this.populateTsrOriginsDropdown();
     this.renderTsrGeneratorUI();
 
-    const modal = document.getElementById('modal-tsr-generator');
-    if (modal) modal.classList.add('open');
+    modal.classList.add('open');
   },
 
   closeTsrGeneratorModal() {

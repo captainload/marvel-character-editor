@@ -5146,6 +5146,12 @@ body[data-theme="aqua"] #ui-dialog-creation-mode-select {
   white-space: nowrap;
   user-select: none;
   transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.header-build-mode-badge:hover {
+  background: rgba(2, 132, 199, 0.3);
+  border-color: rgba(56, 189, 248, 0.8);
 }
 
 .header-build-mode-badge.mode-pulsing {

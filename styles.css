@@ -832,11 +832,13 @@ body[data-theme="aqua"] .tab-history-label {
   background: #151d2c;
   color: var(--text-main);
   border: 1px solid var(--border-color);
-  border-radius: 5px;
-  min-width: 36px;
-  min-height: 34px;
-  padding: 4px 8px;
-  font-size: 13pt;
+  border-radius: 4px;
+  min-width: 30px;
+  height: 26px;
+  min-height: 26px;
+  max-height: 26px;
+  padding: 2px 8px;
+  font-size: 12pt;
   line-height: 1;
   font-weight: 800;
   cursor: pointer;
@@ -9243,9 +9245,10 @@ body[data-theme="aqua"] .karma-no-spend-warn {
    Touch-Friendly Sizing Overrides
    ========================================================================== */
 body.touch-friendly .history-nav-btn {
-  min-width: 38px;
-  min-height: 34px;
-  font-size: 13pt;
+  min-width: 34px;
+  height: 30px;
+  min-height: 30px;
+  font-size: 12pt;
 }
 
 body.touch-friendly .power-title-btn {

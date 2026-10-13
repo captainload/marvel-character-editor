@@ -62,7 +62,7 @@ const App = {
     this.superiorOptionCost = !!val;
   },
   humanAbilityCaps: false,
-  VERSION: '1.5.86',
+  VERSION: '1.5.87',
   BUILD_DATE: '2026-10-13',
   COMMIT_SHA: '6a15ff5',
   REPO_OWNER: 'captainload',
@@ -461,50 +461,7 @@ const App = {
       btnApplyCharInit.addEventListener('click', () => this.applyCreationWizardSetup());
     }
 
-    // Change Physical Form Modal Controls & Header Form Box (Dual Mode: Simple Dropdown vs Modal Pop-up)
-    const headerFormBox = document.getElementById('header-form-box');
-    const headerFormBtn = document.getElementById('header-form-btn');
-    const headerFormDisplay = document.getElementById('header-form-display');
-    const headerSel = document.getElementById('header-form-select');
-
-    if (headerFormBox && !headerFormBox.dataset.bound) {
-      headerFormBox.dataset.bound = 'true';
-      headerFormBox.addEventListener('click', (e) => {
-        const isLocked = this.isFormChangeLocked() || (headerFormBtn && headerFormBtn.style.display !== 'none');
-        if (isLocked) {
-          e.preventDefault();
-          this.openChangePhysicalFormModal();
-          return;
-        }
-        // If clicking on the active dropdown itself when unlocked, let native dropdown handle it
-        if (e.target && e.target.id === 'header-form-select') {
-          return;
-        }
-        if (headerSel) headerSel.focus();
-      });
-    }
-
-    if (headerFormBtn && !headerFormBtn.dataset.bound) {
-      headerFormBtn.dataset.bound = 'true';
-      headerFormBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        this.openChangePhysicalFormModal();
-      });
-    }
-
-    if (headerFormDisplay && !headerFormDisplay.dataset.bound) {
-      headerFormDisplay.dataset.bound = 'true';
-      headerFormDisplay.addEventListener('click', (e) => {
-        const isLocked = this.isFormChangeLocked() || (headerFormBtn && headerFormBtn.style.display !== 'none');
-        if (isLocked) {
-          e.preventDefault();
-          e.stopPropagation();
-          this.openChangePhysicalFormModal();
-        }
-      });
-    }
-
+    // Physical Form Controls (Main Stats Card & Change Form Modal)
     this.setupPhysicalFormDropdowns();
 
     const btnCloseChangeFormX = document.getElementById('btn-close-change-form-x');
@@ -2915,11 +2872,16 @@ const App = {
     const nameInp = document.getElementById('header-char-name');
     if (nameInp) nameInp.value = this.character.name || 'The Vanguard';
 
-    const formName = this.character ? (this.character.formName || 'Mutant') : 'Mutant';
-    const headerFormEl = document.getElementById('header-form-display');
-    if (headerFormEl) headerFormEl.textContent = formName;
+    const activeKey = this.getCreationModeKey();
+    const activeModeDisplayName = this.getCreationModeDisplayName(activeKey);
+    const headerBuildModeDisplay = document.getElementById('header-build-mode-display');
+    if (headerBuildModeDisplay) {
+      headerBuildModeDisplay.textContent = activeModeDisplayName;
+      const isFinalized = !!(this.character && this.character.isCreationFinalized);
+      headerBuildModeDisplay.classList.toggle('mode-pulsing', !isFinalized);
+    }
     const stripFormEl = document.getElementById('strip-form-display');
-    if (stripFormEl) stripFormEl.textContent = formName;
+    if (stripFormEl) stripFormEl.textContent = this.character ? (this.character.formName || 'Mutant') : 'Mutant';
 
     this.updatePhysicalFormControlsUI();
 
@@ -3011,15 +2973,9 @@ const App = {
       this.renderCpBreakdownModal();
     }
 
-    const formName = this.character ? (this.character.formName || 'Mutant') : 'Mutant';
-    const headerFormEl = document.getElementById('header-form-display');
-    if (headerFormEl) {
-      headerFormEl.textContent = formName;
-    }
-
     const stripFormEl = document.getElementById('strip-form-display');
     if (stripFormEl) {
-      stripFormEl.textContent = formName;
+      stripFormEl.textContent = this.character ? (this.character.formName || 'Mutant') : 'Mutant';
     }
 
     const isTsr = (this.character && this.character.creationMode === 'tsr');
@@ -3034,14 +2990,20 @@ const App = {
     const isModeled = isTsr && !!(this.character && this.character.isModeledMode && this.character.isModeledMode());
 
     const activeModeKey = this.getCreationModeKey();
+    const activeModeDisplayName = this.getCreationModeDisplayName(activeModeKey);
+
+    // Header Build Mode Display (Top Row, with subtle pulsing effect when in progress)
+    const headerBuildModeDisplay = document.getElementById('header-build-mode-display');
+    if (headerBuildModeDisplay) {
+      headerBuildModeDisplay.textContent = activeModeDisplayName;
+      headerBuildModeDisplay.classList.toggle('mode-pulsing', !isFinalized);
+    }
 
     const topModeTag = document.getElementById('top-creation-mode-tag');
     if (topModeTag) {
       topModeTag.style.display = 'none';
-      topModeTag.textContent = this.getCreationModeDisplayName(activeModeKey);
+      topModeTag.textContent = activeModeDisplayName;
     }
-
-    const activeModeDisplayName = this.getCreationModeDisplayName(activeModeKey);
 
     // Sync Build Mode Dropdown UI
     this.syncBuildModeDropdownUI(activeModeKey);
@@ -3054,7 +3016,7 @@ const App = {
 
     const selCreationMode = document.getElementById('select-creation-mode');
     if (selCreationMode) {
-      selCreationMode.value = activeModeKey;
+      selCreationMode.value = '';
       selCreationMode.disabled = isFinalized;
     }
 
@@ -3594,24 +3556,51 @@ const App = {
       };
     }
 
-    this.renderMainFormAdjustmentsBar();
+    this.renderPhysicalFormCard();
   },
 
-  renderMainFormAdjustmentsBar() {
-    const bar = document.getElementById('main-form-adjustments-bar');
-    if (!bar || !this.character) return;
+  renderPhysicalFormCard() {
+    const card = document.getElementById('card-physical-form');
+    if (!card || !this.character) return;
 
     const formDef = (typeof this.character.getFormDefinition === 'function')
       ? this.character.getFormDefinition()
       : null;
 
+    const curFormKey = (this.character && this.character.formKey) ? this.character.formKey : '';
+    const isFinalized = !!this.character.isCreationFinalized;
+
+    // 1. Sync dropdown selection and disabled status
+    const mainSel = document.getElementById('main-physical-form-select');
+    if (mainSel) {
+      mainSel.value = curFormKey || '';
+      mainSel.disabled = isFinalized;
+    }
+
+    // 2. Populate book lore description box
+    const srcTag = document.getElementById('form-book-source-tag');
+    const descText = document.getElementById('form-book-desc-text');
+    if (formDef) {
+      if (srcTag) srcTag.textContent = `📖 ${formDef.name} — ${formDef.source || 'UPB / Dragon #122'}`;
+      if (descText) descText.textContent = formDef.description || 'Standard baseline form.';
+    } else {
+      if (srcTag) srcTag.textContent = '📖 Sourcebook Description';
+      if (descText) descText.textContent = 'Select a physical form above to view its original sourcebook description and lore.';
+    }
+
+    // 3. Render trait modifications inside #form-modifications-content
+    const contentEl = document.getElementById('form-modifications-content');
+    if (!contentEl) return;
+
     if (!formDef) {
-      bar.style.display = 'none';
-      bar.innerHTML = '';
+      contentEl.innerHTML = `
+        <div style="color: var(--text-muted); font-style: italic; font-size: 9.5pt; padding: 4px 0;">
+          Select a physical form above to view ability adjustments, innate traits, and special rules.
+        </div>
+      `;
       return;
     }
 
-    const isFinalized = !!this.character.isCreationFinalized;
     const statLabels = {
       F: 'Fighting (F)',
       A: 'Agility (A)',
@@ -3622,11 +3611,12 @@ const App = {
       P: 'Psyche (P)'
     };
 
-    const fixedChips = [];
+    const modChips = [];
     if (formDef.abilityMods) {
       Object.entries(formDef.abilityMods).forEach(([abbr, cs]) => {
         if (cs !== 0) {
-          fixedChips.push(`<span class="meta-tag" style="background: ${cs > 0 ? 'rgba(34, 197, 94, 0.16)' : 'rgba(239, 68, 68, 0.16)'}; color: ${cs > 0 ? '#4ade80' : '#f87171'}; border-color: ${cs > 0 ? 'rgba(34, 197, 94, 0.35)' : 'rgba(239, 68, 68, 0.35)'}; font-size: 9pt; padding: 1px 6px;">${abbr} ${cs > 0 ? '+' : ''}${cs}CS</span>`);
+          const isPos = cs > 0;
+          modChips.push(`<span class="meta-tag" style="background: ${isPos ? 'rgba(34, 197, 94, 0.16)' : 'rgba(239, 68, 68, 0.16)'}; color: ${isPos ? '#4ade80' : '#f87171'}; border-color: ${isPos ? 'rgba(34, 197, 94, 0.35)' : 'rgba(239, 68, 68, 0.35)'}; font-size: 9.5pt; font-weight: 700; padding: 2px 7px;">${abbr} ${isPos ? '+' : ''}${cs}CS</span>`);
         }
       });
     }
@@ -3635,21 +3625,31 @@ const App = {
       ? this.character.getFormHealthMultiplier()
       : 1;
     if (healthMult > 1) {
-      fixedChips.push(`<span class="meta-tag" style="background: rgba(56, 189, 248, 0.16); color: #38bdf8; border-color: rgba(56, 189, 248, 0.35); font-size: 9pt; padding: 1px 6px;">2× Health</span>`);
+      modChips.push(`<span class="meta-tag" style="background: rgba(56, 189, 248, 0.16); color: #38bdf8; border-color: rgba(56, 189, 248, 0.35); font-size: 9.5pt; font-weight: 700; padding: 2px 7px;">${healthMult}× Health</span>`);
+    }
+
+    if (formDef.powerSlots) {
+      const ps = formDef.powerSlots;
+      const psText = (ps.min !== undefined && ps.max !== undefined)
+        ? `${ps.min}–${ps.max} Slots (Default ${ps.default ?? 2})`
+        : `${ps.default ?? 2} Slots`;
+      modChips.push(`<span class="meta-tag" style="background: rgba(139, 92, 246, 0.15); color: #c084fc; border-color: rgba(139, 92, 246, 0.35); font-size: 9.5pt; font-weight: 700; padding: 2px 7px;">⚡ ${psText}</span>`);
+    } else if (formDef.powerSlotsModifier) {
+      const psm = formDef.powerSlotsModifier;
+      modChips.push(`<span class="meta-tag" style="background: rgba(139, 92, 246, 0.15); color: #c084fc; border-color: rgba(139, 92, 246, 0.35); font-size: 9.5pt; font-weight: 700; padding: 2px 7px;">⚡ Power Slots ${psm > 0 ? '+' : ''}${psm}</span>`);
     }
 
     if (formDef.resourcesBase && formDef.resourcesBase !== 'Typical') {
-      fixedChips.push(`<span class="meta-tag" style="background: rgba(245, 158, 11, 0.14); color: var(--marvel-gold); border-color: rgba(245, 158, 11, 0.35); font-size: 9pt; padding: 1px 6px;">Base Res: ${formDef.resourcesBase}</span>`);
+      modChips.push(`<span class="meta-tag" style="background: rgba(245, 158, 11, 0.14); color: var(--marvel-gold); border-color: rgba(245, 158, 11, 0.35); font-size: 9.5pt; font-weight: 700; padding: 2px 7px;">Base Res: ${formDef.resourcesBase}</span>`);
     } else if (formDef.resourcesShift && formDef.resourcesShift !== 0) {
-      fixedChips.push(`<span class="meta-tag" style="background: rgba(245, 158, 11, 0.14); color: var(--marvel-gold); border-color: rgba(245, 158, 11, 0.35); font-size: 9pt; padding: 1px 6px;">Res ${formDef.resourcesShift > 0 ? '+' : ''}${formDef.resourcesShift}CS</span>`);
+      modChips.push(`<span class="meta-tag" style="background: rgba(245, 158, 11, 0.14); color: var(--marvel-gold); border-color: rgba(245, 158, 11, 0.35); font-size: 9.5pt; font-weight: 700; padding: 2px 7px;">Res ${formDef.resourcesShift > 0 ? '+' : ''}${formDef.resourcesShift}CS</span>`);
     }
 
     if (formDef.startingPopularity !== undefined && formDef.startingPopularity !== 10) {
-      fixedChips.push(`<span class="meta-tag" style="background: rgba(168, 85, 247, 0.15); color: #c084fc; border-color: rgba(168, 85, 247, 0.35); font-size: 9pt; padding: 1px 6px;">Base Pop: ${formDef.startingPopularity}</span>`);
+      modChips.push(`<span class="meta-tag" style="background: rgba(236, 72, 153, 0.15); color: #f472b6; border-color: rgba(236, 72, 153, 0.35); font-size: 9.5pt; font-weight: 700; padding: 2px 7px;">Base Pop: ${formDef.startingPopularity}</span>`);
     }
 
     let pickersHtml = '';
-
     if (formDef.abilityChoice) {
       const allowedCodes = (typeof this.character.getAllowedFormAbilityChoices === 'function')
         ? this.character.getAllowedFormAbilityChoices(formDef.id)
@@ -3659,7 +3659,7 @@ const App = {
         : (this.character.formAbilityChoice || '');
       const csVal = formDef.abilityChoice.shift ?? formDef.abilityChoice.cs ?? 1;
       const opts = [
-        `<option value="" ${!curChoice ? 'selected' : ''}>-- Choose +${csVal}CS Ability --</option>`,
+        `<option value="" ${!curChoice ? 'selected' : ''}>-- Choose +${csVal}CS Bonus --</option>`,
         ...allowedCodes.map(abbr =>
           `<option value="${abbr}" ${curChoice === abbr ? 'selected' : ''}>${statLabels[abbr] || abbr} (+${csVal}CS)</option>`
         )
@@ -3695,24 +3695,25 @@ const App = {
       `;
     }
 
-    const hasContent = fixedChips.length > 0 || pickersHtml !== '' || !!formDef.specialRules;
-    if (!hasContent) {
-      bar.style.display = 'none';
-      bar.innerHTML = '';
-      return;
-    }
-
-    bar.style.display = 'block';
-    bar.innerHTML = `
+    let html = `
       <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
         <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
-          <strong style="font-size: 9.5pt; color: var(--marvel-gold); text-transform: uppercase; letter-spacing: 0.4px;">🧬 ${formDef.name} Adjustments:</strong>
-          ${fixedChips.length > 0 ? fixedChips.join('') : '<span style="font-size: 9pt; color: var(--text-muted);">Standard Baseline</span>'}
+          <strong style="font-size: 9.5pt; color: var(--marvel-gold); text-transform: uppercase; letter-spacing: 0.4px;">🧬 Form Traits:</strong>
+          ${modChips.length > 0 ? modChips.join('') : '<span style="font-size: 9pt; color: var(--text-muted);">Standard Baseline (No Stat Modifiers)</span>'}
         </div>
         ${pickersHtml ? `<div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">${pickersHtml}</div>` : ''}
       </div>
-      ${formDef.specialRules ? `<div style="font-size: 9pt; color: #cbd5e1; margin-top: 4px; line-height: 1.35;"><em style="color: var(--text-muted);">Form Rules:</em> ${formDef.specialRules}</div>` : ''}
     `;
+
+    if (formDef.specialRules) {
+      html += `
+        <div style="font-size: 9.5pt; color: #cbd5e1; margin-top: 6px; line-height: 1.45; background: rgba(0, 0, 0, 0.18); border: 1px solid var(--border-color); border-radius: 4px; padding: 6px 10px;">
+          <strong style="color: var(--marvel-gold);">Special Rules:</strong> ${formDef.specialRules}
+        </div>
+      `;
+    }
+
+    contentEl.innerHTML = html;
 
     const choiceSel = document.getElementById('main-form-ability-choice-select');
     if (choiceSel) {
@@ -3727,7 +3728,7 @@ const App = {
             ? this.character.getCleanSnapshot()
             : JSON.parse(JSON.stringify(this.character.toJSON()));
         } else {
-          this.recordCharacterEdit(`Selected ${formDef.name} +1CS bonus: ${val ? (statLabels[val] || val) : 'None'}`, 'ability');
+          this.recordCharacterEdit(`Selected ${formDef.name} bonus: ${val ? (statLabels[val] || val) : 'None'}`, 'ability');
         }
         this.saveState();
         this.render();
@@ -3748,12 +3749,16 @@ const App = {
             ? this.character.getCleanSnapshot()
             : JSON.parse(JSON.stringify(this.character.toJSON()));
         } else {
-          this.recordCharacterEdit(`Selected Extra Anatomy: ${optObj ? optObj.name : val}`, 'ability');
+          this.recordCharacterEdit(`Selected ${formDef.name} configuration: ${optObj ? optObj.name : val}`, 'form');
         }
         this.saveState();
         this.render();
       });
     }
+  },
+
+  renderMainFormAdjustmentsBar() {
+    this.renderPhysicalFormCard();
   },
 
   renderDefenses() {
@@ -12563,25 +12568,17 @@ const App = {
 
   getCreationModeDisplayName(mode) {
     const norm = String(mode || '').toLowerCase().replace(/[\s_]+/g, '-');
-    if (norm === 'tsr-standard' || norm === 'tsr-random') return 'TSR standard';
-    if (norm === 'tsr-modeled') return 'TSR modeled';
-    if (norm === 'tsr-cp-buy' || norm === 'tsr-point-buy') return 'TSR CP buy';
-    if (norm === 'cmf-standard') return 'CMF standard';
-    if (norm === 'cmf-modeled') return 'CMF modeled';
-    if (norm === 'cmf-cp-buy' || norm === 'cmf' || norm === 'cmf-point-buy') return 'CMF CP buy';
-    if (norm === 'tsr') return 'TSR standard';
-    return 'CMF CP buy';
+    if (norm === 'tsr-standard' || norm === 'tsr-random' || norm === 'tsr') return 'TSR random with TSR tables';
+    if (norm === 'cmf-standard') return 'TSR random with CMF tables';
+    if (norm === 'tsr-modeled') return 'TSR modeled with TSR tables';
+    if (norm === 'cmf-modeled' || norm === 'modeled') return 'TSR modeled with CMF tables';
+    if (norm === 'tsr-cp-buy' || norm === 'tsr-point-buy') return 'CMF point buy with TSR tables';
+    if (norm === 'cmf-cp-buy' || norm === 'cmf' || norm === 'cmf-point-buy') return 'CMF point buy with CMF tables';
+    return 'CMF point buy with CMF tables';
   },
 
   getCreationModeFullTitle(mode) {
-    const norm = String(mode || '').toLowerCase().replace(/[\s_]+/g, '-');
-    if (norm === 'tsr-standard' || norm === 'tsr-random' || norm === 'tsr') return 'TSR Standard (1986 Random Roll)';
-    if (norm === 'tsr-modeled' || norm === 'modeled') return 'TSR Modeled (Free-Form)';
-    if (norm === 'tsr-cp-buy' || norm === 'tsr-point-buy') return 'TSR CP Buy (Point-Buy Rules)';
-    if (norm === 'cmf-standard') return 'CMF Standard (1986 Random Roll)';
-    if (norm === 'cmf-modeled') return 'CMF Modeled (Free-Form)';
-    if (norm === 'cmf-cp-buy' || norm === 'cmf' || norm === 'cmf-point-buy') return 'CMF CP Buy (Point-Buy Rules)';
-    return 'CMF CP Buy (Point-Buy Rules)';
+    return this.getCreationModeDisplayName(mode);
   },
 
   getModeDisplayName(mode) {
@@ -12606,8 +12603,12 @@ const App = {
     const iconEl = document.getElementById('build-mode-active-icon');
     if (iconEl) iconEl.textContent = modeIconMap[key] || '⚙️';
 
+    // Face of the select dropdown displays the placeholder
     const selEl = document.getElementById('select-creation-mode');
-    if (selEl) selEl.value = key;
+    if (selEl) selEl.value = '';
+
+    const headerModeDisplay = document.getElementById('header-build-mode-display');
+    if (headerModeDisplay) headerModeDisplay.textContent = dispName;
 
     const menu = document.getElementById('build-mode-menu');
     if (menu) {
@@ -12697,7 +12698,7 @@ const App = {
     const isCurrentTsr = normCurrent.startsWith('tsr-');
     const isTargetTsr = normTarget.startsWith('tsr-');
 
-    // 1. Moving to TSR ruleset with CMF-exclusive ranks
+    // Moving to TSR ruleset with CMF-exclusive ranks
     if (isTargetTsr && !isCurrentTsr) {
       if (this.hasCmfExclusiveRanks(character)) {
         return {
@@ -12705,32 +12706,6 @@ const App = {
           reason: 'Character possesses CMF-exclusive ranks (Fantastic, Spectacular, Sensational, or Awesome) that do not exist in the 18-rank TSR ruleset.'
         };
       }
-    }
-
-    // 2. Moving to Random Roll
-    const isTargetRandom = normTarget.endsWith('-standard') || normTarget.endsWith('-random');
-    const isCurrentRandom = normCurrent.endsWith('-standard') || normCurrent.endsWith('-random');
-
-    if (isTargetRandom) {
-      if (isCurrentRandom) {
-        return { feasible: true };
-      }
-      return {
-        feasible: false,
-        reason: 'Converting a Point-Buy or Modeled build to Random Roll requires generating traits from scratch on the 1986 tables.'
-      };
-    }
-
-    // 3. Moving to Modeled (Free-form KP tracking)
-    const isTargetModeled = normTarget.endsWith('-modeled');
-    if (isTargetModeled) {
-      return { feasible: true };
-    }
-
-    // 4. Moving to Point-Buy
-    const isTargetPointBuy = normTarget.endsWith('-cp-buy') || normTarget.endsWith('-point-buy');
-    if (isTargetPointBuy) {
-      return { feasible: true };
     }
 
     return { feasible: true };
@@ -12813,6 +12788,8 @@ const App = {
     if (normTarget === currentKey && this.character && !this.character.isCreationFinalized) {
       const dispName = this.getCreationModeDisplayName(currentKey);
       this.showStatusToast(`Already in ${dispName} mode.`);
+      const selCreationMode = document.getElementById('select-creation-mode');
+      if (selCreationMode) selCreationMode.value = '';
       return;
     }
 
@@ -17025,7 +17002,7 @@ const App = {
 
   applyPhysicalFormDirectly(formId) {
     if (!formId || !this.character) return;
-    if (this.isFormChangeLocked()) {
+    if (this.character.isCreationFinalized) {
       this.openChangePhysicalFormModal();
       return;
     }
@@ -17055,128 +17032,86 @@ const App = {
   },
 
   setupPhysicalFormDropdowns() {
-    // 1. Header Select & Header Form Controls (Main Stats)
-    const headerSel = document.getElementById('header-form-select');
-    const headerFormBtn = document.getElementById('header-form-btn');
-    const headerFormBox = document.getElementById('header-form-box');
-    const headerFormDisplay = document.getElementById('header-form-display');
+    // 1. Dedicated Physical Form Card Dropdown (Above Primary Abilities)
+    const mainSel = document.getElementById('main-physical-form-select');
+    if (mainSel && globalThis.PHYSICAL_FORMS) {
+      if (mainSel.options.length <= 1) {
+        const cats = {};
+        globalThis.PHYSICAL_FORMS.forEach(f => {
+          const cat = f.category || 'Standard';
+          if (!cats[cat]) cats[cat] = [];
+          cats[cat].push(f);
+        });
+        let html = '<option value="" disabled selected>Choose physical form</option>';
+        Object.keys(cats).forEach(cat => {
+          html += `<optgroup label="${cat}">`;
+          cats[cat].forEach(f => {
+            html += `<option value="${f.id}">${f.name}</option>`;
+          });
+          html += `</optgroup>`;
+        });
+        mainSel.innerHTML = html;
+      }
 
-    if (headerSel && globalThis.PHYSICAL_FORMS) {
-      headerSel.innerHTML = '<option value="">- Select physical form -</option>' + globalThis.PHYSICAL_FORMS.map(f =>
-        `<option value="${f.id}">${f.name}</option>`
-      ).join('');
-      if (!headerSel.dataset.bound) {
-        headerSel.dataset.bound = 'true';
-        headerSel.addEventListener('change', (e) => {
-          const val = (e && e.target && e.target.value) || headerSel.value;
+      if (!mainSel.dataset.bound) {
+        mainSel.dataset.bound = 'true';
+        mainSel.addEventListener('change', (e) => {
+          const val = (e && e.target && e.target.value) || mainSel.value;
           if (!val) {
-            headerSel.value = this.character ? (this.character.formKey || '') : '';
+            mainSel.value = this.character ? (this.character.formKey || '') : '';
             return;
           }
           this.applyPhysicalFormDirectly(val);
         });
-        headerSel.addEventListener('click', (e) => {
-          if (this.isFormChangeLocked() || (headerFormBtn && headerFormBtn.style.display !== 'none')) {
-            e.preventDefault();
-            e.stopPropagation();
-            this.openChangePhysicalFormModal();
-          }
-        });
       }
     }
 
-    if (headerFormBtn && !headerFormBtn.dataset.bound) {
-      headerFormBtn.dataset.bound = 'true';
-      headerFormBtn.addEventListener('click', (e) => {
+    // 2. Help '?' button to toggle original book description and lore
+    const helpBtn = document.getElementById('btn-physical-form-help');
+    const descBox = document.getElementById('form-book-description-box');
+    const closeDescBtn = document.getElementById('btn-close-form-desc');
+    if (helpBtn && !helpBtn.dataset.bound) {
+      helpBtn.dataset.bound = 'true';
+      helpBtn.addEventListener('click', (e) => {
         e.preventDefault();
-        e.stopPropagation();
-        this.openChangePhysicalFormModal();
+        if (!descBox) return;
+        const isHidden = (descBox.style.display === 'none' || !descBox.style.display);
+        descBox.style.display = isHidden ? 'block' : 'none';
+        helpBtn.classList.toggle('active', isHidden);
+      });
+    }
+    if (closeDescBtn && !closeDescBtn.dataset.bound) {
+      closeDescBtn.dataset.bound = 'true';
+      closeDescBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        if (descBox) descBox.style.display = 'none';
+        if (helpBtn) helpBtn.classList.remove('active');
       });
     }
 
-    if (headerFormBox && !headerFormBox.dataset.bound) {
-      headerFormBox.dataset.bound = 'true';
-      headerFormBox.addEventListener('click', (e) => {
-        const isLocked = this.isFormChangeLocked() || (headerFormBtn && headerFormBtn.style.display !== 'none');
-        if (isLocked) {
-          e.preventDefault();
-          this.openChangePhysicalFormModal();
-          return;
-        }
-        if (e.target && e.target.id === 'header-form-select') {
-          return;
-        }
-        if (headerSel) headerSel.focus();
-      });
-    }
-
-    if (headerFormDisplay && !headerFormDisplay.dataset.bound) {
-      headerFormDisplay.dataset.bound = 'true';
-      headerFormDisplay.addEventListener('click', (e) => {
-        const isLocked = this.isFormChangeLocked() || (headerFormBtn && headerFormBtn.style.display !== 'none');
-        if (isLocked) {
-          e.preventDefault();
-          e.stopPropagation();
-          this.openChangePhysicalFormModal();
-        }
-      });
-    }
-
-    // 2. Bio Form Select (Progression Tab)
-    const formSel = document.getElementById('bio-physical-form');
-    if (formSel && globalThis.PHYSICAL_FORMS) {
-      formSel.innerHTML = '<option value="">- Select physical form -</option>' + globalThis.PHYSICAL_FORMS.map(f => 
-        `<option value="${f.id}">${f.name} (${f.source})</option>`
+    // 3. Keep modal selectors populated
+    const initSel = document.getElementById('init-form-select');
+    if (initSel && globalThis.PHYSICAL_FORMS && initSel.options.length <= 1) {
+      initSel.innerHTML = '<option value="">- Select physical form -</option>' + globalThis.PHYSICAL_FORMS.map(f =>
+        `<option value="${f.id}">${f.name} (${f.category || 'Standard'})</option>`
       ).join('');
-      if (!formSel.dataset.bound) {
-        formSel.dataset.bound = 'true';
-        formSel.addEventListener('change', (e) => {
-          if (this.isFormChangeLocked()) {
-            this.openChangePhysicalFormModal();
-            formSel.value = this.character ? (this.character.formKey || '') : '';
-            return;
-          }
-          const val = (e && e.target && e.target.value) || formSel.value;
-          if (!val) {
-            formSel.value = this.character ? (this.character.formKey || '') : '';
-            return;
-          }
-          this.applyPhysicalFormDirectly(val);
-        });
-        formSel.addEventListener('click', (e) => {
-          if (this.isFormChangeLocked()) {
-            e.preventDefault();
-            this.openChangePhysicalFormModal();
-          }
-        });
-      }
     }
 
-    const bioFormBtn = document.getElementById('bio-physical-form-btn');
-    if (bioFormBtn && !bioFormBtn.dataset.bound) {
-      bioFormBtn.dataset.bound = 'true';
-      bioFormBtn.addEventListener('click', () => {
-        this.openChangePhysicalFormModal();
-      });
+    const changeSel = document.getElementById('change-form-select');
+    if (changeSel && globalThis.PHYSICAL_FORMS && changeSel.options.length <= 1) {
+      changeSel.innerHTML = '<option value="">- Select physical form -</option>' + globalThis.PHYSICAL_FORMS.map(f =>
+        `<option value="${f.id}">${f.name} (${f.category || 'Standard'})</option>`
+      ).join('');
     }
   },
 
   syncPhysicalFormDisplays(f) {
     if (!f) return;
-    const headerSel = document.getElementById('header-form-select');
-    if (headerSel) headerSel.value = f.id;
-
-    const headerVal = document.getElementById('header-form-display');
-    if (headerVal) headerVal.textContent = f.name;
+    const mainSel = document.getElementById('main-physical-form-select');
+    if (mainSel) mainSel.value = f.id;
 
     const stripForm = document.getElementById('strip-form-display');
     if (stripForm) stripForm.textContent = f.name;
-
-    const bioSel = document.getElementById('bio-physical-form');
-    if (bioSel) bioSel.value = f.id;
-
-    const bioVal = document.getElementById('bio-physical-form-display');
-    if (bioVal) bioVal.textContent = f.name;
 
     const initSel = document.getElementById('init-form-select');
     if (initSel) initSel.value = f.id;
@@ -17187,73 +17122,16 @@ const App = {
 
   updatePhysicalFormControlsUI() {
     if (!this.character) return;
-    const isLocked = this.isFormChangeLocked();
     const curFormKey = this.character.formKey || '';
-    const curFormName = this.character.formName || (curFormKey ? 'Mutant' : 'None Selected');
+    const isFinalized = !!this.character.isCreationFinalized;
 
-    // 1. Main Stats / Top Bar Form Box
-    const headerSel = document.getElementById('header-form-select');
-    const headerBtn = document.getElementById('header-form-btn');
-    const headerBox = document.getElementById('header-form-box');
-    const headerVal = document.getElementById('header-form-display');
-
-    if (headerVal) headerVal.textContent = curFormName;
-
-    if (isLocked) {
-      if (headerSel) {
-        headerSel.style.display = 'none';
-        headerSel.disabled = true;
-        headerSel.value = curFormKey;
-      }
-      if (headerBtn) {
-        headerBtn.style.display = 'inline-flex';
-      }
-      if (headerBox) {
-        headerBox.title = 'Physical Form is locked because starting CP has been spent. Click to open Change Physical Form dialog or roll back to unlock.';
-        headerBox.classList.add('cp-spending-locked');
-      }
-    } else {
-      if (headerSel) {
-        headerSel.style.display = 'inline-block';
-        headerSel.disabled = false;
-        headerSel.value = curFormKey;
-        headerSel.title = 'Select Physical Form & Origin';
-      }
-      if (headerBtn) {
-        headerBtn.style.display = 'none';
-      }
-      if (headerBox) {
-        headerBox.title = 'Select Physical Form & Origin';
-        headerBox.classList.remove('cp-spending-locked');
-      }
+    const mainSel = document.getElementById('main-physical-form-select');
+    if (mainSel) {
+      mainSel.value = curFormKey || '';
+      mainSel.disabled = isFinalized;
     }
 
-    // 2. Progression Tab Form Controls
-    const bioSel = document.getElementById('bio-physical-form');
-    const bioBtn = document.getElementById('bio-physical-form-btn');
-    const bioDisplay = document.getElementById('bio-physical-form-display');
-
-    if (bioDisplay) bioDisplay.textContent = curFormName;
-
-    if (isLocked) {
-      if (bioSel) {
-        bioSel.style.display = 'none';
-        bioSel.disabled = true;
-        bioSel.value = curFormKey;
-      }
-      if (bioBtn) {
-        bioBtn.style.display = 'flex';
-      }
-    } else {
-      if (bioSel) {
-        bioSel.style.display = 'block';
-        bioSel.disabled = false;
-        bioSel.value = curFormKey;
-      }
-      if (bioBtn) {
-        bioBtn.style.display = 'none';
-      }
-    }
+    this.renderPhysicalFormCard();
   },
 
   openChangePhysicalFormModal() {

@@ -5,7 +5,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Marvel Super Heroes (FASERIP) - Character Builder & Editor</title>
-  <link rel="stylesheet" href="styles.css?v=1.5.86">
+  <link rel="stylesheet" href="styles.css?v=1.5.87">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bangers&display=swap" rel="stylesheet">
@@ -27,16 +27,9 @@
         <div class="header-name-box">
           <input type="text" id="header-char-name" class="header-name-input" value="The Vanguard" title="Click to edit Character Name">
         </div>
-        <!-- Character Form Type following character's name (Simple dropdown when unspent; Clickable button invoking pop-up once CP is spent) -->
-        <div class="header-form-box" id="header-form-box" title="Character Physical Form &amp; Origin">
-          <span class="header-form-label">Form:</span>
-          <select id="header-form-select" class="header-form-select" title="Select Physical Form &amp; Origin">
-            <option value="">- Select physical form -</option>
-          </select>
-          <button type="button" class="header-form-btn" id="header-form-btn" style="display: none;" title="Physical Form (Locked - Click to open Form Change dialog or roll back to unlock)">
-            <strong id="header-form-display" class="header-form-val">Mutant</strong>
-            <span class="form-change-caret" style="color: #ef4444; font-size: 10pt; margin-left: 2px;">🔒</span>
-          </button>
+        <!-- Active Character Build Mode (With subtle pulsing effect) -->
+        <div class="header-build-mode-box" id="header-build-mode-box" title="Currently Selected Build Mode">
+          <span class="header-build-mode-badge mode-pulsing" id="header-build-mode-display">CMF point buy with CMF tables</span>
         </div>
         <span class="header-test-mode-badge" id="header-test-mode-badge" style="display: none;" title="Test Mode is Active (Karma is Infinite; changes are experimental)">TEST</span>
       </div>
@@ -101,19 +94,21 @@
         
         <!-- Left Section: Mode Switcher, Action Buttons & Tier Dropdown -->
         <div class="creation-bar-left" style="display: flex; align-items: center; gap: 8px; flex-shrink: 0;">
-          <!-- Build Mode Dropdown (Shows each mode with a brief description of its unique aspects) -->
+          <!-- Build Mode Dropdown (Shows modes with 'Choose build mode' placeholder) -->
           <div class="build-mode-dropdown-container" id="build-mode-dropdown-container" style="display: inline-flex; align-items: center; gap: 6px;">
-            <label for="select-creation-mode" class="build-mode-label" id="build-mode-label" style="font-size: 11pt; font-weight: 700; color: #94a3b8; white-space: nowrap;">Build mode:</label>
-            <select id="select-creation-mode" class="creation-mode-select build-mode-select" aria-label="Build mode" title="Select Character Generation Mode &amp; Ruleset" style="font-size: 11pt; height: 28px; border-radius: 4px; padding: 2px 6px; font-weight: 700; cursor: pointer;">
-              <optgroup label="TSR Ruleset (18 Ranks)">
-                <option value="tsr-standard">🎲 TSR Standard — Canonical 1986 random rolling on Tables 1 &amp; 2 (18 ranks)</option>
-                <option value="tsr-modeled">📐 TSR Modeled — Free-form modeling with KP tracking &amp; no slot limits (18 ranks)</option>
-                <option value="tsr-cp-buy">⚖️ TSR CP Buy — Point-buy tier budget &amp; Physical Form wizard (18 ranks)</option>
+            <select id="select-creation-mode" class="creation-mode-select build-mode-select" aria-label="Choose build mode" title="Choose Build Mode" style="font-size: 11pt; height: 28px; border-radius: 4px; padding: 2px 8px; font-weight: 700; cursor: pointer;">
+              <option value="" disabled selected>Choose build mode</option>
+              <optgroup label="Random Roll (1986 UPB Tables)">
+                <option value="tsr-standard">🎲 TSR random with TSR tables</option>
+                <option value="cmf-standard">🎲 TSR random with CMF tables</option>
               </optgroup>
-              <optgroup label="CMF Ruleset (22 Ranks + Fumbles)">
-                <option value="cmf-standard">🎲 CMF Standard — Random rolls mapped to 22-rank table + fumble results</option>
-                <option value="cmf-modeled">📐 CMF Modeled — Free-form modeling with 22 ranks &amp; KP tracking</option>
-                <option value="cmf-cp-buy" selected>⚖️ CMF CP Buy — Point-buy tier budget with 22 ranks &amp; Physical Form wizard</option>
+              <optgroup label="Modeled (Free-Form KP)">
+                <option value="tsr-modeled">📐 TSR modeled with TSR tables</option>
+                <option value="cmf-modeled">📐 TSR modeled with CMF tables</option>
+              </optgroup>
+              <optgroup label="Point Buy (CP Budget)">
+                <option value="tsr-cp-buy">⚖️ CMF point buy with TSR tables</option>
+                <option value="cmf-cp-buy">⚖️ CMF point buy with CMF tables</option>
               </optgroup>
             </select>
           </div>
@@ -318,15 +313,38 @@
             </div>
           </div>
 
+          <!-- Physical Form & Origin Card -->
+          <div class="card" id="card-physical-form" style="margin-bottom: 0;">
+            <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+              <div style="display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0;">
+                <span class="card-title" style="white-space: nowrap;">🧬 Physical Form</span>
+                <select id="main-physical-form-select" class="field-input physical-form-select" title="Choose Physical Form &amp; Origin" style="flex: 1; min-width: 200px; max-width: 420px; font-weight: 700; height: 30px; font-size: 10.5pt; border-radius: 4px; padding: 2px 8px; cursor: pointer;">
+                  <option value="" disabled selected>Choose physical form</option>
+                </select>
+              </div>
+              <button type="button" class="icon-btn compact form-help-btn" id="btn-physical-form-help" title="View original description and book lore" style="font-size: 11pt; padding: 2px 8px; height: 28px; line-height: 1; font-weight: 800; cursor: pointer;">❓</button>
+            </div>
+            <div class="card-body" id="card-physical-form-body" style="padding: 10px 14px; display: flex; flex-direction: column; gap: 8px; font-size: 10pt;">
+              <div id="form-modifications-content">
+                <!-- Dynamically populated with trait modifications based on selected form -->
+              </div>
+              <!-- Book Lore Description (shown/toggled with ?) -->
+              <div id="form-book-description-box" style="display: none; background: rgba(0, 0, 0, 0.28); border: 1px solid var(--border-color); border-radius: 6px; padding: 10px 14px; font-size: 9.5pt; line-height: 1.48; color: #cbd5e1;">
+                <div style="font-weight: 700; color: var(--marvel-gold); margin-bottom: 4px; display: flex; justify-content: space-between; align-items: center;">
+                  <span id="form-book-source-tag">📖 Sourcebook Description</span>
+                  <button type="button" class="icon-btn compact" id="btn-close-form-desc" style="padding: 0 5px; font-size: 8.5pt; line-height: 1;" title="Close Description">✕</button>
+                </div>
+                <p id="form-book-desc-text" style="margin: 0;"></p>
+              </div>
+            </div>
+          </div>
+
           <!-- Primary FASERIP Card -->
           <div class="card">
             <div class="card-header">
               <span class="card-title">📊 Primary Abilities (FASERIP)</span>
               <span style="color: var(--text-muted);">Point-for-Point Rank Value</span>
             </div>
-
-            <!-- Physical Form Stat Adjustments & Selectable Bonus Bar -->
-            <div id="main-form-adjustments-bar" style="display: none; background: rgba(56, 189, 248, 0.08); border: 1px solid rgba(56, 189, 248, 0.28); border-radius: 6px; padding: 8px 10px; margin-bottom: 10px; font-size: 9.5pt;"></div>
 
             <div class="faserip-grid">
               
@@ -1028,25 +1046,13 @@
 
       <div class="card">
         <div class="card-header">
-          <span class="card-title">📜 Hero Biography, Identity & Physical Form</span>
+          <span class="card-title">📜 Hero Biography &amp; Legal Identity</span>
         </div>
 
-        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px;">
+        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px;">
           <div>
             <span class="field-label">Real Name / Secret ID:</span>
             <input type="text" id="bio-real-name" class="field-input" value="Secret Identity">
-          </div>
-          <div id="bio-physical-form-container">
-            <span class="field-label">Physical Form (UPB + Dragon #134):</span>
-            <!-- Simple dropdown mode (shown until CP has been spent) -->
-            <select id="bio-physical-form" class="field-input" title="Select Physical Form &amp; Origin">
-              <option value="">- Select physical form -</option>
-            </select>
-            <!-- Modal button trigger mode (shown once CP has been spent) -->
-            <button type="button" id="bio-physical-form-btn" class="field-input form-locked-btn" style="display: none;" title="Physical Form is locked because starting CP has been spent. Click to open Change Physical Form dialog or roll back to unlock.">
-              <span id="bio-physical-form-display" style="font-weight: 700; color: #38bdf8;">Mutant</span>
-              <span style="font-size: 10pt; color: #ef4444; display: inline-flex; align-items: center; gap: 4px;">🔒 Locked (Pop-up)</span>
-            </button>
           </div>
           <div>
             <span class="field-label">Legal Identity Status:</span>
@@ -2115,7 +2121,7 @@
           <!-- SECTION: PROGRAM UPDATES & AUTOMATED CHECKING -->
           <div style="font-weight: 700; color: var(--text-main); font-size: 11pt; border-bottom: 1px solid var(--border-color); padding-bottom: 6px; margin-top: 10px; display: flex; justify-content: space-between; align-items: center;">
             <span>🔄 Program Updates &amp; Automated Checking</span>
-            <span class="meta-tag" id="update-version-tag" style="color: var(--marvel-gold); font-size: 10pt;">v1.5.86</span>
+            <span class="meta-tag" id="update-version-tag" style="color: var(--marvel-gold); font-size: 10pt;">v1.5.87</span>
           </div>
 
           <div class="update-settings-panel" style="background: rgba(0, 0, 0, 0.2); border: 1px solid var(--border-color); border-radius: 6px; padding: 12px; display: flex; flex-direction: column; gap: 10px;">
@@ -3963,13 +3969,13 @@
   </div>
 
   <!-- Scripts Loading -->
-  <script src="universal_table.js?v=1.5.86"></script>
-  <script src="data_forms.js?v=1.5.86"></script>
-  <script src="data_powers.js?v=1.5.86"></script>
-  <script src="data_talents.js?v=1.5.86"></script>
-  <script src="data_equipment.js?v=1.5.86"></script>
-  <script src="inventions.js?v=1.5.86"></script>
-  <script src="character_model.js?v=1.5.86"></script>
-  <script src="app.js?v=1.5.86"></script>
+  <script src="universal_table.js?v=1.5.87"></script>
+  <script src="data_forms.js?v=1.5.87"></script>
+  <script src="data_powers.js?v=1.5.87"></script>
+  <script src="data_talents.js?v=1.5.87"></script>
+  <script src="data_equipment.js?v=1.5.87"></script>
+  <script src="inventions.js?v=1.5.87"></script>
+  <script src="character_model.js?v=1.5.87"></script>
+  <script src="app.js?v=1.5.87"></script>
 </body>
 </html>

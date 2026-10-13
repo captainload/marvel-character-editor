@@ -5119,20 +5119,131 @@ body[data-theme="aqua"] #ui-dialog-creation-mode-select {
   border-color: rgba(168, 85, 247, 0.55);
 }
 
-/* Creation Mode Dropdown */
-.creation-mode-dropdown-container {
+/* Creation Mode & Build Mode Dropdowns */
+.creation-mode-dropdown-container,
+.build-mode-dropdown-container {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   flex-shrink: 0;
+  position: relative;
 }
 
-.creation-mode-label {
+.creation-mode-label,
+.build-mode-label {
   font-family: var(--font-body);
   font-size: 11pt;
   font-weight: 700;
   color: #94a3b8;
   white-space: nowrap;
+}
+
+.build-mode-dropdown-wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+/* Build Mode Dropdown Menu (With Unique Aspect Descriptions) */
+.build-mode-menu {
+  display: none;
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 10005;
+  width: 360px;
+  max-width: 92vw;
+  background: #0f172a;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.75), 0 0 0 1px rgba(255, 255, 255, 0.05);
+  padding: 8px;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.build-mode-menu.open {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.build-mode-group-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 6px;
+  font-size: 9.5pt;
+  font-weight: 800;
+  color: var(--marvel-gold);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.build-mode-group-badge {
+  font-size: 8pt;
+  font-weight: 700;
+  background: rgba(245, 158, 11, 0.15);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  padding: 1px 5px;
+  border-radius: 3px;
+}
+
+.build-mode-item {
+  padding: 6px 8px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.12s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  text-align: left;
+}
+
+.build-mode-item:hover {
+  background: rgba(56, 189, 248, 0.1);
+  border-color: rgba(56, 189, 248, 0.4);
+}
+
+.build-mode-item.active {
+  background: rgba(245, 158, 11, 0.12);
+  border-color: var(--marvel-gold);
+}
+
+.build-mode-item-top {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.build-mode-item-title {
+  font-size: 10.5pt;
+  font-weight: 800;
+  color: #f1f5f9;
+}
+
+.build-mode-item.active .build-mode-item-title {
+  color: var(--marvel-gold);
+}
+
+.build-mode-active-pill {
+  margin-left: auto;
+  font-size: 8pt;
+  font-weight: 800;
+  background: var(--marvel-gold);
+  color: #000;
+  padding: 1px 5px;
+  border-radius: 3px;
+}
+
+.build-mode-item-desc {
+  font-size: 9.5pt;
+  color: #94a3b8;
+  line-height: 1.35;
 }
 
 .creation-mode-select {
@@ -6202,6 +6313,48 @@ body[data-theme="manilla"] .cp-block-tier-name-label {
 
 body[data-theme="manilla"] .cp-block-tier-name-val {
   color: #78350f;
+}
+
+body[data-theme="manilla"] .build-mode-label {
+  color: #475569;
+}
+body[data-theme="manilla"] .build-mode-menu {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+}
+body[data-theme="manilla"] .build-mode-group-header {
+  color: #92400e;
+  border-bottom-color: #cbd5e1;
+}
+body[data-theme="manilla"] .build-mode-group-badge {
+  background: #fef3c7;
+  color: #92400e;
+  border-color: #f59e0b;
+}
+body[data-theme="manilla"] .build-mode-item {
+  background: #f1f5f9;
+}
+body[data-theme="manilla"] .build-mode-item:hover {
+  background: #e2e8f0;
+  border-color: #0284c7;
+}
+body[data-theme="manilla"] .build-mode-item.active {
+  background: #fef3c7;
+  border-color: #d97706;
+}
+body[data-theme="manilla"] .build-mode-item-title {
+  color: #0f172a;
+}
+body[data-theme="manilla"] .build-mode-item.active .build-mode-item-title {
+  color: #92400e;
+}
+body[data-theme="manilla"] .build-mode-active-pill {
+  background: #d97706;
+  color: #fff;
+}
+body[data-theme="manilla"] .build-mode-item-desc {
+  color: #475569;
 }
 
 body[data-theme="manilla"] .cp-block-bottom-row {
@@ -7975,6 +8128,14 @@ body[data-theme="aqua"] .char-header-top {
 body[data-theme="aqua"] .point-buy-strip {
   background: linear-gradient(180deg, #133156 0%, #0c2342 100%) !important;
   border-bottom: 1px solid rgba(56, 189, 248, 0.3) !important;
+}
+
+body[data-theme="aqua"] .build-mode-label {
+  color: #7dd3fc;
+}
+body[data-theme="aqua"] .build-mode-menu {
+  background: #0d1b2a;
+  border-color: #1e3a5f;
 }
 
 body[data-theme="aqua"] .header-form-box {

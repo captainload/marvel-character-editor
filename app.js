@@ -62,7 +62,7 @@ const App = {
     this.superiorOptionCost = !!val;
   },
   humanAbilityCaps: false,
-  VERSION: '1.5.84',
+  VERSION: '1.5.85',
   BUILD_DATE: '2026-10-13',
   COMMIT_SHA: '6a15ff5',
   REPO_OWNER: 'captainload',
@@ -1460,17 +1460,61 @@ const App = {
     if (selCreationMode) {
       selCreationMode.addEventListener('change', (e) => {
         const target = e.target.value;
-        selCreationMode.value = this.getCreationModeKey();
-        this.openCreationModeModal(target);
+        this.handleModeChange(target);
       });
     }
-    const btnCreationModePicker = document.getElementById('btn-creation-mode-picker');
-    if (btnCreationModePicker) {
-      btnCreationModePicker.addEventListener('click', (e) => {
+
+    // Build Mode Dropdown Menu
+    const btnBuildModeDropdown = document.getElementById('btn-build-mode-dropdown') || document.getElementById('btn-creation-mode-picker');
+    const buildModeMenu = document.getElementById('build-mode-menu');
+    if (btnBuildModeDropdown && buildModeMenu) {
+      btnBuildModeDropdown.addEventListener('click', (e) => {
         if (e && e.stopPropagation) e.stopPropagation();
-        this.openCreationModeModal();
+        const isOpen = buildModeMenu.classList.contains('open');
+        document.querySelectorAll('.dropdown-menu.open, .build-mode-menu.open').forEach(m => m.classList.remove('open'));
+        if (!isOpen) {
+          buildModeMenu.classList.add('open');
+          btnBuildModeDropdown.setAttribute('aria-expanded', 'true');
+        } else {
+          buildModeMenu.classList.remove('open');
+          btnBuildModeDropdown.setAttribute('aria-expanded', 'false');
+        }
       });
+
+      buildModeMenu.querySelectorAll('.build-mode-item').forEach(item => {
+        item.addEventListener('click', (e) => {
+          if (e && e.stopPropagation) e.stopPropagation();
+          const targetMode = item.getAttribute('data-mode');
+          buildModeMenu.classList.remove('open');
+          btnBuildModeDropdown.setAttribute('aria-expanded', 'false');
+          if (targetMode) {
+            this.handleModeChange(targetMode);
+          }
+        });
+        item.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            item.click();
+          }
+        });
+      });
+
+      if (typeof document.addEventListener === 'function') {
+        document.addEventListener('click', (e) => {
+          if (!e.target.closest || !e.target.closest('#build-mode-dropdown-container')) {
+            buildModeMenu.classList.remove('open');
+            btnBuildModeDropdown.setAttribute('aria-expanded', 'false');
+          }
+        });
+        document.addEventListener('keydown', (e) => {
+          if (e.key === 'Escape' && buildModeMenu.classList.contains('open')) {
+            buildModeMenu.classList.remove('open');
+            btnBuildModeDropdown.setAttribute('aria-expanded', 'false');
+          }
+        });
+      }
     }
+
     const topModeTag = document.getElementById('top-creation-mode-tag');
     if (topModeTag) {
       topModeTag.addEventListener('click', () => this.openCreationModeModal());
@@ -2999,24 +3043,16 @@ const App = {
 
     const activeModeDisplayName = this.getCreationModeDisplayName(activeModeKey);
 
-    const btnCreationModePicker = document.getElementById('btn-creation-mode-picker');
-    const modeBtnText = document.getElementById('creation-mode-btn-text');
-    if (btnCreationModePicker) {
-      btnCreationModePicker.style.display = isFinalized ? 'none' : 'inline-flex';
-      btnCreationModePicker.disabled = isFinalized;
-      if (modeBtnText) {
-        modeBtnText.textContent = `Mode: ${activeModeDisplayName}`;
-      } else {
-        btnCreationModePicker.innerHTML = `<span class="mode-btn-icon" aria-hidden="true">⚙️</span> <span id="creation-mode-btn-text">Mode: ${activeModeDisplayName}</span> <span class="mode-btn-caret" aria-hidden="true" style="font-size: 10pt; opacity: 0.85; margin-left: 2px;">▾</span>`;
-      }
-      btnCreationModePicker.title = `Current Creation Mode: ${activeModeDisplayName} (Click to switch ruleset or character generation mode)`;
+    // Sync Build Mode Dropdown UI
+    this.syncBuildModeDropdownUI(activeModeKey);
+
+    const btnBuildModeDropdown = document.getElementById('btn-build-mode-dropdown') || document.getElementById('btn-creation-mode-picker');
+    if (btnBuildModeDropdown) {
+      btnBuildModeDropdown.style.display = isFinalized ? 'none' : 'inline-flex';
+      btnBuildModeDropdown.disabled = isFinalized;
     }
 
     const selCreationMode = document.getElementById('select-creation-mode');
-    const creationModeDropdownContainer = document.getElementById('creation-mode-dropdown-container');
-    if (creationModeDropdownContainer) {
-      creationModeDropdownContainer.style.display = 'none';
-    }
     if (selCreationMode) {
       selCreationMode.value = activeModeKey;
       selCreationMode.disabled = isFinalized;
@@ -3028,12 +3064,15 @@ const App = {
     const tsrSubmodeToggle = document.getElementById('tsr-submode-split-toggle');
     const btnWizard = document.getElementById('btn-open-creation-wizard');
 
-    const isPointBuyMode = (activeModeKey === 'cmf-cp-buy' || activeModeKey === 'tsr-cp-buy' || (!isTsr && !activeModeKey.includes('standard') && !activeModeKey.includes('modeled')));
-    const isTsrRandomOrModeled = (activeModeKey === 'tsr-standard' || activeModeKey === 'tsr-modeled' || activeModeKey === 'cmf-standard' || activeModeKey === 'cmf-modeled' || isTsr);
+    // Visibility rules per user instructions:
+    // - The 'set tier' and 'roll tables' buttons won't be visible yet (modeled or unselected)
+    // - The "set tier" button will appear if a point-buy mode is selected
+    // - If a random mode is selected then the 'roll tables' button will appear instead
+    const isPointBuyMode = (activeModeKey === 'cmf-cp-buy' || activeModeKey === 'tsr-cp-buy');
+    const isRandomMode = (activeModeKey === 'tsr-standard' || activeModeKey === 'cmf-standard');
 
-    // Move 'Roll Tables' and 'Set Tier' buttons next to generation mode dropdown
     if (btnOpenTsrGen) {
-      btnOpenTsrGen.style.display = (isTsrRandomOrModeled && !isFinalized) ? 'inline-flex' : 'none';
+      btnOpenTsrGen.style.display = (isRandomMode && !isFinalized) ? 'inline-flex' : 'none';
       btnOpenTsrGen.textContent = '🎲 Roll Tables';
       btnOpenTsrGen.title = 'Open TSR 1986 Character Generator & Roll Tables';
     }
@@ -12549,7 +12588,221 @@ const App = {
     return this.getCreationModeFullTitle(mode);
   },
 
-  async handleNewCharacterModeSelection(mode) {
+  syncBuildModeDropdownUI(modeKey) {
+    const key = modeKey || this.getCreationModeKey();
+    const dispName = this.getCreationModeDisplayName(key);
+    const modeIconMap = {
+      'tsr-standard': '🎲',
+      'tsr-modeled': '📐',
+      'tsr-cp-buy': '⚖️',
+      'cmf-standard': '🎲',
+      'cmf-modeled': '📐',
+      'cmf-cp-buy': '⚖️'
+    };
+
+    const textEl = document.getElementById('build-mode-active-text') || document.getElementById('creation-mode-btn-text');
+    if (textEl) textEl.textContent = dispName;
+
+    const iconEl = document.getElementById('build-mode-active-icon');
+    if (iconEl) iconEl.textContent = modeIconMap[key] || '⚙️';
+
+    const selEl = document.getElementById('select-creation-mode');
+    if (selEl) selEl.value = key;
+
+    const menu = document.getElementById('build-mode-menu');
+    if (menu) {
+      menu.querySelectorAll('.build-mode-item').forEach(item => {
+        const itemMode = item.getAttribute('data-mode');
+        const isActive = (itemMode === key);
+        item.classList.toggle('active', isActive);
+        item.setAttribute('aria-selected', isActive ? 'true' : 'false');
+        const pill = item.querySelector('.build-mode-active-pill');
+        if (pill) pill.style.display = isActive ? 'inline-block' : 'none';
+      });
+    }
+  },
+
+  hasCmfExclusiveRanks(char) {
+    if (!char) return false;
+    const cmfExclusiveNums = [35, 45, 60, 90];
+    const cmfExclusiveNames = ['fantastic', 'spectacular', 'sensational', 'awesome'];
+
+    const checkRank = (val, name) => {
+      if (val !== undefined && val !== null && cmfExclusiveNums.includes(Number(val))) return true;
+      if (name && typeof name === 'string' && cmfExclusiveNames.includes(name.toLowerCase().trim())) return true;
+      return false;
+    };
+
+    if (char.abilities) {
+      for (const k of ['fighting', 'agility', 'strength', 'endurance', 'reason', 'intuition', 'psyche']) {
+        const ab = char.abilities[k];
+        if (ab && (checkRank(ab.rankValue, ab.rankName) || checkRank(ab.baseRankValue, ab.baseRankName))) {
+          return true;
+        }
+      }
+    }
+
+    if (char.resources && (checkRank(char.resources.rankValue, char.resources.rankName) || checkRank(char.resources.baseRankValue, char.resources.baseRankName))) {
+      return true;
+    }
+
+    if (Array.isArray(char.powers)) {
+      for (const p of char.powers) {
+        if (p && checkRank(p.rankValue, p.rankName)) {
+          return true;
+        }
+      }
+    }
+
+    return false;
+  },
+
+  isCharacterBlank(char) {
+    if (!char) return true;
+    const hasPowers = Array.isArray(char.powers) && char.powers.length > 0;
+    const hasTalents = Array.isArray(char.talents) && char.talents.length > 0;
+    const hasContacts = Array.isArray(char.contacts) && char.contacts.length > 0;
+    if (hasPowers || hasTalents || hasContacts) return false;
+
+    if (char.abilities) {
+      const allDefaultAbilities = ['fighting', 'agility', 'strength', 'endurance', 'reason', 'intuition', 'psyche'].every(k => {
+        const ab = char.abilities[k];
+        return !ab || ab.rankValue === 6;
+      });
+      if (!allDefaultAbilities) return false;
+    }
+
+    if (Array.isArray(char.editHistory) && char.editHistory.length > 1) {
+      return false;
+    }
+
+    return true;
+  },
+
+  canConvertCharacterToMode(currentKey, targetKey, character) {
+    if (!character) {
+      return { feasible: true, isBlank: true };
+    }
+    if (currentKey === targetKey) {
+      return { feasible: true };
+    }
+
+    if (this.isCharacterBlank(character)) {
+      return { feasible: true, isBlank: true };
+    }
+
+    const normCurrent = String(currentKey).toLowerCase().replace(/[\s_]+/g, '-');
+    const normTarget = String(targetKey).toLowerCase().replace(/[\s_]+/g, '-');
+
+    const isCurrentTsr = normCurrent.startsWith('tsr-');
+    const isTargetTsr = normTarget.startsWith('tsr-');
+
+    // 1. Moving to TSR ruleset with CMF-exclusive ranks
+    if (isTargetTsr && !isCurrentTsr) {
+      if (this.hasCmfExclusiveRanks(character)) {
+        return {
+          feasible: false,
+          reason: 'Character possesses CMF-exclusive ranks (Fantastic, Spectacular, Sensational, or Awesome) that do not exist in the 18-rank TSR ruleset.'
+        };
+      }
+    }
+
+    // 2. Moving to Random Roll
+    const isTargetRandom = normTarget.endsWith('-standard') || normTarget.endsWith('-random');
+    const isCurrentRandom = normCurrent.endsWith('-standard') || normCurrent.endsWith('-random');
+
+    if (isTargetRandom) {
+      if (isCurrentRandom) {
+        return { feasible: true };
+      }
+      return {
+        feasible: false,
+        reason: 'Converting a Point-Buy or Modeled build to Random Roll requires generating traits from scratch on the 1986 tables.'
+      };
+    }
+
+    // 3. Moving to Modeled (Free-form KP tracking)
+    const isTargetModeled = normTarget.endsWith('-modeled');
+    if (isTargetModeled) {
+      return { feasible: true };
+    }
+
+    // 4. Moving to Point-Buy
+    const isTargetPointBuy = normTarget.endsWith('-cp-buy') || normTarget.endsWith('-point-buy');
+    if (isTargetPointBuy) {
+      return { feasible: true };
+    }
+
+    return { feasible: true };
+  },
+
+  convertCharacterToMode(targetModeKey) {
+    if (!this.character) return;
+    const normTarget = String(targetModeKey).toLowerCase().replace(/[\s_]+/g, '-');
+    const isTargetTsr = normTarget.startsWith('tsr-');
+    const targetTableMode = isTargetTsr ? 'standard' : 'cmf';
+
+    // 1. Update Universal Table mode if changing ruleset
+    if (this.universalTableMode !== targetTableMode) {
+      this.setUniversalTableMode(targetTableMode, true, false);
+    }
+
+    // 2. Adjust character creation mode & sub-mode
+    const dispName = this.getCreationModeDisplayName(normTarget);
+
+    if (normTarget.endsWith('-standard') || normTarget.endsWith('-random')) {
+      this.character.creationMode = 'tsr';
+      if (this.character.setTsrSubMode) {
+        this.character.setTsrSubMode('random');
+      } else {
+        this.character.tsrSubMode = 'random';
+      }
+      this.character.pointTier = (targetTableMode === 'cmf') ? 'CMF Standard' : 'TSR 1986';
+      this.character.isCreationSetupPending = false;
+    } else if (normTarget.endsWith('-modeled')) {
+      this.character.creationMode = 'tsr';
+      if (this.character.setTsrSubMode) {
+        this.character.setTsrSubMode('modeled');
+      } else {
+        this.character.tsrSubMode = 'modeled';
+      }
+      this.character.pointTier = (targetTableMode === 'cmf') ? 'CMF Modeled' : 'TSR 1986 (Modeled)';
+      this.character.isCreationSetupPending = false;
+    } else {
+      // Point-Buy mode (tsr-cp-buy or cmf-cp-buy)
+      this.character.creationMode = 'cmf';
+      
+      const pts = (typeof this.character.calculateSpentPoints === 'function')
+        ? this.character.calculateSpentPoints()
+        : this.character.calculateTotalPointsSpent();
+      const totalSpent = (pts && typeof pts.totalSpent === 'number') ? pts.totalSpent : 0;
+      
+      const standardTiers = [150, 200, 300, 400, 500, 600];
+      const matchingTier = standardTiers.find(t => t >= totalSpent);
+      
+      if (matchingTier) {
+        this.character.setPointTier(String(matchingTier));
+      } else if (totalSpent > 600) {
+        this.character.setPointTier('custom', totalSpent);
+      } else if (!this.character.pointTier || isNaN(parseInt(this.character.pointTier, 10))) {
+        this.character.setPointTier('300');
+      }
+      this.character.isCreationSetupPending = false;
+    }
+
+    // 3. Sync ranks to the active table scheme
+    if (typeof this.character.syncRanksToActiveScheme === 'function') {
+      this.character.syncRanksToActiveScheme();
+    }
+
+    // 4. Record history edit and toast
+    this.character.recordEdit(`Build converted to ${dispName}`, 'creation');
+    this.saveState();
+    this.render();
+    this.showStatusToast(`Build converted to ${dispName}.`);
+  },
+
+  async handleModeChange(mode) {
     let normTarget = mode ? String(mode).toLowerCase().replace(/[\s_]+/g, '-') : null;
     if (normTarget === 'random') normTarget = 'tsr-standard';
     if (normTarget === 'modeled') normTarget = 'tsr-modeled';
@@ -12558,39 +12811,50 @@ const App = {
 
     const currentKey = this.getCreationModeKey();
     if (normTarget === currentKey && this.character && !this.character.isCreationFinalized) {
-      this._forceSavePromptOnModeSwitch = false;
-      this.closeNewCharacterModeModal();
-      this.closeCreationWizardModal();
       const dispName = this.getCreationModeDisplayName(currentKey);
       this.showStatusToast(`Already in ${dispName} mode.`);
       return;
     }
 
-    if (this._forceSavePromptOnModeSwitch || this.isCurrentCharacterUnsaved()) {
-      const targetName = this.getModeDisplayName(normTarget);
-      const choice = await this.showSavePromptDialog(
-        `Switching generation mode to ${targetName} will replace your current character.\n\nWould you like to save your current character first?`,
-        'Save Current Character?'
-      );
-      if (choice === 'cancel') {
-        const selEl = document.getElementById('select-creation-mode');
-        if (selEl) selEl.value = currentKey;
+    // Check if conversion is feasible
+    const check = this.canConvertCharacterToMode(currentKey, normTarget, this.character);
+
+    if (check.feasible) {
+      if (check.isBlank || !this.character || this.isCharacterBlank(this.character)) {
+        this.applyNewCharacter(normTarget);
+      } else {
+        this.convertCharacterToMode(normTarget);
+      }
+      return;
+    }
+
+    // Conversion is NOT feasible: warn user about saving current character first
+    const targetTitle = this.getCreationModeFullTitle(normTarget);
+    const reasonMsg = check.reason ? `\n\nNote: ${check.reason}` : '';
+    const choice = await this.showSavePromptDialog(
+      `Switching build mode to ${targetTitle} cannot automatically convert your current character build.${reasonMsg}\n\nWould you like to save your current character first?`,
+      'Save Current Character?'
+    );
+
+    if (choice === 'cancel') {
+      this.syncBuildModeDropdownUI(currentKey);
+      return;
+    }
+
+    if (choice === 'save') {
+      const saved = await this.exportCharacter();
+      if (!saved) {
+        this.syncBuildModeDropdownUI(currentKey);
         return;
       }
-      if (choice === 'save') {
-        const saved = await this.exportCharacter();
-        if (!saved) {
-          const selEl = document.getElementById('select-creation-mode');
-          if (selEl) selEl.value = currentKey;
-          return; // Save cancelled or failed, preserve current character
-        }
-      }
-      // 'discard' or saved successfully: continue to initialize new character
     }
-    this._forceSavePromptOnModeSwitch = false;
-    this.closeNewCharacterModeModal();
-    this.closeCreationWizardModal();
+
+    // Discarded or saved successfully: apply new character in target mode
     this.applyNewCharacter(normTarget);
+  },
+
+  async handleNewCharacterModeSelection(mode) {
+    return this.handleModeChange(mode);
   },
 
   /* Rules Cheat Sheet Popout Window Logic */
@@ -13654,10 +13918,33 @@ const App = {
   },
 
   openCreationModeModal(targetMode = null) {
-    this.openNewCharacterModeModal(targetMode);
+    if (targetMode) {
+      this.handleModeChange(targetMode);
+      return;
+    }
+    const buildModeMenu = document.getElementById('build-mode-menu');
+    const btn = document.getElementById('btn-build-mode-dropdown') || document.getElementById('btn-creation-mode-picker');
+    if (buildModeMenu) {
+      const isOpen = buildModeMenu.classList.contains('open');
+      if (!isOpen) {
+        buildModeMenu.classList.add('open');
+        if (btn) btn.setAttribute('aria-expanded', 'true');
+      } else {
+        buildModeMenu.classList.remove('open');
+        if (btn) btn.setAttribute('aria-expanded', 'false');
+      }
+    } else {
+      this.openNewCharacterModeModal(targetMode);
+    }
   },
 
   closeCreationModeModal() {
+    const buildModeMenu = document.getElementById('build-mode-menu');
+    const btn = document.getElementById('btn-build-mode-dropdown') || document.getElementById('btn-creation-mode-picker');
+    if (buildModeMenu) {
+      buildModeMenu.classList.remove('open');
+      if (btn) btn.setAttribute('aria-expanded', 'false');
+    }
     this.closeNewCharacterModeModal();
   },
 

@@ -5,7 +5,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Marvel Super Heroes (FASERIP) - Character Builder & Editor</title>
-  <link rel="stylesheet" href="styles.css?v=1.5.84">
+  <link rel="stylesheet" href="styles.css?v=1.5.85">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bangers&display=swap" rel="stylesheet">
@@ -101,12 +101,112 @@
         
         <!-- Left Section: Mode Switcher, Action Buttons & Tier Dropdown -->
         <div class="creation-bar-left" style="display: flex; align-items: center; gap: 8px; flex-shrink: 0;">
-          <!-- Prominent Creation Mode Button (Invokes Mode Picker & Doubles as Mode Readout) -->
-          <button type="button" class="icon-btn creation-mode-btn" id="btn-creation-mode-picker" title="Current Creation Mode: CMF CP buy (Click to switch ruleset or character generation mode)">
-            <span class="mode-btn-icon" aria-hidden="true">⚙️</span>
-            <span class="mode-btn-label" id="creation-mode-btn-text">Mode: CMF CP buy</span>
-            <span class="mode-btn-caret" aria-hidden="true" style="font-size: 11pt; opacity: 0.85; margin-left: 2px;">▾</span>
-          </button>
+          <!-- Build Mode Dropdown (Converted from generation mode pop-up to show unique aspects) -->
+          <div class="build-mode-dropdown-container" id="build-mode-dropdown-container" style="display: inline-flex; align-items: center; gap: 6px; position: relative;">
+            <label for="btn-build-mode-dropdown" class="build-mode-label" id="build-mode-label" style="font-size: 11pt; font-weight: 700; color: #94a3b8; white-space: nowrap;">Build mode:</label>
+            <div class="build-mode-dropdown-wrapper" style="position: relative; display: inline-flex; align-items: center;">
+              <button type="button" class="icon-btn creation-mode-btn build-mode-btn" id="btn-build-mode-dropdown" aria-haspopup="listbox" aria-expanded="false" title="Current Build Mode: CMF CP buy (Click to change ruleset or character generation mode)" style="height: 26px; min-height: 26px; max-height: 26px; padding: 2px 8px; font-size: 11pt; font-weight: 700; border-radius: 4px; display: inline-flex; align-items: center; gap: 4px; white-space: nowrap;">
+                <span class="mode-btn-icon" id="build-mode-active-icon" aria-hidden="true">⚖️</span>
+                <span class="mode-btn-label" id="build-mode-active-text">CMF CP buy</span>
+                <span class="mode-btn-caret" aria-hidden="true" style="font-size: 11pt; opacity: 0.85; margin-left: 2px;">▾</span>
+              </button>
+
+              <!-- Build Mode Dropdown Menu (Unique aspects for each mode) -->
+              <div class="build-mode-menu" id="build-mode-menu" role="listbox" aria-labelledby="build-mode-label">
+                <!-- Group 1: TSR Canonical Ruleset -->
+                <div class="build-mode-group-header">
+                  <span>🏛️ TSR Canonical Ruleset</span>
+                  <span class="build-mode-group-badge">18 Ranks</span>
+                </div>
+
+                <div class="build-mode-item" data-mode="tsr-standard" role="option" tabindex="0">
+                  <div class="build-mode-item-top">
+                    <span class="build-mode-item-icon">🎲</span>
+                    <strong class="build-mode-item-title">TSR Standard</strong>
+                    <span class="build-mode-active-pill" id="pill-active-tsr-standard" style="display: none;">Active</span>
+                  </div>
+                  <div class="build-mode-item-desc">
+                    Canonical 1986 random rolling on Tables 1 &amp; 2; standard 18-rank Universal Table (Shift 0 to Beyond).
+                  </div>
+                </div>
+
+                <div class="build-mode-item" data-mode="tsr-modeled" role="option" tabindex="0">
+                  <div class="build-mode-item-top">
+                    <span class="build-mode-item-icon">📐</span>
+                    <strong class="build-mode-item-title">TSR Modeled</strong>
+                    <span class="build-mode-active-pill" id="pill-active-tsr-modeled" style="display: none;">Active</span>
+                  </div>
+                  <div class="build-mode-item-desc">
+                    Free-form character modeling with 18 ranks, no slot limits, and real-time KP investment tracking.
+                  </div>
+                </div>
+
+                <div class="build-mode-item" data-mode="tsr-cp-buy" role="option" tabindex="0">
+                  <div class="build-mode-item-top">
+                    <span class="build-mode-item-icon">⚖️</span>
+                    <strong class="build-mode-item-title">TSR CP Buy</strong>
+                    <span class="build-mode-active-pill" id="pill-active-tsr-cp-buy" style="display: none;">Active</span>
+                  </div>
+                  <div class="build-mode-item-desc">
+                    Point-buy tier budget &amp; Physical Form wizard using standard 18-rank progressions.
+                  </div>
+                </div>
+
+                <!-- Group 2: CMF Modified Ruleset -->
+                <div class="build-mode-group-header" style="margin-top: 6px;">
+                  <span>🌐 CMF Modified Ruleset</span>
+                  <span class="build-mode-group-badge">22 Ranks + Fumbles</span>
+                </div>
+
+                <div class="build-mode-item" data-mode="cmf-standard" role="option" tabindex="0">
+                  <div class="build-mode-item-top">
+                    <span class="build-mode-item-icon">🎲</span>
+                    <strong class="build-mode-item-title">CMF Standard</strong>
+                    <span class="build-mode-active-pill" id="pill-active-cmf-standard" style="display: none;">Active</span>
+                  </div>
+                  <div class="build-mode-item-desc">
+                    Random rolling mapped to the expanded 22-rank table featuring Dark Blue Fumble results.
+                  </div>
+                </div>
+
+                <div class="build-mode-item" data-mode="cmf-modeled" role="option" tabindex="0">
+                  <div class="build-mode-item-top">
+                    <span class="build-mode-item-icon">📐</span>
+                    <strong class="build-mode-item-title">CMF Modeled</strong>
+                    <span class="build-mode-active-pill" id="pill-active-cmf-modeled" style="display: none;">Active</span>
+                  </div>
+                  <div class="build-mode-item-desc">
+                    Free-form modeling with access to all 22 ranks (up to Awesome) and KP investment tracking.
+                  </div>
+                </div>
+
+                <div class="build-mode-item" data-mode="cmf-cp-buy" role="option" tabindex="0">
+                  <div class="build-mode-item-top">
+                    <span class="build-mode-item-icon">⚖️</span>
+                    <strong class="build-mode-item-title">CMF CP Buy</strong>
+                    <span class="build-mode-active-pill" id="pill-active-cmf-cp-buy" style="display: none;">Active</span>
+                  </div>
+                  <div class="build-mode-item-desc">
+                    Classic Marvel Forever point-buy rules (300 CP default tier) with 22 ranks &amp; Physical Form wizard.
+                  </div>
+                </div>
+              </div>
+
+              <!-- Synchronized Select Element (kept in DOM for 100% backward & test compatibility) -->
+              <select id="select-creation-mode" class="creation-mode-select" aria-label="Build mode" style="position: absolute; opacity: 0; pointer-events: none; width: 0; height: 0; margin: 0; padding: 0; border: 0;">
+                <optgroup label="TSR Ruleset (18 Ranks)">
+                  <option value="tsr-standard">TSR Standard — Canonical 1986 random rolling on Tables 1 &amp; 2 (18 ranks)</option>
+                  <option value="tsr-modeled">TSR Modeled — Free-form modeling with KP tracking &amp; no slot limits (18 ranks)</option>
+                  <option value="tsr-cp-buy">TSR CP Buy — Point-buy tier budget &amp; Physical Form wizard (18 ranks)</option>
+                </optgroup>
+                <optgroup label="CMF Ruleset (22 Ranks + Fumbles)">
+                  <option value="cmf-standard">CMF Standard — Random rolls mapped to 22-rank table + fumble results</option>
+                  <option value="cmf-modeled">CMF Modeled — Free-form modeling with 22 ranks &amp; KP tracking</option>
+                  <option value="cmf-cp-buy" selected>CMF CP Buy — Point-buy tier budget with 22 ranks &amp; Physical Form wizard</option>
+                </optgroup>
+              </select>
+            </div>
+          </div>
 
           <!-- Set Tier Button (Point-Buy / CMF Modes) directly next to Mode Button -->
           <button type="button" class="icon-btn primary compact" id="btn-open-creation-wizard" style="display: none; font-size: 11pt; padding: 2px 10px; height: 26px; min-height: 26px; max-height: 26px; line-height: 1; font-weight: 700; border-radius: 4px; align-items: center; justify-content: center;" title="Set Starting Tier, CP Budget &amp; Physical Form">⚡ Set Tier</button>
@@ -125,19 +225,6 @@
               <option value="500">Major Superhero (500 CP)</option>
               <option value="600">World Class Hero (600 CP)</option>
               <option value="custom">Custom Budget...</option>
-            </select>
-          </div>
-
-          <!-- Preserved Hidden Select for 100% Backward & Test Compatibility -->
-          <div class="creation-mode-dropdown-container" id="creation-mode-dropdown-container" style="display: none !important;" aria-hidden="true">
-            <label for="select-creation-mode" class="creation-mode-label" id="creation-mode-label" style="display: none;">Mode:</label>
-            <select id="select-creation-mode" class="creation-mode-select" aria-label="Creation mode" style="display: none;">
-              <option value="tsr-standard">TSR standard</option>
-              <option value="tsr-modeled">TSR modeled</option>
-              <option value="tsr-cp-buy">TSR CP buy</option>
-              <option value="cmf-standard">CMF standard</option>
-              <option value="cmf-modeled">CMF modeled</option>
-              <option value="cmf-cp-buy" selected>CMF CP buy</option>
             </select>
           </div>
 
@@ -2118,7 +2205,7 @@
           <!-- SECTION: PROGRAM UPDATES & AUTOMATED CHECKING -->
           <div style="font-weight: 700; color: var(--text-main); font-size: 11pt; border-bottom: 1px solid var(--border-color); padding-bottom: 6px; margin-top: 10px; display: flex; justify-content: space-between; align-items: center;">
             <span>🔄 Program Updates &amp; Automated Checking</span>
-            <span class="meta-tag" id="update-version-tag" style="color: var(--marvel-gold); font-size: 10pt;">v1.5.84</span>
+            <span class="meta-tag" id="update-version-tag" style="color: var(--marvel-gold); font-size: 10pt;">v1.5.85</span>
           </div>
 
           <div class="update-settings-panel" style="background: rgba(0, 0, 0, 0.2); border: 1px solid var(--border-color); border-radius: 6px; padding: 12px; display: flex; flex-direction: column; gap: 10px;">
@@ -3966,13 +4053,13 @@
   </div>
 
   <!-- Scripts Loading -->
-  <script src="universal_table.js?v=1.5.84"></script>
-  <script src="data_forms.js?v=1.5.84"></script>
-  <script src="data_powers.js?v=1.5.84"></script>
-  <script src="data_talents.js?v=1.5.84"></script>
-  <script src="data_equipment.js?v=1.5.84"></script>
-  <script src="inventions.js?v=1.5.84"></script>
-  <script src="character_model.js?v=1.5.84"></script>
-  <script src="app.js?v=1.5.84"></script>
+  <script src="universal_table.js?v=1.5.85"></script>
+  <script src="data_forms.js?v=1.5.85"></script>
+  <script src="data_powers.js?v=1.5.85"></script>
+  <script src="data_talents.js?v=1.5.85"></script>
+  <script src="data_equipment.js?v=1.5.85"></script>
+  <script src="inventions.js?v=1.5.85"></script>
+  <script src="character_model.js?v=1.5.85"></script>
+  <script src="app.js?v=1.5.85"></script>
 </body>
 </html>

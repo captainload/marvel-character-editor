@@ -1,7 +1,7 @@
 {
-  "version": "1.5.85",
+  "version": "1.5.86",
   "releaseDate": "2026-10-13",
   "name": "Marvel Super Heroes Character Editor",
   "repo": "https://github.com/captainload/marvel-character-editor",
-  "notes": "v1.5.85: Added Build Mode dropdown at the left end of the creation bar with rich unique-aspect descriptions for all 6 creation modes (TSR & CMF Standard, Modeled, and CP Buy). Set Tier and Roll Tables buttons appear dynamically based on mode selection (Set Tier for Point-Buy, Roll Tables for Random Roll). Added automatic build conversion when changing modes where feasible, and pre-switch save warnings when conversion is not feasible."
+  "notes": "v1.5.86: Converted Build Mode to a prominent, visible native select dropdown at the left end of the creation bar with detailed descriptions for all 6 creation modes. Restored reliable in-page Rules Cheat Sheet toggle response without popout interference or popup-blocker suppression, automatically docking any active popout windows directly into the main view."
 }

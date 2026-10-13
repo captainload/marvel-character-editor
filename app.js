@@ -62,7 +62,7 @@ const App = {
     this.superiorOptionCost = !!val;
   },
   humanAbilityCaps: false,
-  VERSION: '1.5.85',
+  VERSION: '1.5.86',
   BUILD_DATE: '2026-10-13',
   COMMIT_SHA: '6a15ff5',
   REPO_OWNER: 'captainload',
@@ -156,7 +156,7 @@ const App = {
     // Auto-restore Cheat Sheet popout if it was popped out when client closed
     if (typeof localStorage !== 'undefined') {
       const wasPoppedOut = (localStorage.getItem('msh_cheatsheet_popped_out') === 'true');
-      if (wasPoppedOut && this.cheatsheetAutoPopout) {
+      if (wasPoppedOut && this.cheatsheetAutoPopout === true) {
         setTimeout(() => {
           this.restoreCheatSheetPopoutOnStartup();
         }, 300);
@@ -13367,35 +13367,32 @@ const App = {
 
   openCheatSheet() {
     if (this.isCheatSheetPoppedOut && this.isCheatSheetPoppedOut()) {
-      try {
-        this.cheatsheetPopoutWindow.focus();
-      } catch (e) {}
+      this.dockCheatSheet(true);
       return;
     }
 
-    const wasPoppedOut = (typeof localStorage !== 'undefined' && localStorage.getItem('msh_cheatsheet_popped_out') === 'true');
-    if (wasPoppedOut && this.cheatsheetAutoPopout !== false) {
-      const popped = this.popoutCheatSheet();
-      if (popped) return;
-    }
-
     const modal = document.getElementById('cheatsheet-modal');
-    const modalBox = this.getCheatSheetBox();
-    if (modal && modalBox && !modal.contains(modalBox)) {
-      if (document.adoptNode) {
+    if (!modal) return;
+
+    const modalBox = (typeof this.getCheatSheetBox === 'function' ? this.getCheatSheetBox() : null) || document.querySelector('.modal-box.cheatsheet-modal-box') || this.cheatsheetModalBox;
+    if (modalBox && !modal.contains(modalBox)) {
+      if (document.adoptNode && modalBox.ownerDocument !== document) {
         try { document.adoptNode(modalBox); } catch (e) {}
       }
       modal.appendChild(modalBox);
     }
-    if (modal) modal.classList.add('open');
+
+    try {
+      localStorage.setItem('msh_cheatsheet_popped_out', 'false');
+    } catch (e) {}
+
+    modal.classList.add('open');
     this.switchCheatTab(this.activeCheatTab || 'table');
   },
 
   toggleCheatSheet() {
-    if (this.isCheatSheetPoppedOut()) {
-      try {
-        this.cheatsheetPopoutWindow.focus();
-      } catch (e) {}
+    if (this.isCheatSheetPoppedOut && this.isCheatSheetPoppedOut()) {
+      this.dockCheatSheet(true);
       return;
     }
     const modal = document.getElementById('cheatsheet-modal');

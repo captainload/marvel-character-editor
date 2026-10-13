@@ -3905,6 +3905,10 @@ body[data-theme="aqua"] #options-modal .option-control-header {
   z-index: 25000 !important;
 }
 
+#cheatsheet-modal.modal-overlay.open {
+  display: flex !important;
+}
+
 #cheatsheet-modal.modal-overlay {
   padding-left: 2px;
   padding-right: 2px;
@@ -5279,6 +5283,12 @@ body[data-theme="aqua"] #ui-dialog-creation-mode-select {
   padding: 4px;
 }
 
+.creation-mode-select optgroup {
+  font-weight: 800;
+  color: var(--marvel-gold, #f59e0b);
+  background: #0f172a;
+}
+
 body[data-theme="manilla"] .creation-mode-label {
   color: #475569;
 }
@@ -5294,6 +5304,11 @@ body[data-theme="manilla"] .creation-mode-select option {
   color: #1e293b;
 }
 
+body[data-theme="manilla"] .creation-mode-select optgroup {
+  color: #92400e;
+  background: #f1ebd8;
+}
+
 body[data-theme="aqua"] .creation-mode-label {
   color: #7dd3fc;
 }
@@ -5307,6 +5322,11 @@ body[data-theme="aqua"] .creation-mode-select {
 body[data-theme="aqua"] .creation-mode-select option {
   background: #0f1e30;
   color: #f0f9ff;
+}
+
+body[data-theme="aqua"] .creation-mode-select optgroup {
+  color: #38bdf8;
+  background: #0c2b48;
 }
 
 body.touch-friendly .creation-mode-select {

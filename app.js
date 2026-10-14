@@ -62,8 +62,8 @@ const App = {
     this.superiorOptionCost = !!val;
   },
   humanAbilityCaps: false,
-  VERSION: '1.5.90',
-  BUILD_DATE: '2026-10-13',
+  VERSION: '1.5.91',
+  BUILD_DATE: '2026-10-14',
   COMMIT_SHA: '6a15ff5',
   REPO_OWNER: 'captainload',
   REPO_NAME: 'marvel-character-editor',
@@ -2921,6 +2921,7 @@ const App = {
     this.renderKnownBlueprints();
     this.syncInventionTalentAutoDetect();
     this.updateStickyHeaderHeight();
+    this.updateGameSessionRollerButtonsState();
   },
 
   renderHeader() {
@@ -3546,6 +3547,11 @@ const App = {
       const rollBtn = document.getElementById(`roll-btn-${k}`);
       if (rollBtn) {
         rollBtn.onclick = (e) => {
+          if (rollBtn.disabled || rollBtn.classList.contains('roller-btn-locked')) {
+            e.preventDefault();
+            e.stopPropagation();
+            return;
+          }
           this.openRoller({
             name: `${k.toUpperCase()} FEAT Roll`,
             abilityName: k.charAt(0).toUpperCase() + k.slice(1),
@@ -3565,6 +3571,11 @@ const App = {
     const rollResBtn = document.getElementById('roll-btn-resources');
     if (rollResBtn) {
       rollResBtn.onclick = (e) => {
+        if (rollResBtn.disabled || rollResBtn.classList.contains('roller-btn-locked')) {
+          e.preventDefault();
+          e.stopPropagation();
+          return;
+        }
         this.openRoller({
           name: 'Resources Procurement FEAT',
           abilityName: 'Resources',
@@ -3583,6 +3594,11 @@ const App = {
     const rollPopBtn = document.getElementById('roll-btn-popularity');
     if (rollPopBtn) {
       rollPopBtn.onclick = (e) => {
+        if (rollPopBtn.disabled || rollPopBtn.classList.contains('roller-btn-locked')) {
+          e.preventDefault();
+          e.stopPropagation();
+          return;
+        }
         this.openRoller({
           name: 'Popularity Reaction FEAT',
           abilityName: 'Popularity',
@@ -3596,6 +3612,7 @@ const App = {
     }
 
     this.renderPhysicalFormCard();
+    this.updateGameSessionRollerButtonsState();
   },
 
   renderPhysicalFormCard() {
@@ -3930,6 +3947,12 @@ const App = {
       `;
 
       card.querySelector('.attack-roll-chip').addEventListener('click', async (e) => {
+        const chip = e.currentTarget;
+        if (chip && (chip.disabled || chip.classList.contains('roller-btn-locked'))) {
+          e.preventDefault();
+          e.stopPropagation();
+          return;
+        }
         // Power Stunt Check & Karma Spending (TSR Advanced Rules)
         if (atk.isStunt && !atk.isLearned) {
           if (this.character.currentKarma < 100) {
@@ -3970,6 +3993,7 @@ const App = {
 
       container.appendChild(card);
     });
+    this.updateGameSessionRollerButtonsState();
   },
 
   renderPowers() {
@@ -4407,6 +4431,12 @@ const App = {
 
           // Roll stunt button
           stCard.querySelector(`[data-roll-stunt="${sIdx}"]`).addEventListener('click', async (e) => {
+            const btn = e.currentTarget;
+            if (btn && (btn.disabled || btn.classList.contains('roller-btn-locked'))) {
+              e.preventDefault();
+              e.stopPropagation();
+              return;
+            }
             if (!st.isLearned) {
               if (this.character.currentKarma < 100) {
                 await this.showCustomAlert(
@@ -4631,6 +4661,10 @@ const App = {
       if (rollPowerBtn) {
         rollPowerBtn.addEventListener('click', (e) => {
           e.stopPropagation();
+          if (rollPowerBtn.disabled || rollPowerBtn.classList.contains('roller-btn-locked')) {
+            e.preventDefault();
+            return;
+          }
           this.rollPowerFEAT(p, e);
         });
       }
@@ -4646,6 +4680,7 @@ const App = {
 
       container.appendChild(card);
     });
+    this.updateGameSessionRollerButtonsState();
   },
 
   getPowerActionType(power) {
@@ -4678,6 +4713,14 @@ const App = {
 
   rollPowerFEAT(power, clickEvent = null) {
     if (!power) return;
+    const isFinalized = !!(this.character && this.character.isCreationFinalized);
+    const validation = (typeof this.getCreationValidationState === 'function')
+      ? this.getCreationValidationState()
+      : { ready: true, unmet: [] };
+    if (!isFinalized && !validation.ready) {
+      this.showStatusToast('🔒 Game session roller is locked until character creation requirements are met.');
+      return;
+    }
     const actionType = this.getPowerActionType(power);
     const rankName = power.rankName || 'Typical';
     const rankObj = UniversalTableEngine.getRankByName(rankName);
@@ -11799,7 +11842,164 @@ const App = {
     });
   },
 
+  updateGameSessionRollerButtonsState() {
+    const isFinalized = !!(this.character && this.character.isCreationFinalized);
+    const validation = (typeof this.getCreationValidationState === 'function')
+      ? this.getCreationValidationState()
+      : { ready: true, unmet: [] };
+    const isLocked = !isFinalized && !validation.ready;
+
+    const unmetList = (validation && Array.isArray(validation.unmet) && validation.unmet.length > 0)
+      ? validation.unmet
+      : ['Character creation requirements must be met before rolling'];
+    const lockedTitle = `Locked during character creation:\n• ${unmetList.join('\n• ')}`;
+
+    // 1. FASERIP Ability Roll Buttons (#roll-btn-[stat])
+    const stats = ['fighting', 'agility', 'strength', 'endurance', 'reason', 'intuition', 'psyche'];
+    stats.forEach(s => {
+      const btn = document.getElementById(`roll-btn-${s}`);
+      if (btn) {
+        if (!btn.dataset.defaultTitle && btn.title) {
+          btn.dataset.defaultTitle = btn.title;
+        }
+        if (isLocked) {
+          btn.disabled = true;
+          btn.classList.add('roller-btn-locked');
+          btn.title = lockedTitle;
+          btn.setAttribute('aria-disabled', 'true');
+        } else {
+          btn.disabled = false;
+          btn.classList.remove('roller-btn-locked');
+          btn.title = btn.dataset.defaultTitle || `Roll ${s.charAt(0).toUpperCase() + s.slice(1)} FEAT`;
+          btn.removeAttribute('aria-disabled');
+        }
+      }
+    });
+
+    // 2. Resources and Popularity Roll Buttons
+    const rollResBtn = document.getElementById('roll-btn-resources');
+    if (rollResBtn) {
+      if (!rollResBtn.dataset.defaultTitle && rollResBtn.title) {
+        rollResBtn.dataset.defaultTitle = rollResBtn.title;
+      }
+      if (isLocked) {
+        rollResBtn.disabled = true;
+        rollResBtn.classList.add('roller-btn-locked');
+        rollResBtn.title = lockedTitle;
+        rollResBtn.setAttribute('aria-disabled', 'true');
+      } else {
+        rollResBtn.disabled = false;
+        rollResBtn.classList.remove('roller-btn-locked');
+        rollResBtn.title = rollResBtn.dataset.defaultTitle || 'Resource Procurement FEAT';
+        rollResBtn.removeAttribute('aria-disabled');
+      }
+    }
+
+    const rollPopBtn = document.getElementById('roll-btn-popularity');
+    if (rollPopBtn) {
+      if (!rollPopBtn.dataset.defaultTitle && rollPopBtn.title) {
+        rollPopBtn.dataset.defaultTitle = rollPopBtn.title;
+      }
+      if (isLocked) {
+        rollPopBtn.disabled = true;
+        rollPopBtn.classList.add('roller-btn-locked');
+        rollPopBtn.title = lockedTitle;
+        rollPopBtn.setAttribute('aria-disabled', 'true');
+      } else {
+        rollPopBtn.disabled = false;
+        rollPopBtn.classList.remove('roller-btn-locked');
+        rollPopBtn.title = rollPopBtn.dataset.defaultTitle || 'Popularity Reaction FEAT';
+        rollPopBtn.removeAttribute('aria-disabled');
+      }
+    }
+
+    // 3. Power FEAT Roll Buttons (.power-roll-btn)
+    document.querySelectorAll('.power-roll-btn').forEach(btn => {
+      if (!btn.dataset.defaultTitle && btn.title) {
+        btn.dataset.defaultTitle = btn.title;
+      }
+      if (isLocked) {
+        btn.disabled = true;
+        btn.classList.add('roller-btn-locked');
+        btn.title = lockedTitle;
+        btn.setAttribute('aria-disabled', 'true');
+      } else {
+        btn.disabled = false;
+        btn.classList.remove('roller-btn-locked');
+        btn.title = btn.dataset.defaultTitle || 'Roll Power FEAT';
+        btn.removeAttribute('aria-disabled');
+      }
+    });
+
+    // 4. Stunt Roll Buttons (.stunt-roll-btn)
+    document.querySelectorAll('.stunt-roll-btn').forEach(btn => {
+      if (!btn.dataset.defaultTitle && btn.title) {
+        btn.dataset.defaultTitle = btn.title;
+      }
+      if (isLocked) {
+        btn.disabled = true;
+        btn.classList.add('roller-btn-locked');
+        btn.title = lockedTitle;
+        btn.setAttribute('aria-disabled', 'true');
+      } else {
+        btn.disabled = false;
+        btn.classList.remove('roller-btn-locked');
+        btn.title = btn.dataset.defaultTitle || 'Roll Stunt FEAT';
+        btn.removeAttribute('aria-disabled');
+      }
+    });
+
+    // 5. Combat Attack Roll Chips (.attack-roll-chip)
+    document.querySelectorAll('.attack-roll-chip').forEach(chip => {
+      if (!chip.dataset.defaultTitle && chip.title) {
+        chip.dataset.defaultTitle = chip.title;
+      }
+      if (isLocked) {
+        chip.disabled = true;
+        chip.classList.add('roller-btn-locked');
+        chip.title = lockedTitle;
+        chip.setAttribute('aria-disabled', 'true');
+      } else {
+        chip.disabled = false;
+        chip.classList.remove('roller-btn-locked');
+        chip.title = chip.dataset.defaultTitle || 'Roll Attack';
+        chip.removeAttribute('aria-disabled');
+      }
+    });
+
+    // 6. Invention Stage Roll Buttons
+    ['btn-roll-inv-blueprint', 'btn-roll-inv-resource', 'btn-roll-inv-assembly'].forEach(id => {
+      const btn = document.getElementById(id);
+      if (btn) {
+        if (!btn.dataset.defaultTitle && btn.title) {
+          btn.dataset.defaultTitle = btn.title;
+        }
+        if (isLocked) {
+          btn.disabled = true;
+          btn.classList.add('roller-btn-locked');
+          btn.title = lockedTitle;
+          btn.setAttribute('aria-disabled', 'true');
+        } else {
+          btn.classList.remove('roller-btn-locked');
+          if (btn.title === lockedTitle) {
+            btn.title = btn.dataset.defaultTitle || '';
+          }
+          btn.removeAttribute('aria-disabled');
+        }
+      }
+    });
+  },
+
   openRoller(params, clickEvent = null) {
+    const isFinalized = !!(this.character && this.character.isCreationFinalized);
+    const validation = (typeof this.getCreationValidationState === 'function')
+      ? this.getCreationValidationState()
+      : { ready: true, unmet: [] };
+    if (!isFinalized && !validation.ready) {
+      this.showStatusToast('🔒 Game session roller is locked until character creation requirements are met.');
+      return;
+    }
+
     this.activeRoller = { ...params, actionShift: params.shift || 0 };
     this.rollerShift = params.shift || 0;
     this.rollerKarmaSpend = 0;
@@ -12273,8 +12473,6 @@ const App = {
       const cancelBtn = document.getElementById('btn-ui-dialog-cancel');
       const closeBtn = document.getElementById('btn-ui-dialog-close');
       const modeContainer = document.getElementById('ui-dialog-creation-mode-container');
-      const modeSelect = document.getElementById('ui-dialog-creation-mode-select');
-      const modePickerBtn = document.getElementById('btn-ui-dialog-open-mode-picker');
 
       if (!modal || !msgEl || !okBtn) {
         if (typeof alert === 'function') alert(message);
@@ -12288,33 +12486,9 @@ const App = {
       if (discardBtn) discardBtn.style.display = 'none';
       okBtn.textContent = 'OK';
 
-      let onModeChange = null;
-      let onOpenModePicker = null;
       if (modeContainer) {
         if (options && options.showCreationModeSelect) {
           modeContainer.style.display = 'flex';
-          let curM = options.currentMode || (typeof this.getCreationModeKey === 'function' ? this.getCreationModeKey() : 'cmf-cp-buy');
-          if (curM === 'cmf') curM = 'cmf-cp-buy';
-          if (modeSelect) {
-            modeSelect.value = curM;
-            onModeChange = (e) => {
-              const chosenMode = e.target.value;
-              if (chosenMode && chosenMode !== curM) {
-                cleanup();
-                this._forceSavePromptOnModeSwitch = true;
-                this.handleNewCharacterModeSelection(chosenMode);
-              }
-            };
-            modeSelect.addEventListener('change', onModeChange);
-          }
-          if (modePickerBtn) {
-            onOpenModePicker = () => {
-              cleanup();
-              this._forceSavePromptOnModeSwitch = true;
-              this.openCreationModeModal(curM);
-            };
-            modePickerBtn.addEventListener('click', onOpenModePicker);
-          }
         } else {
           modeContainer.style.display = 'none';
         }
@@ -12329,12 +12503,6 @@ const App = {
         if (closeBtn) closeBtn.removeEventListener('click', onClose);
         modal.removeEventListener('click', onBackdrop);
         document.removeEventListener('keydown', onKey);
-        if (modeSelect && onModeChange) {
-          modeSelect.removeEventListener('change', onModeChange);
-        }
-        if (modePickerBtn && onOpenModePicker) {
-          modePickerBtn.removeEventListener('click', onOpenModePicker);
-        }
         if (modeContainer) {
           modeContainer.style.display = 'none';
         }
@@ -15551,7 +15719,7 @@ const App = {
 
       <!-- Continuous Sheet Footer -->
       <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #cbd5e1; padding-top: 4px; margin-top: 8px; font-size: 6.5pt; color: #64748b;">
-        <span>Marvel Super Heroes (FASERIP) Character Record &bull; Generated via Marvel Character Editor</span>
+        <span>Marvel Super Heroes (FASERIP) Character Record &bull; Generated via MSH RPGen</span>
         <span>Date: ${new Date().toLocaleDateString()}</span>
       </div>
     `;
@@ -15910,9 +16078,9 @@ const App = {
           currentAudio.currentTime = 0;
         } catch (e) {}
       }
-      logoEl.textContent = 'MSH FASERIP';
+      logoEl.textContent = 'MSH RPGen';
       logoEl.classList.remove('easter-egg-unlocked');
-      logoEl.setAttribute('title', 'Marvel Super Heroes (FASERIP)');
+      logoEl.setAttribute('title', 'MSH RPGen');
       isUnlocked = false;
     };
 
@@ -15937,9 +16105,9 @@ const App = {
             try {
               if (logoEl.matches && logoEl.matches(':hover')) return;
             } catch (e) {}
-            logoEl.textContent = 'MSH FASERIP';
+            logoEl.textContent = 'MSH RPGen';
             logoEl.classList.remove('easter-egg-unlocked');
-            logoEl.setAttribute('title', 'Marvel Super Heroes (FASERIP)');
+            logoEl.setAttribute('title', 'MSH RPGen');
             isUnlocked = false;
           }
         }, 2000);
@@ -16870,7 +17038,7 @@ const App = {
       } else {
         const notes = remoteNotes ? `\n\nRelease / Commit Info:\n${remoteNotes}` : '';
         await this.showCustomAlert(
-          `A new version of Marvel Character Editor is available!\n\n` +
+          `A new version of MSH RPGen is available!\n\n` +
           `Current Version: v${currentVer}\n` +
           `New Version: ${remoteVersion.startsWith('v') ? remoteVersion : 'v' + remoteVersion} (${remoteReleaseDate || 'Latest'})\n` +
           `Repository: ${remoteUrl}` +
@@ -16888,7 +17056,7 @@ const App = {
       if (!silent) {
         const notes = remoteNotes ? `\n\n${remoteNotes}` : '';
         await this.showCustomAlert(
-          `You are running the latest version of Marvel Character Editor (v${currentVer}).\n\n` +
+          `You are running the latest version of MSH RPGen (v${currentVer}).\n\n` +
           `Connected to: ${checkSource}\n` +
           `Repository: ${remoteUrl}` +
           notes,

@@ -1,7 +1,7 @@
 {
-  "version": "1.5.90",
+  "version": "1.5.91",
   "releaseDate": "2026-10-14",
-  "name": "Marvel Super Heroes Character Editor",
+  "name": "MSH RPGen",
   "repo": "https://github.com/captainload/marvel-character-editor",
-  "notes": "v1.5.90: Replaced the overly wide 'set hero tier' dropdown on the creation row with a compact '⚡ Set Hero Tier' button that opens a dedicated, interactive pop-up modal dialog. The pop-up provides clear tier descriptions, custom CP pool input, starting CP adjustment slider with live budget calculations, and deficit protection."
+  "notes": "v1.5.91: Renamed program title to 'MSH RPGen' across the application. Removed the redundant mode change button from the Mode Status popup in favor of guided toolbar instructions and a prominent save warning. Locked and greyed out all game session roller buttons (FASERIP abilities, Resources, Popularity, Powers, Stunts, Attacks) until character creation requirements are fully satisfied, featuring dynamic hover tooltips detailing remaining requirements."
 }

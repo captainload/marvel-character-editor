@@ -4,8 +4,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Marvel Super Heroes (FASERIP) - Character Builder & Editor</title>
-  <link rel="stylesheet" href="styles.css?v=1.5.90">
+  <title>MSH RPGen</title>
+  <link rel="stylesheet" href="styles.css?v=1.5.91">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bangers&display=swap" rel="stylesheet">
@@ -23,7 +23,7 @@
     <!-- Top Bar & Header Navigation -->
     <header class="topbar">
       <div class="brand-section">
-        <div class="msh-logo" id="msh-brand-logo" title="Marvel Super Heroes (FASERIP)">MSH FASERIP</div>
+        <div class="msh-logo" id="msh-brand-logo" title="MSH RPGen">MSH RPGen</div>
         <div class="header-name-box">
           <input type="text" id="header-char-name" class="header-name-input" value="The Vanguard" title="Click to edit Character Name">
         </div>
@@ -2104,7 +2104,7 @@
           <!-- SECTION: PROGRAM UPDATES & AUTOMATED CHECKING -->
           <div style="font-weight: 700; color: var(--text-main); font-size: 11pt; border-bottom: 1px solid var(--border-color); padding-bottom: 6px; margin-top: 10px; display: flex; justify-content: space-between; align-items: center;">
             <span>🔄 Program Updates &amp; Automated Checking</span>
-            <span class="meta-tag" id="update-version-tag" style="color: var(--marvel-gold); font-size: 10pt;">v1.5.90</span>
+            <span class="meta-tag" id="update-version-tag" style="color: var(--marvel-gold); font-size: 10pt;">v1.5.91</span>
           </div>
 
           <div class="update-settings-panel" style="background: rgba(0, 0, 0, 0.2); border: 1px solid var(--border-color); border-radius: 6px; padding: 12px; display: flex; flex-direction: column; gap: 10px;">
@@ -3986,17 +3986,13 @@
       </div>
       <div class="modal-body compact" style="padding: 14px 16px;">
         <div id="ui-dialog-message"></div>
-        <div id="ui-dialog-creation-mode-container" style="display: none; margin-top: 14px; padding-top: 12px; border-top: 1px solid rgba(255, 255, 255, 0.12); align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;">
-          <span id="ui-dialog-creation-mode-label" style="font-size: 10pt; font-weight: 600; color: #94a3b8;">Want to switch generation modes?</span>
-          <button type="button" class="icon-btn primary" id="btn-ui-dialog-open-mode-picker" style="font-size: 10pt; font-weight: 700; padding: 5px 12px;">⚙️ Change Generation Mode...</button>
-          <select id="ui-dialog-creation-mode-select" class="field-input compact" style="display: none; min-height: 28px; font-size: 10pt; font-weight: 600; padding: 2px 8px; border-radius: 4px;">
-            <option value="tsr-standard">TSR standard</option>
-            <option value="tsr-modeled">TSR modeled</option>
-            <option value="tsr-cp-buy">TSR CP buy</option>
-            <option value="cmf-standard">CMF standard</option>
-            <option value="cmf-modeled">CMF modeled</option>
-            <option value="cmf-cp-buy">CMF CP buy</option>
-          </select>
+        <div id="ui-dialog-creation-mode-container" style="display: none; margin-top: 14px; padding: 10px 12px; background: rgba(0, 0, 0, 0.25); border: 1px solid var(--border-color); border-radius: 6px; flex-direction: column; gap: 6px; font-size: 10pt; line-height: 1.4;">
+          <div style="color: var(--text-main); font-weight: 600;">
+            🔄 <strong>To change modes:</strong> Use the <em>"Choose build mode"</em> dropdown on the creation toolbar.
+          </div>
+          <div style="color: #fbbf24; font-size: 9.5pt;">
+            ⚠️ <strong>Warning:</strong> Remember to save your character first! Switching build modes may alter or reset character traits that cannot be converted automatically.
+          </div>
         </div>
       </div>
       <div class="modal-footer compact" id="ui-dialog-footer" style="padding: 10px 16px; display: flex; justify-content: flex-end; gap: 8px;">
@@ -4096,13 +4092,13 @@
   </div>
 
   <!-- Scripts Loading -->
-  <script src="universal_table.js?v=1.5.90"></script>
-  <script src="data_forms.js?v=1.5.90"></script>
-  <script src="data_powers.js?v=1.5.90"></script>
-  <script src="data_talents.js?v=1.5.90"></script>
-  <script src="data_equipment.js?v=1.5.90"></script>
-  <script src="inventions.js?v=1.5.90"></script>
-  <script src="character_model.js?v=1.5.90"></script>
-  <script src="app.js?v=1.5.90"></script>
+  <script src="universal_table.js?v=1.5.91"></script>
+  <script src="data_forms.js?v=1.5.91"></script>
+  <script src="data_powers.js?v=1.5.91"></script>
+  <script src="data_talents.js?v=1.5.91"></script>
+  <script src="data_equipment.js?v=1.5.91"></script>
+  <script src="inventions.js?v=1.5.91"></script>
+  <script src="character_model.js?v=1.5.91"></script>
+  <script src="app.js?v=1.5.91"></script>
 </body>
 </html>

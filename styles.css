@@ -1739,6 +1739,65 @@ button.vital-manual-tag-btn:disabled {
   transform: scale(1.05);
 }
 
+/* Game Session Roller Buttons locked during character creation */
+.roll-action-btn:disabled,
+.roll-action-btn.roller-btn-locked,
+.roll-action-btn:disabled:hover,
+.roll-action-btn.roller-btn-locked:hover {
+  background: #2e3c54 !important;
+  color: #64748b !important;
+  border-color: #334155 !important;
+  transform: none !important;
+  opacity: 0.35 !important;
+  cursor: not-allowed !important;
+  filter: grayscale(1) !important;
+  pointer-events: auto !important;
+}
+
+.attack-roll-chip:disabled,
+.attack-roll-chip.roller-btn-locked,
+.attack-roll-chip:disabled:hover,
+.attack-roll-chip.roller-btn-locked:hover,
+.attack-roll-chip[aria-disabled="true"] {
+  background: #1e293b !important;
+  color: #64748b !important;
+  border-color: #334155 !important;
+  box-shadow: none !important;
+  transform: none !important;
+  opacity: 0.35 !important;
+  cursor: not-allowed !important;
+  filter: grayscale(1) !important;
+  pointer-events: auto !important;
+}
+
+.power-roll-btn:disabled,
+.power-roll-btn.roller-btn-locked,
+.power-roll-btn:disabled:hover,
+.power-roll-btn.roller-btn-locked:hover,
+.stunt-roll-btn:disabled,
+.stunt-roll-btn.roller-btn-locked,
+.stunt-roll-btn:disabled:hover,
+.stunt-roll-btn.roller-btn-locked:hover {
+  background: #1e293b !important;
+  color: #64748b !important;
+  border-color: #334155 !important;
+  transform: none !important;
+  opacity: 0.35 !important;
+  cursor: not-allowed !important;
+  filter: grayscale(1) !important;
+  pointer-events: auto !important;
+}
+
+#btn-roll-inv-blueprint.roller-btn-locked,
+#btn-roll-inv-resource.roller-btn-locked,
+#btn-roll-inv-assembly.roller-btn-locked {
+  opacity: 0.35 !important;
+  cursor: not-allowed !important;
+  filter: grayscale(1) !important;
+  pointer-events: auto !important;
+}
+
+
 /* S32 Swarm Banner */
 .swarm-banner {
   background: linear-gradient(135deg, #78350f 0%, #451a03 100%);

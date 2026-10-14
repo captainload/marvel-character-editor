@@ -4511,6 +4511,7 @@ body:not(.sticky-header-active) .app-container {
 
 /* Compact action button styling for creation row */
 #btn-open-tsr-generator,
+#btn-set-hero-tier,
 #btn-open-creation-wizard {
   height: 26px !important;
   min-height: 26px !important;
@@ -4523,6 +4524,47 @@ body:not(.sticky-header-active) .app-container {
   border-radius: 4px !important;
   align-items: center !important;
   justify-content: center !important;
+}
+
+/* Set Hero Tier Pop-up Cards */
+.hero-tier-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.hero-tier-card:hover {
+  background: rgba(56, 189, 248, 0.08);
+  border-color: rgba(56, 189, 248, 0.4);
+}
+
+.hero-tier-card.active,
+.hero-tier-card:has(input[type="radio"]:checked) {
+  background: rgba(56, 189, 248, 0.12);
+  border-color: #38bdf8;
+  box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.3);
+}
+
+body[data-theme="manilla"] .hero-tier-card {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+body[data-theme="manilla"] .hero-tier-card:hover {
+  background: #f1f5f9;
+  border-color: #0284c7;
+}
+
+body[data-theme="manilla"] .hero-tier-card.active,
+body[data-theme="manilla"] .hero-tier-card:has(input[type="radio"]:checked) {
+  background: #e0f2fe;
+  border-color: #0284c7;
 }
 
 /* Power Stunt Cards & UI */

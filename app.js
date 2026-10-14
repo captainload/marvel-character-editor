@@ -62,7 +62,7 @@ const App = {
     this.superiorOptionCost = !!val;
   },
   humanAbilityCaps: false,
-  VERSION: '1.5.89',
+  VERSION: '1.5.90',
   BUILD_DATE: '2026-10-13',
   COMMIT_SHA: '6a15ff5',
   REPO_OWNER: 'captainload',
@@ -328,11 +328,19 @@ const App = {
       });
     }
 
+    const btnSetHeroTier = document.getElementById('btn-set-hero-tier');
+    if (btnSetHeroTier) {
+      btnSetHeroTier.addEventListener('click', (e) => {
+        if (e && e.stopPropagation) e.stopPropagation();
+        this.openSetHeroTierModal();
+      });
+    }
+
     const btnOpenWizard = document.getElementById('btn-open-creation-wizard');
     if (btnOpenWizard) {
       btnOpenWizard.addEventListener('click', (e) => {
         if (e && e.stopPropagation) e.stopPropagation();
-        this.openCreationWizardModal();
+        this.openSetHeroTierModal();
       });
     }
 
@@ -443,6 +451,49 @@ const App = {
       wizardSlider.addEventListener('change', () => {
         this.updateWizardCpSliderReadout();
       });
+    }
+
+    // Set Hero Tier Modal Listeners
+    const btnCloseSetTierX = document.getElementById('btn-close-set-tier-modal-x');
+    if (btnCloseSetTierX) {
+      btnCloseSetTierX.addEventListener('click', () => this.closeSetHeroTierModal());
+    }
+    const btnCancelSetTier = document.getElementById('btn-cancel-set-tier-modal');
+    if (btnCancelSetTier) {
+      btnCancelSetTier.addEventListener('click', () => this.closeSetHeroTierModal());
+    }
+    const btnApplySetTier = document.getElementById('btn-apply-set-tier-modal');
+    if (btnApplySetTier) {
+      btnApplySetTier.addEventListener('click', () => this.applySetHeroTierModal());
+    }
+
+    const modalSetTier = document.getElementById('modal-set-hero-tier');
+    if (modalSetTier) {
+      modalSetTier.addEventListener('click', (e) => {
+        if (e.target === modalSetTier) this.closeSetHeroTierModal();
+      });
+
+      modalSetTier.querySelectorAll('.hero-tier-card').forEach(card => {
+        card.addEventListener('click', () => {
+          const radio = card.querySelector('input[type="radio"]');
+          if (radio) radio.checked = true;
+          modalSetTier.querySelectorAll('.hero-tier-card').forEach(c => c.classList.remove('active'));
+          card.classList.add('active');
+          this.updateSetHeroTierModalSummary();
+        });
+      });
+
+      const inpCustomTier = document.getElementById('input-set-tier-custom');
+      if (inpCustomTier) {
+        inpCustomTier.addEventListener('input', () => this.updateSetHeroTierModalSummary());
+        inpCustomTier.addEventListener('change', () => this.updateSetHeroTierModalSummary());
+      }
+
+      const tierSlider = document.getElementById('set-tier-modal-slider');
+      if (tierSlider) {
+        tierSlider.addEventListener('input', () => this.updateSetHeroTierModalSummary());
+        tierSlider.addEventListener('change', () => this.updateSetHeroTierModalSummary());
+      }
     }
 
     // Creation Setup Wizard Modal Controls
@@ -3024,14 +3075,15 @@ const App = {
       selCreationMode.disabled = isFinalized;
     }
 
-    // Creation Bar Action Buttons (Roll Hero) & Tier Dropdown (Set Hero Tier)
+    // Creation Bar Action Buttons: "🎲 Roll Hero" (Random) & "⚡ Set Hero Tier" (Point-Buy)
+    const btnSetHeroTier = document.getElementById('btn-set-hero-tier') || document.getElementById('btn-open-creation-wizard');
     const creationTierContainer = document.getElementById('creation-tier-container');
     const selPointTier = document.getElementById('select-point-tier');
     const tsrSubmodeToggle = document.getElementById('tsr-submode-split-toggle');
 
     // Visibility rules per user instructions:
-    // - The 'set tier' button is replaced by the 'set tier' dropdown (with placeholder 'set hero tier') and shown when point-buy modes are chosen
-    // - The 'roll tables' button is renamed 'Roll Hero' and only appears when modes that require random rolls are chosen
+    // - "🎲 Roll Hero" only appears when modes that require random rolls are chosen
+    // - "⚡ Set Hero Tier" button only appears when point-buy modes are chosen, opening the Set Hero Tier pop-up
     const isPointBuyMode = (activeModeKey === 'cmf-cp-buy' || activeModeKey === 'tsr-cp-buy');
     const isRandomMode = (activeModeKey === 'tsr-standard' || activeModeKey === 'cmf-standard');
 
@@ -3042,26 +3094,20 @@ const App = {
       btnOpenTsrGen.title = 'Open TSR 1986 Character Generator Modal & Roll Hero';
     }
 
-    if (creationTierContainer) {
+    if (btnSetHeroTier) {
       const showTier = (isPointBuyMode && !isFinalized);
-      creationTierContainer.style.setProperty('display', showTier ? 'inline-flex' : 'none', 'important');
+      btnSetHeroTier.style.setProperty('display', showTier ? 'inline-flex' : 'none', 'important');
+      btnSetHeroTier.textContent = '⚡ Set Hero Tier';
+      const curTierName = this.character ? this.getTierDisplayName(this.character.pointTier) : '300 CP';
+      const curBudget = this.character ? (this.character.pointBudget || 300) : 300;
+      btnSetHeroTier.title = `Current Hero Tier: ${curTierName} (${curBudget} CP budget). Click to open pop-up and set hero tier.`;
     }
-    if (selPointTier && this.character) {
-      const curTier = String(this.character.pointTier || '300');
-      Array.from(selPointTier.options).forEach(opt => {
-        if (!opt.value) return;
-        const baseName = opt.getAttribute('data-base-label') || opt.textContent.replace(/^✓\s*|\s*\(Current\)$/g, '');
-        opt.setAttribute('data-base-label', baseName);
-        if (opt.value === curTier) {
-          opt.textContent = `✓ ${baseName} (Current)`;
-        } else {
-          opt.textContent = baseName;
-        }
-      });
-      selPointTier.value = ''; // Always keep placeholder "set hero tier" visible on the face of the dropdown
-      selPointTier.disabled = isFinalized;
-      const curTierName = this.getTierDisplayName(curTier);
-      selPointTier.title = `Starting CP Budget: ${curTierName} (${this.character.pointBudget} CP). Click to set hero tier.`;
+
+    if (creationTierContainer) {
+      creationTierContainer.style.display = 'none';
+    }
+    if (selPointTier) {
+      selPointTier.style.display = 'none';
     }
 
     // Submode toggle is redundant with Mode dropdown; hide it
@@ -16850,6 +16896,167 @@ const App = {
         );
       }
     }
+  },
+
+  /* Set Hero Tier Pop-up Modal */
+  openSetHeroTierModal() {
+    if (!this.character) return;
+    const modal = document.getElementById('modal-set-hero-tier');
+    if (!modal) return;
+
+    const curTier = String(this.character.pointTier || '300');
+    const curBudget = this.character.pointBudget || 300;
+    const curTierName = this.getTierDisplayName(curTier);
+
+    const badge = document.getElementById('set-tier-modal-badge');
+    if (badge) {
+      badge.textContent = `${curTierName} (${curBudget} CP)`;
+    }
+
+    const radios = modal.querySelectorAll('input[name="hero-tier-choice"]');
+    let matched = false;
+    radios.forEach(r => {
+      const isMatch = (r.value === curTier) || (curTier === 'custom' && r.value === 'custom') || (isNaN(parseInt(curTier, 10)) && curTier !== 'custom' && r.value === '300');
+      r.checked = isMatch;
+      if (isMatch) matched = true;
+      const card = r.closest('.hero-tier-card');
+      if (card) card.classList.toggle('active', isMatch);
+    });
+    if (!matched && radios.length > 0) {
+      const customRadio = modal.querySelector('input[name="hero-tier-choice"][value="custom"]');
+      if (customRadio) {
+        customRadio.checked = true;
+        const card = customRadio.closest('.hero-tier-card');
+        if (card) card.classList.add('active');
+      }
+    }
+
+    const customWrap = document.getElementById('set-tier-custom-input-wrap');
+    const customInp = document.getElementById('input-set-tier-custom');
+    const isCustom = modal.querySelector('input[name="hero-tier-choice"]:checked')?.value === 'custom';
+    if (customWrap) customWrap.style.display = isCustom ? 'flex' : 'none';
+    if (customInp) customInp.value = this.character.basePointBudget || this.character.pointBudget || 300;
+
+    const slider = document.getElementById('set-tier-modal-slider');
+    if (slider) {
+      slider.value = this.character.cpAdjustment || 0;
+    }
+
+    this.updateSetHeroTierModalSummary();
+    modal.classList.add('open');
+  },
+
+  closeSetHeroTierModal() {
+    const modal = document.getElementById('modal-set-hero-tier');
+    if (modal) modal.classList.remove('open');
+  },
+
+  updateSetHeroTierModalSummary() {
+    if (!this.character) return;
+    const modal = document.getElementById('modal-set-hero-tier');
+    if (!modal) return;
+
+    const selectedRadio = modal.querySelector('input[name="hero-tier-choice"]:checked');
+    const tierVal = selectedRadio ? selectedRadio.value : '300';
+
+    const customWrap = document.getElementById('set-tier-custom-input-wrap');
+    if (customWrap) {
+      customWrap.style.display = (tierVal === 'custom') ? 'flex' : 'none';
+    }
+
+    const customInp = document.getElementById('input-set-tier-custom');
+    let baseBudget = 300;
+    if (tierVal === 'custom') {
+      baseBudget = customInp ? (parseInt(customInp.value, 10) || 300) : 300;
+    } else {
+      baseBudget = this.character.getBaseTierBudget ? this.character.getBaseTierBudget(tierVal) : (parseInt(tierVal, 10) || 300);
+    }
+
+    const slider = document.getElementById('set-tier-modal-slider');
+    const sliderReadout = document.getElementById('set-tier-modal-slider-readout');
+    let adj = slider ? (parseInt(slider.value, 10) || 0) : 0;
+    adj = Math.round(adj / 25) * 25;
+    adj = Math.max(-25, Math.min(50, adj));
+
+    const effectiveBudget = Math.round(baseBudget * (1 + adj / 100));
+    if (sliderReadout) {
+      sliderReadout.textContent = `${adj > 0 ? '+' : (adj === 0 ? '±' : '')}${adj}% (${effectiveBudget} CP)`;
+      sliderReadout.style.color = adj > 0 ? '#4ade80' : (adj < 0 ? '#f87171' : '#38bdf8');
+    }
+
+    const pts = (typeof this.character.calculateSpentPoints === 'function')
+      ? this.character.calculateSpentPoints()
+      : this.character.calculateTotalPointsSpent();
+    const totalSpent = (pts && typeof pts.totalSpent === 'number') ? pts.totalSpent : 0;
+    const remaining = effectiveBudget - totalSpent;
+
+    const summaryBudget = document.getElementById('set-tier-summary-budget');
+    if (summaryBudget) summaryBudget.textContent = `${effectiveBudget} CP`;
+
+    const summarySpent = document.getElementById('set-tier-summary-spent');
+    if (summarySpent) summarySpent.textContent = `${totalSpent} CP`;
+
+    const summaryRemaining = document.getElementById('set-tier-summary-remaining');
+    if (summaryRemaining) {
+      summaryRemaining.textContent = `${remaining} CP`;
+      summaryRemaining.style.color = remaining >= 0 ? '#38bdf8' : '#f87171';
+    }
+  },
+
+  applySetHeroTierModal() {
+    if (!this.character) return;
+    const modal = document.getElementById('modal-set-hero-tier');
+    if (!modal) return;
+
+    const selectedRadio = modal.querySelector('input[name="hero-tier-choice"]:checked');
+    const tierVal = selectedRadio ? selectedRadio.value : '300';
+
+    const customInp = document.getElementById('input-set-tier-custom');
+    const customBudget = customInp ? (parseInt(customInp.value, 10) || 300) : 300;
+
+    const slider = document.getElementById('set-tier-modal-slider');
+    const adj = slider ? (parseInt(slider.value, 10) || 0) : 0;
+
+    let base = 300;
+    if (tierVal === 'custom') {
+      base = customBudget;
+    } else {
+      base = this.character.getBaseTierBudget ? this.character.getBaseTierBudget(tierVal) : (parseInt(tierVal, 10) || 300);
+    }
+    const proposedBudget = Math.round(base * (1 + adj / 100));
+
+    const pts = (typeof this.character.calculateSpentPoints === 'function')
+      ? this.character.calculateSpentPoints()
+      : this.character.calculateTotalPointsSpent();
+    const currentSpent = (pts && typeof pts.totalSpent === 'number') ? pts.totalSpent : 0;
+
+    if (proposedBudget < currentSpent) {
+      const overAmount = currentSpent - proposedBudget;
+      const tierName = this.getTierDisplayName(tierVal);
+      this.showCustomAlert(
+        `Cannot reduce CP budget to ${proposedBudget} CP (${tierName}) because this character has already spent ${currentSpent} CP (${overAmount} CP over budget).\n\nPlease reduce CP expenditure first (e.g. lower ability ranks, remove powers, talents, or contacts) before lowering your budget.`,
+        'Over Budget Warning'
+      );
+      return;
+    }
+
+    const prevBudget = this.character.pointBudget;
+    const res = this.character.changePointBudget(tierVal, customBudget, adj);
+    if (!res || !res.success) {
+      this.showCustomAlert(res?.reason || 'Could not update budget.', 'Over Budget');
+      return;
+    }
+
+    const tierName = this.getTierDisplayName(tierVal);
+    if (!this.character.isCreationSetupPending) {
+      this.recordCharacterEdit(`Hero tier set to ${tierName} (${this.character.pointBudget} CP)`, 'budget');
+    }
+
+    this.closeSetHeroTierModal();
+    this.saveState();
+    this.renderPointBuy();
+    this.render();
+    this.showStatusToast(`⚡ Hero tier updated to ${tierName} (${this.character.pointBudget} CP budget).`);
   },
 
   /* Character Creation Setup Wizard (Starting Tier & Form) */

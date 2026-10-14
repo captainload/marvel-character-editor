@@ -1,7 +1,7 @@
 {
-  "version": "1.5.89",
-  "releaseDate": "2026-10-13",
+  "version": "1.5.90",
+  "releaseDate": "2026-10-14",
   "name": "Marvel Super Heroes Character Editor",
   "repo": "https://github.com/captainload/marvel-character-editor",
-  "notes": "v1.5.89: Fixed button visibility constraints on creation bar so 'Roll Hero' exclusively appears when a random roll mode is chosen, and 'set hero tier' exclusively appears when a point-buy mode is chosen. Removed blocking CSS !important override to ensure clean mode-dependent toggle across random, point-buy, and modeled modes."
+  "notes": "v1.5.90: Replaced the overly wide 'set hero tier' dropdown on the creation row with a compact '⚡ Set Hero Tier' button that opens a dedicated, interactive pop-up modal dialog. The pop-up provides clear tier descriptions, custom CP pool input, starting CP adjustment slider with live budget calculations, and deficit protection."
 }

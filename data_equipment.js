@@ -1327,7 +1327,7 @@ const PREBUILT_EQUIPMENT_CATALOG = [
   {
     "id": "armor_asbestos_suit",
     "name": "Asbestos Fire-Rescue Suit",
-    "category": "Armor & Suits",
+    "category": "Protective Items and Suits",
     "type": "Protective Hazmat Suit",
     "costRank": "Excellent",
     "costValue": 20,
@@ -2001,7 +2001,7 @@ const PREBUILT_EQUIPMENT_CATALOG = [
   {
     "id": "ohotmu_beetle_armor",
     "name": "Beetle's Battle Armor & Wings",
-    "category": "Armor & Suits",
+    "category": "Protective Items and Suits",
     "type": "Powered Armor",
     "costRank": "Remarkable",
     "costValue": 30,
@@ -2558,7 +2558,7 @@ const PREBUILT_EQUIPMENT_CATALOG = [
   {
     "id": "mod_doombot_combat",
     "name": "Doctor Doom: Combat Doombot",
-    "category": "Battlesuit",
+    "category": "Robots",
     "type": "Robotics",
     "costRank": "Monstrous",
     "costValue": 75,
@@ -2606,7 +2606,7 @@ const PREBUILT_EQUIPMENT_CATALOG = [
   {
     "id": "mod_doombot_diplomatic",
     "name": "Doctor Doom: Diplomatic Doombot",
-    "category": "Battlesuit",
+    "category": "Robots",
     "type": "Robotics",
     "costRank": "Monstrous",
     "costValue": 75,
@@ -2654,7 +2654,7 @@ const PREBUILT_EQUIPMENT_CATALOG = [
   {
     "id": "mod_insulato_shield",
     "name": "Doctor Doom: Insulato-Shield Belt Emitter",
-    "category": "Armor",
+    "category": "Protective Items and Suits",
     "type": "Force Field",
     "costRank": "Amazing",
     "costValue": 50,
@@ -2678,7 +2678,7 @@ const PREBUILT_EQUIPMENT_CATALOG = [
   {
     "id": "mod_servo_guard",
     "name": "Doctor Doom: Latverian Servo-Guard (Warrior Robot)",
-    "category": "Battlesuit",
+    "category": "Robots",
     "type": "Robotics",
     "costRank": "Remarkable",
     "costValue": 30,
@@ -2702,7 +2702,7 @@ const PREBUILT_EQUIPMENT_CATALOG = [
   {
     "id": "mod_neuro_space_field",
     "name": "Doctor Doom: Neuro-Space Field Inhibitor",
-    "category": "Armor",
+    "category": "Protective Items and Suits",
     "type": "Defense",
     "costRank": "Incredible",
     "costValue": 40,
@@ -2726,7 +2726,7 @@ const PREBUILT_EQUIPMENT_CATALOG = [
   {
     "id": "mod_pacifier_robot",
     "name": "Doctor Doom: Pacifier Riot-Control Robot",
-    "category": "Battlesuit",
+    "category": "Robots",
     "type": "Robotics",
     "costRank": "Remarkable",
     "costValue": 30,
@@ -2822,7 +2822,7 @@ const PREBUILT_EQUIPMENT_CATALOG = [
   {
     "id": "mod_swarmbots",
     "name": "Doctor Doom: Swarmbot Micro-Drones (Swarm of 20)",
-    "category": "Battlesuit",
+    "category": "Robots",
     "type": "Robotics",
     "costRank": "Excellent",
     "costValue": 20,
@@ -4607,7 +4607,7 @@ const PREBUILT_EQUIPMENT_CATALOG = [
   {
     "id": "armor_radiation_suit",
     "name": "Heavy Lead-Lined Radiation Suit",
-    "category": "Armor & Suits",
+    "category": "Protective Items and Suits",
     "type": "Protective Hazmat Suit",
     "costRank": "Incredible",
     "costValue": 40,
@@ -7796,7 +7796,7 @@ const PREBUILT_EQUIPMENT_CATALOG = [
   {
     "id": "armor_beta_cloth",
     "name": "S.H.I.E.L.D. Beta-Cloth Uniform",
-    "category": "Armor & Suits",
+    "category": "Protective Items and Suits",
     "type": "Tactical Uniform",
     "costRank": "Remarkable",
     "costValue": 30,
@@ -8009,7 +8009,7 @@ const PREBUILT_EQUIPMENT_CATALOG = [
   {
     "id": "ohotmu_shocker_suit",
     "name": "Shocker's Vibro-Absorption Quilted Suit",
-    "category": "Armor & Suits",
+    "category": "Protective Items and Suits",
     "type": "Protective Suit",
     "costRank": "Remarkable",
     "costValue": 30,
@@ -8984,7 +8984,7 @@ const PREBUILT_EQUIPMENT_CATALOG = [
   {
     "id": "ohotmu_stiltman_armor",
     "name": "Stilt-Man's Hydraulic Armor & Telescoping Legs",
-    "category": "Armor & Suits",
+    "category": "Protective Items and Suits",
     "type": "Articulated Exoskeleton",
     "costRank": "Remarkable",
     "costValue": 30,
@@ -9273,7 +9273,7 @@ const PREBUILT_EQUIPMENT_CATALOG = [
   {
     "id": "armor_flak_jacket",
     "name": "Tactical Police Flak Jacket",
-    "category": "Armor & Suits",
+    "category": "Protective Items and Suits",
     "type": "Body Armor",
     "costRank": "Excellent",
     "costValue": 20,

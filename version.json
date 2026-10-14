@@ -1,7 +1,7 @@
 {
-  "version": "1.5.94",
+  "version": "1.5.95",
   "releaseDate": "2026-10-14",
   "name": "MSH RPGen",
   "repo": "https://github.com/captainload/marvel-character-editor",
-  "notes": "v1.5.94: Removed the redundant Universal Action Table preference dropdown from the Preferences & Options dialog. Table ruleset selection is now managed exclusively through the creation/build mode dropdown on the creation toolbar."
+  "notes": "v1.5.95: Fixed creation mode selection event handling to prevent spurious 'already in that mode' toasts and ensure 'New Character' modal correctly initializes characters. Re-categorized five Doctor Doom items (Combat Doombot, Diplomatic Doombot, Latverian Servo-Guard, Pacifier Riot-Control Robot, Swarmbots) from Battlesuits to Robots. Consolidated Armor force fields (Insulato-Shield Belt Emitter, Neuro-Space Field Inhibitor) and Armor & Suits items into 'Protective Items and Suits'."
 }

@@ -1513,7 +1513,7 @@ class FASERIPCharacter {
     // Equipment defenses check (e.g. Kevlar vest or Armor)
     if (Array.isArray(this.equipment)) {
       this.equipment.forEach(eq => {
-        if (eq.equipped && (eq.type === 'Armor' || (eq.category && eq.category.toLowerCase().includes('armor')))) {
+        if (eq.equipped && (eq.type === 'Armor' || (eq.category && (eq.category.toLowerCase().includes('armor') || eq.category.toLowerCase().includes('protective'))))) {
           const eqVal = eq.materialValue || 10;
           if (eqVal > defenses.bodyArmor.physical) {
             defenses.bodyArmor.physical = eqVal;

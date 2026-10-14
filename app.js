@@ -62,7 +62,7 @@ const App = {
     this.superiorOptionCost = !!val;
   },
   humanAbilityCaps: false,
-  VERSION: '1.5.94',
+  VERSION: '1.5.95',
   BUILD_DATE: '2026-10-14',
   COMMIT_SHA: '6a15ff5',
   REPO_OWNER: 'captainload',
@@ -1462,14 +1462,12 @@ const App = {
 
     const selCreationMode = document.getElementById('select-creation-mode');
     if (selCreationMode) {
-      const onCreationModeChange = (e) => {
+      selCreationMode.addEventListener('change', (e) => {
         const target = e.target.value;
-        if (target) {
+        if (target && target !== this.getCreationModeKey()) {
           this.handleModeChange(target);
         }
-      };
-      selCreationMode.addEventListener('change', onCreationModeChange);
-      selCreationMode.addEventListener('input', onCreationModeChange);
+      });
     }
 
     // Build Mode Dropdown Menu
@@ -7111,7 +7109,7 @@ const App = {
       return c.includes('melee') || c.includes('missile') || t.includes('edged') || t.includes('blunt') || t.includes('throwing');
     }
     if (k === 'armor') {
-      return c.includes('armor') || c.includes('battlesuit') || c.includes('suit') || t.includes('armor') || t.includes('battlesuit');
+      return c.includes('armor') || c.includes('battlesuit') || c.includes('suit') || c.includes('protective') || t.includes('armor') || t.includes('battlesuit') || t.includes('force field') || t.includes('defense');
     }
     if (k === 'robotics' || k === 'robots' || k === 'robot') {
       return c.includes('robot') || c.includes('android') || c.includes('drone') || n.includes('bot') || n.includes('servo-guard') || n.includes('doombot') || n.includes('mandroid') || n.includes('secbot');
@@ -13053,10 +13051,7 @@ const App = {
     const currentKey = this.getCreationModeKey();
     if (normTarget === currentKey && this.character && !this.character.isCreationFinalized) {
       this.closeNewCharacterModeModal();
-      const dispName = this.getCreationModeDisplayName(currentKey);
-      this.showStatusToast(`Already in ${dispName} mode.`);
-      const selCreationMode = document.getElementById('select-creation-mode');
-      if (selCreationMode) selCreationMode.value = currentKey;
+      this.syncBuildModeDropdownUI(currentKey);
       return;
     }
 
@@ -13103,7 +13098,36 @@ const App = {
 
   async handleNewCharacterModeSelection(mode) {
     this.closeNewCharacterModeModal();
-    return this.handleModeChange(mode);
+    let normTarget = mode ? String(mode).toLowerCase().replace(/[\s_]+/g, '-') : 'cmf-cp-buy';
+    if (normTarget === 'random' || normTarget === 'tsr') normTarget = 'tsr-standard';
+    if (normTarget === 'modeled') normTarget = 'tsr-modeled';
+    if (normTarget === 'cmf' || normTarget === 'cp-buy') normTarget = 'cmf-cp-buy';
+
+    if (!this.character || this.isCharacterBlank(this.character)) {
+      this.applyNewCharacter(normTarget);
+      return;
+    }
+
+    const targetTitle = this.getCreationModeFullTitle(normTarget);
+    const choice = await this.showSavePromptDialog(
+      `Starting a new character in ${targetTitle} will clear your current character.\n\nWould you like to save your current character first?`,
+      'Save Current Character?'
+    );
+
+    if (choice === 'cancel') {
+      this.syncBuildModeDropdownUI();
+      return;
+    }
+
+    if (choice === 'save') {
+      const saved = await this.exportCharacter();
+      if (!saved) {
+        this.syncBuildModeDropdownUI();
+        return;
+      }
+    }
+
+    this.applyNewCharacter(normTarget);
   },
 
   /* Rules Cheat Sheet Popout Window Logic */

@@ -5,7 +5,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>MSH RPGen</title>
-  <link rel="stylesheet" href="styles.css?v=1.5.97">
+  <link rel="stylesheet" href="styles.css?v=1.5.98">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bangers&display=swap" rel="stylesheet">
@@ -27,12 +27,27 @@
         <div class="header-name-box">
           <input type="text" id="header-char-name" class="header-name-input" value="" placeholder="The Vanguard" title="Click to edit Character Name">
         </div>
-        <!-- Active Character Build Mode (With subtle pulsing effect) -->
-        <div class="header-build-mode-box" id="header-build-mode-box" title="Currently Selected Build Mode">
-          <span class="header-build-mode-label" id="header-build-mode-label">Building:</span>
-          <span class="header-build-mode-badge mode-pulsing" id="header-build-mode-display">CMF point buy with CMF tables</span>
+        <!-- Build Mode Dropdown (Replaces static mode status display) -->
+        <div class="build-mode-dropdown-container" id="build-mode-dropdown-container" style="display: inline-flex; align-items: center; gap: 6px; margin-left: 6px;">
+          <label for="select-creation-mode" class="build-mode-label" id="label-creation-mode" style="font-size: 10pt; font-weight: 700; color: var(--text-muted); white-space: nowrap;">Mode:</label>
+          <select id="select-creation-mode" class="creation-mode-select build-mode-select" aria-label="Choose build mode" title="Choose Build Mode" style="font-size: 10.5pt; height: 30px; border-radius: 4px; padding: 2px 8px; font-weight: 700; cursor: pointer;">
+            <optgroup label="Random Roll (1986 UPB Tables)">
+              <option value="tsr-standard">🎲 TSR random with TSR tables</option>
+              <option value="cmf-standard">🎲 TSR random with CMF tables</option>
+            </optgroup>
+            <optgroup label="Modeled (Free-Form KP)">
+              <option value="tsr-modeled">📐 TSR modeled with TSR tables</option>
+              <option value="cmf-modeled">📐 TSR modeled with CMF tables</option>
+            </optgroup>
+            <optgroup label="Point Buy (CP Budget)">
+              <option value="tsr-cp-buy">⚖️ CMF point buy with TSR tables</option>
+              <option value="cmf-cp-buy" selected>⚖️ CMF point buy with CMF tables</option>
+            </optgroup>
+          </select>
         </div>
         <span class="header-test-mode-badge" id="header-test-mode-badge" style="display: none;" title="Test Mode is Active (Karma is Infinite; changes are experimental)">TEST</span>
+        <!-- Hidden span for backwards compatibility -->
+        <span id="header-build-mode-display" style="display: none !important;" aria-hidden="true"></span>
       </div>
 
       <!-- Top Action Toolbar -->
@@ -90,26 +105,8 @@
     <div class="point-buy-strip creation-mode-bar" id="point-buy-strip">
       <div class="point-buy-badge point-buy-combined-block" id="point-buy-badge" style="display: flex; align-items: center; justify-content: space-between; width: 100%; gap: 10px; flex-wrap: nowrap;">
         
-        <!-- Left Section: Mode Switcher, Action Buttons & Tier Dropdown -->
+        <!-- Left Section: Action Buttons & Tier Dropdown -->
         <div class="creation-bar-left" style="display: flex; align-items: center; gap: 8px; flex-shrink: 0;">
-          <!-- Build Mode Dropdown -->
-          <div class="build-mode-dropdown-container" id="build-mode-dropdown-container" style="display: inline-flex; align-items: center; gap: 6px;">
-            <label for="select-creation-mode" class="build-mode-label" id="label-creation-mode" style="font-size: 11pt; font-weight: 700; color: #94a3b8; white-space: nowrap;">Mode:</label>
-            <select id="select-creation-mode" class="creation-mode-select build-mode-select" aria-label="Choose build mode" title="Choose Build Mode" style="font-size: 11pt; height: 28px; border-radius: 4px; padding: 2px 8px; font-weight: 700; cursor: pointer;">
-              <optgroup label="Random Roll (1986 UPB Tables)">
-                <option value="tsr-standard">🎲 TSR random with TSR tables</option>
-                <option value="cmf-standard">🎲 TSR random with CMF tables</option>
-              </optgroup>
-              <optgroup label="Modeled (Free-Form KP)">
-                <option value="tsr-modeled">📐 TSR modeled with TSR tables</option>
-                <option value="cmf-modeled">📐 TSR modeled with CMF tables</option>
-              </optgroup>
-              <optgroup label="Point Buy (CP Budget)">
-                <option value="tsr-cp-buy">⚖️ CMF point buy with TSR tables</option>
-                <option value="cmf-cp-buy" selected>⚖️ CMF point buy with CMF tables</option>
-              </optgroup>
-            </select>
-          </div>
 
           <!-- Set Hero Tier Button (Point-Buy Modes, opens pop-up) -->
           <button type="button" class="icon-btn primary compact" id="btn-set-hero-tier" style="display: none; font-size: 11pt; padding: 2px 10px; height: 26px; min-height: 26px; max-height: 26px; line-height: 1; font-weight: 700; border-radius: 4px; align-items: center; justify-content: center;" title="Set Hero Tier &amp; Starting CP Budget">⚡ Set Hero Tier</button>
@@ -166,6 +163,7 @@
         <!-- Right Section: Action Badges / Meta & History Navigation -->
         <div class="creation-bar-right" id="point-tier-status-right" style="display: flex; align-items: center; gap: 8px; flex-shrink: 0;">
           <span id="strip-cp-adjust-badge" class="meta-tag" style="display: none; font-size: 11pt; padding: 1px 6px; font-weight: 700;">±0%</span>
+          <button type="button" class="icon-btn compact advancement-strip-btn" id="btn-top-advancement" style="font-size: 10.5pt; padding: 2px 10px; height: 26px; min-height: 26px; max-height: 26px; line-height: 1; font-weight: 700; border-radius: 4px; align-items: center; justify-content: center; background: rgba(56, 189, 248, 0.15); border-color: #38bdf8; color: #38bdf8;" title="Character Advancement (Spend Karma to raise abilities, powers, or add talents)">📈 Advancement</button>
           <div class="tab-history-nav" title="Undo / Redo character edits">
             <span class="tab-history-label" id="tab-history-nav-label">History:</span>
             <button type="button" class="history-nav-btn" id="btn-history-back" title="Undo: Step back to previous edit" disabled aria-label="Undo edit">⮜</button>
@@ -203,7 +201,7 @@
         <button class="nav-tab-btn" data-tab="invention">🔬 Invention Lab</button>
         <button class="nav-tab-btn" data-tab="equipment">🎒 Equipment (<span id="tab-equipment-count">0</span>)</button>
         <button class="nav-tab-btn" data-tab="talents">🥋 Talents & Contacts</button>
-        <button class="nav-tab-btn" data-tab="background">📈 Progression</button>
+        <button class="nav-tab-btn" data-tab="background">📜 History</button>
       </div>
     </nav>
   </div>
@@ -1009,24 +1007,10 @@
 
     </section>
 
-    <!-- TAB 6: PROGRESSION (ADVANCEMENT, BIOGRAPHY, RESOURCES & EDIT LOG) -->
+    <!-- TAB 6: HISTORY (BIOGRAPHY, RESOURCES & EDIT LOG) -->
     <section class="tab-pane" id="tab-pane-background">
-      
-      <!-- Character Progression & Advancement Card -->
-      <div class="card" id="card-progression-advancement" style="margin-bottom: 14px;">
-        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
-          <div style="display: flex; align-items: center; gap: 10px;">
-            <span class="card-title">📈 Character Progression &amp; Advancement</span>
-            <span class="meta-tag" id="progression-karma-badge" style="font-size: 10pt; font-weight: 700; color: var(--marvel-gold);">Available Karma: <strong id="progression-karma-val">0</strong> KP</span>
-          </div>
-          <div style="display: flex; align-items: center; gap: 8px;">
-            <button type="button" id="btn-top-advancement" class="icon-btn primary" style="font-size: 10pt; font-weight: 700; padding: 6px 14px;" title="Character Advancement (Spend Karma to raise abilities, powers, or add talents)">📈 Character Advancement...</button>
-          </div>
-        </div>
-        <div style="padding: 10px 16px; font-size: 10pt; color: var(--text-muted); line-height: 1.5;">
-          Per TSR Advanced Set rules (Player's Book p. 19), spend accumulated Karma during live campaign play to permanently raise abilities, advance superpower ranks, or add new talents.
-        </div>
-      </div>
+      <!-- Hidden compatibility elements -->
+      <span id="progression-karma-val" style="display: none;" aria-hidden="true">0</span>
 
       <div class="card">
         <div class="card-header">
@@ -1131,7 +1115,26 @@
             </div>
           </div>
         </div>
-        <div id="character-edit-log-container" class="edit-log-container" style="max-height: 280px; overflow-y: auto; padding: 6px 0;">
+        <!-- Filter Bar -->
+        <div class="edit-log-filter-bar" id="edit-log-filter-bar" style="display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 14px; background: rgba(0, 0, 0, 0.2); border-bottom: 1px solid var(--border-color); flex-wrap: wrap;">
+          <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+            <label for="edit-log-filter-select" style="font-size: 10pt; font-weight: 700; color: var(--text-muted); white-space: nowrap;">Filter History:</label>
+            <select id="edit-log-filter-select" class="field-input" style="font-size: 10pt; font-weight: 600; padding: 3px 10px; min-height: 30px; border-radius: 4px; cursor: pointer;">
+              <option value="all">All Edits</option>
+              <option value="rank_change">📊 Rank Changes</option>
+              <option value="added_power">⚡ Added Powers</option>
+              <option value="power_change">⚡ Power Changes</option>
+              <option value="new_contact">🤝 New Contacts</option>
+              <option value="new_talent">🥋 New Talents</option>
+              <option value="new_equipment">🎒 New Equipment</option>
+              <option value="creation">🏗️ Creation &amp; Setup</option>
+            </select>
+          </div>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span id="edit-log-filter-status" style="font-size: 9.5pt; color: var(--text-muted);">Showing all edits</span>
+          </div>
+        </div>
+        <div id="character-edit-log-container" class="edit-log-container" style="max-height: 320px; overflow-y: auto; padding: 6px 0;">
           <p style="color: var(--text-muted); font-size: 10pt; padding: 8px 12px; margin: 0;">No edits recorded yet.</p>
         </div>
       </div>
@@ -2097,7 +2100,7 @@
           <!-- SECTION: PROGRAM UPDATES & AUTOMATED CHECKING -->
           <div style="font-weight: 700; color: var(--text-main); font-size: 11pt; border-bottom: 1px solid var(--border-color); padding-bottom: 6px; margin-top: 10px; display: flex; justify-content: space-between; align-items: center;">
             <span>🔄 Program Updates &amp; Automated Checking</span>
-            <span class="meta-tag" id="update-version-tag" style="color: var(--marvel-gold); font-size: 10pt;">v1.5.97</span>
+            <span class="meta-tag" id="update-version-tag" style="color: var(--marvel-gold); font-size: 10pt;">v1.5.98</span>
           </div>
 
           <div class="update-settings-panel" style="background: rgba(0, 0, 0, 0.2); border: 1px solid var(--border-color); border-radius: 6px; padding: 12px; display: flex; flex-direction: column; gap: 10px;">
@@ -2586,7 +2589,7 @@
         </div>
 
         <div style="font-size: 10pt; color: var(--text-muted); background: rgba(0, 0, 0, 0.2); border: 1px solid var(--border-color); border-radius: 6px; padding: 8px 12px; line-height: 1.4;">
-          💡 <strong>Notice:</strong> Characters started in Random mode can freely graduate to Modeled mode at any time. However, because Modeled mode removes slot constraints, returning from Modeled to Random requires rolling back to Revision #1 in the Progression tab.
+          💡 <strong>Notice:</strong> Characters started in Random mode can freely graduate to Modeled mode at any time. However, because Modeled mode removes slot constraints, returning from Modeled to Random requires rolling back to Revision #1 in the History tab.
         </div>
       </div>
       <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 10px; padding: 10px 18px; border-top: 1px solid var(--border-color);">
@@ -3929,7 +3932,7 @@
             Starting CP or KP has already been spent on this character's abilities, powers, or talents.
           </div>
           <div style="margin-top: 4px; color: #fecaca;">
-            To unlock the form selection dropdown, roll back to the <strong>first character history entry (Revision #1)</strong> in the <strong>📈 Progression</strong> tab.
+            To unlock the form selection dropdown, roll back to the <strong>first character history entry (Revision #1)</strong> in the <strong>📜 History</strong> tab.
           </div>
           <button type="button" class="icon-btn compact" id="btn-change-form-rollback-action" style="margin-top: 8px; font-size: 10pt;" title="Rewind character to initial save point">
             ⏮️ Roll Back to First Save Point (Revision #1)
@@ -4085,13 +4088,13 @@
   </div>
 
   <!-- Scripts Loading -->
-  <script src="universal_table.js?v=1.5.97"></script>
-  <script src="data_forms.js?v=1.5.97"></script>
-  <script src="data_powers.js?v=1.5.97"></script>
-  <script src="data_talents.js?v=1.5.97"></script>
-  <script src="data_equipment.js?v=1.5.97"></script>
-  <script src="inventions.js?v=1.5.97"></script>
-  <script src="character_model.js?v=1.5.97"></script>
-  <script src="app.js?v=1.5.97"></script>
+  <script src="universal_table.js?v=1.5.98"></script>
+  <script src="data_forms.js?v=1.5.98"></script>
+  <script src="data_powers.js?v=1.5.98"></script>
+  <script src="data_talents.js?v=1.5.98"></script>
+  <script src="data_equipment.js?v=1.5.98"></script>
+  <script src="inventions.js?v=1.5.98"></script>
+  <script src="character_model.js?v=1.5.98"></script>
+  <script src="app.js?v=1.5.98"></script>
 </body>
 </html>

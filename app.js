@@ -62,7 +62,8 @@ const App = {
     this.superiorOptionCost = !!val;
   },
   humanAbilityCaps: false,
-  VERSION: '1.5.97',
+  VERSION: '1.5.98',
+  editLogFilter: 'all',
   BUILD_DATE: '2026-10-14',
   COMMIT_SHA: '6a15ff5',
   REPO_OWNER: 'captainload',
@@ -286,6 +287,15 @@ const App = {
     if (btnCopyLog) {
       btnCopyLog.addEventListener('click', () => {
         this.copyEditLogToClipboard();
+      });
+    }
+
+    // Edit Log Filter Select
+    const filterSelect = document.getElementById('edit-log-filter-select');
+    if (filterSelect) {
+      filterSelect.addEventListener('change', (e) => {
+        this.editLogFilter = e.target.value;
+        this.renderEditLog();
       });
     }
 
@@ -7604,7 +7614,10 @@ const App = {
           });
 
           card.querySelector(`[data-del-gear="${idx}"]`).addEventListener('click', () => {
+            const removed = this.character.equipment[idx];
+            const eqName = (removed && (removed.name || removed.id)) ? (removed.name || removed.id) : 'Equipment item';
             this.character.equipment.splice(idx, 1);
+            this.recordCharacterEdit(`Removed equipment: ${eqName}`, 'equipment');
             this.saveState();
             this.render();
           });
@@ -7857,6 +7870,7 @@ const App = {
       notes: item.description,
       equipped: true
     });
+    this.recordCharacterEdit(`Added equipment: ${item.name} (${reasonText})`, 'equipment');
     this.saveState();
     this.render();
     this.closeProcurementModal();
@@ -10152,6 +10166,7 @@ const App = {
     };
 
     this.character.equipment.push(item);
+    this.recordCharacterEdit(`Created invention equipment: ${itemName}`, 'equipment');
 
     // Automatically add to Known Blueprints Archive (Only standard non-kitbash inventions create permanent schematics per Player's Book p. 43)
     if (!p.isKitBash) {
@@ -10510,6 +10525,7 @@ const App = {
         notes: `Reverse-engineered in workshop (${res.buildDays} days). ${res.item.description}`,
         equipped: true
       });
+      this.recordCharacterEdit(`Replicated equipment: ${res.item.name}`, 'equipment');
       this.saveState();
       this.render();
       this.showCustomAlert(`Successfully replicated "${res.item.name}" and added to equipment!`, '🔬 Replicated Item', btnE);
@@ -12477,6 +12493,7 @@ const App = {
           notes: pItem.description,
           equipped: true
         });
+        this.recordCharacterEdit(`Acquired equipment: ${pItem.name} (Resource FEAT)`, 'equipment');
         this.saveState();
         this.render();
         if (effectEl) {
@@ -16056,10 +16073,62 @@ const App = {
     }
   },
 
+  matchesEditLogFilter(entry, filter) {
+    if (!entry) return false;
+    if (!filter || filter === 'all') return true;
+
+    const desc = (entry.description || '').toLowerCase();
+    const cat = (entry.category || '').toLowerCase();
+
+    switch (filter) {
+      case 'rank_change':
+        return cat === 'ability' ||
+               cat === 'advancement' ||
+               desc.includes('rank') ||
+               desc.includes('advanced ') ||
+               desc.includes('updated ') ||
+               (desc.includes('changed ') && desc.includes('to '));
+
+      case 'added_power':
+        return desc.includes('added power');
+
+      case 'power_change':
+        return cat === 'power' || desc.includes('power');
+
+      case 'new_contact':
+        return desc.includes('added contact') || desc.includes('new contact') || (cat === 'talent' && desc.includes('contact'));
+
+      case 'new_talent':
+        return desc.includes('added talent') || desc.includes('new talent') || (cat === 'talent' && !desc.includes('contact'));
+
+      case 'new_equipment':
+        return cat === 'equipment' ||
+               desc.includes('equipment') ||
+               desc.includes('purchased') ||
+               desc.includes('replicated') ||
+               desc.includes('invention');
+
+      case 'creation':
+        return cat === 'creation' ||
+               cat === 'initial' ||
+               cat === 'budget' ||
+               desc.includes('character created') ||
+               desc.includes('character loaded') ||
+               desc.includes('initial save point') ||
+               desc.includes('point tier') ||
+               desc.includes('generated character');
+
+      default:
+        return true;
+    }
+  },
+
   renderEditLog() {
     if (typeof document === 'undefined' || !this.character) return;
     const container = document.getElementById('character-edit-log-container');
     const badge = document.getElementById('edit-log-count-badge');
+    const filterSelect = document.getElementById('edit-log-filter-select');
+    const filterStatus = document.getElementById('edit-log-filter-status');
     if (!container) return;
 
     if (typeof this.character.sanitizeEditLog === 'function') {
@@ -16069,8 +16138,65 @@ const App = {
     const log = this.character.editLog || [];
     const activeIdx = this.character.editHistoryIndex;
 
+    const currentFilter = this.editLogFilter || 'all';
+    if (filterSelect && filterSelect.value !== currentFilter) {
+      filterSelect.value = currentFilter;
+    }
+
+    // Calculate count per filter for the dropdown options
+    const counts = {
+      all: log.length,
+      rank_change: 0,
+      added_power: 0,
+      power_change: 0,
+      new_contact: 0,
+      new_talent: 0,
+      new_equipment: 0,
+      creation: 0
+    };
+    log.forEach(entry => {
+      if (this.matchesEditLogFilter(entry, 'rank_change')) counts.rank_change++;
+      if (this.matchesEditLogFilter(entry, 'added_power')) counts.added_power++;
+      if (this.matchesEditLogFilter(entry, 'power_change')) counts.power_change++;
+      if (this.matchesEditLogFilter(entry, 'new_contact')) counts.new_contact++;
+      if (this.matchesEditLogFilter(entry, 'new_talent')) counts.new_talent++;
+      if (this.matchesEditLogFilter(entry, 'new_equipment')) counts.new_equipment++;
+      if (this.matchesEditLogFilter(entry, 'creation')) counts.creation++;
+    });
+
+    if (filterSelect) {
+      const optAll = filterSelect.querySelector('option[value="all"]');
+      if (optAll) optAll.textContent = `All Edits (${counts.all})`;
+      const optRank = filterSelect.querySelector('option[value="rank_change"]');
+      if (optRank) optRank.textContent = `📊 Rank Changes (${counts.rank_change})`;
+      const optAddPwr = filterSelect.querySelector('option[value="added_power"]');
+      if (optAddPwr) optAddPwr.textContent = `⚡ Added Powers (${counts.added_power})`;
+      const optPwrChg = filterSelect.querySelector('option[value="power_change"]');
+      if (optPwrChg) optPwrChg.textContent = `⚡ Power Changes (${counts.power_change})`;
+      const optCon = filterSelect.querySelector('option[value="new_contact"]');
+      if (optCon) optCon.textContent = `🤝 New Contacts (${counts.new_contact})`;
+      const optTal = filterSelect.querySelector('option[value="new_talent"]');
+      if (optTal) optTal.textContent = `🥋 New Talents (${counts.new_talent})`;
+      const optEq = filterSelect.querySelector('option[value="new_equipment"]');
+      if (optEq) optEq.textContent = `🎒 New Equipment (${counts.new_equipment})`;
+      const optCre = filterSelect.querySelector('option[value="creation"]');
+      if (optCre) optCre.textContent = `🏗️ Creation & Setup (${counts.creation})`;
+    }
+
+    // Filter items while keeping track of their original index in log
+    const indexedEntries = log.map((entry, origIdx) => ({ entry, origIdx }));
+    const filteredEntries = indexedEntries.filter(({ entry }) => this.matchesEditLogFilter(entry, currentFilter));
+
     if (badge) {
       badge.textContent = `${log.length} Edit${log.length === 1 ? '' : 's'}`;
+    }
+
+    if (filterStatus) {
+      if (currentFilter === 'all') {
+        filterStatus.textContent = `Showing all ${log.length} edits`;
+      } else {
+        filterStatus.textContent = `Showing ${filteredEntries.length} of ${log.length} edits`;
+      }
     }
 
     if (log.length === 0) {
@@ -16078,9 +16204,13 @@ const App = {
       return;
     }
 
+    if (filteredEntries.length === 0) {
+      container.innerHTML = `<p style="color: var(--text-muted); font-size: 10pt; padding: 14px 12px; margin: 0; text-align: center;">No edits match the selected filter.</p>`;
+      return;
+    }
+
     // Display newest first, with active step highlighted
-    const html = [...log].reverse().map((entry, revIdx) => {
-      const origIdx = log.length - 1 - revIdx;
+    const html = [...filteredEntries].reverse().map(({ entry, origIdx }) => {
       const isActive = origIdx === activeIdx;
       const d = new Date(entry.timestamp);
       const timeStr = isNaN(d.getTime()) ? '' : d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
@@ -16090,7 +16220,7 @@ const App = {
 
       return `
         <div class="edit-log-item${activeClass}" data-edit-idx="${origIdx}" title="${isActive ? 'Current Revision (Active)' : `Click to roll back to: ${entry.description}`}">
-          <div class="edit-log-desc">${activeIndicator}${entry.description}</div>
+          <div class="edit-log-desc"><span class="edit-rev-num" style="color: var(--marvel-gold); font-weight: 700; margin-right: 6px;">#${origIdx + 1}</span>${activeIndicator}${entry.description}</div>
           <div class="edit-log-meta">
             <span class="edit-log-badge ${catClass}">${entry.category || 'edit'}</span>
             <span class="edit-log-time">${timeStr}</span>
@@ -16133,11 +16263,18 @@ const App = {
 
   copyEditLogToClipboard() {
     if (!this.character || !this.character.editLog) return;
-    const lines = this.character.editLog.map((e, idx) => {
+    const currentFilter = this.editLogFilter || 'all';
+    const log = this.character.editLog;
+    const entries = (currentFilter === 'all')
+      ? log.map((e, idx) => ({ entry: e, idx }))
+      : log.map((e, idx) => ({ entry: e, idx })).filter(({ entry }) => this.matchesEditLogFilter(entry, currentFilter));
+
+    const lines = entries.map(({ entry: e, idx }) => {
       const d = new Date(e.timestamp).toLocaleString();
-      return `[${idx + 1}] ${d} - [${e.category || 'edit'}] ${e.description}`;
+      return `[#${idx + 1}] ${d} - [${e.category || 'edit'}] ${e.description}`;
     });
-    const text = `Character Edit Log: ${this.character.name}\n${'='.repeat(40)}\n` + lines.join('\n');
+    const filterNote = currentFilter !== 'all' ? ` (Filtered: ${currentFilter})` : '';
+    const text = `Character Edit Log${filterNote}: ${this.character.name || 'Hero'}\n${'='.repeat(40)}\n` + lines.join('\n');
     if (typeof navigator !== 'undefined' && navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(text).then(() => {
         this.showCustomAlert('Character edit log copied to clipboard!', '📋 Log Copied');
@@ -17785,7 +17922,7 @@ const App = {
     if (!this.character) return;
     if (this.isFormChangeLocked()) {
       this.showCustomAlert(
-        'Physical form changes are locked because starting CP or KP has already been spent.\n\nRoll back to the first character history entry (Revision #1) in the Progression tab to unlock.',
+        'Physical form changes are locked because starting CP or KP has already been spent.\n\nRoll back to the first character history entry (Revision #1) in the History tab to unlock.',
         '🔒 Form Selection Locked'
       );
       return;
@@ -18038,7 +18175,7 @@ const App = {
       `Manually customizing traits switches your character to TSR Modeled (Free-Form) Mode.\n\n` +
       `• Trait slot limits and random roll requirements will be bypassed.\n` +
       `• Character trait investment is tracked in Karma Points (KP) instead of CP.\n` +
-      `• ⚠️ WARNING: Entering Modeled mode is IRREVERSIBLE without reverting to an earlier character history point (Revision #1) on the Progression tab.\n\n` +
+      `• ⚠️ WARNING: Entering Modeled mode is IRREVERSIBLE without reverting to an earlier character history point (Revision #1) on the History tab.\n\n` +
       `Would you like to switch to Modeled Mode and proceed with this assignment?`,
       '⚠️ Switch to TSR Modeled Mode?',
       null,
@@ -18080,7 +18217,7 @@ const App = {
       '⚠️ WARNING: Entering TSR Modeled Mode is IRREVERSIBLE without reverting to an earlier character history point!\n\n' +
       '• Modeled mode enables TSR free-form creation without random rolls or trait slot limits.\n' +
       '• Trait investment is tracked in Karma Points (KP) instead of CP, allowing GMs to apply campaign KP limits if desired.\n' +
-      '• Once activated, you cannot directly toggle back to Random Roll mode without rolling back character history on the Progression tab.\n\n' +
+      '• Once activated, you cannot directly toggle back to Random Roll mode without rolling back character history on the History tab.\n\n' +
       'Are you sure you want to proceed and switch to Modeled Mode?',
       '⚠️ Enter TSR Modeled Mode?'
     );
@@ -18104,11 +18241,11 @@ const App = {
   async promptCannotRevertToRandom() {
     const confirmed = await this.showCustomConfirm(
       'Cannot directly switch from Modeled back to Random Roll mode because free-form modeling is irreversible.\n\n' +
-      'To restore canonical random rolling, you can roll back your character to an earlier history point (Revision #1 or before Modeled mode was activated) on the Progression tab.\n\n' +
-      'Would you like to open the Progression tab now to view your edit history and roll back?',
+      'To restore canonical random rolling, you can roll back your character to an earlier history point (Revision #1 or before Modeled mode was activated) on the History tab.\n\n' +
+      'Would you like to open the History tab now to view your edit history and roll back?',
       '⚠️ Modeled Mode is Irreversible',
       null,
-      'Go to Progression',
+      'Go to History',
       'Cancel'
     );
     if (confirmed) {

@@ -62,7 +62,7 @@ const App = {
     this.superiorOptionCost = !!val;
   },
   humanAbilityCaps: false,
-  VERSION: '1.5.92',
+  VERSION: '1.5.93',
   BUILD_DATE: '2026-10-14',
   COMMIT_SHA: '6a15ff5',
   REPO_OWNER: 'captainload',
@@ -1470,10 +1470,14 @@ const App = {
 
     const selCreationMode = document.getElementById('select-creation-mode');
     if (selCreationMode) {
-      selCreationMode.addEventListener('change', (e) => {
+      const onCreationModeChange = (e) => {
         const target = e.target.value;
-        this.handleModeChange(target);
-      });
+        if (target) {
+          this.handleModeChange(target);
+        }
+      };
+      selCreationMode.addEventListener('change', onCreationModeChange);
+      selCreationMode.addEventListener('input', onCreationModeChange);
     }
 
     // Build Mode Dropdown Menu
@@ -1658,6 +1662,26 @@ const App = {
     if (btnNewCharCmf) {
       btnNewCharCmf.addEventListener('click', () => this.handleNewCharacterModeSelection('cmf-cp-buy'));
     }
+
+    const newCharModeCards = [
+      { id: 'card-mode-tsr-standard', mode: 'tsr-standard' },
+      { id: 'card-mode-tsr-modeled', mode: 'tsr-modeled' },
+      { id: 'card-mode-tsr-cp-buy', mode: 'tsr-cp-buy' },
+      { id: 'card-mode-cmf-standard', mode: 'cmf-standard' },
+      { id: 'card-mode-cmf-modeled', mode: 'cmf-modeled' },
+      { id: 'card-mode-cmf-cp-buy', mode: 'cmf-cp-buy' }
+    ];
+    newCharModeCards.forEach(({ id, mode }) => {
+      const cardEl = document.getElementById(id);
+      if (cardEl) {
+        cardEl.style.cursor = 'pointer';
+        cardEl.addEventListener('click', (e) => {
+          if (e.target && e.target.closest && e.target.closest('button')) return;
+          this.handleNewCharacterModeSelection(mode);
+        });
+      }
+    });
+
     if (btnCancelNewCharMode) {
       btnCancelNewCharMode.addEventListener('click', () => this.closeNewCharacterModeModal());
     }
@@ -12964,18 +12988,14 @@ const App = {
 
   convertCharacterToMode(targetModeKey) {
     if (!this.character) return;
+    this.closeNewCharacterModeModal();
+
     const normTarget = String(targetModeKey).toLowerCase().replace(/[\s_]+/g, '-');
     const isTargetTsr = normTarget.startsWith('tsr-');
     const targetTableMode = isTargetTsr ? 'standard' : 'cmf';
-
-    // 1. Update Universal Table mode if changing ruleset
-    if (this.universalTableMode !== targetTableMode) {
-      this.setUniversalTableMode(targetTableMode, true, false);
-    }
-
-    // 2. Adjust character creation mode & sub-mode
     const dispName = this.getCreationModeDisplayName(normTarget);
 
+    // 1. Adjust character creation mode & sub-mode FIRST before updating table to prevent inconsistent state
     if (normTarget.endsWith('-standard') || normTarget.endsWith('-random')) {
       this.character.creationMode = 'tsr';
       if (this.character.setTsrSubMode) {
@@ -13016,6 +13036,11 @@ const App = {
       this.character.isCreationSetupPending = false;
     }
 
+    // 2. Update Universal Table mode if changing ruleset
+    if (this.universalTableMode !== targetTableMode) {
+      this.setUniversalTableMode(targetTableMode, true, false);
+    }
+
     // 3. Sync ranks to the active table scheme
     if (typeof this.character.syncRanksToActiveScheme === 'function') {
       this.character.syncRanksToActiveScheme();
@@ -13037,6 +13062,7 @@ const App = {
 
     const currentKey = this.getCreationModeKey();
     if (normTarget === currentKey && this.character && !this.character.isCreationFinalized) {
+      this.closeNewCharacterModeModal();
       const dispName = this.getCreationModeDisplayName(currentKey);
       this.showStatusToast(`Already in ${dispName} mode.`);
       const selCreationMode = document.getElementById('select-creation-mode');
@@ -13048,6 +13074,7 @@ const App = {
     const check = this.canConvertCharacterToMode(currentKey, normTarget, this.character);
 
     if (check.feasible) {
+      this.closeNewCharacterModeModal();
       if (check.isBlank || !this.character || this.isCharacterBlank(this.character)) {
         this.applyNewCharacter(normTarget);
       } else {
@@ -13065,6 +13092,7 @@ const App = {
     );
 
     if (choice === 'cancel') {
+      this.closeNewCharacterModeModal();
       this.syncBuildModeDropdownUI(currentKey);
       return;
     }
@@ -13072,16 +13100,19 @@ const App = {
     if (choice === 'save') {
       const saved = await this.exportCharacter();
       if (!saved) {
+        this.closeNewCharacterModeModal();
         this.syncBuildModeDropdownUI(currentKey);
         return;
       }
     }
 
     // Discarded or saved successfully: apply new character in target mode
+    this.closeNewCharacterModeModal();
     this.applyNewCharacter(normTarget);
   },
 
   async handleNewCharacterModeSelection(mode) {
+    this.closeNewCharacterModeModal();
     return this.handleModeChange(mode);
   },
 
@@ -14031,9 +14062,7 @@ const App = {
       }
     }
 
-    if (this.universalTableMode !== targetTableMode) {
-      this.setUniversalTableMode(targetTableMode, true, false);
-    }
+    this.closeNewCharacterModeModal();
 
     this.character = FASERIPCharacter.createBlankCharacter('300');
     if (this.powerAdjustment !== undefined) {
@@ -14061,13 +14090,6 @@ const App = {
       }
       this.character.pointTier = (targetTableMode === 'cmf') ? 'CMF Standard' : 'TSR 1986';
       this.character.isCreationSetupPending = false;
-      this.character.recordEdit(`New character created in ${fullTitle}`, 'initial');
-      this.saveState();
-      this.switchTab('main-stats');
-      this.render();
-      this.closeNewCharacterModeModal();
-      this.closeCreationWizardModal();
-      this.showStatusToast(`🎲 Fresh character initialized in ${this.getCreationModeDisplayName(normalizedMode)}. Roll traits in the TSR Generator to begin.`);
     } else if (targetCreationMode === 'tsr' && targetTsrSubMode === 'modeled') {
       this.character.creationMode = 'tsr';
       if (this.character.setTsrSubMode) {
@@ -14077,6 +14099,26 @@ const App = {
       }
       this.character.pointTier = (targetTableMode === 'cmf') ? 'CMF Modeled' : 'TSR 1986 (Modeled)';
       this.character.isCreationSetupPending = false;
+    } else {
+      // Point-Buy mode (tsr-cp-buy or cmf-cp-buy)
+      this.character.creationMode = 'cmf';
+      this.character.setPointTier('300');
+      this.character.isCreationSetupPending = true;
+    }
+
+    if (this.universalTableMode !== targetTableMode) {
+      this.setUniversalTableMode(targetTableMode, true, false);
+    }
+
+    if (targetCreationMode === 'tsr' && targetTsrSubMode === 'random') {
+      this.character.recordEdit(`New character created in ${fullTitle}`, 'initial');
+      this.saveState();
+      this.switchTab('main-stats');
+      this.render();
+      this.closeNewCharacterModeModal();
+      this.closeCreationWizardModal();
+      this.showStatusToast(`🎲 Fresh character initialized in ${this.getCreationModeDisplayName(normalizedMode)}. Roll traits in the TSR Generator to begin.`);
+    } else if (targetCreationMode === 'tsr' && targetTsrSubMode === 'modeled') {
       this.character.recordEdit(`New character created in ${fullTitle}`, 'initial');
       this.saveState();
       this.switchTab('main-stats');
@@ -14085,10 +14127,6 @@ const App = {
       this.closeCreationWizardModal();
       this.showStatusToast(`📐 Fresh character initialized in ${this.getCreationModeDisplayName(normalizedMode)}. Assign abilities and traits freely.`);
     } else {
-      // Point-Buy mode (tsr-cp-buy or cmf-cp-buy)
-      this.character.creationMode = 'cmf';
-      this.character.setPointTier('300');
-      this.character.isCreationSetupPending = true;
       this.character.recordEdit(`New character created in ${fullTitle}`, 'initial');
       this.saveState();
       this.switchTab('main-stats');
@@ -14137,7 +14175,15 @@ const App = {
   closeNewCharacterModeModal() {
     this._forceSavePromptOnModeSwitch = false;
     const modal = document.getElementById('modal-new-character-mode');
-    if (modal) modal.classList.remove('open');
+    if (modal) {
+      modal.classList.remove('open');
+      modal.style.display = '';
+    }
+    const hasOtherModal = !!(document.querySelector && document.querySelector('.modal-overlay.open'));
+    if (!hasOtherModal) {
+      if (document.body && document.body.classList) document.body.classList.remove('modal-open');
+      if (document.documentElement && document.documentElement.classList) document.documentElement.classList.remove('modal-open');
+    }
     const selEl = document.getElementById('select-creation-mode');
     if (selEl) selEl.value = this.getCreationModeKey();
   },

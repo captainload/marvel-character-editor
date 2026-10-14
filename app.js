@@ -62,7 +62,7 @@ const App = {
     this.superiorOptionCost = !!val;
   },
   humanAbilityCaps: false,
-  VERSION: '1.5.88',
+  VERSION: '1.5.89',
   BUILD_DATE: '2026-10-13',
   COMMIT_SHA: '6a15ff5',
   REPO_OWNER: 'captainload',
@@ -3036,13 +3036,15 @@ const App = {
     const isRandomMode = (activeModeKey === 'tsr-standard' || activeModeKey === 'cmf-standard');
 
     if (btnOpenTsrGen) {
-      btnOpenTsrGen.style.display = (isRandomMode && !isFinalized) ? 'inline-flex' : 'none';
+      const showRollHero = (isRandomMode && !isFinalized);
+      btnOpenTsrGen.style.setProperty('display', showRollHero ? 'inline-flex' : 'none', 'important');
       btnOpenTsrGen.textContent = '🎲 Roll Hero';
       btnOpenTsrGen.title = 'Open TSR 1986 Character Generator Modal & Roll Hero';
     }
 
     if (creationTierContainer) {
-      creationTierContainer.style.display = (isPointBuyMode && !isFinalized) ? 'inline-flex' : 'none';
+      const showTier = (isPointBuyMode && !isFinalized);
+      creationTierContainer.style.setProperty('display', showTier ? 'inline-flex' : 'none', 'important');
     }
     if (selPointTier && this.character) {
       const curTier = String(this.character.pointTier || '300');

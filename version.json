@@ -1,7 +1,7 @@
 {
-  "version": "1.5.88",
+  "version": "1.5.89",
   "releaseDate": "2026-10-13",
   "name": "Marvel Super Heroes Character Editor",
   "repo": "https://github.com/captainload/marvel-character-editor",
-  "notes": "v1.5.88: Removed redundant non-pulsing build mode tag from the top row, making the pulsing header badge clickable for creation status and finalization. Replaced the 'Set Tier' button with a native tier dropdown featuring placeholder 'set hero tier' with active tier checkmarks, appearing only when point-buy modes are chosen. Renamed the Roll Tables button to 'Roll Hero', ensuring it opens the TSR generator modal in-page directly when random roll modes are selected."
+  "notes": "v1.5.89: Fixed button visibility constraints on creation bar so 'Roll Hero' exclusively appears when a random roll mode is chosen, and 'set hero tier' exclusively appears when a point-buy mode is chosen. Removed blocking CSS !important override to ensure clean mode-dependent toggle across random, point-buy, and modeled modes."
 }

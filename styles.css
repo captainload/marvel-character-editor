@@ -4521,7 +4521,6 @@ body:not(.sticky-header-active) .app-container {
   font-size: 11pt !important;
   font-weight: 700 !important;
   border-radius: 4px !important;
-  display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
 }

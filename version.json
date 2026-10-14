@@ -1,9 +1,7 @@
 {
-  "version": "1.5.99",
+  "version": "1.6.00",
   "releaseDate": "2026-10-14",
   "name": "MSH RPGen",
   "repo": "https://github.com/captainload/marvel-character-editor",
-  "notes": "v1.5.99: Added Personal category filter to the character edit log with dedicated styling for changes to personal details (physical form, group affiliation, real name, hero name, legal identity, appearance, and lore) and added a live search field with instant clearing to search and filter character edit history."
+  "notes": "v1.6.00: Restored and fortified A-BOMB easter egg roar audio with preloaded DOM audio element, Web Audio API in-memory decoding, and base64 fallback to guarantee reliable playback across all browsers."
 }
-
-

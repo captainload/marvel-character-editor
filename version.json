@@ -1,7 +1,7 @@
 {
-  "version": "1.5.96",
+  "version": "1.5.97",
   "releaseDate": "2026-10-14",
   "name": "MSH RPGen",
   "repo": "https://github.com/captainload/marvel-character-editor",
-  "notes": "v1.5.96: Replaced prefilled input values (Character Name, Real Name, Age, Height & Weight, Group Affiliation, Base of Operations, Hair & Eyes) with placeholder text across HTML templates and character models. Bound physical dimension/hair/eye fields and updated renderers so clearing any field cleanly restores the placeholder text."
+  "notes": "v1.5.97: Sanitized legacy boilerplate defaults (Age, Dimensions, Affiliation, Base of Operations, Hair & Eyes, Character Name) on character load and model initialization so that HTML placeholder text displays cleanly on the Progression tab and header. Removed the physical gap between the Themes flyout and File menu and added invisible hover bridges to eliminate cursor trap flyout closures."
 }

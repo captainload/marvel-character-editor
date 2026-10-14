@@ -104,21 +104,67 @@ if (typeof globalThis !== 'undefined') {
 class FASERIPCharacter {
   constructor(initialData = {}) {
     this.id = initialData.id || 'hero_' + Date.now();
-    this.name = initialData.name !== undefined ? initialData.name : '';
+
+    const rawName = initialData.name !== undefined ? initialData.name : '';
+    this.name = (rawName === 'New Hero' || rawName === 'New Superhero' || rawName === 'The Vanguard') ? '' : rawName;
+
     this.realName = initialData.realName || '';
     this.formKey = initialData.formKey || initialData.form || 'normal_human'; // Key in MSH_PHYSICAL_FORMS
     this.formName = initialData.formName || (initialData.form ? String(initialData.form).replace(/_/g, ' ') : 'Normal Human');
     this.gender = initialData.gender || 'Not applicable';
-    this.age = initialData.age !== undefined ? initialData.age : '';
-    this.height = initialData.height !== undefined ? initialData.height : '';
-    this.weight = initialData.weight !== undefined ? initialData.weight : '';
-    this.hair = initialData.hair !== undefined ? initialData.hair : '';
-    this.eyes = initialData.eyes !== undefined ? initialData.eyes : '';
-    this.dimensions = initialData.dimensions !== undefined ? initialData.dimensions : '';
-    this.hairEyes = initialData.hairEyes !== undefined ? initialData.hairEyes : '';
+
+    const rawAge = initialData.age !== undefined ? initialData.age : '';
+    this.age = (rawAge === 'Adult') ? '' : rawAge;
+
+    const rawHeight = initialData.height !== undefined ? initialData.height : '';
+    const rawWeight = initialData.weight !== undefined ? initialData.weight : '';
+    if ((rawHeight === "5'10\"" || rawHeight === "6'0\"") && (rawWeight === '175 lbs' || rawWeight === '190 lbs')) {
+      this.height = '';
+      this.weight = '';
+    } else {
+      this.height = rawHeight;
+      this.weight = rawWeight;
+    }
+
+    const rawDimensions = initialData.dimensions !== undefined ? initialData.dimensions : '';
+    if (rawDimensions === "6'0\", 190 lbs" || rawDimensions === "5'10\", 175 lbs") {
+      this.dimensions = '';
+    } else {
+      this.dimensions = rawDimensions;
+    }
+
+    const rawHair = initialData.hair !== undefined ? initialData.hair : '';
+    const rawEyes = initialData.eyes !== undefined ? initialData.eyes : '';
+    if (rawHair === 'Brown' && rawEyes === 'Brown') {
+      this.hair = '';
+      this.eyes = '';
+    } else {
+      this.hair = rawHair;
+      this.eyes = rawEyes;
+    }
+
+    const rawHairEyes = initialData.hairEyes !== undefined ? initialData.hairEyes : '';
+    if (rawHairEyes === 'Brown hair, Brown eyes') {
+      this.hairEyes = '';
+    } else {
+      this.hairEyes = rawHairEyes;
+    }
+
     this.identity = initialData.identity || 'Secret'; // Secret, Public, Legal
-    this.groupAffiliation = initialData.groupAffiliation !== undefined ? initialData.groupAffiliation : '';
-    this.baseOfOperations = initialData.baseOfOperations !== undefined ? initialData.baseOfOperations : '';
+
+    const rawAffiliation = initialData.groupAffiliation !== undefined ? initialData.groupAffiliation : '';
+    if (rawAffiliation === 'None / Solo' || rawAffiliation === 'Solo' || rawAffiliation === 'Solo / Independent') {
+      this.groupAffiliation = '';
+    } else {
+      this.groupAffiliation = rawAffiliation;
+    }
+
+    const rawBase = initialData.baseOfOperations !== undefined ? initialData.baseOfOperations : '';
+    if (rawBase === 'New York City') {
+      this.baseOfOperations = '';
+    } else {
+      this.baseOfOperations = rawBase;
+    }
 
     // CMF Point-Buy Configuration
     // Tiers: 150 (Skilled Human), 200 (Street Vigilante), 300 (Costumed Adventurer - Default),
@@ -3909,8 +3955,39 @@ class FASERIPCharacter {
     return targetEntry;
   }
 
+  sanitizeLegacyBioDefaults() {
+    if (this.name === 'New Hero' || this.name === 'New Superhero' || this.name === 'The Vanguard') {
+      this.name = '';
+    }
+    if (this.age === 'Adult') {
+      this.age = '';
+    }
+    if ((this.height === "5'10\"" || this.height === "6'0\"") && (this.weight === '175 lbs' || this.weight === '190 lbs')) {
+      this.height = '';
+      this.weight = '';
+    }
+    if (this.dimensions === "6'0\", 190 lbs" || this.dimensions === "5'10\", 175 lbs") {
+      this.dimensions = '';
+    }
+    if (this.hair === 'Brown' && this.eyes === 'Brown') {
+      this.hair = '';
+      this.eyes = '';
+    }
+    if (this.hairEyes === 'Brown hair, Brown eyes') {
+      this.hairEyes = '';
+    }
+    if (this.groupAffiliation === 'None / Solo' || this.groupAffiliation === 'Solo' || this.groupAffiliation === 'Solo / Independent') {
+      this.groupAffiliation = '';
+    }
+    if (this.baseOfOperations === 'New York City') {
+      this.baseOfOperations = '';
+    }
+  }
+
   static fromJSON(data) {
-    return new FASERIPCharacter(data);
+    const char = new FASERIPCharacter(data);
+    char.sanitizeLegacyBioDefaults();
+    return char;
   }
 
   applyCreationSetup(tier, formKey, customBudget = null, name = null, cpAdjustment = null) {

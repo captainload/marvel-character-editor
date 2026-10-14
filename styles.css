@@ -4472,9 +4472,9 @@ body[data-theme="aqua"] .cheatsheet-tabs-bar {
 .dropdown-submenu {
   display: none;
   position: absolute;
-  right: 100%;
+  right: calc(100% - 1px);
   top: -6px;
-  margin-right: 4px;
+  margin-right: 0;
   background: #162032;
   border: 1px solid var(--border-color);
   border-radius: 6px;
@@ -4482,6 +4482,29 @@ body[data-theme="aqua"] .cheatsheet-tabs-bar {
   z-index: 1010;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.65);
   padding: 6px 0;
+}
+
+/* Invisible hover bridges to eliminate cursor traps between submenu and parent menu */
+.dropdown-submenu::after {
+  content: '';
+  position: absolute;
+  top: -10px;
+  bottom: -10px;
+  right: -20px;
+  width: 25px;
+  background: transparent;
+  pointer-events: auto;
+}
+
+.dropdown-submenu::before {
+  content: '';
+  position: absolute;
+  top: -16px;
+  left: 0;
+  right: 0;
+  height: 20px;
+  background: transparent;
+  pointer-events: auto;
 }
 
 .dropdown-submenu-container:hover > .dropdown-submenu,

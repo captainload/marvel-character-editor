@@ -62,7 +62,7 @@ const App = {
     this.superiorOptionCost = !!val;
   },
   humanAbilityCaps: false,
-  VERSION: '1.5.96',
+  VERSION: '1.5.97',
   BUILD_DATE: '2026-10-14',
   COMMIT_SHA: '6a15ff5',
   REPO_OWNER: 'captainload',
@@ -101,6 +101,10 @@ const App = {
     if (saved) {
       try {
         this.character = FASERIPCharacter.fromJSON(JSON.parse(saved));
+        if (typeof this.character.sanitizeLegacyBioDefaults === 'function') {
+          this.character.sanitizeLegacyBioDefaults();
+        }
+        this.saveState();
       } catch (e) {
         console.warn('Failed to parse saved character, loading fresh CMF hero', e);
         this.character = FASERIPCharacter.createBlankCharacter('300');
@@ -2154,24 +2158,34 @@ const App = {
     // Theme Flyout Submenu Listeners
     const themeFlyoutBtn = document.getElementById('menu-item-theme-flyout');
     const themeFlyoutMenu = document.getElementById('theme-flyout-menu');
+    const themeSubmenuContainer = document.getElementById('menu-theme-submenu-container');
     if (themeFlyoutBtn && themeFlyoutMenu) {
-      themeFlyoutBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        themeFlyoutMenu.classList.toggle('open');
-        // Smart screen clamp if flyout overflows left edge
-        if (themeFlyoutMenu.classList.contains('open') && typeof themeFlyoutMenu.getBoundingClientRect === 'function') {
+      const clampFlyout = () => {
+        if (typeof themeFlyoutMenu.getBoundingClientRect === 'function') {
           const rect = themeFlyoutMenu.getBoundingClientRect();
           if (rect.left < 10) {
             themeFlyoutMenu.style.right = 'auto';
             themeFlyoutMenu.style.left = '0';
             themeFlyoutMenu.style.top = '100%';
           } else {
-            themeFlyoutMenu.style.right = '100%';
+            themeFlyoutMenu.style.right = 'calc(100% - 1px)';
             themeFlyoutMenu.style.left = 'auto';
             themeFlyoutMenu.style.top = '-6px';
           }
         }
+      };
+      themeFlyoutBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        themeFlyoutMenu.classList.toggle('open');
+        if (themeFlyoutMenu.classList.contains('open')) {
+          clampFlyout();
+        }
       });
+      if (themeSubmenuContainer) {
+        themeSubmenuContainer.addEventListener('mouseenter', () => {
+          clampFlyout();
+        });
+      }
     }
 
     if (typeof document !== 'undefined' && typeof document.querySelectorAll === 'function') {
@@ -2979,7 +2993,8 @@ const App = {
   renderHeader() {
     const nameInp = document.getElementById('header-char-name');
     if (nameInp) {
-      nameInp.value = this.character.name || '';
+      const nameVal = (this.character.name === 'The Vanguard' || this.character.name === 'New Hero' || this.character.name === 'New Superhero') ? '' : (this.character.name || '');
+      nameInp.value = nameVal;
       nameInp.placeholder = 'The Vanguard';
     }
 
@@ -10981,32 +10996,39 @@ const App = {
     }
     const ageInp = document.getElementById('bio-age');
     if (ageInp) {
-      ageInp.value = this.character.age || '';
+      const ageVal = (this.character.age === 'Adult') ? '' : (this.character.age || '');
+      ageInp.value = ageVal;
       ageInp.placeholder = 'Adult';
     }
     const dimInp = document.getElementById('bio-dimensions');
     if (dimInp) {
-      const dimVal = (this.character.dimensions !== undefined && this.character.dimensions !== null && this.character.dimensions !== '')
+      let dimVal = (this.character.dimensions !== undefined && this.character.dimensions !== null && this.character.dimensions !== '')
         ? this.character.dimensions
         : ((this.character.height || this.character.weight) ? `${this.character.height || ''}${this.character.height && this.character.weight ? ', ' : ''}${this.character.weight || ''}` : '');
+      if (dimVal === "6'0\", 190 lbs" || dimVal === "5'10\", 175 lbs") dimVal = '';
       dimInp.value = dimVal;
       dimInp.placeholder = "6'0\", 190 lbs";
     }
     const affInp = document.getElementById('bio-affiliation');
     if (affInp) {
-      affInp.value = this.character.groupAffiliation || '';
+      let affVal = this.character.groupAffiliation || '';
+      if (affVal === 'None / Solo' || affVal === 'Solo' || affVal === 'Solo / Independent') affVal = '';
+      affInp.value = affVal;
       affInp.placeholder = 'Solo / Independent';
     }
     const baseInp = document.getElementById('bio-base');
     if (baseInp) {
-      baseInp.value = this.character.baseOfOperations || '';
+      let baseVal = this.character.baseOfOperations || '';
+      if (baseVal === 'New York City') baseVal = '';
+      baseInp.value = baseVal;
       baseInp.placeholder = 'New York City';
     }
     const hairInp = document.getElementById('bio-hair-eyes');
     if (hairInp) {
-      const hairVal = (this.character.hairEyes !== undefined && this.character.hairEyes !== null && this.character.hairEyes !== '')
+      let hairVal = (this.character.hairEyes !== undefined && this.character.hairEyes !== null && this.character.hairEyes !== '')
         ? this.character.hairEyes
         : ((this.character.hair || this.character.eyes) ? `${this.character.hair ? this.character.hair + ' hair' : ''}${this.character.hair && this.character.eyes ? ', ' : ''}${this.character.eyes ? this.character.eyes + ' eyes' : ''}` : '');
+      if (hairVal === 'Brown hair, Brown eyes') hairVal = '';
       hairInp.value = hairVal;
       hairInp.placeholder = 'Brown hair, Brown eyes';
     }

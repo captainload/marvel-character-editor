@@ -62,7 +62,7 @@ const App = {
     this.superiorOptionCost = !!val;
   },
   humanAbilityCaps: false,
-  VERSION: '1.5.93',
+  VERSION: '1.5.94',
   BUILD_DATE: '2026-10-14',
   COMMIT_SHA: '6a15ff5',
   REPO_OWNER: 'captainload',
@@ -1180,19 +1180,11 @@ const App = {
       });
     }
 
-    // Universal Action Table Preference Init & Listeners
-    const tableOpt = document.getElementById('option-universal-table');
+    // Universal Action Table Mode Init (Managed through the Build Mode dropdown)
     const savedTableMode = typeof localStorage !== 'undefined' ? localStorage.getItem('msh_option_universal_table') : null;
     this.universalTableMode = (savedTableMode === 'standard') ? 'standard' : 'cmf';
     if (typeof UniversalTableEngine !== 'undefined' && UniversalTableEngine.setTableMode) {
       UniversalTableEngine.setTableMode(this.universalTableMode);
-    }
-    if (tableOpt) tableOpt.value = this.universalTableMode;
-
-    if (tableOpt) {
-      tableOpt.addEventListener('change', (e) => {
-        this.setUniversalTableMode(e.target.value);
-      });
     }
 
     // Power Adjustment Preference Init & Listeners
@@ -9155,8 +9147,6 @@ const App = {
     if (save && typeof localStorage !== 'undefined') {
       localStorage.setItem('msh_option_universal_table', this.universalTableMode);
     }
-    const tableOpt = document.getElementById('option-universal-table');
-    if (tableOpt) tableOpt.value = this.universalTableMode;
     const schemeBadge = (typeof this.getCheatSheetEl === 'function')
       ? this.getCheatSheetEl('cheat-table-scheme-badge')
       : document.getElementById('cheat-table-scheme-badge');

@@ -1,7 +1,7 @@
 {
-  "version": "1.5.93",
+  "version": "1.5.94",
   "releaseDate": "2026-10-14",
   "name": "MSH RPGen",
   "repo": "https://github.com/captainload/marvel-character-editor",
-  "notes": "v1.5.93: Fixed creation mode dropdown selection with dual change/input event binding and atomic state updates. Added 'Mode:' label and ensured default selection in creation toolbar. Closed the 'New Character' creation mode selection modal pop-up immediately upon choosing any generation mode (including active mode or card click)."
+  "notes": "v1.5.94: Removed the redundant Universal Action Table preference dropdown from the Preferences & Options dialog. Table ruleset selection is now managed exclusively through the creation/build mode dropdown on the creation toolbar."
 }

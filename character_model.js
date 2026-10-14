@@ -104,19 +104,21 @@ if (typeof globalThis !== 'undefined') {
 class FASERIPCharacter {
   constructor(initialData = {}) {
     this.id = initialData.id || 'hero_' + Date.now();
-    this.name = initialData.name || 'New Hero';
+    this.name = initialData.name !== undefined ? initialData.name : '';
     this.realName = initialData.realName || '';
     this.formKey = initialData.formKey || initialData.form || 'normal_human'; // Key in MSH_PHYSICAL_FORMS
     this.formName = initialData.formName || (initialData.form ? String(initialData.form).replace(/_/g, ' ') : 'Normal Human');
     this.gender = initialData.gender || 'Not applicable';
-    this.age = initialData.age || 'Adult';
-    this.height = initialData.height || "5'10\"";
-    this.weight = initialData.weight || '175 lbs';
-    this.hair = initialData.hair || 'Brown';
-    this.eyes = initialData.eyes || 'Brown';
+    this.age = initialData.age !== undefined ? initialData.age : '';
+    this.height = initialData.height !== undefined ? initialData.height : '';
+    this.weight = initialData.weight !== undefined ? initialData.weight : '';
+    this.hair = initialData.hair !== undefined ? initialData.hair : '';
+    this.eyes = initialData.eyes !== undefined ? initialData.eyes : '';
+    this.dimensions = initialData.dimensions !== undefined ? initialData.dimensions : '';
+    this.hairEyes = initialData.hairEyes !== undefined ? initialData.hairEyes : '';
     this.identity = initialData.identity || 'Secret'; // Secret, Public, Legal
-    this.groupAffiliation = initialData.groupAffiliation || 'None / Solo';
-    this.baseOfOperations = initialData.baseOfOperations || 'New York City';
+    this.groupAffiliation = initialData.groupAffiliation !== undefined ? initialData.groupAffiliation : '';
+    this.baseOfOperations = initialData.baseOfOperations !== undefined ? initialData.baseOfOperations : '';
 
     // CMF Point-Buy Configuration
     // Tiers: 150 (Skilled Human), 200 (Street Vigilante), 300 (Costumed Adventurer - Default),
@@ -3756,6 +3758,8 @@ class FASERIPCharacter {
       weight: this.weight,
       hair: this.hair,
       eyes: this.eyes,
+      dimensions: this.dimensions,
+      hairEyes: this.hairEyes,
       identity: this.identity,
       groupAffiliation: this.groupAffiliation,
       baseOfOperations: this.baseOfOperations,
@@ -3947,7 +3951,7 @@ class FASERIPCharacter {
   static createBlankCharacter(tier = '300', mode = 'cmf') {
     const isTsr = (mode === 'tsr');
     const char = new FASERIPCharacter({
-      name: 'New Superhero',
+      name: '',
       realName: '',
       creationMode: isTsr ? 'tsr' : 'cmf',
       formKey: isTsr ? 'altered_human' : 'mutant',

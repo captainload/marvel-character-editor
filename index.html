@@ -5,7 +5,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>MSH RPGen</title>
-  <link rel="stylesheet" href="styles.css?v=1.5.95">
+  <link rel="stylesheet" href="styles.css?v=1.5.96">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bangers&display=swap" rel="stylesheet">
@@ -25,7 +25,7 @@
       <div class="brand-section">
         <div class="msh-logo" id="msh-brand-logo" title="MSH RPGen">MSH RPGen</div>
         <div class="header-name-box">
-          <input type="text" id="header-char-name" class="header-name-input" value="The Vanguard" title="Click to edit Character Name">
+          <input type="text" id="header-char-name" class="header-name-input" value="" placeholder="The Vanguard" title="Click to edit Character Name">
         </div>
         <!-- Active Character Build Mode (With subtle pulsing effect) -->
         <div class="header-build-mode-box" id="header-build-mode-box" title="Currently Selected Build Mode">
@@ -410,7 +410,7 @@
               <div class="stat-box-alt">
                 <div>
                   <div class="field-label">Popularity</div>
-                  <input type="number" id="input-popularity" class="field-input" value="10" style="width: 70px; min-height: 36px; text-align: center;">
+                  <input type="number" id="input-popularity" class="field-input" value="10" placeholder="10" style="width: 70px; min-height: 36px; text-align: center;">
                 </div>
                 <button class="roll-action-btn" id="roll-btn-popularity" title="Popularity Reaction FEAT">🎲</button>
               </div>
@@ -1036,7 +1036,7 @@
         <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px;">
           <div>
             <span class="field-label">Real Name / Secret ID:</span>
-            <input type="text" id="bio-real-name" class="field-input" value="Secret Identity">
+            <input type="text" id="bio-real-name" class="field-input" value="" placeholder="Secret Identity">
           </div>
           <div>
             <span class="field-label">Legal Identity Status:</span>
@@ -1058,24 +1058,24 @@
           </div>
           <div>
             <span class="field-label">Age:</span>
-            <input type="text" id="bio-age" class="field-input" value="Adult">
+            <input type="text" id="bio-age" class="field-input" value="" placeholder="Adult">
           </div>
           <div>
             <span class="field-label">Height & Weight:</span>
-            <input type="text" id="bio-dimensions" class="field-input" value="6'0&quot;, 190 lbs">
+            <input type="text" id="bio-dimensions" class="field-input" value="" placeholder="6'0&quot;, 190 lbs">
           </div>
 
           <div>
             <span class="field-label">Group Affiliation:</span>
-            <input type="text" id="bio-affiliation" class="field-input" value="Solo / Independent">
+            <input type="text" id="bio-affiliation" class="field-input" value="" placeholder="Solo / Independent">
           </div>
           <div>
             <span class="field-label">Base of Operations:</span>
-            <input type="text" id="bio-base" class="field-input" value="New York City">
+            <input type="text" id="bio-base" class="field-input" value="" placeholder="New York City">
           </div>
           <div>
             <span class="field-label">Hair & Eyes:</span>
-            <input type="text" id="bio-hair-eyes" class="field-input" value="Brown hair, Brown eyes">
+            <input type="text" id="bio-hair-eyes" class="field-input" value="" placeholder="Brown hair, Brown eyes">
           </div>
 
           <div style="grid-column: span 3;">
@@ -2097,7 +2097,7 @@
           <!-- SECTION: PROGRAM UPDATES & AUTOMATED CHECKING -->
           <div style="font-weight: 700; color: var(--text-main); font-size: 11pt; border-bottom: 1px solid var(--border-color); padding-bottom: 6px; margin-top: 10px; display: flex; justify-content: space-between; align-items: center;">
             <span>🔄 Program Updates &amp; Automated Checking</span>
-            <span class="meta-tag" id="update-version-tag" style="color: var(--marvel-gold); font-size: 10pt;">v1.5.95</span>
+            <span class="meta-tag" id="update-version-tag" style="color: var(--marvel-gold); font-size: 10pt;">v1.5.96</span>
           </div>
 
           <div class="update-settings-panel" style="background: rgba(0, 0, 0, 0.2); border: 1px solid var(--border-color); border-radius: 6px; padding: 12px; display: flex; flex-direction: column; gap: 10px;">
@@ -3274,12 +3274,12 @@
 
           <div>
             <label for="input-tsr-lim-name" style="display: block; font-size: 10pt; color: var(--text-muted); margin-bottom: 4px; font-weight: 600;">Limitation Name:</label>
-            <input type="text" id="input-tsr-lim-name" class="field-input" style="width: 100%; font-size: 10pt;">
+            <input type="text" id="input-tsr-lim-name" class="field-input" placeholder="e.g. Uncontrolled, Touch Range Only" style="width: 100%; font-size: 10pt;">
           </div>
 
           <div>
             <label for="input-tsr-lim-desc" style="display: block; font-size: 10pt; color: var(--text-muted); margin-bottom: 4px; font-weight: 600;">Description &amp; Operational Rules:</label>
-            <textarea id="input-tsr-lim-desc" class="field-input" rows="2" style="width: 100%; font-size: 10pt; resize: vertical;"></textarea>
+            <textarea id="input-tsr-lim-desc" class="field-input" rows="2" placeholder="Describe the limitation's effect, condition, or drawback..." style="width: 100%; font-size: 10pt; resize: vertical;"></textarea>
           </div>
 
           <!-- TSR Rank Boost & Ceiling Validation Preview Card -->
@@ -4085,13 +4085,13 @@
   </div>
 
   <!-- Scripts Loading -->
-  <script src="universal_table.js?v=1.5.95"></script>
-  <script src="data_forms.js?v=1.5.95"></script>
-  <script src="data_powers.js?v=1.5.95"></script>
-  <script src="data_talents.js?v=1.5.95"></script>
-  <script src="data_equipment.js?v=1.5.95"></script>
-  <script src="inventions.js?v=1.5.95"></script>
-  <script src="character_model.js?v=1.5.95"></script>
-  <script src="app.js?v=1.5.95"></script>
+  <script src="universal_table.js?v=1.5.96"></script>
+  <script src="data_forms.js?v=1.5.96"></script>
+  <script src="data_powers.js?v=1.5.96"></script>
+  <script src="data_talents.js?v=1.5.96"></script>
+  <script src="data_equipment.js?v=1.5.96"></script>
+  <script src="inventions.js?v=1.5.96"></script>
+  <script src="character_model.js?v=1.5.96"></script>
+  <script src="app.js?v=1.5.96"></script>
 </body>
 </html>

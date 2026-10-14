@@ -1,7 +1,7 @@
 {
-  "version": "1.5.95",
+  "version": "1.5.96",
   "releaseDate": "2026-10-14",
   "name": "MSH RPGen",
   "repo": "https://github.com/captainload/marvel-character-editor",
-  "notes": "v1.5.95: Fixed creation mode selection event handling to prevent spurious 'already in that mode' toasts and ensure 'New Character' modal correctly initializes characters. Re-categorized five Doctor Doom items (Combat Doombot, Diplomatic Doombot, Latverian Servo-Guard, Pacifier Riot-Control Robot, Swarmbots) from Battlesuits to Robots. Consolidated Armor force fields (Insulato-Shield Belt Emitter, Neuro-Space Field Inhibitor) and Armor & Suits items into 'Protective Items and Suits'."
+  "notes": "v1.5.96: Replaced prefilled input values (Character Name, Real Name, Age, Height & Weight, Group Affiliation, Base of Operations, Hair & Eyes) with placeholder text across HTML templates and character models. Bound physical dimension/hair/eye fields and updated renderers so clearing any field cleanly restores the placeholder text."
 }

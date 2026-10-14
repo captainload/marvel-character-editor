@@ -62,7 +62,7 @@ const App = {
     this.superiorOptionCost = !!val;
   },
   humanAbilityCaps: false,
-  VERSION: '1.5.95',
+  VERSION: '1.5.96',
   BUILD_DATE: '2026-10-14',
   COMMIT_SHA: '6a15ff5',
   REPO_OWNER: 'captainload',
@@ -295,11 +295,13 @@ const App = {
     // Character Name Header Input
     const nameInput = document.getElementById('header-char-name');
     if (nameInput) {
-      nameInput.addEventListener('input', (e) => {
+      const handleNameChange = (e) => {
         this.character.name = e.target.value;
         this.saveState();
         this.renderPointBuy();
-      });
+      };
+      nameInput.addEventListener('input', handleNameChange);
+      nameInput.addEventListener('change', handleNameChange);
     }
 
     // CMF Point-Buy Tier Selector & Creation Wizard Triggers
@@ -2909,6 +2911,40 @@ const App = {
     bindBio('bio-base', 'baseOfOperations');
     bindBio('bio-backstory', 'notes');
 
+    const dimEl = document.getElementById('bio-dimensions');
+    if (dimEl) {
+      const dimHandler = (e) => {
+        const val = e.target.value;
+        this.character.dimensions = val;
+        if (!val.trim()) {
+          this.character.height = '';
+          this.character.weight = '';
+        } else if (val.includes(',')) {
+          const parts = val.split(',');
+          this.character.height = parts[0].trim();
+          this.character.weight = parts.slice(1).join(',').trim();
+        }
+        this.saveState();
+      };
+      dimEl.addEventListener('input', dimHandler);
+      dimEl.addEventListener('change', dimHandler);
+    }
+
+    const hairEl = document.getElementById('bio-hair-eyes');
+    if (hairEl) {
+      const hairHandler = (e) => {
+        const val = e.target.value;
+        this.character.hairEyes = val;
+        if (!val.trim()) {
+          this.character.hair = '';
+          this.character.eyes = '';
+        }
+        this.saveState();
+      };
+      hairEl.addEventListener('input', hairHandler);
+      hairEl.addEventListener('change', hairHandler);
+    }
+
     // Stunt Emulated Power Selector
     const stuntPowerSel = document.getElementById('stunt-emulated-power-select');
     if (stuntPowerSel && Array.isArray(globalThis.MSH_POWERS)) {
@@ -2942,7 +2978,10 @@ const App = {
 
   renderHeader() {
     const nameInp = document.getElementById('header-char-name');
-    if (nameInp) nameInp.value = this.character.name || 'The Vanguard';
+    if (nameInp) {
+      nameInp.value = this.character.name || '';
+      nameInp.placeholder = 'The Vanguard';
+    }
 
     const activeKey = this.getCreationModeKey();
     const activeModeDisplayName = this.getCreationModeDisplayName(activeKey);
@@ -10918,7 +10957,10 @@ const App = {
 
   renderBackground() {
     const rName = document.getElementById('bio-real-name');
-    if (rName) rName.value = this.character.realName || '';
+    if (rName) {
+      rName.value = this.character.realName || '';
+      rName.placeholder = 'Secret Identity';
+    }
     this.updatePhysicalFormControlsUI();
     const idSel = document.getElementById('bio-identity');
     if (idSel) idSel.value = this.character.identity || 'Secret';
@@ -10938,17 +10980,41 @@ const App = {
       }
     }
     const ageInp = document.getElementById('bio-age');
-    if (ageInp) ageInp.value = this.character.age || 'Adult';
+    if (ageInp) {
+      ageInp.value = this.character.age || '';
+      ageInp.placeholder = 'Adult';
+    }
     const dimInp = document.getElementById('bio-dimensions');
-    if (dimInp) dimInp.value = `${this.character.height || "5'10\""}, ${this.character.weight || '175 lbs'}`;
+    if (dimInp) {
+      const dimVal = (this.character.dimensions !== undefined && this.character.dimensions !== null && this.character.dimensions !== '')
+        ? this.character.dimensions
+        : ((this.character.height || this.character.weight) ? `${this.character.height || ''}${this.character.height && this.character.weight ? ', ' : ''}${this.character.weight || ''}` : '');
+      dimInp.value = dimVal;
+      dimInp.placeholder = "6'0\", 190 lbs";
+    }
     const affInp = document.getElementById('bio-affiliation');
-    if (affInp) affInp.value = this.character.groupAffiliation || 'Solo';
+    if (affInp) {
+      affInp.value = this.character.groupAffiliation || '';
+      affInp.placeholder = 'Solo / Independent';
+    }
     const baseInp = document.getElementById('bio-base');
-    if (baseInp) baseInp.value = this.character.baseOfOperations || 'New York City';
+    if (baseInp) {
+      baseInp.value = this.character.baseOfOperations || '';
+      baseInp.placeholder = 'New York City';
+    }
     const hairInp = document.getElementById('bio-hair-eyes');
-    if (hairInp) hairInp.value = `${this.character.hair || 'Brown'} hair, ${this.character.eyes || 'Brown'} eyes`;
+    if (hairInp) {
+      const hairVal = (this.character.hairEyes !== undefined && this.character.hairEyes !== null && this.character.hairEyes !== '')
+        ? this.character.hairEyes
+        : ((this.character.hair || this.character.eyes) ? `${this.character.hair ? this.character.hair + ' hair' : ''}${this.character.hair && this.character.eyes ? ', ' : ''}${this.character.eyes ? this.character.eyes + ' eyes' : ''}` : '');
+      hairInp.value = hairVal;
+      hairInp.placeholder = 'Brown hair, Brown eyes';
+    }
     const backInp = document.getElementById('bio-backstory');
-    if (backInp) backInp.value = this.character.notes || '';
+    if (backInp) {
+      backInp.value = this.character.notes || '';
+      backInp.placeholder = "Document your hero's origins, tragic encounters, radioactive exposure, or military training...";
+    }
 
     // Render Financial Resources Card
     const bgResSel = document.getElementById('background-resource-select');
@@ -17338,7 +17404,8 @@ const App = {
 
     const nameInput = document.getElementById('init-char-name');
     if (nameInput) {
-      nameInput.value = this.character ? (this.character.name || 'New Superhero') : 'New Superhero';
+      nameInput.value = this.character ? (this.character.name || '') : '';
+      nameInput.placeholder = 'e.g. Vanguard, Eclipse, Iron Sentinel';
     }
 
     const tierSelect = document.getElementById('init-tier-select');

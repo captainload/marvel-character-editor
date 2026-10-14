@@ -5,7 +5,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>MSH RPGen</title>
-  <link rel="stylesheet" href="styles.css?v=1.5.98">
+  <link rel="stylesheet" href="styles.css?v=1.5.99">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bangers&display=swap" rel="stylesheet">
@@ -1127,8 +1127,15 @@
               <option value="new_contact">🤝 New Contacts</option>
               <option value="new_talent">🥋 New Talents</option>
               <option value="new_equipment">🎒 New Equipment</option>
+              <option value="personal">👤 Personal Details</option>
               <option value="creation">🏗️ Creation &amp; Setup</option>
             </select>
+          </div>
+          <div class="edit-log-search-wrap" style="display: flex; align-items: center; gap: 6px; flex: 1; max-width: 320px; min-width: 180px;">
+            <div style="position: relative; width: 100%; display: flex; align-items: center;">
+              <input type="text" id="edit-log-search-input" class="field-input edit-log-search-input" placeholder="🔍 Search edit log..." style="font-size: 10pt; padding: 4px 28px 4px 10px; min-height: 30px; border-radius: 4px; width: 100%; box-sizing: border-box;" aria-label="Search character edit log">
+              <button type="button" id="btn-clear-edit-log-search" class="icon-btn compact edit-log-search-clear-btn" style="display: none; position: absolute; right: 4px; top: 50%; transform: translateY(-50%); padding: 1px 6px; height: 22px; min-height: 22px; font-size: 9pt; line-height: 1; background: transparent; border: none; color: var(--text-muted); cursor: pointer;" title="Clear search">✕</button>
+            </div>
           </div>
           <div style="display: flex; align-items: center; gap: 8px;">
             <span id="edit-log-filter-status" style="font-size: 9.5pt; color: var(--text-muted);">Showing all edits</span>
@@ -2100,7 +2107,7 @@
           <!-- SECTION: PROGRAM UPDATES & AUTOMATED CHECKING -->
           <div style="font-weight: 700; color: var(--text-main); font-size: 11pt; border-bottom: 1px solid var(--border-color); padding-bottom: 6px; margin-top: 10px; display: flex; justify-content: space-between; align-items: center;">
             <span>🔄 Program Updates &amp; Automated Checking</span>
-            <span class="meta-tag" id="update-version-tag" style="color: var(--marvel-gold); font-size: 10pt;">v1.5.98</span>
+            <span class="meta-tag" id="update-version-tag" style="color: var(--marvel-gold); font-size: 10pt;">v1.5.99</span>
           </div>
 
           <div class="update-settings-panel" style="background: rgba(0, 0, 0, 0.2); border: 1px solid var(--border-color); border-radius: 6px; padding: 12px; display: flex; flex-direction: column; gap: 10px;">
@@ -4088,13 +4095,13 @@
   </div>
 
   <!-- Scripts Loading -->
-  <script src="universal_table.js?v=1.5.98"></script>
-  <script src="data_forms.js?v=1.5.98"></script>
-  <script src="data_powers.js?v=1.5.98"></script>
-  <script src="data_talents.js?v=1.5.98"></script>
-  <script src="data_equipment.js?v=1.5.98"></script>
-  <script src="inventions.js?v=1.5.98"></script>
-  <script src="character_model.js?v=1.5.98"></script>
-  <script src="app.js?v=1.5.98"></script>
+  <script src="universal_table.js?v=1.5.99"></script>
+  <script src="data_forms.js?v=1.5.99"></script>
+  <script src="data_powers.js?v=1.5.99"></script>
+  <script src="data_talents.js?v=1.5.99"></script>
+  <script src="data_equipment.js?v=1.5.99"></script>
+  <script src="inventions.js?v=1.5.99"></script>
+  <script src="character_model.js?v=1.5.99"></script>
+  <script src="app.js?v=1.5.99"></script>
 </body>
 </html>

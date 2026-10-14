@@ -1,8 +1,9 @@
 {
-  "version": "1.5.98",
+  "version": "1.5.99",
   "releaseDate": "2026-10-14",
   "name": "MSH RPGen",
   "repo": "https://github.com/captainload/marvel-character-editor",
-  "notes": "v1.5.98: Replaced static mode status display with the interactive Mode dropdown in the header brand section. Added top Advancement button in the creation bar preceding the History navigator. Removed the Progression card block and renamed Progression tab to History. Added comprehensive character edit log category filters (Rank Change, Added Power, Power Change, New Contact, New Talent, New Equipment, Creation) with dynamic category count badges and filtered clipboard export."
+  "notes": "v1.5.99: Added Personal category filter to the character edit log with dedicated styling for changes to personal details (physical form, group affiliation, real name, hero name, legal identity, appearance, and lore) and added a live search field with instant clearing to search and filter character edit history."
 }
+
 

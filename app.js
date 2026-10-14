@@ -62,8 +62,9 @@ const App = {
     this.superiorOptionCost = !!val;
   },
   humanAbilityCaps: false,
-  VERSION: '1.5.98',
+  VERSION: '1.5.99',
   editLogFilter: 'all',
+  editLogSearchQuery: '',
   BUILD_DATE: '2026-10-14',
   COMMIT_SHA: '6a15ff5',
   REPO_OWNER: 'captainload',
@@ -299,6 +300,39 @@ const App = {
       });
     }
 
+    // Edit Log Search Input & Clear Button
+    const searchInput = document.getElementById('edit-log-search-input');
+    const clearSearchBtn = document.getElementById('btn-clear-edit-log-search');
+    if (searchInput) {
+      searchInput.addEventListener('input', (e) => {
+        this.editLogSearchQuery = e.target.value.trim().toLowerCase();
+        if (clearSearchBtn) {
+          clearSearchBtn.style.display = this.editLogSearchQuery ? 'inline-flex' : 'none';
+        }
+        this.renderEditLog();
+      });
+      searchInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+          e.preventDefault();
+          searchInput.value = '';
+          this.editLogSearchQuery = '';
+          if (clearSearchBtn) clearSearchBtn.style.display = 'none';
+          this.renderEditLog();
+        }
+      });
+    }
+    if (clearSearchBtn) {
+      clearSearchBtn.addEventListener('click', () => {
+        if (searchInput) {
+          searchInput.value = '';
+          searchInput.focus();
+        }
+        this.editLogSearchQuery = '';
+        clearSearchBtn.style.display = 'none';
+        this.renderEditLog();
+      });
+    }
+
     // Global click listener to dismiss any open power menus when clicking outside
     document.addEventListener('click', (e) => {
       if (!e.target.closest('.power-menu-container')) {
@@ -309,13 +343,22 @@ const App = {
     // Character Name Header Input
     const nameInput = document.getElementById('header-char-name');
     if (nameInput) {
-      const handleNameChange = (e) => {
+      nameInput.addEventListener('focus', () => {
+        nameInput._lastRecordedVal = nameInput.value.trim();
+      });
+      nameInput.addEventListener('input', (e) => {
         this.character.name = e.target.value;
         this.saveState();
         this.renderPointBuy();
-      };
-      nameInput.addEventListener('input', handleNameChange);
-      nameInput.addEventListener('change', handleNameChange);
+      });
+      nameInput.addEventListener('change', (e) => {
+        const val = e.target.value.trim();
+        const oldVal = (nameInput._lastRecordedVal !== undefined) ? nameInput._lastRecordedVal : '';
+        if (val !== oldVal) {
+          nameInput._lastRecordedVal = val;
+          this.recordCharacterEdit(`Updated Hero Name: "${val || 'Unnamed'}"`, 'personal');
+        }
+      });
     }
 
     // CMF Point-Buy Tier Selector & Creation Wizard Triggers
@@ -2915,15 +2958,36 @@ const App = {
     this.setupPhysicalFormDropdowns();
 
     // Background fields binding
+    const fieldLabels = {
+      'bio-real-name': 'Real Name',
+      'bio-identity': 'Legal Identity',
+      'bio-gender': 'Gender',
+      'bio-age': 'Age',
+      'bio-affiliation': 'Group Affiliation',
+      'bio-base': 'Base of Operations',
+      'bio-backstory': 'Origin Story'
+    };
+
     const bindBio = (id, prop) => {
       const el = document.getElementById(id);
       if (el) {
-        const handler = (e) => {
+        el.addEventListener('focus', () => {
+          el._lastRecordedVal = el.value.trim();
+        });
+        el.addEventListener('input', (e) => {
           this.character[prop] = e.target.value;
           this.saveState();
-        };
-        el.addEventListener('input', handler);
-        el.addEventListener('change', handler);
+        });
+        el.addEventListener('change', (e) => {
+          const newVal = e.target.value.trim();
+          const oldVal = (el._lastRecordedVal !== undefined) ? el._lastRecordedVal : '';
+          if (newVal !== oldVal) {
+            el._lastRecordedVal = newVal;
+            const label = fieldLabels[id] || prop;
+            const displayVal = newVal ? `"${newVal.length > 40 ? newVal.substring(0, 37) + '...' : newVal}"` : 'None';
+            this.recordCharacterEdit(`Updated ${label}: ${displayVal}`, 'personal');
+          }
+        });
       }
     };
 
@@ -2937,7 +3001,10 @@ const App = {
 
     const dimEl = document.getElementById('bio-dimensions');
     if (dimEl) {
-      const dimHandler = (e) => {
+      dimEl.addEventListener('focus', () => {
+        dimEl._lastRecordedVal = dimEl.value.trim();
+      });
+      dimEl.addEventListener('input', (e) => {
         const val = e.target.value;
         this.character.dimensions = val;
         if (!val.trim()) {
@@ -2949,14 +3016,23 @@ const App = {
           this.character.weight = parts.slice(1).join(',').trim();
         }
         this.saveState();
-      };
-      dimEl.addEventListener('input', dimHandler);
-      dimEl.addEventListener('change', dimHandler);
+      });
+      dimEl.addEventListener('change', (e) => {
+        const val = e.target.value.trim();
+        const oldVal = (dimEl._lastRecordedVal !== undefined) ? dimEl._lastRecordedVal : '';
+        if (val !== oldVal) {
+          dimEl._lastRecordedVal = val;
+          this.recordCharacterEdit(`Updated Height & Weight: "${val || 'None'}"`, 'personal');
+        }
+      });
     }
 
     const hairEl = document.getElementById('bio-hair-eyes');
     if (hairEl) {
-      const hairHandler = (e) => {
+      hairEl.addEventListener('focus', () => {
+        hairEl._lastRecordedVal = hairEl.value.trim();
+      });
+      hairEl.addEventListener('input', (e) => {
         const val = e.target.value;
         this.character.hairEyes = val;
         if (!val.trim()) {
@@ -2964,9 +3040,15 @@ const App = {
           this.character.eyes = '';
         }
         this.saveState();
-      };
-      hairEl.addEventListener('input', hairHandler);
-      hairEl.addEventListener('change', hairHandler);
+      });
+      hairEl.addEventListener('change', (e) => {
+        const val = e.target.value.trim();
+        const oldVal = (hairEl._lastRecordedVal !== undefined) ? hairEl._lastRecordedVal : '';
+        if (val !== oldVal) {
+          hairEl._lastRecordedVal = val;
+          this.recordCharacterEdit(`Updated Hair & Eyes: "${val || 'None'}"`, 'personal');
+        }
+      });
     }
 
     // Stunt Emulated Power Selector
@@ -16082,31 +16164,61 @@ const App = {
 
     switch (filter) {
       case 'rank_change':
+        if (cat === 'personal' || cat === 'form' || cat === 'bio' || cat === 'details') return false;
         return cat === 'ability' ||
                cat === 'advancement' ||
                desc.includes('rank') ||
                desc.includes('advanced ') ||
-               desc.includes('updated ') ||
-               (desc.includes('changed ') && desc.includes('to '));
+               (desc.includes('updated ') && !desc.includes('updated hero name') && !desc.includes('updated real name') && !desc.includes('updated legal identity') && !desc.includes('updated gender') && !desc.includes('updated age') && !desc.includes('updated group affiliation') && !desc.includes('updated base of operations') && !desc.includes('updated origin story') && !desc.includes('updated height & weight') && !desc.includes('updated hair & eyes')) ||
+               (desc.includes('changed ') && desc.includes('to ') && !desc.includes('physical form'));
 
       case 'added_power':
-        return desc.includes('added power');
+        if (cat === 'personal') return false;
+        return desc.includes('added power') || desc.includes('added superpower') || desc.includes('acquired power');
 
       case 'power_change':
+        if (cat === 'personal') return false;
         return cat === 'power' || desc.includes('power');
 
       case 'new_contact':
+        if (cat === 'personal') return false;
         return desc.includes('added contact') || desc.includes('new contact') || (cat === 'talent' && desc.includes('contact'));
 
       case 'new_talent':
+        if (cat === 'personal') return false;
         return desc.includes('added talent') || desc.includes('new talent') || (cat === 'talent' && !desc.includes('contact'));
 
       case 'new_equipment':
+        if (cat === 'personal') return false;
         return cat === 'equipment' ||
                desc.includes('equipment') ||
                desc.includes('purchased') ||
                desc.includes('replicated') ||
                desc.includes('invention');
+
+      case 'personal':
+        return cat === 'personal' ||
+               cat === 'form' ||
+               cat === 'bio' ||
+               cat === 'details' ||
+               desc.includes('physical form') ||
+               desc.includes('affiliation') ||
+               desc.includes('real name') ||
+               desc.includes('legal identity') ||
+               desc.includes('identity') ||
+               desc.includes('gender') ||
+               desc.includes('age') ||
+               desc.includes('height') ||
+               desc.includes('weight') ||
+               desc.includes('dimensions') ||
+               desc.includes('base of operations') ||
+               desc.includes('hair') ||
+               desc.includes('eyes') ||
+               desc.includes('origin story') ||
+               desc.includes('backstory') ||
+               desc.includes('hero name') ||
+               desc.includes('character name') ||
+               desc.includes('configuration:');
 
       case 'creation':
         return cat === 'creation' ||
@@ -16129,6 +16241,8 @@ const App = {
     const badge = document.getElementById('edit-log-count-badge');
     const filterSelect = document.getElementById('edit-log-filter-select');
     const filterStatus = document.getElementById('edit-log-filter-status');
+    const searchInput = document.getElementById('edit-log-search-input');
+    const clearSearchBtn = document.getElementById('btn-clear-edit-log-search');
     if (!container) return;
 
     if (typeof this.character.sanitizeEditLog === 'function') {
@@ -16143,6 +16257,14 @@ const App = {
       filterSelect.value = currentFilter;
     }
 
+    const searchQuery = (this.editLogSearchQuery || '').trim().toLowerCase();
+    if (searchInput && searchInput.value !== (this.editLogSearchQuery || '')) {
+      searchInput.value = this.editLogSearchQuery || '';
+    }
+    if (clearSearchBtn) {
+      clearSearchBtn.style.display = searchQuery ? 'inline-flex' : 'none';
+    }
+
     // Calculate count per filter for the dropdown options
     const counts = {
       all: log.length,
@@ -16152,6 +16274,7 @@ const App = {
       new_contact: 0,
       new_talent: 0,
       new_equipment: 0,
+      personal: 0,
       creation: 0
     };
     log.forEach(entry => {
@@ -16161,6 +16284,7 @@ const App = {
       if (this.matchesEditLogFilter(entry, 'new_contact')) counts.new_contact++;
       if (this.matchesEditLogFilter(entry, 'new_talent')) counts.new_talent++;
       if (this.matchesEditLogFilter(entry, 'new_equipment')) counts.new_equipment++;
+      if (this.matchesEditLogFilter(entry, 'personal')) counts.personal++;
       if (this.matchesEditLogFilter(entry, 'creation')) counts.creation++;
     });
 
@@ -16179,23 +16303,42 @@ const App = {
       if (optTal) optTal.textContent = `🥋 New Talents (${counts.new_talent})`;
       const optEq = filterSelect.querySelector('option[value="new_equipment"]');
       if (optEq) optEq.textContent = `🎒 New Equipment (${counts.new_equipment})`;
+      const optPersonal = filterSelect.querySelector('option[value="personal"]');
+      if (optPersonal) optPersonal.textContent = `👤 Personal Details (${counts.personal})`;
       const optCre = filterSelect.querySelector('option[value="creation"]');
       if (optCre) optCre.textContent = `🏗️ Creation & Setup (${counts.creation})`;
     }
 
     // Filter items while keeping track of their original index in log
     const indexedEntries = log.map((entry, origIdx) => ({ entry, origIdx }));
-    const filteredEntries = indexedEntries.filter(({ entry }) => this.matchesEditLogFilter(entry, currentFilter));
+    const filteredEntries = indexedEntries.filter(({ entry, origIdx }) => {
+      if (!this.matchesEditLogFilter(entry, currentFilter)) return false;
+      if (searchQuery) {
+        const desc = (entry.description || '').toLowerCase();
+        const cat = (entry.category || '').toLowerCase();
+        const rev = `#${origIdx + 1}`;
+        if (!desc.includes(searchQuery) && !cat.includes(searchQuery) && !rev.includes(searchQuery)) {
+          return false;
+        }
+      }
+      return true;
+    });
 
     if (badge) {
       badge.textContent = `${log.length} Edit${log.length === 1 ? '' : 's'}`;
     }
 
     if (filterStatus) {
-      if (currentFilter === 'all') {
+      const hasSearch = !!searchQuery;
+      const isFiltered = currentFilter !== 'all';
+      if (!isFiltered && !hasSearch) {
         filterStatus.textContent = `Showing all ${log.length} edits`;
-      } else {
+      } else if (isFiltered && !hasSearch) {
         filterStatus.textContent = `Showing ${filteredEntries.length} of ${log.length} edits`;
+      } else if (!isFiltered && hasSearch) {
+        filterStatus.textContent = `Showing ${filteredEntries.length} of ${log.length} edits matching "${searchQuery}"`;
+      } else {
+        filterStatus.textContent = `Showing ${filteredEntries.length} of ${log.length} edits (filtered & matching "${searchQuery}")`;
       }
     }
 
@@ -16205,7 +16348,9 @@ const App = {
     }
 
     if (filteredEntries.length === 0) {
-      container.innerHTML = `<p style="color: var(--text-muted); font-size: 10pt; padding: 14px 12px; margin: 0; text-align: center;">No edits match the selected filter.</p>`;
+      const safeSearch = searchQuery.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+      const reason = searchQuery ? `matching &ldquo;${safeSearch}&rdquo;` : 'matching the selected filter';
+      container.innerHTML = `<p style="color: var(--text-muted); font-size: 10pt; padding: 14px 12px; margin: 0; text-align: center;">No edits found ${reason}.</p>`;
       return;
     }
 
@@ -16264,16 +16409,30 @@ const App = {
   copyEditLogToClipboard() {
     if (!this.character || !this.character.editLog) return;
     const currentFilter = this.editLogFilter || 'all';
+    const searchQuery = (this.editLogSearchQuery || '').trim().toLowerCase();
     const log = this.character.editLog;
-    const entries = (currentFilter === 'all')
-      ? log.map((e, idx) => ({ entry: e, idx }))
-      : log.map((e, idx) => ({ entry: e, idx })).filter(({ entry }) => this.matchesEditLogFilter(entry, currentFilter));
+    const indexedEntries = log.map((entry, idx) => ({ entry, idx }));
+    const entries = indexedEntries.filter(({ entry, idx }) => {
+      if (!this.matchesEditLogFilter(entry, currentFilter)) return false;
+      if (searchQuery) {
+        const desc = (entry.description || '').toLowerCase();
+        const cat = (entry.category || '').toLowerCase();
+        const rev = `#${idx + 1}`;
+        if (!desc.includes(searchQuery) && !cat.includes(searchQuery) && !rev.includes(searchQuery)) {
+          return false;
+        }
+      }
+      return true;
+    });
 
     const lines = entries.map(({ entry: e, idx }) => {
       const d = new Date(e.timestamp).toLocaleString();
       return `[#${idx + 1}] ${d} - [${e.category || 'edit'}] ${e.description}`;
     });
-    const filterNote = currentFilter !== 'all' ? ` (Filtered: ${currentFilter})` : '';
+    const filterParts = [];
+    if (currentFilter !== 'all') filterParts.push(`Category: ${currentFilter}`);
+    if (searchQuery) filterParts.push(`Search: "${searchQuery}"`);
+    const filterNote = filterParts.length > 0 ? ` (Filtered: ${filterParts.join(', ')})` : '';
     const text = `Character Edit Log${filterNote}: ${this.character.name || 'Hero'}\n${'='.repeat(40)}\n` + lines.join('\n');
     if (typeof navigator !== 'undefined' && navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(text).then(() => {
@@ -17724,6 +17883,7 @@ const App = {
     }
 
     this.syncPhysicalFormDisplays(f);
+    this.recordCharacterEdit(`Changed physical form to: ${f.name}`, 'personal');
     this.saveState();
     this.render();
     this.showStatusToast(`✨ Physical form changed to: ${f.name}`);
@@ -17954,6 +18114,7 @@ const App = {
     this.syncPhysicalFormDisplays(f);
     this.updatePhysicalFormControlsUI();
 
+    this.recordCharacterEdit(`Changed physical form to: ${f.name}`, 'personal');
     this.saveState();
     this.render();
     this.closeChangePhysicalFormModal();

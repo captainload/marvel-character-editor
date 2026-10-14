@@ -62,7 +62,7 @@ const App = {
     this.superiorOptionCost = !!val;
   },
   humanAbilityCaps: false,
-  VERSION: '1.5.91',
+  VERSION: '1.5.92',
   BUILD_DATE: '2026-10-14',
   COMMIT_SHA: '6a15ff5',
   REPO_OWNER: 'captainload',
@@ -2878,10 +2878,12 @@ const App = {
     const bindBio = (id, prop) => {
       const el = document.getElementById(id);
       if (el) {
-        el.addEventListener('input', (e) => {
+        const handler = (e) => {
           this.character[prop] = e.target.value;
           this.saveState();
-        });
+        };
+        el.addEventListener('input', handler);
+        el.addEventListener('change', handler);
       }
     };
 
@@ -3072,7 +3074,7 @@ const App = {
 
     const selCreationMode = document.getElementById('select-creation-mode');
     if (selCreationMode) {
-      selCreationMode.value = '';
+      selCreationMode.value = activeModeKey;
       selCreationMode.disabled = isFinalized;
     }
 
@@ -7286,6 +7288,34 @@ const App = {
     };
   },
 
+  formatShortRankInText(str) {
+    if (!str || typeof str !== 'string') return str || '--';
+    return str
+      .replace(/\bClass\s*5000\b/gi, 'CL5000')
+      .replace(/\bClass\s*3000\b/gi, 'CL3000')
+      .replace(/\bClass\s*1000\b/gi, 'CL1000')
+      .replace(/\bShift\s*0\b/gi, 'Sh0')
+      .replace(/\bShift\s*X\b/gi, 'ShX')
+      .replace(/\bShift\s*Y\b/gi, 'ShY')
+      .replace(/\bShift\s*Z\b/gi, 'ShZ')
+      .replace(/\bUnearthly\b/gi, 'Un')
+      .replace(/\bMonstrous\b/gi, 'Mn')
+      .replace(/\bSpectacular\b/gi, 'Sp')
+      .replace(/\bSensational\b/gi, 'Sn')
+      .replace(/\bFantastic\b/gi, 'Fa')
+      .replace(/\bIncredible\b/gi, 'In')
+      .replace(/\bRemarkable\b/gi, 'Rm')
+      .replace(/\bExcellent\b/gi, 'Ex')
+      .replace(/\bAwesome\b/gi, 'Aw')
+      .replace(/\bAmazing\b/gi, 'Am')
+      .replace(/\bTypical\b/gi, 'Ty')
+      .replace(/\bFeeble\b/gi, 'Fe')
+      .replace(/\bPoor\b/gi, 'Pr')
+      .replace(/\bGood\b/gi, 'Gd')
+      .replace(/\bBeyond\b/gi, 'Bey')
+      .replace(/\bProtection:\s*/gi, 'Prot: ');
+  },
+
   renderEquipment(filterText = null, filterCat = null) {
     if (filterText !== null) this.storeFilterQuery = filterText;
     if (filterCat !== null) this.storeFilterCategory = filterCat;
@@ -7376,7 +7406,8 @@ const App = {
       } else {
         filtered.forEach(item => {
           const tr = document.createElement('tr');
-          const dmgProt = item.damage || item.type || '--';
+          const rawDmg = item.damage || item.type || '--';
+          const dmgProt = this.formatShortRankInText(rawDmg);
 
           const accList = Array.isArray(item.accessTypes) && item.accessTypes.length > 0
             ? item.accessTypes
@@ -7416,7 +7447,7 @@ const App = {
             <td><span class="meta-tag">${item.category}</span></td>
             <td>${accessBadge}</td>
             <td>${costDisplay}</td>
-            <td style="color: #38bdf8; font-weight: 600;">${dmgProt}</td>
+            <td style="color: #38bdf8; font-weight: 600;" title="${String(rawDmg).replace(/"/g, '&quot;')}">${dmgProt}</td>
             <td><div class="store-desc-clamp" data-desc-full="${(item.description || '').replace(/"/g, '&quot;')}" data-desc-title="${(item.name || '').replace(/"/g, '&quot;')}">${item.description || '--'}</div></td>
             <td style="text-align: center;">
               <button class="icon-btn primary btn-store-procure" style="padding: 4px 6px; min-height: 32px; font-size: 10pt;" data-procure-item="${item.id}" title="Open procurement window to evaluate Resources and acquire per TSR rules">
@@ -7484,7 +7515,7 @@ const App = {
             </div>
             <div class="attack-meta">
               <span class="meta-tag">${eq.type}</span>
-              ${eq.damage ? `<span class="meta-tag" style="color:#38bdf8;">${eq.damage}</span>` : ''}
+              ${eq.damage ? `<span class="meta-tag" style="color:#38bdf8;" title="${String(eq.damage).replace(/"/g, '&quot;')}">${this.formatShortRankInText(eq.damage)}</span>` : ''}
               <span class="meta-tag">Range: ${eq.range || 'Contact'}</span>
               <span class="meta-tag">Material: ${eq.materialStrength || 'Good'}</span>
             </div>
@@ -10880,7 +10911,20 @@ const App = {
     const idSel = document.getElementById('bio-identity');
     if (idSel) idSel.value = this.character.identity || 'Secret';
     const genInp = document.getElementById('bio-gender');
-    if (genInp) genInp.value = this.character.gender || 'Unknown';
+    if (genInp) {
+      const rawGen = (this.character.gender || '').trim().toLowerCase();
+      if (rawGen === 'male' || rawGen === 'm') {
+        genInp.value = 'Male';
+      } else if (rawGen === 'female' || rawGen === 'f') {
+        genInp.value = 'Female';
+      } else if (rawGen === 'non-standard' || rawGen === 'nonstandard' || rawGen === 'other') {
+        genInp.value = 'Non-standard';
+      } else if (rawGen === 'not applicable' || rawGen === 'n/a' || rawGen === 'na' || rawGen === 'none' || rawGen === 'unknown' || !rawGen) {
+        genInp.value = 'Not applicable';
+      } else {
+        genInp.value = genInp.querySelector(`option[value="${this.character.gender}"]`) ? this.character.gender : 'Not applicable';
+      }
+    }
     const ageInp = document.getElementById('bio-age');
     if (ageInp) ageInp.value = this.character.age || 'Adult';
     const dimInp = document.getElementById('bio-dimensions');
@@ -12810,9 +12854,9 @@ const App = {
     const iconEl = document.getElementById('build-mode-active-icon');
     if (iconEl) iconEl.textContent = modeIconMap[key] || '⚙️';
 
-    // Face of the select dropdown displays the placeholder
+    // Sync select dropdown to current mode key
     const selEl = document.getElementById('select-creation-mode');
-    if (selEl) selEl.value = '';
+    if (selEl) selEl.value = key;
 
     const headerModeDisplay = document.getElementById('header-build-mode-display');
     if (headerModeDisplay) headerModeDisplay.textContent = dispName;
@@ -12996,7 +13040,7 @@ const App = {
       const dispName = this.getCreationModeDisplayName(currentKey);
       this.showStatusToast(`Already in ${dispName} mode.`);
       const selCreationMode = document.getElementById('select-creation-mode');
-      if (selCreationMode) selCreationMode.value = '';
+      if (selCreationMode) selCreationMode.value = currentKey;
       return;
     }
 

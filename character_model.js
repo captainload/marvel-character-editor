@@ -108,7 +108,7 @@ class FASERIPCharacter {
     this.realName = initialData.realName || '';
     this.formKey = initialData.formKey || initialData.form || 'normal_human'; // Key in MSH_PHYSICAL_FORMS
     this.formName = initialData.formName || (initialData.form ? String(initialData.form).replace(/_/g, ' ') : 'Normal Human');
-    this.gender = initialData.gender || 'Unknown';
+    this.gender = initialData.gender || 'Not applicable';
     this.age = initialData.age || 'Adult';
     this.height = initialData.height || "5'10\"";
     this.weight = initialData.weight || '175 lbs';

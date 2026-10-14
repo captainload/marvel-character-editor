@@ -5,7 +5,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>MSH RPGen</title>
-  <link rel="stylesheet" href="styles.css?v=1.5.91">
+  <link rel="stylesheet" href="styles.css?v=1.5.92">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bangers&display=swap" rel="stylesheet">
@@ -29,6 +29,7 @@
         </div>
         <!-- Active Character Build Mode (With subtle pulsing effect) -->
         <div class="header-build-mode-box" id="header-build-mode-box" title="Currently Selected Build Mode">
+          <span class="header-build-mode-label" id="header-build-mode-label">Building:</span>
           <span class="header-build-mode-badge mode-pulsing" id="header-build-mode-display">CMF point buy with CMF tables</span>
         </div>
         <span class="header-test-mode-badge" id="header-test-mode-badge" style="display: none;" title="Test Mode is Active (Karma is Infinite; changes are experimental)">TEST</span>
@@ -94,7 +95,6 @@
           <!-- Build Mode Dropdown (Shows modes with 'Choose build mode' placeholder) -->
           <div class="build-mode-dropdown-container" id="build-mode-dropdown-container" style="display: inline-flex; align-items: center; gap: 6px;">
             <select id="select-creation-mode" class="creation-mode-select build-mode-select" aria-label="Choose build mode" title="Choose Build Mode" style="font-size: 11pt; height: 28px; border-radius: 4px; padding: 2px 8px; font-weight: 700; cursor: pointer;">
-              <option value="" disabled selected>Choose build mode</option>
               <optgroup label="Random Roll (1986 UPB Tables)">
                 <option value="tsr-standard">🎲 TSR random with TSR tables</option>
                 <option value="cmf-standard">🎲 TSR random with CMF tables</option>
@@ -1048,7 +1048,12 @@
 
           <div>
             <span class="field-label">Gender:</span>
-            <input type="text" id="bio-gender" class="field-input" value="Unknown">
+            <select id="bio-gender" class="field-input">
+              <option value="Male">Male</option>
+              <option value="Female">Female</option>
+              <option value="Non-standard">Non-standard</option>
+              <option value="Not applicable">Not applicable</option>
+            </select>
           </div>
           <div>
             <span class="field-label">Age:</span>
@@ -2104,7 +2109,7 @@
           <!-- SECTION: PROGRAM UPDATES & AUTOMATED CHECKING -->
           <div style="font-weight: 700; color: var(--text-main); font-size: 11pt; border-bottom: 1px solid var(--border-color); padding-bottom: 6px; margin-top: 10px; display: flex; justify-content: space-between; align-items: center;">
             <span>🔄 Program Updates &amp; Automated Checking</span>
-            <span class="meta-tag" id="update-version-tag" style="color: var(--marvel-gold); font-size: 10pt;">v1.5.91</span>
+            <span class="meta-tag" id="update-version-tag" style="color: var(--marvel-gold); font-size: 10pt;">v1.5.92</span>
           </div>
 
           <div class="update-settings-panel" style="background: rgba(0, 0, 0, 0.2); border: 1px solid var(--border-color); border-radius: 6px; padding: 12px; display: flex; flex-direction: column; gap: 10px;">
@@ -4092,13 +4097,13 @@
   </div>
 
   <!-- Scripts Loading -->
-  <script src="universal_table.js?v=1.5.91"></script>
-  <script src="data_forms.js?v=1.5.91"></script>
-  <script src="data_powers.js?v=1.5.91"></script>
-  <script src="data_talents.js?v=1.5.91"></script>
-  <script src="data_equipment.js?v=1.5.91"></script>
-  <script src="inventions.js?v=1.5.91"></script>
-  <script src="character_model.js?v=1.5.91"></script>
-  <script src="app.js?v=1.5.91"></script>
+  <script src="universal_table.js?v=1.5.92"></script>
+  <script src="data_forms.js?v=1.5.92"></script>
+  <script src="data_powers.js?v=1.5.92"></script>
+  <script src="data_talents.js?v=1.5.92"></script>
+  <script src="data_equipment.js?v=1.5.92"></script>
+  <script src="inventions.js?v=1.5.92"></script>
+  <script src="character_model.js?v=1.5.92"></script>
+  <script src="app.js?v=1.5.92"></script>
 </body>
 </html>

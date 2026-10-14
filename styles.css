@@ -2627,7 +2627,7 @@ body.touch-friendly .divider-grip-line {
 .store-wide-table th {
   background: #162032;
   color: #f8fafc;
-  padding: 3px 12px;
+  padding: 3px 8px;
   font-weight: 700;
   font-size: 10pt;
   line-height: 1.25;
@@ -2641,11 +2641,13 @@ body.touch-friendly .divider-grip-line {
 }
 
 .store-wide-table td {
-  padding: 6px 12px;
+  padding: 6px 8px;
   font-size: 10pt;
   border-bottom: 1px solid #1e293b;
   vertical-align: middle;
   line-height: 1.35;
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 .store-wide-table tr:nth-child(even) {
@@ -5229,6 +5231,22 @@ body[data-theme="aqua"] #ui-dialog-creation-mode-select {
   align-items: center;
   flex-shrink: 0;
   margin-left: 6px;
+}
+
+.header-build-mode-label {
+  font-size: 10pt;
+  font-weight: 700;
+  color: var(--text-muted);
+  margin-right: 6px;
+  white-space: nowrap;
+}
+
+body[data-theme="manilla"] .header-build-mode-label {
+  color: #78716c;
+}
+
+body[data-theme="aqua"] .header-build-mode-label {
+  color: #94a3b8;
 }
 
 .header-build-mode-badge {

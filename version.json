@@ -1,7 +1,7 @@
 {
-  "version": "1.5.91",
+  "version": "1.5.92",
   "releaseDate": "2026-10-14",
   "name": "MSH RPGen",
   "repo": "https://github.com/captainload/marvel-character-editor",
-  "notes": "v1.5.91: Renamed program title to 'MSH RPGen' across the application. Removed the redundant mode change button from the Mode Status popup in favor of guided toolbar instructions and a prominent save warning. Locked and greyed out all game session roller buttons (FASERIP abilities, Resources, Popularity, Powers, Stunts, Attacks) until character creation requirements are fully satisfied, featuring dynamic hover tooltips detailing remaining requirements."
+  "notes": "v1.5.92: Fixed creation mode dropdown selection and persistent state synchronization. Added 'Building:' label to the mode status display in the header bar. Converted Gender field to a standardized dropdown (Male, Female, Non-standard, Not applicable). Applied standard short rank abbreviations (e.g. Sh0, Fe, Pr, Ty, Gd, Ex, Rm, In, Am, Mn, Un, ShX, ShY, ShZ, CL1000, CL3000, CL5000, Bey) in the Damage / Protection column of the Equipment Catalog to eliminate unwanted horizontal scrollbars."
 }

@@ -219,7 +219,7 @@ class FASERIPCharacter {
     this.currentKarma = parseInt(initialData.currentKarma ?? this.calculateBaseKarma());
     this.isCreationFinalized = initialData.isCreationFinalized !== undefined 
       ? !!initialData.isCreationFinalized 
-      : (initialData.isCreationSetupPending ? false : true);
+      : false;
     this.convertUnspentCpToKp = initialData.convertUnspentCpToKp !== undefined ? !!initialData.convertUnspentCpToKp : false;
     this.creationMode = initialData.creationMode || 'cmf'; // 'cmf' (default Point-Buy) | 'tsr' (1986 Player's Book Random Roll)
     this.tsrSubMode = initialData.tsrSubMode || 'random'; // 'random' (Table 2/4 rolls) | 'modeled' (free-form TSR without random rolls or slot limits)
@@ -4253,7 +4253,7 @@ class FASERIPCharacter {
       formKey: isTsr ? 'altered_human' : 'mutant',
       formName: isTsr ? 'Altered Human' : 'Mutant (Homo Superior)',
       pointTier: isTsr ? 'TSR 1986' : tier,
-      isCreationSetupPending: !isTsr,
+      isCreationSetupPending: false,
       isCreationFinalized: false,
       startingKarmaBonus: 0,
       abilities: {

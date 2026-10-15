@@ -62,7 +62,7 @@ const App = {
     this.superiorOptionCost = !!val;
   },
   humanAbilityCaps: false,
-  VERSION: '1.6.05',
+  VERSION: '1.6.06',
   editLogFilter: 'all',
   editLogSearchQuery: '',
   BUILD_DATE: '2026-10-15',
@@ -109,6 +109,9 @@ const App = {
         this.character = FASERIPCharacter.fromJSON(JSON.parse(saved));
         if (typeof this.character.sanitizeLegacyBioDefaults === 'function') {
           this.character.sanitizeLegacyBioDefaults();
+        }
+        if (this.character.creationMode !== 'tsr') {
+          this.character.isCreationSetupPending = false;
         }
         this.saveState();
       } catch (e) {
@@ -2807,7 +2810,7 @@ const App = {
         if (!sel.dataset.bound) {
           sel.dataset.bound = 'true';
           sel.addEventListener('change', async (e) => {
-            if (this.character && this.character.isCreationSetupPending && this.character.creationMode !== 'tsr') {
+            if (this.character && this.character.isCreationSetupPending && this.character.creationMode !== 'tsr' && (!this.character.pointTier || !this.character.formKey)) {
               this.showStatusToast('⚠️ Please choose your Starting Tier and Physical Form before spending CP.');
               this.openCreationWizardModal();
               this.renderAbilities();
@@ -2853,7 +2856,7 @@ const App = {
       if (!resSel.dataset.bound) {
         resSel.dataset.bound = 'true';
         resSel.addEventListener('change', async (e) => {
-          if (this.character && this.character.isCreationSetupPending && this.character.creationMode !== 'tsr') {
+          if (this.character && this.character.isCreationSetupPending && this.character.creationMode !== 'tsr' && (!this.character.pointTier || !this.character.formKey)) {
             this.showStatusToast('⚠️ Please choose your Starting Tier and Physical Form before spending CP.');
             this.openCreationWizardModal();
             this.renderPointBuy();
@@ -2887,7 +2890,7 @@ const App = {
       if (!bgResSel.dataset.bound) {
         bgResSel.dataset.bound = 'true';
         bgResSel.addEventListener('change', async (e) => {
-          if (this.character && this.character.isCreationSetupPending && this.character.creationMode !== 'tsr') {
+          if (this.character && this.character.isCreationSetupPending && this.character.creationMode !== 'tsr' && (!this.character.pointTier || !this.character.formKey)) {
             this.showStatusToast('⚠️ Please choose your Starting Tier and Physical Form before spending CP.');
             this.openCreationWizardModal();
             this.renderPointBuy();
@@ -3216,7 +3219,7 @@ const App = {
     if (compactCon) compactCon.textContent = pts.breakdown.contacts;
     if (compactRes) compactRes.textContent = pts.breakdown.resources;
 
-    const isLocked = !!(this.character && this.character.isCreationSetupPending);
+    const isLocked = !!(this.character && this.character.isCreationSetupPending && (!this.character.pointTier || !this.character.formKey));
 
     const stripTierEl = document.getElementById('strip-tier-display');
     if (stripTierEl) {
@@ -5497,7 +5500,7 @@ const App = {
   },
 
   async handleAddPower(mouseEvent = null) {
-    if (this.character && this.character.isCreationSetupPending && this.character.creationMode !== 'tsr') {
+    if (this.character && this.character.isCreationSetupPending && this.character.creationMode !== 'tsr' && (!this.character.pointTier || !this.character.formKey)) {
       this.showStatusToast('⚠️ Please choose your Starting Tier and Physical Form before spending CP.');
       this.openCreationWizardModal();
       return;
@@ -9118,8 +9121,8 @@ const App = {
         unmet.push('Choose or roll a Physical Form / Origin');
       }
     } else {
-      if (this.character.isCreationSetupPending || !this.character.formKey) {
-        unmet.push('Choose a Physical Form and complete Starting Setup');
+      if (!this.character.formKey && !this.character.formName) {
+        unmet.push('Choose a Physical Form');
       }
     }
 
@@ -11086,7 +11089,7 @@ const App = {
   },
 
   async handleAddTalent(mouseEvent = null) {
-    if (this.character && this.character.isCreationSetupPending && this.character.creationMode !== 'tsr') {
+    if (this.character && this.character.isCreationSetupPending && this.character.creationMode !== 'tsr' && (!this.character.pointTier || !this.character.formKey)) {
       this.showStatusToast('⚠️ Please choose your Starting Tier and Physical Form before spending CP.');
       this.openCreationWizardModal();
       return;
@@ -11165,7 +11168,7 @@ const App = {
   },
 
   async handleAddContact() {
-    if (this.character && this.character.isCreationSetupPending && this.character.creationMode !== 'tsr') {
+    if (this.character && this.character.isCreationSetupPending && this.character.creationMode !== 'tsr' && (!this.character.pointTier || !this.character.formKey)) {
       this.showStatusToast('⚠️ Please choose your Starting Tier and Physical Form before spending CP.');
       this.openCreationWizardModal();
       return;
@@ -14439,7 +14442,7 @@ const App = {
       // Point-Buy mode (tsr-cp-buy or cmf-cp-buy)
       this.character.creationMode = 'cmf';
       this.character.setPointTier('300');
-      this.character.isCreationSetupPending = true;
+      this.character.isCreationSetupPending = false;
     }
 
     if (this.universalTableMode !== targetTableMode) {
@@ -19188,9 +19191,8 @@ const App = {
     }
 
     const tierName = this.getTierDisplayName(tierVal);
-    if (!this.character.isCreationSetupPending) {
-      this.recordCharacterEdit(`Hero tier set to ${tierName} (${this.character.pointBudget} CP)`, 'budget');
-    }
+    this.character.isCreationSetupPending = false;
+    this.recordCharacterEdit(`Hero tier set to ${tierName} (${this.character.pointBudget} CP)`, 'budget');
 
     this.closeSetHeroTierModal();
     this.saveState();
@@ -19366,6 +19368,7 @@ const App = {
         : JSON.parse(JSON.stringify(this.character.toJSON()));
     }
 
+    this.character.isCreationSetupPending = false;
     this.syncPhysicalFormDisplays(f);
     this.recordCharacterEdit(`Changed physical form to: ${f.name}`, 'personal');
     this.saveState();
@@ -20564,12 +20567,6 @@ const App = {
     const contactSlotsInitial = Math.max(0, conRes.initial ?? conRes.slots ?? 1);
     const contactSlotsMax = Math.max(contactSlotsInitial, conRes.max ?? contactSlotsInitial);
 
-    const canonicalContacts = [
-      'Law Enforcement / Police (Local, State, Federal, SHIELD)',
-      'Scientific / Academic Community (Universities, Labs, Tech Institutes)'
-    ];
-    const initialContacts = canonicalContacts.slice(0, contactSlotsInitial);
-
     this.tsrGenState = {
       slotRuleset,
       origin,
@@ -20596,7 +20593,7 @@ const App = {
       purchasedContactSlots: 0,
       contactSlots: contactSlotsInitial,
       selectedTalents: [],
-      selectedContacts: initialContacts
+      selectedContacts: []
     };
 
     this.tsrGenRecalcResources();

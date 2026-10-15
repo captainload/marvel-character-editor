@@ -1,7 +1,7 @@
 {
-  "version": "1.6.05",
+  "version": "1.6.06",
   "releaseDate": "2026-10-15",
   "name": "MSH RPGen",
   "repo": "https://github.com/captainload/marvel-character-editor",
-  "notes": "v1.6.05: Expanded Character Advancement to support learning New Talents (1,000 KP) and establishing New Contacts (500 KP) per canonical TSR rules, featuring dynamic trait pickers, talent catalog grouping, specialization inputs, contact detail forms, Karma validation, and comprehensive advancement logging."
+  "notes": "v1.6.06: Fixed point-buy mode trait unlocking ensuring abilities, powers, talents, and contacts are immediately accessible for purchase and rank assignment; resolved issue where random mode pre-selected Law Enforcement/Police or Scientific/Academic contacts upon creation."
 }

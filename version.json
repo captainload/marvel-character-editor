@@ -1,7 +1,7 @@
 {
-  "version": "1.6.03",
+  "version": "1.6.04",
   "releaseDate": "2026-10-15",
   "name": "MSH RPGen",
   "repo": "https://github.com/captainload/marvel-character-editor",
-  "notes": "v1.6.03: Restored complete canonical UPB rules, sensory modes, FEAT difficulty levels, Stealth/Phasing counter-effects, Range Column E, and power stunts for Tracking (DT19); resolved dead zones on 'Apply to Character Sheet' button by preventing toast notifications from intercepting clicks, eliminating active scale shift, enforcing modal footer flex-shrink and min-height, and adding delegated click handling."
+  "notes": "v1.6.04: Added interactive hierarchical folder tree browser for character save and load folder management, featuring direct File System Access API integration, branch traversal, breadcrumb navigation, live search/filtering, subfolder creation, direct hero loading and saving, active folder target selection, and virtual folder organization fallback."
 }

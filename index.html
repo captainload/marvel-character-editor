@@ -5,7 +5,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>MSH RPGen</title>
-  <link rel="stylesheet" href="styles.css?v=1.6.04">
+  <link rel="stylesheet" href="styles.css?v=1.6.05">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bangers&display=swap" rel="stylesheet">
@@ -2110,7 +2110,7 @@
           <!-- SECTION: PROGRAM UPDATES & AUTOMATED CHECKING -->
           <div style="font-weight: 700; color: var(--text-main); font-size: 11pt; border-bottom: 1px solid var(--border-color); padding-bottom: 6px; margin-top: 10px; display: flex; justify-content: space-between; align-items: center;">
             <span>🔄 Program Updates &amp; Automated Checking</span>
-            <span class="meta-tag" id="update-version-tag" style="color: var(--marvel-gold); font-size: 10pt;">v1.6.04</span>
+            <span class="meta-tag" id="update-version-tag" style="color: var(--marvel-gold); font-size: 10pt;">v1.6.05</span>
           </div>
 
           <div class="update-settings-panel" style="background: rgba(0, 0, 0, 0.2); border: 1px solid var(--border-color); border-radius: 6px; padding: 12px; display: flex; flex-direction: column; gap: 10px;">
@@ -3647,7 +3647,7 @@
         </div>
 
         <div style="font-size: 10pt; color: var(--text-muted); line-height: 1.4;">
-          Per TSR Advanced Set rules (Player's Book p. 19), a hero may spend accumulated Karma to permanently advance an Ability, Power, or Resource rank. Training time equals the number of rank bands added in days.
+          Per TSR Advanced Set rules (Player's Book p. 19&ndash;20), a hero may spend accumulated Karma to permanently advance an Ability, Power, or Resource rank, learn a new Talent (1,000 KP), or establish a new Contact (500 KP).
         </div>
 
         <div>
@@ -3658,36 +3658,85 @@
             <option value="ability">Primary Ability (FASERIP)</option>
             <option value="power">Superpower</option>
             <option value="resources">Resources</option>
+            <option value="talent">New Talent (1,000 KP)</option>
+            <option value="contact">New Contact (500 KP)</option>
           </select>
         </div>
 
-        <div>
-          <label for="adv-item-select" style="display: block; font-weight: 700; font-size: 10pt; margin-bottom: 4px; color: var(--text-main);">
-            Select Trait:
-          </label>
-          <select id="adv-item-select" class="field-input" style="width: 100%; min-height: 36px; font-size: 10.5pt;">
-            <option value="">- Select trait to advance -</option>
-            <!-- Populated dynamically -->
-          </select>
-        </div>
-
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+        <!-- Rank Trait Selection (Abilities, Powers, Resources) -->
+        <div id="adv-rank-trait-container" style="display: flex; flex-direction: column; gap: 10px;">
           <div>
-            <label style="display: block; font-weight: 700; font-size: 10pt; margin-bottom: 4px; color: var(--text-muted);">
-              Current Rank:
+            <label for="adv-item-select" style="display: block; font-weight: 700; font-size: 10pt; margin-bottom: 4px; color: var(--text-main);">
+              Select Trait:
             </label>
-            <div id="adv-current-rank-display" style="padding: 8px 12px; background: rgba(0, 0, 0, 0.3); border: 1px solid var(--border-color); border-radius: 6px; font-weight: 800; font-size: 11pt; color: #fff;">
-              --
+            <select id="adv-item-select" class="field-input" style="width: 100%; min-height: 36px; font-size: 10.5pt;">
+              <option value="">- Select trait to advance -</option>
+              <!-- Populated dynamically -->
+            </select>
+          </div>
+
+          <div id="adv-rank-pickers-container" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <div>
+              <label style="display: block; font-weight: 700; font-size: 10pt; margin-bottom: 4px; color: var(--text-muted);">
+                Current Rank:
+              </label>
+              <div id="adv-current-rank-display" style="padding: 8px 12px; background: rgba(0, 0, 0, 0.3); border: 1px solid var(--border-color); border-radius: 6px; font-weight: 800; font-size: 11pt; color: #fff;">
+                --
+              </div>
+            </div>
+            <div>
+              <label for="adv-target-rank-select" style="display: block; font-weight: 700; font-size: 10pt; margin-bottom: 4px; color: var(--marvel-gold);">
+                Target New Rank:
+              </label>
+              <select id="adv-target-rank-select" class="field-input" style="width: 100%; min-height: 38px; font-size: 10.5pt; font-weight: 700;">
+                <option value="">- Select target rank -</option>
+                <!-- Populated dynamically with higher ranks -->
+              </select>
             </div>
           </div>
+        </div>
+
+        <!-- Container for New Talent Selection -->
+        <div id="adv-new-talent-container" style="display: none; flex-direction: column; gap: 10px;">
           <div>
-            <label for="adv-target-rank-select" style="display: block; font-weight: 700; font-size: 10pt; margin-bottom: 4px; color: var(--marvel-gold);">
-              Target New Rank:
+            <label for="adv-talent-select" style="display: block; font-weight: 700; font-size: 10pt; margin-bottom: 4px; color: var(--text-main);">
+              Select New Talent to Learn:
             </label>
-            <select id="adv-target-rank-select" class="field-input" style="width: 100%; min-height: 38px; font-size: 10.5pt; font-weight: 700;">
-              <option value="">- Select target rank -</option>
-              <!-- Populated dynamically with higher ranks -->
+            <select id="adv-talent-select" class="field-input" style="width: 100%; min-height: 36px; font-size: 10pt;">
+              <option value="">- Choose a talent from catalog -</option>
             </select>
+          </div>
+          <div id="adv-talent-desc-box" style="display: none; background: rgba(0, 0, 0, 0.25); border: 1px solid var(--border-color); border-radius: 6px; padding: 10px; font-size: 9.5pt; color: var(--text-muted); line-height: 1.45;">
+            <strong id="adv-talent-desc-name" style="color: #38bdf8; display: block; margin-bottom: 4px; font-size: 10pt;"></strong>
+            <span id="adv-talent-desc-text"></span>
+          </div>
+          <div id="adv-talent-spec-container" style="display: none;">
+            <label for="adv-talent-spec-input" style="display: block; font-weight: 700; font-size: 9.5pt; margin-bottom: 4px; color: var(--marvel-gold);">
+              Specialization / Field (Required):
+            </label>
+            <input type="text" id="adv-talent-spec-input" class="field-input" placeholder="e.g. Physics, Biochemistry, High-Performance Vehicles" style="width: 100%; min-height: 34px; font-size: 10pt;">
+          </div>
+        </div>
+
+        <!-- Container for New Contact Creation -->
+        <div id="adv-new-contact-container" style="display: none; flex-direction: column; gap: 10px;">
+          <div>
+            <label for="adv-contact-name-input" style="display: block; font-weight: 700; font-size: 10pt; margin-bottom: 4px; color: var(--text-main);">
+              Contact Name / Organization:
+            </label>
+            <input type="text" id="adv-contact-name-input" class="field-input" placeholder="e.g. Inspector George Stacy, Daily Bugle, SHIELD Contact" style="width: 100%; min-height: 36px; font-size: 10.5pt;">
+          </div>
+          <div>
+            <label for="adv-contact-profession-input" style="display: block; font-weight: 700; font-size: 10pt; margin-bottom: 4px; color: var(--text-muted);">
+              Profession / Role:
+            </label>
+            <input type="text" id="adv-contact-profession-input" class="field-input" placeholder="e.g. Police Captain, Crime Reporter, Defense Attorney" style="width: 100%; min-height: 34px; font-size: 10pt;">
+          </div>
+          <div>
+            <label for="adv-contact-notes-input" style="display: block; font-weight: 700; font-size: 10pt; margin-bottom: 4px; color: var(--text-muted);">
+              Relationship Details / Notes:
+            </label>
+            <input type="text" id="adv-contact-notes-input" class="field-input" placeholder="e.g. Ally forged during warehouse raid; will provide confidential tips and legal defense" style="width: 100%; min-height: 34px; font-size: 10pt;">
           </div>
         </div>
 
@@ -4164,13 +4213,13 @@
   </div>
 
   <!-- Scripts Loading -->
-  <script src="universal_table.js?v=1.6.04"></script>
-  <script src="data_forms.js?v=1.6.04"></script>
-  <script src="data_powers.js?v=1.6.04"></script>
-  <script src="data_talents.js?v=1.6.04"></script>
-  <script src="data_equipment.js?v=1.6.04"></script>
-  <script src="inventions.js?v=1.6.04"></script>
-  <script src="character_model.js?v=1.6.04"></script>
-  <script src="app.js?v=1.6.04"></script>
+  <script src="universal_table.js?v=1.6.05"></script>
+  <script src="data_forms.js?v=1.6.05"></script>
+  <script src="data_powers.js?v=1.6.05"></script>
+  <script src="data_talents.js?v=1.6.05"></script>
+  <script src="data_equipment.js?v=1.6.05"></script>
+  <script src="inventions.js?v=1.6.05"></script>
+  <script src="character_model.js?v=1.6.05"></script>
+  <script src="app.js?v=1.6.05"></script>
 </body>
 </html>

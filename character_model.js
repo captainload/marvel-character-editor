@@ -2827,8 +2827,8 @@ class FASERIPCharacter {
       };
     }
 
-    // Check TSR slot limit
-    if (this.creationMode === 'tsr' && !this.isModeledMode() && this.tsrTalentSlots !== null && this.tsrTalentSlots !== undefined) {
+    // Check TSR slot limit (only enforced during character creation)
+    if (!this.isCreationFinalized && this.creationMode === 'tsr' && !this.isModeledMode() && this.tsrTalentSlots !== null && this.tsrTalentSlots !== undefined) {
       const currentUsed = this.getTotalTalentSlots();
       if (currentUsed + slots > this.tsrTalentSlots) {
         return {
@@ -2968,6 +2968,34 @@ class FASERIPCharacter {
    * USER SPECIFICATION: Training time = ranks added in days.
    */
   calculateAdvancement(category, currentRankName, targetRankName) {
+    if (category === 'talent') {
+      return {
+        valid: true,
+        category: 'talent',
+        currentRank: 'None',
+        currentNum: 0,
+        targetRank: 'Learned',
+        targetNum: 1,
+        rankBandsAdded: 1,
+        trainingDays: 30,
+        karmaCost: 1000
+      };
+    }
+
+    if (category === 'contact') {
+      return {
+        valid: true,
+        category: 'contact',
+        currentRank: 'None',
+        currentNum: 0,
+        targetRank: 'Allied',
+        targetNum: 1,
+        rankBandsAdded: 1,
+        trainingDays: 0,
+        karmaCost: 500
+      };
+    }
+
     const curRank = UniversalTableEngine.getRankByName(currentRankName);
     const tgtRank = UniversalTableEngine.getRankByName(targetRankName);
 
@@ -2984,8 +3012,6 @@ class FASERIPCharacter {
     let karmaCost = rankNumDiff * 10;
     if (category === 'power') {
       karmaCost = rankNumDiff * 20;
-    } else if (category === 'talent') {
-      karmaCost = 1000;
     }
 
     const trainingDays = rankBandsAdded;
@@ -3003,7 +3029,115 @@ class FASERIPCharacter {
     };
   }
 
-  applyAdvancement(category, identifier, targetRankName, customNotes = '', bypassKarmaCost = false) {
+  applyAdvancement(category, identifier, targetRankName, customNotes = '', bypassKarmaCost = false, extraData = {}) {
+    if (category === 'talent') {
+      const calc = this.calculateAdvancement('talent', 'None', 'Learned');
+      if (!bypassKarmaCost) {
+        if (this.currentKarma < calc.karmaCost) {
+          return {
+            success: false,
+            error: `Insufficient Karma. Need ${calc.karmaCost} Karma, but only have ${this.currentKarma}.`
+          };
+        }
+        this.currentKarma -= calc.karmaCost;
+      }
+
+      let talentObj = extraData.talent;
+      if (!talentObj && typeof TALENTS_CATALOG !== 'undefined') {
+        talentObj = TALENTS_CATALOG.find(t => t.id === identifier || t.name.toLowerCase() === (identifier || '').toLowerCase());
+      }
+      if (!talentObj) {
+        talentObj = { name: identifier, category: 'General' };
+      }
+
+      const spec = (extraData.specialization || '').trim();
+      const res = this.addTalent(talentObj, spec);
+      if (!res.success) {
+        if (!bypassKarmaCost) this.currentKarma += calc.karmaCost; // refund
+        return { success: false, error: res.error };
+      }
+
+      const traitDisplayName = res.talent.displayName || res.talent.name;
+      this.lastKarmaSpentOnRankIncrease = {
+        amount: calc.karmaCost,
+        category: 'talent',
+        target: traitDisplayName,
+        from: 'None',
+        to: 'Learned',
+        trainingDays: calc.trainingDays
+      };
+
+      this.advancementLog.unshift({
+        date: new Date().toLocaleDateString(),
+        type: 'advancement',
+        category: 'talent',
+        target: traitDisplayName,
+        from: 'None',
+        to: 'Learned',
+        trainingDays: calc.trainingDays,
+        amount: bypassKarmaCost ? 0 : -calc.karmaCost,
+        reason: `Learned talent "${traitDisplayName}" (${calc.trainingDays} day${calc.trainingDays > 1 ? 's' : ''} training). ${customNotes}${bypassKarmaCost ? ' [Test Mode]' : ''}`.trim(),
+        balance: this.currentKarma
+      });
+
+      return { success: true, calc, traitName: traitDisplayName };
+    }
+
+    if (category === 'contact') {
+      const calc = this.calculateAdvancement('contact', 'None', 'Allied');
+      if (!bypassKarmaCost) {
+        if (this.currentKarma < calc.karmaCost) {
+          return {
+            success: false,
+            error: `Insufficient Karma. Need ${calc.karmaCost} Karma, but only have ${this.currentKarma}.`
+          };
+        }
+        this.currentKarma -= calc.karmaCost;
+      }
+
+      const cName = (extraData.name || identifier || '').trim();
+      if (!cName) {
+        if (!bypassKarmaCost) this.currentKarma += calc.karmaCost;
+        return { success: false, error: 'Contact name is required.' };
+      }
+
+      const profession = (extraData.profession || 'Ally / Contact').trim();
+      const notes = (extraData.notes || customNotes || 'Established through campaign roleplay.').trim();
+
+      const newContact = {
+        id: 'c_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+        name: cName,
+        profession: profession,
+        notes: notes
+      };
+      if (!Array.isArray(this.contacts)) this.contacts = [];
+      this.contacts.push(newContact);
+
+      this.lastKarmaSpentOnRankIncrease = {
+        amount: calc.karmaCost,
+        category: 'contact',
+        target: newContact.name,
+        from: 'None',
+        to: 'Allied',
+        trainingDays: 0
+      };
+
+      this.advancementLog.unshift({
+        date: new Date().toLocaleDateString(),
+        type: 'advancement',
+        category: 'contact',
+        target: newContact.name,
+        from: 'None',
+        to: 'Allied',
+        trainingDays: 0,
+        amount: bypassKarmaCost ? 0 : -calc.karmaCost,
+        reason: `Established contact "${newContact.name}" (${profession}). ${customNotes}${bypassKarmaCost ? ' [Test Mode]' : ''}`.trim(),
+        balance: this.currentKarma
+      });
+
+      return { success: true, calc, traitName: newContact.name };
+    }
+
     let currentRankName = 'Typical';
     if (category === 'ability') {
       const key = identifier.toLowerCase();
@@ -3078,7 +3212,7 @@ class FASERIPCharacter {
       balance: this.currentKarma
     });
 
-    return { success: true, calc };
+    return { success: true, calc, traitName: identifier };
   }
 
   /**

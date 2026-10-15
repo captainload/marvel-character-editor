@@ -62,7 +62,7 @@ const App = {
     this.superiorOptionCost = !!val;
   },
   humanAbilityCaps: false,
-  VERSION: '1.6.04',
+  VERSION: '1.6.05',
   editLogFilter: 'all',
   editLogSearchQuery: '',
   BUILD_DATE: '2026-10-15',
@@ -2139,6 +2139,24 @@ const App = {
     const advTargetRankSelect = document.getElementById('adv-target-rank-select');
     if (advTargetRankSelect) {
       advTargetRankSelect.addEventListener('change', () => this.updateAdvancementPreview());
+    }
+
+    const advTalentSelect = document.getElementById('adv-talent-select');
+    if (advTalentSelect) {
+      advTalentSelect.addEventListener('change', () => {
+        this.updateAdvancementTalentDetails();
+        this.updateAdvancementPreview();
+      });
+    }
+
+    const advTalentSpecInput = document.getElementById('adv-talent-spec-input');
+    if (advTalentSpecInput) {
+      advTalentSpecInput.addEventListener('input', () => this.updateAdvancementPreview());
+    }
+
+    const advContactNameInput = document.getElementById('adv-contact-name-input');
+    if (advContactNameInput) {
+      advContactNameInput.addEventListener('input', () => this.updateAdvancementPreview());
     }
 
     const advModalOverlay = document.getElementById('modal-advancement');
@@ -18109,9 +18127,79 @@ const App = {
     if (!this.character) return;
     const catSelect = document.getElementById('adv-category-select');
     const itemSelect = document.getElementById('adv-item-select');
-    if (!catSelect || !itemSelect) return;
+    if (!catSelect) return;
 
     const category = catSelect.value;
+    const rankTraitContainer = document.getElementById('adv-rank-trait-container');
+    const talentContainer = document.getElementById('adv-new-talent-container');
+    const contactContainer = document.getElementById('adv-new-contact-container');
+
+    if (category === 'talent') {
+      if (rankTraitContainer) rankTraitContainer.style.display = 'none';
+      if (talentContainer) talentContainer.style.display = 'flex';
+      if (contactContainer) contactContainer.style.display = 'none';
+
+      const talentSelect = document.getElementById('adv-talent-select');
+      if (talentSelect) {
+        talentSelect.innerHTML = '<option value="">- Choose a talent from catalog -</option>';
+        const allTalents = (typeof TALENTS_CATALOG !== 'undefined')
+          ? TALENTS_CATALOG
+          : ((typeof globalThis !== 'undefined' && globalThis.TALENTS_CATALOG)
+              ? globalThis.TALENTS_CATALOG
+              : (typeof MSH_TALENTS !== 'undefined' ? MSH_TALENTS : (globalThis?.MSH_TALENTS || [])));
+
+        const knownTalents = this.character.talents || [];
+
+        // Group talents by category
+        const groups = {};
+        allTalents.forEach(t => {
+          // Check if already known and does not allow specialization
+          const isKnown = knownTalents.some(kt => 
+            (kt.talentId && t.id && kt.talentId === t.id) || 
+            (kt.name && t.name && kt.name.toLowerCase() === t.name.toLowerCase())
+          );
+          if (isKnown && !t.allowsSpecialization) return;
+
+          const grp = t.category || 'General';
+          if (!groups[grp]) groups[grp] = [];
+          groups[grp].push(t);
+        });
+
+        Object.keys(groups).sort().forEach(grpName => {
+          const optGroup = document.createElement('optgroup');
+          optGroup.label = grpName;
+          groups[grpName].sort((a, b) => a.name.localeCompare(b.name)).forEach(t => {
+            const opt = document.createElement('option');
+            opt.value = t.id || t.name;
+            opt.textContent = `${t.name}${t.isStarred ? ' *' : ''}${t.allowsSpecialization ? ' (Specialty)' : ''}`;
+            optGroup.appendChild(opt);
+          });
+          talentSelect.appendChild(optGroup);
+        });
+
+        if (preferredIdentifier && talentSelect.querySelector(`option[value="${preferredIdentifier}"]`)) {
+          talentSelect.value = preferredIdentifier;
+        } else {
+          talentSelect.value = '';
+        }
+      }
+      this.updateAdvancementTalentDetails();
+      return;
+    }
+
+    if (category === 'contact') {
+      if (rankTraitContainer) rankTraitContainer.style.display = 'none';
+      if (talentContainer) talentContainer.style.display = 'none';
+      if (contactContainer) contactContainer.style.display = 'flex';
+      return;
+    }
+
+    // Rank-based traits (ability, power, resources)
+    if (rankTraitContainer) rankTraitContainer.style.display = 'flex';
+    if (talentContainer) talentContainer.style.display = 'none';
+    if (contactContainer) contactContainer.style.display = 'none';
+
+    if (!itemSelect) return;
     itemSelect.innerHTML = '<option value="">- Select trait to advance -</option>';
 
     if (category === 'ability') {
@@ -18162,6 +18250,56 @@ const App = {
     }
   },
 
+  updateAdvancementTalentDetails() {
+    const talentSelect = document.getElementById('adv-talent-select');
+    const descBox = document.getElementById('adv-talent-desc-box');
+    const descName = document.getElementById('adv-talent-desc-name');
+    const descText = document.getElementById('adv-talent-desc-text');
+    const specContainer = document.getElementById('adv-talent-spec-container');
+    const specInput = document.getElementById('adv-talent-spec-input');
+
+    if (!talentSelect) return;
+    const talentId = talentSelect.value;
+    if (!talentId) {
+      if (descBox) descBox.style.display = 'none';
+      if (specContainer) specContainer.style.display = 'none';
+      return;
+    }
+
+    const allTalents = (typeof TALENTS_CATALOG !== 'undefined')
+      ? TALENTS_CATALOG
+      : ((typeof globalThis !== 'undefined' && globalThis.TALENTS_CATALOG)
+          ? globalThis.TALENTS_CATALOG
+          : (typeof MSH_TALENTS !== 'undefined' ? MSH_TALENTS : (globalThis?.MSH_TALENTS || [])));
+
+    const talent = allTalents.find(t => t.id === talentId || t.name === talentId);
+    if (!talent) {
+      if (descBox) descBox.style.display = 'none';
+      if (specContainer) specContainer.style.display = 'none';
+      return;
+    }
+
+    if (descBox && descName && descText) {
+      descBox.style.display = 'block';
+      descName.textContent = `${talent.name}${talent.isStarred ? ' *' : ''} (${talent.category || 'General'})`;
+      let info = talent.description || 'No description available.';
+      if (talent.statAffected) info += ` Affects: ${talent.statAffected} (${talent.csBonus > 0 ? '+' : ''}${talent.csBonus || 1}CS).`;
+      descText.textContent = info;
+    }
+
+    if (specContainer) {
+      if (talent.allowsSpecialization) {
+        specContainer.style.display = 'block';
+        if (specInput) {
+          specInput.placeholder = talent.specPlaceholder || 'e.g. Specific field or discipline';
+        }
+      } else {
+        specContainer.style.display = 'none';
+        if (specInput) specInput.value = '';
+      }
+    }
+  },
+
   updateAdvancementPreview() {
     if (!this.character) return;
     const catSelect = document.getElementById('adv-category-select');
@@ -18198,7 +18336,7 @@ const App = {
     } else if (mode === 'advancement') {
       if (bannerIcon) bannerIcon.textContent = '📈';
       if (bannerTitle) bannerTitle.textContent = 'Advancement Mode Active';
-      if (bannerDesc) bannerDesc.textContent = 'Spending KP permanently increases trait ranks.';
+      if (bannerDesc) bannerDesc.textContent = 'Spending KP permanently increases traits.';
       const hasChanges = !!(this.advancementSnapshot && JSON.stringify(this.character.toJSON()) !== this.advancementSnapshot);
       if (btnRevertInAdvModal) {
         btnRevertInAdvModal.style.display = hasChanges ? 'inline-block' : 'none';
@@ -18218,11 +18356,104 @@ const App = {
       }
     }
 
-    if (!catSelect || !itemSelect || !targetRankSelect) return;
-
+    if (!catSelect) return;
     const category = catSelect.value;
-    const identifier = itemSelect.value;
 
+    // Helper for applying karma check and setting applyBtn state
+    const applyCostCheck = (cost, trainingStr, buttonLabel, isSelectionValid, validationError) => {
+      if (karmaCostEl) karmaCostEl.textContent = `${cost} KP`;
+      if (trainingDaysEl) trainingDaysEl.textContent = trainingStr;
+
+      if (applyBtn) {
+        applyBtn.textContent = buttonLabel;
+      }
+
+      if (!isSelectionValid) {
+        if (remainingKarmaEl) remainingKarmaEl.textContent = (mode === 'test') ? '∞ KP' : `${this.character.currentKarma} KP`;
+        if (applyBtn) {
+          applyBtn.disabled = true;
+          applyBtn.title = validationError || 'Please complete trait selection.';
+        }
+        return;
+      }
+
+      if (mode === 'session') {
+        const remaining = this.character.currentKarma - cost;
+        if (remainingKarmaEl) {
+          remainingKarmaEl.textContent = `${remaining} KP`;
+          remainingKarmaEl.style.color = remaining >= 0 ? '#4ade80' : '#ef4444';
+        }
+        if (applyBtn) {
+          applyBtn.disabled = true;
+          applyBtn.title = 'Advancement is locked in Session Mode. Switch to Advancement Mode.';
+        }
+      } else if (mode === 'test') {
+        if (remainingKarmaEl) {
+          remainingKarmaEl.textContent = '∞ KP';
+          remainingKarmaEl.style.color = '#4ade80';
+        }
+        if (applyBtn) {
+          applyBtn.disabled = false;
+          applyBtn.title = 'Apply Test Advancement (Infinite KP)';
+        }
+      } else {
+        const remaining = this.character.currentKarma - cost;
+        if (remainingKarmaEl) {
+          remainingKarmaEl.textContent = `${remaining} KP`;
+          remainingKarmaEl.style.color = remaining >= 0 ? '#4ade80' : '#ef4444';
+        }
+        if (applyBtn) {
+          applyBtn.disabled = remaining < 0;
+          applyBtn.title = remaining < 0 ? `Need ${cost} KP (You only have ${this.character.currentKarma} KP)` : '';
+        }
+      }
+    };
+
+    // Category: Talent
+    if (category === 'talent') {
+      const talentSelect = document.getElementById('adv-talent-select');
+      const specInput = document.getElementById('adv-talent-spec-input');
+      const talentId = talentSelect ? talentSelect.value : '';
+
+      let isValid = !!talentId;
+      let valError = 'Please select a talent to learn.';
+
+      if (talentId) {
+        const allTalents = (typeof TALENTS_CATALOG !== 'undefined')
+          ? TALENTS_CATALOG
+          : ((typeof globalThis !== 'undefined' && globalThis.TALENTS_CATALOG)
+              ? globalThis.TALENTS_CATALOG
+              : (typeof MSH_TALENTS !== 'undefined' ? MSH_TALENTS : (globalThis?.MSH_TALENTS || [])));
+        const talent = allTalents.find(t => t.id === talentId || t.name === talentId);
+        if (talent && talent.allowsSpecialization) {
+          const specVal = specInput ? specInput.value.trim() : '';
+          if (!specVal) {
+            isValid = false;
+            valError = `Please specify a specialization for "${talent.name}".`;
+          }
+        }
+      }
+
+      applyCostCheck(1000, '30 Days', '📈 Learn Talent (-1,000 KP)', isValid, valError);
+      return;
+    }
+
+    // Category: Contact
+    if (category === 'contact') {
+      const nameInput = document.getElementById('adv-contact-name-input');
+      const contactName = nameInput ? nameInput.value.trim() : '';
+      const isValid = !!contactName;
+      const valError = 'Please enter a contact name or organization.';
+
+      applyCostCheck(500, '0 Days (Roleplay)', '📈 Add Contact (-500 KP)', isValid, valError);
+      return;
+    }
+
+    // Category: Rank-based (ability, power, resources)
+    if (applyBtn) applyBtn.textContent = '📈 Confirm Rank Increase';
+    if (!itemSelect || !targetRankSelect) return;
+
+    const identifier = itemSelect.value;
     if (!identifier) {
       if (curRankDisplay) curRankDisplay.textContent = '--';
       if (targetRankSelect) targetRankSelect.innerHTML = '<option value="">- Select target rank -</option>';
@@ -18299,42 +18530,10 @@ const App = {
       if (applyBtn) applyBtn.disabled = true;
       return;
     }
+
     const calc = this.character.calculateAdvancement(category, currentRankName, selectedTarget);
-
     if (calc && calc.valid) {
-      if (karmaCostEl) karmaCostEl.textContent = `${calc.karmaCost} KP`;
-      if (trainingDaysEl) trainingDaysEl.textContent = `${calc.trainingDays} Day${calc.trainingDays > 1 ? 's' : ''}`;
-
-      if (mode === 'session') {
-        const remaining = this.character.currentKarma - calc.karmaCost;
-        if (remainingKarmaEl) {
-          remainingKarmaEl.textContent = `${remaining} KP`;
-          remainingKarmaEl.style.color = remaining >= 0 ? '#4ade80' : '#ef4444';
-        }
-        if (applyBtn) {
-          applyBtn.disabled = true;
-          applyBtn.title = 'Advancement is locked in Session Mode. Switch to Advancement Mode.';
-        }
-      } else if (mode === 'test') {
-        if (remainingKarmaEl) {
-          remainingKarmaEl.textContent = '∞ KP';
-          remainingKarmaEl.style.color = '#4ade80';
-        }
-        if (applyBtn) {
-          applyBtn.disabled = false;
-          applyBtn.title = 'Apply Test Advancement (Infinite KP)';
-        }
-      } else {
-        const remaining = this.character.currentKarma - calc.karmaCost;
-        if (remainingKarmaEl) {
-          remainingKarmaEl.textContent = `${remaining} KP`;
-          remainingKarmaEl.style.color = remaining >= 0 ? '#4ade80' : '#ef4444';
-        }
-        if (applyBtn) {
-          applyBtn.disabled = remaining < 0;
-          applyBtn.title = remaining < 0 ? `Need ${calc.karmaCost} KP (You only have ${this.character.currentKarma} KP)` : '';
-        }
-      }
+      applyCostCheck(calc.karmaCost, `${calc.trainingDays} Day${calc.trainingDays > 1 ? 's' : ''}`, '📈 Confirm Rank Increase', true, '');
     } else {
       if (karmaCostEl) karmaCostEl.textContent = '0 KP';
       if (trainingDaysEl) trainingDaysEl.textContent = '0 Days';
@@ -18354,23 +18553,148 @@ const App = {
     }
 
     const catSelect = document.getElementById('adv-category-select');
-    const itemSelect = document.getElementById('adv-item-select');
-    const targetRankSelect = document.getElementById('adv-target-rank-select');
     const notesInput = document.getElementById('adv-custom-notes');
-
-    if (!catSelect || !itemSelect || !targetRankSelect) return;
+    if (!catSelect) return;
 
     const category = catSelect.value;
+    const customNotes = notesInput ? notesInput.value.trim() : '';
+    const isTest = this.karmaMode === 'test';
+
+    // 1. New Talent Advancement
+    if (category === 'talent') {
+      const talentSelect = document.getElementById('adv-talent-select');
+      const specInput = document.getElementById('adv-talent-spec-input');
+      const talentId = talentSelect ? talentSelect.value : '';
+
+      if (!talentId) {
+        await this.showCustomAlert('Please select a talent to learn.', 'Advancement Incomplete');
+        return;
+      }
+
+      const allTalents = (typeof TALENTS_CATALOG !== 'undefined')
+        ? TALENTS_CATALOG
+        : ((typeof globalThis !== 'undefined' && globalThis.TALENTS_CATALOG)
+            ? globalThis.TALENTS_CATALOG
+            : (typeof MSH_TALENTS !== 'undefined' ? MSH_TALENTS : (globalThis?.MSH_TALENTS || [])));
+      const talentObj = allTalents.find(t => t.id === talentId || t.name === talentId) || { name: talentId };
+
+      const specialization = specInput ? specInput.value.trim() : '';
+      if (talentObj.allowsSpecialization && !specialization) {
+        await this.showCustomAlert(`Please enter a specialization for "${talentObj.name}".`, 'Specialization Required');
+        return;
+      }
+
+      const result = this.character.applyAdvancement('talent', talentObj.name, 'Learned', customNotes, isTest, {
+        talent: talentObj,
+        specialization
+      });
+
+      if (!result.success) {
+        await this.showCustomAlert(result.error || 'Failed to learn talent.', 'Cannot Learn Talent');
+        return;
+      }
+
+      const modeTag = isTest ? ' [Test Mode]' : '';
+      this.recordCharacterEdit(`Learned talent "${result.traitName}"${modeTag} (-${result.calc.karmaCost} KP)`, 'advancement');
+
+      this.saveState();
+      this.render();
+      this.renderVitals();
+
+      const modal = document.getElementById('modal-advancement');
+      if (modal) modal.classList.remove('open');
+
+      if (isTest) {
+        await this.showCustomAlert(
+          `🧪 [Test Mode] Learned talent "${result.traitName}"!\n\n` +
+          `Required Karma Cost: ${result.calc.karmaCost} KP\n` +
+          `Training Time: ${result.calc.trainingDays} day(s)\n` +
+          `Karma Balance: ∞ KP\n\n` +
+          `Note: All test-mode changes will be cleared when you switch away from Test Mode.`,
+          '🧪 Test Advancement Applied'
+        );
+      } else {
+        await this.showCustomAlert(
+          `Successfully learned talent "${result.traitName}"!\n\n` +
+          `Karma Cost: ${result.calc.karmaCost} KP\n` +
+          `Training Time: ${result.calc.trainingDays} day(s)\n` +
+          `Karma Balance: ${this.character.currentKarma} KP`,
+          '📈 Talent Acquired'
+        );
+      }
+      return;
+    }
+
+    // 2. New Contact Advancement
+    if (category === 'contact') {
+      const nameInput = document.getElementById('adv-contact-name-input');
+      const profInput = document.getElementById('adv-contact-profession-input');
+      const detInput = document.getElementById('adv-contact-notes-input');
+
+      const contactName = nameInput ? nameInput.value.trim() : '';
+      if (!contactName) {
+        await this.showCustomAlert('Please enter a name or organization for the new contact.', 'Contact Name Required');
+        return;
+      }
+
+      const profession = profInput ? profInput.value.trim() : 'Ally / Contact';
+      const notes = detInput ? detInput.value.trim() : '';
+
+      const result = this.character.applyAdvancement('contact', contactName, 'Allied', customNotes, isTest, {
+        name: contactName,
+        profession,
+        notes
+      });
+
+      if (!result.success) {
+        await this.showCustomAlert(result.error || 'Failed to add contact.', 'Cannot Add Contact');
+        return;
+      }
+
+      const modeTag = isTest ? ' [Test Mode]' : '';
+      this.recordCharacterEdit(`Established contact "${result.traitName}"${modeTag} (-${result.calc.karmaCost} KP)`, 'advancement');
+
+      this.saveState();
+      this.render();
+      this.renderVitals();
+
+      const modal = document.getElementById('modal-advancement');
+      if (modal) modal.classList.remove('open');
+
+      if (isTest) {
+        await this.showCustomAlert(
+          `🧪 [Test Mode] Added contact "${result.traitName}"!\n\n` +
+          `Required Karma Cost: ${result.calc.karmaCost} KP\n` +
+          `Roleplay Alignment: Verified\n` +
+          `Karma Balance: ∞ KP\n\n` +
+          `Note: All test-mode changes will be cleared when you switch away from Test Mode.`,
+          '🧪 Test Advancement Applied'
+        );
+      } else {
+        await this.showCustomAlert(
+          `Successfully established contact "${result.traitName}" (${profession})!\n\n` +
+          `Karma Cost: ${result.calc.karmaCost} KP\n` +
+          `Karma Balance: ${this.character.currentKarma} KP`,
+          '📈 Contact Established'
+        );
+      }
+      return;
+    }
+
+    // 3. Rank-based Traits (ability, power, resources)
+    const itemSelect = document.getElementById('adv-item-select');
+    const targetRankSelect = document.getElementById('adv-target-rank-select');
+
+    if (!itemSelect || !targetRankSelect) return;
+
     const identifier = itemSelect.value;
     const targetRankName = targetRankSelect.value;
-    const customNotes = notesInput ? notesInput.value.trim() : '';
 
     if (!identifier || !targetRankName) {
       await this.showCustomAlert('Please select a trait and target rank to advance.', 'Advancement Incomplete');
       return;
     }
 
-    const isTest = this.karmaMode === 'test';
     const result = this.character.applyAdvancement(category, identifier, targetRankName, customNotes, isTest);
     if (!result.success) {
       await this.showCustomAlert(result.error || 'Failed to apply advancement.', 'Cannot Advance Rank');

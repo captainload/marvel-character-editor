@@ -1,7 +1,7 @@
 {
-  "version": "1.6.04",
+  "version": "1.6.05",
   "releaseDate": "2026-10-15",
   "name": "MSH RPGen",
   "repo": "https://github.com/captainload/marvel-character-editor",
-  "notes": "v1.6.04: Added interactive hierarchical folder tree browser for character save and load folder management, featuring direct File System Access API integration, branch traversal, breadcrumb navigation, live search/filtering, subfolder creation, direct hero loading and saving, active folder target selection, and virtual folder organization fallback."
+  "notes": "v1.6.05: Expanded Character Advancement to support learning New Talents (1,000 KP) and establishing New Contacts (500 KP) per canonical TSR rules, featuring dynamic trait pickers, talent catalog grouping, specialization inputs, contact detail forms, Karma validation, and comprehensive advancement logging."
 }

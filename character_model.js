@@ -2374,7 +2374,56 @@ class FASERIPCharacter {
    * Starred talents count as 2 slots each.
    */
   getTotalTalentSlots() {
-    return this.talents.reduce((sum, t) => sum + (t.slots || (t.isStarred ? 2 : 1)), 0);
+    if (!Array.isArray(this.talents)) return 0;
+    const catalog = (typeof TALENTS_CATALOG !== 'undefined')
+      ? TALENTS_CATALOG
+      : ((typeof globalThis !== 'undefined' && (globalThis.TALENTS_CATALOG || globalThis.MSH_TALENTS))
+          ? (globalThis.TALENTS_CATALOG || globalThis.MSH_TALENTS)
+          : []);
+
+    return this.talents.reduce((sum, t) => {
+      if (t.slots !== undefined && t.slots !== null) return sum + t.slots;
+      if (t.isStarred) return sum + 2;
+      const cleanName = (t.name || '').replace(/\*$/, '').trim().toLowerCase();
+      const cat = catalog.find(x => 
+        (t.talentId && x.id === t.talentId) || 
+        (x.id === t.id) || 
+        (x.name && x.name.toLowerCase() === cleanName) ||
+        (x.name && x.name.replace(/\*$/, '').trim().toLowerCase() === cleanName)
+      );
+      const s = cat ? (cat.slots || (cat.isStarred ? 2 : 1)) : 1;
+      return sum + s;
+    }, 0);
+  }
+
+  getUsedTalentSlots() {
+    return this.getTotalTalentSlots();
+  }
+
+  /**
+   * Evaluates whether a new talent can be added given TSR slot limits.
+   * Starred talents count as 2 slots.
+   */
+  canAddTalent(talentData) {
+    if (!talentData) return false;
+    if (this.creationMode !== 'tsr' || this.isModeledMode()) return true;
+    if (this.tsrTalentSlots === null || this.tsrTalentSlots === undefined) return true;
+    const catalog = (typeof TALENTS_CATALOG !== 'undefined')
+      ? TALENTS_CATALOG
+      : ((typeof globalThis !== 'undefined' && (globalThis.TALENTS_CATALOG || globalThis.MSH_TALENTS))
+          ? (globalThis.TALENTS_CATALOG || globalThis.MSH_TALENTS)
+          : []);
+
+    const talentId = talentData.talentId || talentData.id;
+    const cleanName = (talentData.name || '').replace(/\*$/, '').trim().toLowerCase();
+    const catTalent = catalog.find(ct => 
+      (talentId && ct.id === talentId) ||
+      (cleanName && ct.name.toLowerCase() === cleanName) ||
+      (cleanName && ct.name.replace(/\*$/, '').trim().toLowerCase() === cleanName)
+    );
+    const slots = talentData.slots || (catTalent && catTalent.slots) || (talentData.isStarred || (catTalent && catTalent.isStarred) ? 2 : 1);
+    const currentUsed = this.getTotalTalentSlots();
+    return (currentUsed + slots) <= this.tsrTalentSlots;
   }
 
   /**
@@ -2745,10 +2794,11 @@ class FASERIPCharacter {
 
     // Check TSR slot limit
     if (this.creationMode === 'tsr' && !this.isModeledMode() && this.tsrTalentSlots !== null && this.tsrTalentSlots !== undefined) {
-      if (this.talents && this.talents.length >= this.tsrTalentSlots) {
+      const currentUsed = this.getTotalTalentSlots();
+      if (currentUsed + slots > this.tsrTalentSlots) {
         return {
           success: false,
-          error: `In TSR Random Roll mode, talents are limited to ${this.tsrTalentSlots} rolled slot(s).`
+          error: `In TSR Random Roll mode, talents are limited to ${this.tsrTalentSlots} rolled slot(s). You have used ${currentUsed} slot(s) and "${baseName}" requires ${slots} slot(s).`
         };
       }
     }

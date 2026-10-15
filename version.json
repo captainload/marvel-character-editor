@@ -1,7 +1,7 @@
 {
-  "version": "1.6.00",
-  "releaseDate": "2026-10-14",
+  "version": "1.6.01",
+  "releaseDate": "2026-10-15",
   "name": "MSH RPGen",
   "repo": "https://github.com/captainload/marvel-character-editor",
-  "notes": "v1.6.00: Restored and fortified A-BOMB easter egg roar audio with preloaded DOM audio element, Web Audio API in-memory decoding, and base64 fallback to guarantee reliable playback across all browsers."
+  "notes": "v1.6.01: Fixed random creation talent counting so 2-slot starred talents properly count as 2 slots during TSR random creation, validation, and manual assignment; eliminated inappropriate CP cost references under Talents & Contacts in random generation mode in favor of slot counts."
 }

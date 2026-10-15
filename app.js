@@ -62,7 +62,7 @@ const App = {
     this.superiorOptionCost = !!val;
   },
   humanAbilityCaps: false,
-  VERSION: '1.6.00',
+  VERSION: '1.6.01',
   editLogFilter: 'all',
   editLogSearchQuery: '',
   BUILD_DATE: '2026-10-14',
@@ -3342,7 +3342,7 @@ const App = {
           ? this.character.tsrContactSlots
           : 0;
         const pUsed = this.character.getUsedPowerSlots ? this.character.getUsedPowerSlots() : (this.character.powers ? this.character.powers.length : 0);
-        const tCount = this.character.talents ? this.character.talents.length : 0;
+        const tCount = this.character.getTotalTalentSlots ? this.character.getTotalTalentSlots() : (this.character.talents ? this.character.talents.length : 0);
         const cCount = this.character.contacts ? this.character.contacts.length : 0;
 
         if (tsrMidStats) {
@@ -7153,10 +7153,12 @@ const App = {
     for (const grp in groups) {
       html += `<optgroup label="${grp}">`;
       html += groups[grp].map(t => {
+        const isTsr = (this.character && this.character.creationMode === 'tsr');
         const isStarred = !!t.isStarred;
+        const slots = t.slots || (isStarred ? 2 : 1);
         const starPrefix = isStarred ? '⭐ ' : '';
         const starName = `${t.name}${isStarred ? '*' : ''}`;
-        const costText = `${t.costCP || (isStarred ? 20 : 10)} CP`;
+        const costText = isTsr ? `${slots} Slot${slots > 1 ? 's' : ''}` : `${t.costCP || (isStarred ? 20 : 10)} CP`;
         const allowsSpec = !!t.allowsSpecialization;
 
         // Count how many times this talent is already learned
@@ -9090,6 +9092,7 @@ const App = {
 
     // 5. All Talents Chosen
     const currentTalents = (this.character.talents || []).length;
+    const usedTalentSlots = this.character.getTotalTalentSlots ? this.character.getTotalTalentSlots() : currentTalents;
     if (isTsr) {
       if (!this.character.isModeledMode || !this.character.isModeledMode()) {
         const maxTalents = (this.character.tsrTalentSlots !== undefined && this.character.tsrTalentSlots !== null)
@@ -9097,10 +9100,10 @@ const App = {
           : null;
         if (maxTalents === null) {
           unmet.push('Roll talent slots in TSR Generator');
-        } else if (currentTalents < maxTalents) {
-          unmet.push(`All rolled talents must be chosen (${currentTalents}/${maxTalents} selected)`);
-        } else if (currentTalents > maxTalents) {
-          unmet.push(`Talents chosen (${currentTalents}) exceeds rolled talent slots (${maxTalents})`);
+        } else if (usedTalentSlots < maxTalents) {
+          unmet.push(`All rolled talent slots must be chosen (${usedTalentSlots}/${maxTalents} slots used)`);
+        } else if (usedTalentSlots > maxTalents) {
+          unmet.push(`Talents chosen (${usedTalentSlots} slots) exceeds rolled talent slots (${maxTalents})`);
         }
       }
     } else {
@@ -10846,13 +10849,31 @@ const App = {
     const slotsBadge = document.getElementById('talents-slots-badge');
     const cardTitle = document.getElementById('talents-card-title');
 
+    const isTsr = (this.character && this.character.creationMode === 'tsr');
+    const isModeled = isTsr && !!(this.character.isModeledMode && this.character.isModeledMode());
+    const isRandomGen = isTsr && !isModeled;
+
+    const usedSlots = this.character.getTotalTalentSlots ? this.character.getTotalTalentSlots() : (this.character.talents || []).length;
+    const maxTsrSlots = (this.character.tsrTalentSlots !== undefined && this.character.tsrTalentSlots !== null) ? this.character.tsrTalentSlots : 0;
     const totalCP = (this.character.talents || []).reduce((sum, t) => sum + (t.costCP !== undefined ? t.costCP : (t.isStarred ? 20 : 10)), 0);
 
     if (slotsBadge) {
-      slotsBadge.textContent = `${totalCP} CP`;
+      if (isRandomGen) {
+        slotsBadge.textContent = `${usedSlots}/${maxTsrSlots} Slots`;
+      } else if (isModeled) {
+        slotsBadge.textContent = `${usedSlots} Slot${usedSlots === 1 ? '' : 's'}`;
+      } else {
+        slotsBadge.textContent = `${totalCP} CP`;
+      }
     }
     if (cardTitle) {
-      cardTitle.textContent = `🥋 Talents & Skills (${this.character.talents.length} Learned · ${totalCP} CP)`;
+      if (isRandomGen) {
+        cardTitle.textContent = `🥋 Talents & Skills (${usedSlots}/${maxTsrSlots} Slots Rolled · 1 Slot / 2 Slots Starred)`;
+      } else if (isModeled) {
+        cardTitle.textContent = `🥋 Talents & Skills (${this.character.talents.length} Learned · 1 Slot / 2 Slots Starred)`;
+      } else {
+        cardTitle.textContent = `🥋 Talents & Skills (${this.character.talents.length} Learned · ${totalCP} CP)`;
+      }
     }
 
     if (container) {
@@ -10861,18 +10882,22 @@ const App = {
         const card = document.createElement('div');
         card.className = 'attack-card';
         const isStarred = !!t.isStarred;
+        const slots = t.slots || (isStarred ? 2 : 1);
         const costCP = t.costCP !== undefined ? t.costCP : (isStarred ? 20 : 10);
         const allowsSpec = !!t.allowsSpecialization;
+
+        const costBadgeText = isTsr ? `${slots} Slot${slots > 1 ? 's' : ''}` : `${costCP} CP`;
+        const starTooltip = isTsr ? `Starred Talent (${slots} Slots)` : `Starred Talent (${costCP} CP)`;
 
         card.innerHTML = `
           <div class="attack-header">
             <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
               <button type="button" class="help-circle-btn talent-help-btn" data-help-talent="${(t.name || '').replace(/"/g, '&quot;')}" title="View details for ${(t.name || '').replace(/"/g, '&quot;')}">?</button>
               <strong style="color: #38bdf8; font-size: 11pt;">${t.name}${isStarred ? '*' : ''}</strong>
-              ${isStarred ? `<span class="meta-tag tag-starred" title="Starred Talent (20 CP)">★</span>` : ''}
+              ${isStarred ? `<span class="meta-tag tag-starred" title="${starTooltip}">★</span>` : ''}
             </div>
             <div style="display: flex; gap: 8px; align-items: center;">
-              <span class="meta-tag" style="color: var(--marvel-gold); font-weight: 700;">${costCP} CP</span>
+              <span class="meta-tag" style="color: var(--marvel-gold); font-weight: 700;">${costBadgeText}</span>
               <button class="icon-btn" style="padding: 2px 8px; min-height: 28px; background: #881337;" data-del-talent="${idx}" title="Remove Talent">✕</button>
             </div>
           </div>
@@ -10933,17 +10958,33 @@ const App = {
       });
     }
 
+    const isRandomMode = isRandomGen;
+    const contactsCardTitle = document.getElementById('contacts-card-title');
+    const contactsCount = (this.character.contacts || []).length;
+    const maxTsrContacts = (this.character.tsrContactSlots !== undefined && this.character.tsrContactSlots !== null) ? this.character.tsrContactSlots : 0;
+
+    if (contactsCardTitle) {
+      if (isRandomMode) {
+        contactsCardTitle.textContent = `🤝 Contacts & Allies (${contactsCount}/${maxTsrContacts} Slots Rolled)`;
+      } else if (isModeled) {
+        contactsCardTitle.textContent = `🤝 Contacts & Allies (${contactsCount} Assigned)`;
+      } else {
+        contactsCardTitle.textContent = '🤝 Contacts & Allies (5 CP each)';
+      }
+    }
+
     const cContainer = document.getElementById('contacts-container');
     if (cContainer) {
       cContainer.innerHTML = '';
       this.character.contacts.forEach((c, idx) => {
         const card = document.createElement('div');
         card.className = 'attack-card';
+        const contactBadge = isTsr ? (isRandomMode ? '1 Slot' : 'Contact') : '5 CP';
         card.innerHTML = `
           <div class="attack-header">
             <strong style="color: var(--marvel-gold); font-size: 11pt;">${c.name} (${c.profession})</strong>
             <div style="display: flex; gap: 8px; align-items: center;">
-              <span class="meta-tag" style="color: var(--marvel-gold);">5 CP</span>
+              <span class="meta-tag" style="color: var(--marvel-gold);">${contactBadge}</span>
               <button class="icon-btn" style="padding: 2px 8px; min-height: 28px; background: #881337;" data-del-contact="${idx}">✕</button>
             </div>
           </div>
@@ -10969,11 +11010,15 @@ const App = {
       return;
     }
     if (this.character && this.character.creationMode === 'tsr' && (!this.character.isModeledMode || !this.character.isModeledMode())) {
-      const confirmed = await this.promptSwitchToModeledOnManualAssignment('Talents');
-      if (!confirmed) {
-        return;
+      const hasRolledSlots = (this.character.tsrTalentSlots !== undefined && this.character.tsrTalentSlots !== null);
+      const usedSlots = this.character.getTotalTalentSlots ? this.character.getTotalTalentSlots() : (this.character.talents || []).length;
+      if (!hasRolledSlots || usedSlots >= this.character.tsrTalentSlots) {
+        const confirmed = await this.promptSwitchToModeledOnManualAssignment('Talents');
+        if (!confirmed) {
+          return;
+        }
+        this.applySwitchToModeledMode();
       }
-      this.applySwitchToModeledMode();
     }
     const tSel = document.getElementById('select-talent-catalog');
     if (!tSel) return;
@@ -11044,11 +11089,15 @@ const App = {
       return;
     }
     if (this.character && this.character.creationMode === 'tsr' && (!this.character.isModeledMode || !this.character.isModeledMode())) {
-      const confirmed = await this.promptSwitchToModeledOnManualAssignment('Contacts');
-      if (!confirmed) {
-        return;
+      const hasRolledContactSlots = (this.character.tsrContactSlots !== undefined && this.character.tsrContactSlots !== null);
+      const usedContacts = (this.character.contacts || []).length;
+      if (!hasRolledContactSlots || usedContacts >= this.character.tsrContactSlots) {
+        const confirmed = await this.promptSwitchToModeledOnManualAssignment('Contacts');
+        if (!confirmed) {
+          return;
+        }
+        this.applySwitchToModeledMode();
       }
-      this.applySwitchToModeledMode();
     }
     const name = document.getElementById('input-contact-name').value.trim();
     const role = document.getElementById('input-contact-role').value.trim() || 'Ally';
@@ -14114,13 +14163,16 @@ const App = {
                 talents.find(x => x.name && q.includes(x.name.toLowerCase()));
 
       if (t) {
+        const isTsr = (this.character && this.character.creationMode === 'tsr');
         const isStarred = !!t.isStarred;
+        const slots = t.slots || (isStarred ? 2 : 1);
+        const costTag = isTsr ? `<span class="meta-tag">Slots: ${slots} Slot${slots > 1 ? 's' : ''}</span>` : `<span class="meta-tag">Cost: ${t.costCP || (isStarred ? 20 : 10)} CP</span>`;
         title = `🥋 ${t.name}${isStarred ? '*' : ''}`;
         content = `
           <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px;">
             <span class="meta-tag" style="color: var(--marvel-gold); font-weight:700;">Group: ${t.group || t.category || 'General'}</span>
-            <span class="meta-tag">Cost: ${t.costCP || (isStarred ? 20 : 10)} CP</span>
-            ${isStarred ? `<span class="meta-tag tag-starred">★ Starred</span>` : ''}
+            ${costTag}
+            ${isStarred ? `<span class="meta-tag tag-starred">★ Starred (${slots} Slots)</span>` : ''}
             ${t.allowsSpecialization ? `<span class="meta-tag" style="color: #38bdf8; border-color: rgba(56, 189, 248, 0.4);">🎯 Allows Multiple Specialties</span>` : ''}
             ${t.minResourcesRank ? `<span class="meta-tag" style="color: #4ade80; border-color: rgba(74, 222, 128, 0.4);">💰 Min Resources: ${t.minResourcesRank} (${t.minResourcesRankValue})</span>` : ''}
             ${t.bonus ? `<span class="meta-tag" style="color: #38bdf8;">Bonus: ${t.bonus}</span>` : ''}
@@ -14130,7 +14182,9 @@ const App = {
           ${isStarred ? `
             <div class="calc-rule-callout starred-power-banner" style="margin-bottom: 12px;">
               <strong class="starred-label-text">★ TSR Starred Talent (Player's Book p. 10, Table 8):</strong>
-              Talents marked with an asterisk (*) cost <strong>20 CP</strong> in CMF Point-Buy (instead of 10 CP).
+              ${isTsr 
+                ? 'Talents marked with an asterisk (*) count as <strong>2 talent slots</strong> in TSR random generation (instead of 1 slot).'
+                : 'Talents marked with an asterisk (*) cost <strong>20 CP</strong> in CMF Point-Buy (instead of 10 CP).'}
               ${t.minResourcesRank ? `<br><strong>Heir to Fortune Special Rule:</strong> Guarantees a minimum Resource rank of <strong>Remarkable (30)</strong>.` : ''}
             </div>
           ` : ''}
@@ -15146,7 +15200,7 @@ const App = {
       const tRolled = (this.character.tsrTalentSlots !== undefined && this.character.tsrTalentSlots !== null)
         ? this.character.tsrTalentSlots
         : 0;
-      const tAssigned = this.character.talents?.length || 0;
+      const tAssigned = this.character.getTotalTalentSlots ? this.character.getTotalTalentSlots() : (this.character.talents?.length || 0);
       const tCountEl = document.getElementById('tsr-info-talents-count');
       const tStatusEl = document.getElementById('tsr-info-talents-status');
       if (tCountEl) tCountEl.textContent = `${tAssigned} / ${tRolled}`;
@@ -19089,6 +19143,26 @@ const App = {
     }, 0);
   },
 
+  getTsrSelectedTalentsSlotCount(selectedTalentsList = null) {
+    const list = Array.isArray(selectedTalentsList) ? selectedTalentsList : (this.tsrGenState?.selectedTalents || []);
+    const catalog = (typeof TALENTS_CATALOG !== 'undefined')
+      ? TALENTS_CATALOG
+      : ((typeof globalThis !== 'undefined' && (globalThis.TALENTS_CATALOG || globalThis.MSH_TALENTS))
+          ? (globalThis.TALENTS_CATALOG || globalThis.MSH_TALENTS)
+          : []);
+
+    return list.reduce((sum, name) => {
+      const cleanName = (name || '').replace(/\*$/, '').trim().toLowerCase();
+      const t = catalog.find(x => 
+        (x.name && x.name.toLowerCase() === cleanName) || 
+        (x.name && x.name.replace(/\*$/, '').trim().toLowerCase() === cleanName) ||
+        (x.id && x.id.toLowerCase() === cleanName)
+      );
+      const slots = t ? (t.slots || (t.isStarred ? 2 : 1)) : 1;
+      return sum + slots;
+    }, 0);
+  },
+
   initTsrGenState(forceReset = false) {
     const rollRankFn = (typeof rollRandomRank === 'function') ? rollRandomRank : globalThis?.rollRandomRank;
     const rollSlotsFn = (typeof rollTsrPowerSlots === 'function') ? rollTsrPowerSlots : globalThis?.rollTsrPowerSlots;
@@ -19911,9 +19985,10 @@ const App = {
     const tMaxEl = this.getTsrEl('tsr-talent-max-display');
     if (tMaxEl) tMaxEl.textContent = `(Init: ${talentSlotsInitial ?? talentSlots} / Max: ${talentSlotsMax ?? talentSlots})`;
     const tChosenEl = this.getTsrEl('tsr-talent-chosen-display');
+    const usedTalSlots = this.getTsrSelectedTalentsSlotCount(selectedTalents);
     if (tChosenEl) {
-      tChosenEl.textContent = selectedTalents.length;
-      tChosenEl.style.color = selectedTalents.length > talentSlots ? '#f87171' : 'var(--marvel-gold)';
+      tChosenEl.textContent = usedTalSlots;
+      tChosenEl.style.color = usedTalSlots > talentSlots ? '#f87171' : 'var(--marvel-gold)';
     }
 
     const btnBuyTal = this.getTsrEl('btn-tsr-buy-talent-slot');
@@ -19972,12 +20047,15 @@ const App = {
 
       tSelCont.innerHTML = filteredTalents.map(t => {
         const isChecked = selectedTalents.includes(t.name);
+        const isStarred = !!t.isStarred;
+        const slots = t.slots || (isStarred ? 2 : 1);
         const bonusStr = t.csBonus ? `+${t.csBonus}CS ${t.statAffected}` : (t.bonus || t.statAffected || '+1CS');
         return `
           <label style="display: flex; align-items: center; justify-content: space-between; font-size: 10pt; margin-bottom: 4px; cursor: pointer; padding: 4px 6px; border-radius: 4px; background: ${isChecked ? 'rgba(56, 189, 248, 0.12)' : 'transparent'};" title="${t.description || ''}">
             <span style="display: flex; align-items: center; gap: 6px;">
               <input type="checkbox" class="tsr-talent-check" data-name="${t.name}" ${isChecked ? 'checked' : ''}>
-              <span style="font-weight: ${isChecked ? '700' : '400'}; color: ${isChecked ? '#38bdf8' : 'inherit'};">${t.name}</span>
+              <span style="font-weight: ${isChecked ? '700' : '400'}; color: ${isChecked ? '#38bdf8' : 'inherit'};">${t.name}${isStarred ? '*' : ''}</span>
+              ${slots > 1 ? `<span class="meta-tag" style="background: rgba(245, 158, 11, 0.2); color: var(--marvel-gold); font-size: 8pt; padding: 1px 4px; font-weight: 700;">2 Slots</span>` : ''}
               <button type="button" class="help-circle-btn compact btn-tsr-talent-preview" data-name="${t.name}" title="View details of ${t.name}">?</button>
             </span>
             <span style="font-size: 10pt; color: var(--text-muted); background: rgba(0,0,0,0.3); padding: 2px 6px; border-radius: 3px;">${bonusStr}</span>
@@ -19997,10 +20075,14 @@ const App = {
       tSelCont.querySelectorAll('.tsr-talent-check').forEach(chk => {
         chk.addEventListener('change', (e) => {
           const name = e.currentTarget.dataset.name;
+          const tDef = allTalents.find(x => x.name === name || x.id === name);
+          const incomingSlots = tDef ? (tDef.slots || (tDef.isStarred ? 2 : 1)) : 1;
+
           if (e.target.checked) {
-            if (this.tsrGenState.selectedTalents.length >= this.tsrGenState.talentSlots) {
+            const currentUsed = this.getTsrSelectedTalentsSlotCount(this.tsrGenState.selectedTalents);
+            if (currentUsed + incomingSlots > this.tsrGenState.talentSlots) {
               e.target.checked = false;
-              this.showStatusToast(`⚠️ Cannot select more than ${this.tsrGenState.talentSlots} talent slot(s).`);
+              this.showStatusToast(`⚠️ Cannot select "${name}" (${incomingSlots} slot${incomingSlots > 1 ? 's' : ''}): exceeds your limit of ${this.tsrGenState.talentSlots} talent slot(s) (${currentUsed} used).`);
               return;
             }
             if (!this.tsrGenState.selectedTalents.includes(name)) {
@@ -20009,10 +20091,11 @@ const App = {
           } else {
             this.tsrGenState.selectedTalents = this.tsrGenState.selectedTalents.filter(x => x !== name);
           }
+          const updatedUsed = this.getTsrSelectedTalentsSlotCount(this.tsrGenState.selectedTalents);
           const chosen = this.getTsrEl('tsr-talent-chosen-display');
           if (chosen) {
-            chosen.textContent = this.tsrGenState.selectedTalents.length;
-            chosen.style.color = this.tsrGenState.selectedTalents.length > this.tsrGenState.talentSlots ? '#f87171' : 'var(--marvel-gold)';
+            chosen.textContent = updatedUsed;
+            chosen.style.color = updatedUsed > this.tsrGenState.talentSlots ? '#f87171' : 'var(--marvel-gold)';
           }
         });
       });
@@ -20722,8 +20805,8 @@ const App = {
     this.tsrGenRecalcResources();
 
     // Enforce slot limits on existing selections if newly rolled count is smaller
-    if (this.tsrGenState.selectedTalents.length > this.tsrGenState.talentSlots) {
-      this.tsrGenState.selectedTalents = this.tsrGenState.selectedTalents.slice(0, this.tsrGenState.talentSlots);
+    while (this.getTsrSelectedTalentsSlotCount(this.tsrGenState.selectedTalents) > this.tsrGenState.talentSlots && this.tsrGenState.selectedTalents.length > 0) {
+      this.tsrGenState.selectedTalents.pop();
     }
     if (this.tsrGenState.selectedContacts.length > this.tsrGenState.contactSlots) {
       this.tsrGenState.selectedContacts = this.tsrGenState.selectedContacts.slice(0, this.tsrGenState.contactSlots);
@@ -20756,8 +20839,8 @@ const App = {
     if (!this.tsrGenState || !(this.tsrGenState.purchasedTalentSlots > 0)) return;
     this.tsrGenState.purchasedTalentSlots -= 1;
     this.tsrGenRecalcResources();
-    if (this.tsrGenState.selectedTalents.length > this.tsrGenState.talentSlots) {
-      this.tsrGenState.selectedTalents = this.tsrGenState.selectedTalents.slice(0, this.tsrGenState.talentSlots);
+    while (this.getTsrSelectedTalentsSlotCount(this.tsrGenState.selectedTalents) > this.tsrGenState.talentSlots && this.tsrGenState.selectedTalents.length > 0) {
+      this.tsrGenState.selectedTalents.pop();
     }
     this.renderTsrGeneratorUI();
     this.showStatusToast(`↩️ Refunded 1 Talent Slot (+1CS Resources → ${this.tsrGenState.resources.rankName}).`);
@@ -20875,9 +20958,10 @@ const App = {
     }
 
     // Check talent and contact slot limits
-    if (selectedTalents.length > talentSlots) {
+    const usedTalentSlots = this.getTsrSelectedTalentsSlotCount(selectedTalents);
+    if (usedTalentSlots > talentSlots) {
       await this.showCustomAlert(
-        `Cannot apply: You have chosen ${selectedTalents.length} talents, which exceeds your limit of ${talentSlots} talent slot(s).\n\nPlease deselect ${selectedTalents.length - talentSlots} talent(s) before applying.`,
+        `Cannot apply: Selected talents use ${usedTalentSlots} talent slots (Starred ★ talents count as 2 slots), which exceeds your limit of ${talentSlots} talent slot(s).\n\nPlease deselect talents before applying.`,
         'Talent Slot Limit Exceeded'
       );
       return;
@@ -21008,13 +21092,30 @@ const App = {
           : (typeof MSH_TALENTS !== 'undefined' ? MSH_TALENTS : (globalThis?.MSH_TALENTS || [])));
 
     selectedTalents.forEach(tName => {
-      const mshTal = allTalentsList.find(x => x.name === tName);
+      const cleanName = (tName || '').replace(/\*$/, '').trim().toLowerCase();
+      const mshTal = allTalentsList.find(x => 
+        (x.name && x.name.toLowerCase() === cleanName) ||
+        (x.name && x.name.replace(/\*$/, '').trim().toLowerCase() === cleanName) ||
+        (x.id && x.id.toLowerCase() === cleanName)
+      );
+      const isStarred = !!(mshTal?.isStarred);
+      const slots = mshTal?.slots || (isStarred ? 2 : 1);
+      const costCP = mshTal?.costCP !== undefined ? mshTal.costCP : (isStarred ? 20 : 10);
       this.character.talents.push({
         id: mshTal?.id || ('t_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4)),
+        talentId: mshTal?.id || null,
         name: tName,
-        category: mshTal?.category || 'General',
+        displayName: tName,
+        category: mshTal?.category || (mshTal?.group || 'General'),
         bonus: mshTal?.csBonus ? `+${mshTal.csBonus}CS ${mshTal.statAffected}` : (mshTal?.bonus || '+1CS'),
-        description: mshTal?.description || ''
+        description: mshTal?.description || '',
+        statAffected: mshTal?.statAffected || '',
+        csBonus: mshTal?.csBonus !== undefined ? mshTal.csBonus : null,
+        isStarred: isStarred,
+        slots: slots,
+        costCP: costCP,
+        allowsSpecialization: !!mshTal?.allowsSpecialization,
+        specialization: ''
       });
     });
 
@@ -21040,7 +21141,7 @@ const App = {
     this.character.currentKarma = this.character.calculateBaseKarma();
     this.character.isCreationSetupPending = false;
 
-    this.recordCharacterEdit(`Generated character via TSR 1986 Random Roll: ${origin.name} (${powers.length} powers [${usedPwrSlots}/${powerSlots} slots], ${selectedTalents.length} talents)`, 'creation');
+    this.recordCharacterEdit(`Generated character via TSR 1986 Random Roll: ${origin.name} (${powers.length} powers [${usedPwrSlots}/${powerSlots} slots], ${selectedTalents.length} talents [${usedTalentSlots}/${talentSlots} slots])`, 'creation');
     this.closeTsrGeneratorModal();
     this.saveState();
     this.render();

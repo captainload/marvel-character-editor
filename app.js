@@ -62,7 +62,7 @@ const App = {
     this.superiorOptionCost = !!val;
   },
   humanAbilityCaps: false,
-  VERSION: '1.6.02',
+  VERSION: '1.6.03',
   editLogFilter: 'all',
   editLogSearchQuery: '',
   BUILD_DATE: '2026-10-14',
@@ -1628,7 +1628,19 @@ const App = {
       btnCancelTsrGen.addEventListener('click', () => this.closeTsrGeneratorModal());
     }
     if (btnApplyTsrChar) {
-      btnApplyTsrChar.addEventListener('click', () => this.applyTsrGeneratedCharacter());
+      btnApplyTsrChar.addEventListener('click', (e) => {
+        if (e && e.stopPropagation) e.stopPropagation();
+        this.applyTsrGeneratedCharacter();
+      });
+    }
+    const modalTsrContainer = document.getElementById('modal-tsr-generator');
+    if (modalTsrContainer) {
+      modalTsrContainer.addEventListener('click', (e) => {
+        const applyBtn = e.target && e.target.closest && e.target.closest('#btn-apply-tsr-character');
+        if (applyBtn) {
+          this.applyTsrGeneratedCharacter();
+        }
+      });
     }
     const btnCloseTsrModeX = document.getElementById('btn-close-tsr-mode-modal-x');
     if (btnCloseTsrModeX) {
@@ -16540,10 +16552,15 @@ const App = {
         toast.style.transition = 'opacity 0.25s ease, transform 0.25s ease';
         toast.style.opacity = '0';
         toast.style.transform = 'translateY(10px)';
+        toast.style.pointerEvents = 'none';
+        toast.style.display = 'none';
         targetDoc.body.appendChild(toast);
       }
       toast.textContent = message;
+      toast.style.display = 'block';
       if (typeof actionCallback === 'function') {
+        toast.classList.add('has-action');
+        toast.style.pointerEvents = 'auto';
         toast.style.cursor = 'pointer';
         toast.onclick = (e) => {
           e.stopPropagation();
@@ -16551,19 +16568,35 @@ const App = {
             actionCallback();
           } catch (err) {}
           toast.style.opacity = '0';
+          toast.style.pointerEvents = 'none';
           toast.style.transform = 'translateY(10px)';
+          setTimeout(() => {
+            if (toast && toast.style.opacity === '0') {
+              toast.style.display = 'none';
+            }
+          }, 260);
         };
       } else {
+        toast.classList.remove('has-action');
+        toast.style.pointerEvents = 'none';
         toast.style.cursor = 'default';
         toast.onclick = null;
       }
+      // Force reflow
+      void toast.offsetHeight;
       toast.style.opacity = '1';
       toast.style.transform = 'translateY(0)';
       if (targetDoc._toastTimer) clearTimeout(targetDoc._toastTimer);
       targetDoc._toastTimer = setTimeout(() => {
         if (toast) {
           toast.style.opacity = '0';
+          toast.style.pointerEvents = 'none';
           toast.style.transform = 'translateY(10px)';
+          setTimeout(() => {
+            if (toast && toast.style.opacity === '0') {
+              toast.style.display = 'none';
+            }
+          }, 260);
         }
       }, duration);
     };
@@ -20922,8 +20955,11 @@ const App = {
 
   // Final Step: Apply to Character Sheet
   async applyTsrGeneratedCharacter() {
-    if (!this.tsrGenState || !this.character) return;
-    this.tsrGenSyncAbilitiesFromRolls();
+    if (this._isApplyingTsrCharacter) return;
+    this._isApplyingTsrCharacter = true;
+    try {
+      if (!this.tsrGenState || !this.character) return;
+      this.tsrGenSyncAbilitiesFromRolls();
     this.tsrGenRecalcResources();
     const popVal = this.tsrGenCalcPopularity();
     const {
@@ -21165,6 +21201,9 @@ const App = {
     this.saveState();
     this.render();
     this.showStatusToast('🎉 TSR 1986 character generated and applied to sheet!');
+    } finally {
+      this._isApplyingTsrCharacter = false;
+    }
   }
 };
 

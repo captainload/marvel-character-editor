@@ -1,7 +1,7 @@
 {
-  "version": "1.6.01",
+  "version": "1.6.02",
   "releaseDate": "2026-10-15",
   "name": "MSH RPGen",
   "repo": "https://github.com/captainload/marvel-character-editor",
-  "notes": "v1.6.01: Fixed random creation talent counting so 2-slot starred talents properly count as 2 slots during TSR random creation, validation, and manual assignment; eliminated inappropriate CP cost references under Talents & Contacts in random generation mode in favor of slot counts."
+  "notes": "v1.6.02: Added blue Finalize button next to creation modal buttons when all character criteria are satisfied; hid Character Advancement during creation until finalization is confirmed; enabled seamless mode conversion from CMF to TSR tables by automatically mapping CMF-only ranks (Fantastic 35 -> Remarkable 30, Spectacular 45 -> Incredible 40, Sensational 60 -> Amazing 50, Awesome 90 -> Unearthly 100) to TSR canonical rank numbers and names per official rank ranges."
 }

@@ -5,26 +5,26 @@
  * 2. Modified CMF Universal Table & Ranks (22 expanded ranks: +Fantastic 35, Spectacular 45, Sensational 60, Awesome 90, plus Blue Fumble column)
  */
 
-// 1. Canonical TSR Standard Ranks (18 Ranks)
+// 1. Canonical TSR Standard Ranks (18 Ranks, Advanced Set Player's Book p. 4)
 const STANDARD_RANKS = [
-  { name: "Shift 0", num: 0, abbr: "Sh0", color: "#64748b" },
-  { name: "Feeble", num: 2, abbr: "Fe", color: "#94a3b8" },
-  { name: "Poor", num: 4, abbr: "Pr", color: "#a1a1aa" },
-  { name: "Typical", num: 6, abbr: "Ty", color: "#10b981" },
-  { name: "Good", num: 10, abbr: "Gd", color: "#059669" },
-  { name: "Excellent", num: 20, abbr: "Ex", color: "#0284c7" },
-  { name: "Remarkable", num: 30, abbr: "Rm", color: "#2563eb" },
-  { name: "Incredible", num: 40, abbr: "In", color: "#7c3aed" },
-  { name: "Amazing", num: 50, abbr: "Am", color: "#9333ea" },
-  { name: "Monstrous", num: 75, abbr: "Mn", color: "#ea580c" },
-  { name: "Unearthly", num: 100, abbr: "Un", color: "#e11d48" },
-  { name: "Shift X", num: 150, abbr: "ShX", color: "#be123c" },
-  { name: "Shift Y", num: 250, abbr: "ShY", color: "#9f1239" },
-  { name: "Shift Z", num: 500, abbr: "ShZ", color: "#881337" },
-  { name: "Class 1000", num: 1000, abbr: "CL1000", color: "#d97706" },
-  { name: "Class 3000", num: 3000, abbr: "CL3000", color: "#b45309" },
-  { name: "Class 5000", num: 5000, abbr: "CL5000", color: "#78350f" },
-  { name: "Beyond", num: 10000, abbr: "Bey", color: "#f59e0b" }
+  { name: "Shift 0", num: 0, range: [0, 0], abbr: "Sh0", color: "#64748b" },
+  { name: "Feeble", num: 2, range: [1, 2], abbr: "Fe", color: "#94a3b8" },
+  { name: "Poor", num: 4, range: [3, 4], abbr: "Pr", color: "#a1a1aa" },
+  { name: "Typical", num: 6, range: [5, 7], abbr: "Ty", color: "#10b981" },
+  { name: "Good", num: 10, range: [8, 15], abbr: "Gd", color: "#059669" },
+  { name: "Excellent", num: 20, range: [16, 25], abbr: "Ex", color: "#0284c7" },
+  { name: "Remarkable", num: 30, range: [26, 35], abbr: "Rm", color: "#2563eb" },
+  { name: "Incredible", num: 40, range: [36, 45], abbr: "In", color: "#7c3aed" },
+  { name: "Amazing", num: 50, range: [46, 62], abbr: "Am", color: "#9333ea" },
+  { name: "Monstrous", num: 75, range: [63, 87], abbr: "Mn", color: "#ea580c" },
+  { name: "Unearthly", num: 100, range: [88, 125], abbr: "Un", color: "#e11d48" },
+  { name: "Shift X", num: 150, range: [126, 175], abbr: "ShX", color: "#be123c" },
+  { name: "Shift Y", num: 250, range: [176, 350], abbr: "ShY", color: "#9f1239" },
+  { name: "Shift Z", num: 500, range: [351, 750], abbr: "ShZ", color: "#881337" },
+  { name: "Class 1000", num: 1000, range: [751, 1999], abbr: "CL1000", color: "#d97706" },
+  { name: "Class 3000", num: 3000, range: [2000, 3999], abbr: "CL3000", color: "#b45309" },
+  { name: "Class 5000", num: 5000, range: [4000, 7499], abbr: "CL5000", color: "#78350f" },
+  { name: "Beyond", num: 10000, range: [7500, Infinity], abbr: "Bey", color: "#f59e0b" }
 ];
 
 // Standard TSR Universal Table: [Green Min, Yellow Min, Red Min]
@@ -142,6 +142,15 @@ const UniversalTableEngine = {
     if (!name) return this.ranks[3]; // Default Typical
     const norm = String(name).trim().toLowerCase();
     const clean = norm.replace(/[-_]/g, ' ');
+
+    // When in standard TSR mode, convert CMF-only rank names to TSR equivalents per official rank ranges
+    if (this.activeMode === 'standard') {
+      if (norm === 'fantastic' || norm === 'fa' || clean === 'fantastic') return STANDARD_RANKS.find(r => r.name === 'Remarkable');
+      if (norm === 'spectacular' || norm === 'sp' || clean === 'spectacular') return STANDARD_RANKS.find(r => r.name === 'Incredible');
+      if (norm === 'sensational' || norm === 'sn' || clean === 'sensational') return STANDARD_RANKS.find(r => r.name === 'Amazing');
+      if (norm === 'awesome' || norm === 'aw' || clean === 'awesome') return STANDARD_RANKS.find(r => r.name === 'Unearthly');
+    }
+
     // 1. Match in active table ranks
     let found = this.ranks.find(r => r.name.toLowerCase() === norm || r.name.toLowerCase() === clean || r.abbr.toLowerCase() === norm);
     if (found) return found;
@@ -174,6 +183,11 @@ const UniversalTableEngine = {
 
   getRankByNum(num) {
     const val = parseInt(num, 10) || 0;
+    // When in standard TSR mode, resolve by official rank ranges
+    if (this.activeMode === 'standard') {
+      const byRange = STANDARD_RANKS.find(r => r.range && val >= r.range[0] && val <= r.range[1]);
+      if (byRange) return byRange;
+    }
     let matched = this.ranks[0];
     for (let i = 0; i < this.ranks.length; i++) {
       if (this.ranks[i].num <= val) {
@@ -183,6 +197,25 @@ const UniversalTableEngine = {
       }
     }
     return matched;
+  },
+
+  getTsrRank(valOrName) {
+    if (valOrName === undefined || valOrName === null) return STANDARD_RANKS[3]; // Default Typical
+    if (typeof valOrName === 'string') {
+      const clean = valOrName.trim().toLowerCase();
+      if (clean === 'fantastic' || clean === 'fa') return STANDARD_RANKS.find(r => r.name === 'Remarkable');
+      if (clean === 'spectacular' || clean === 'sp') return STANDARD_RANKS.find(r => r.name === 'Incredible');
+      if (clean === 'sensational' || clean === 'sn') return STANDARD_RANKS.find(r => r.name === 'Amazing');
+      if (clean === 'awesome' || clean === 'aw') return STANDARD_RANKS.find(r => r.name === 'Unearthly');
+      const exact = STANDARD_RANKS.find(r => r.name.toLowerCase() === clean || r.abbr.toLowerCase() === clean);
+      if (exact) return exact;
+    }
+    const val = parseInt(valOrName, 10);
+    if (!isNaN(val)) {
+      const byRange = STANDARD_RANKS.find(r => r.range && val >= r.range[0] && val <= r.range[1]);
+      if (byRange) return byRange;
+    }
+    return this.getRankByName(valOrName);
   },
 
   applyColumnShift(rankName, shift) {

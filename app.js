@@ -62,7 +62,7 @@ const App = {
     this.superiorOptionCost = !!val;
   },
   humanAbilityCaps: false,
-  VERSION: '1.6.01',
+  VERSION: '1.6.02',
   editLogFilter: 'all',
   editLogSearchQuery: '',
   BUILD_DATE: '2026-10-14',
@@ -1962,6 +1962,10 @@ const App = {
     const karmaRankPill = document.getElementById('vital-karma-last-rank');
     if (karmaRankPill) {
       karmaRankPill.addEventListener('click', () => {
+        if (!this.character || !this.character.isCreationFinalized) {
+          this.showStatusToast('⚠️ Finalize character creation to unlock Character Advancement.');
+          return;
+        }
         if (this.karmaMode === 'session') {
           this.promptAdvancementModeSwitch();
         } else {
@@ -3264,6 +3268,20 @@ const App = {
       const curTierName = this.character ? this.getTierDisplayName(this.character.pointTier) : '300 CP';
       const curBudget = this.character ? (this.character.pointBudget || 300) : 300;
       btnSetHeroTier.title = `Current Hero Tier: ${curTierName} (${curBudget} CP budget). Click to open pop-up and set hero tier.`;
+    }
+
+    // Finalize Creation Button (Blue button, appears next to modal creation button when all criteria are satisfied)
+    const btnFinalizeCreation = document.getElementById('btn-finalize-creation');
+    const validation = (typeof this.getCreationValidationState === 'function') ? this.getCreationValidationState() : { ready: false };
+    const canFinalize = (!isFinalized && validation && validation.ready);
+    if (btnFinalizeCreation) {
+      btnFinalizeCreation.style.setProperty('display', canFinalize ? 'inline-flex' : 'none', 'important');
+    }
+
+    // Advancement Button: Hidden until character creation finalization is confirmed (eliminates warning popup)
+    const btnTopAdvancement = document.getElementById('btn-top-advancement');
+    if (btnTopAdvancement) {
+      btnTopAdvancement.style.setProperty('display', isFinalized ? 'inline-flex' : 'none', 'important');
     }
 
     if (creationTierContainer) {
@@ -9026,8 +9044,8 @@ const App = {
 
     // 1. Character Named
     const name = (this.character.name || '').trim();
-    if (!name || name === 'New Superhero' || name === 'New Character') {
-      unmet.push('Enter a custom Hero / Codename (currently "New Superhero" or empty)');
+    if (!name) {
+      unmet.push('Enter a Hero / Codename');
     }
 
     // 2. Physical Form Decided
@@ -13197,16 +13215,7 @@ const App = {
     const isCurrentTsr = normCurrent.startsWith('tsr-');
     const isTargetTsr = normTarget.startsWith('tsr-');
 
-    // Moving to TSR ruleset with CMF-exclusive ranks
-    if (isTargetTsr && !isCurrentTsr) {
-      if (this.hasCmfExclusiveRanks(character)) {
-        return {
-          feasible: false,
-          reason: 'Character possesses CMF-exclusive ranks (Fantastic, Spectacular, Sensational, or Awesome) that do not exist in the 18-rank TSR ruleset.'
-        };
-      }
-    }
-
+    // Conversion is feasible: CMF-only ranks automatically convert to their TSR equivalent numbers & names
     return { feasible: true };
   },
 
@@ -13260,6 +13269,8 @@ const App = {
       this.character.isCreationSetupPending = false;
     }
 
+    const hadCmfRanks = this.hasCmfExclusiveRanks(this.character);
+
     // 2. Update Universal Table mode if changing ruleset
     if (this.universalTableMode !== targetTableMode) {
       this.setUniversalTableMode(targetTableMode, true, false);
@@ -13271,10 +13282,16 @@ const App = {
     }
 
     // 4. Record history edit and toast
-    this.character.recordEdit(`Build converted to ${dispName}`, 'creation');
+    const editMsg = (isTargetTsr && hadCmfRanks)
+      ? `Build converted to ${dispName} (CMF ranks converted to TSR equivalents)`
+      : `Build converted to ${dispName}`;
+    this.character.recordEdit(editMsg, 'creation');
     this.saveState();
     this.render();
-    this.showStatusToast(`Build converted to ${dispName}.`);
+    const toastMsg = (isTargetTsr && hadCmfRanks)
+      ? `Build converted to ${dispName}. CMF ranks converted to TSR equivalents.`
+      : `Build converted to ${dispName}.`;
+    this.showStatusToast(toastMsg);
   },
 
   async handleModeChange(mode) {
@@ -16919,10 +16936,12 @@ const App = {
 
   async promptAdvancementModeSwitch() {
     if (this.character && !this.character.isCreationFinalized) {
+      const isTsr = (this.character.creationMode === 'tsr');
+      const creationMsg = isTsr
+        ? 'Trait Advancement via Karma is unavailable during the Character Creation Phase.\n\nFinalize character creation when your build is complete to transition to active Session Play and unlock Karma advancement.'
+        : 'Trait Advancement via Karma is unavailable during the Character Creation Phase.\n\nDuring character creation, traits and rank increases are purchased freely using Character Points (CP).\n\nFinalize character creation when your build is complete to transition to active Session Play and unlock Karma advancement.';
       await this.showCustomAlert(
-        'Trait Advancement via Karma is unavailable during the Character Creation Phase.\n\n' +
-        'During character creation, traits and rank increases are purchased freely using Character Points (CP).\n\n' +
-        'Finalize character creation when your build is complete to transition to active Session Play and unlock Karma advancement.',
+        creationMsg,
         'Creation Phase Active'
       );
       return;

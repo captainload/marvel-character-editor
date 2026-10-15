@@ -561,15 +561,36 @@ class FASERIPCharacter {
   syncRanksToActiveScheme() {
     if (typeof UniversalTableEngine === 'undefined') return;
 
+    const convertRank = (rankName, rankValue) => {
+      let targetObj = null;
+      if (UniversalTableEngine.activeMode === 'standard') {
+        if (typeof UniversalTableEngine.getTsrRank === 'function') {
+          targetObj = UniversalTableEngine.getTsrRank((rankValue !== undefined && rankValue !== null) ? rankValue : rankName);
+        } else {
+          targetObj = UniversalTableEngine.getRankByNum(rankValue) || UniversalTableEngine.getRankByName(rankName);
+        }
+      } else {
+        targetObj = (rankValue !== undefined && rankValue !== null)
+          ? UniversalTableEngine.getRankByNum(rankValue)
+          : UniversalTableEngine.getRankByName(rankName);
+      }
+      return {
+        rankName: targetObj ? targetObj.name : rankName,
+        rankValue: targetObj ? targetObj.num : rankValue
+      };
+    };
+
     // Sync primary abilities
     for (const key of ['fighting', 'agility', 'strength', 'endurance', 'reason', 'intuition', 'psyche']) {
       if (this.abilities && this.abilities[key]) {
         const ab = this.abilities[key];
-        const rankObj = UniversalTableEngine.getRankByNum(ab.rankValue);
-        ab.rankName = rankObj.name;
-        if (ab.baseRankValue !== undefined) {
-          const baseObj = UniversalTableEngine.getRankByNum(ab.baseRankValue);
-          ab.baseRankName = baseObj.name;
+        const res = convertRank(ab.rankName, ab.rankValue);
+        ab.rankName = res.rankName;
+        ab.rankValue = res.rankValue;
+        if (ab.baseRankValue !== undefined || ab.baseRankName !== undefined) {
+          const baseRes = convertRank(ab.baseRankName, ab.baseRankValue);
+          ab.baseRankName = baseRes.rankName;
+          ab.baseRankValue = baseRes.rankValue;
         }
       }
     }
@@ -579,34 +600,48 @@ class FASERIPCharacter {
       for (const key of ['fighting', 'agility', 'strength', 'endurance', 'reason', 'intuition', 'psyche']) {
         if (this.individualAbilities[key]) {
           const ab = this.individualAbilities[key];
-          const rankObj = UniversalTableEngine.getRankByNum(ab.rankValue);
-          ab.rankName = rankObj.name;
-          if (ab.baseRankValue !== undefined) {
-            const baseObj = UniversalTableEngine.getRankByNum(ab.baseRankValue);
-            ab.baseRankName = baseObj.name;
+          const res = convertRank(ab.rankName, ab.rankValue);
+          ab.rankName = res.rankName;
+          ab.rankValue = res.rankValue;
+          if (ab.baseRankValue !== undefined || ab.baseRankName !== undefined) {
+            const baseRes = convertRank(ab.baseRankName, ab.baseRankValue);
+            ab.baseRankName = baseRes.rankName;
+            ab.baseRankValue = baseRes.rankValue;
           }
         }
       }
     }
 
     // Sync resources
-    if (this.resources && this.resources.rankValue !== undefined) {
-      const resObj = UniversalTableEngine.getRankByNum(this.resources.rankValue);
-      this.resources.rankName = resObj.name;
-      if (this.resources.baseRankValue !== undefined) {
-        const baseResObj = UniversalTableEngine.getRankByNum(this.resources.baseRankValue);
-        this.resources.baseRankName = baseResObj.name;
+    if (this.resources) {
+      const res = convertRank(this.resources.rankName, this.resources.rankValue);
+      this.resources.rankName = res.rankName;
+      this.resources.rankValue = res.rankValue;
+      if (this.resources.baseRankValue !== undefined || this.resources.baseRankName !== undefined) {
+        const baseRes = convertRank(this.resources.baseRankName, this.resources.baseRankValue);
+        this.resources.baseRankName = baseRes.rankName;
+        this.resources.baseRankValue = baseRes.rankValue;
       }
     }
 
     // Sync powers
     if (Array.isArray(this.powers)) {
       this.powers.forEach(p => {
-        if (p.rankValue !== undefined) {
-          const pRankObj = UniversalTableEngine.getRankByNum(p.rankValue);
-          p.rankName = pRankObj.name;
+        if (p.rankValue !== undefined || p.rankName !== undefined) {
+          const res = convertRank(p.rankName, p.rankValue);
+          p.rankName = res.rankName;
+          p.rankValue = res.rankValue;
+        }
+        if (p.originalRolledRankValue !== undefined || p.originalRolledRank !== undefined) {
+          const origRes = convertRank(p.originalRolledRank, p.originalRolledRankValue);
+          p.originalRolledRank = origRes.rankName;
+          p.originalRolledRankValue = origRes.rankValue;
         }
       });
+    }
+
+    if (typeof this.calculateMaxHealth === 'function') {
+      this.currentHealth = this.calculateMaxHealth();
     }
   }
 

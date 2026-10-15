@@ -738,6 +738,19 @@ body {
   background: #be123c;
 }
 
+.btn-finalize {
+  background: #2563eb !important;
+  border-color: #3b82f6 !important;
+  color: #ffffff !important;
+  box-shadow: 0 0 10px rgba(37, 99, 235, 0.45);
+}
+
+.btn-finalize:hover {
+  background: #1d4ed8 !important;
+  border-color: #60a5fa !important;
+  box-shadow: 0 0 14px rgba(59, 130, 246, 0.7);
+}
+
 .icon-btn:disabled,
 .icon-btn[disabled] {
   opacity: 0.45 !important;

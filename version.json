@@ -1,7 +1,7 @@
 {
-  "version": "1.6.06",
+  "version": "1.6.07",
   "releaseDate": "2026-10-15",
   "name": "MSH RPGen",
   "repo": "https://github.com/captainload/marvel-character-editor",
-  "notes": "v1.6.06: Fixed point-buy mode trait unlocking ensuring abilities, powers, talents, and contacts are immediately accessible for purchase and rank assignment; resolved issue where random mode pre-selected Law Enforcement/Police or Scientific/Academic contacts upon creation."
+  "notes": "v1.6.07: Added universal Enter key handling across all text, number, and action fields (hero name, bio attributes, conditions, contacts, talent specializations, power pools, and settings) to immediately commit edits, save character state, and exit the field."
 }

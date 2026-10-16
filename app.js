@@ -62,7 +62,7 @@ const App = {
     this.superiorOptionCost = !!val;
   },
   humanAbilityCaps: false,
-  VERSION: '1.6.06',
+  VERSION: '1.6.07',
   editLogFilter: 'all',
   editLogSearchQuery: '',
   BUILD_DATE: '2026-10-15',
@@ -911,6 +911,18 @@ const App = {
           inp.value = '';
           this.saveState();
           this.renderConditions();
+          inp.blur();
+        }
+      });
+    }
+
+    const inputNewCond = document.getElementById('input-new-condition');
+    if (inputNewCond) {
+      inputNewCond.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          if (addCondBtn) addCondBtn.click();
+          inputNewCond.blur();
         }
       });
     }
@@ -1141,8 +1153,24 @@ const App = {
         if (e.key === 'Enter') {
           e.preventDefault();
           this.handleAddTalent(e);
+          inputTalentSpec.blur();
         }
       });
+    }
+
+    const handleContactEnter = (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        this.handleAddContact();
+      }
+    };
+    const inputContactName = document.getElementById('input-contact-name');
+    if (inputContactName) {
+      inputContactName.addEventListener('keydown', handleContactEnter);
+    }
+    const inputContactRole = document.getElementById('input-contact-role');
+    if (inputContactRole) {
+      inputContactRole.addEventListener('keydown', handleContactEnter);
     }
 
     const addContactBtn = document.getElementById('btn-add-contact');
@@ -1684,6 +1712,7 @@ const App = {
           this.renderTsrModeDialog();
           this.showStatusToast(val > 0 ? `Campaign KP limit set to ${val.toLocaleString()} KP.` : 'Campaign KP limit set to Unlimited.');
         }
+        if (inp) inp.blur();
       });
     }
     const inpModeledKpLimit = document.getElementById('input-tsr-modeled-kp-limit');
@@ -1693,6 +1722,7 @@ const App = {
           e.preventDefault();
           const btn = document.getElementById('btn-save-modeled-kp-limit');
           if (btn) btn.click();
+          inpModeledKpLimit.blur();
         }
       });
     }
@@ -2243,6 +2273,9 @@ const App = {
           this.openPrintPreview();
           return;
         }
+        if (e.key === 'Enter') {
+          this.handleGlobalEnter(e);
+        }
         if (e.key === 'Escape') {
           this.handleGlobalEscape(e);
         }
@@ -2606,6 +2639,88 @@ const App = {
         }
       });
     }
+  },
+
+  handleGlobalEnter(e) {
+    if (!e || e.key !== 'Enter') return;
+
+    const doc = (e.target && e.target.ownerDocument) ? e.target.ownerDocument : (typeof document !== 'undefined' ? document : null);
+    const activeEl = e.target || (doc ? doc.activeElement : null);
+    if (!activeEl) return;
+
+    const tagName = (activeEl.tagName || '').toUpperCase();
+    const type = (activeEl.type || '').toLowerCase();
+
+    // If textarea: only commit/exit on Ctrl+Enter or Cmd+Enter to preserve natural multiline typing
+    if (tagName === 'TEXTAREA') {
+      if (e.ctrlKey || e.metaKey) {
+        e.preventDefault();
+        activeEl.dispatchEvent(new Event('change', { bubbles: true }));
+        this.saveState();
+        activeEl.blur();
+      }
+      return;
+    }
+
+    // Only process text-like input fields or contenteditable
+    const isTextInput = (tagName === 'INPUT' && !['button', 'submit', 'reset', 'checkbox', 'radio', 'file', 'range', 'color', 'image'].includes(type));
+    const isEditable = isTextInput || activeEl.isContentEditable;
+
+    if (!isEditable) return;
+
+    // Specific action fields that have explicit "Add" or action buttons:
+    const id = activeEl.id || '';
+
+    if (id === 'input-new-condition') {
+      e.preventDefault();
+      const val = activeEl.value.trim();
+      if (val && this.character) {
+        this.character.addCondition(val);
+        activeEl.value = '';
+        this.saveState();
+        this.renderConditions();
+      }
+      activeEl.blur();
+      return;
+    }
+
+    if (id === 'input-contact-name' || id === 'input-contact-role') {
+      e.preventDefault();
+      this.handleAddContact();
+      const nInp = doc ? doc.getElementById('input-contact-name') : null;
+      const rInp = doc ? doc.getElementById('input-contact-role') : null;
+      if (nInp) nInp.blur();
+      if (rInp) rInp.blur();
+      return;
+    }
+
+    if (id === 'input-talent-specialization') {
+      e.preventDefault();
+      this.handleAddTalent(e);
+      activeEl.blur();
+      return;
+    }
+
+    if (id === 'tsr-custom-contact-input') {
+      e.preventDefault();
+      this.tsrGenAddCustomContact();
+      activeEl.blur();
+      return;
+    }
+
+    if (id === 'input-tsr-modeled-kp-limit') {
+      e.preventDefault();
+      const btn = doc ? doc.getElementById('btn-save-modeled-kp-limit') : null;
+      if (btn) btn.click();
+      activeEl.blur();
+      return;
+    }
+
+    // General text/number input or contenteditable:
+    e.preventDefault();
+    activeEl.dispatchEvent(new Event('change', { bubbles: true }));
+    this.saveState();
+    activeEl.blur();
   },
 
   handleGlobalEscape(e) {
@@ -4586,7 +4701,10 @@ const App = {
         };
         if (setBtn) setBtn.addEventListener('click', applyDirect);
         if (directInput) directInput.addEventListener('keydown', (e) => {
-          if (e.key === 'Enter') applyDirect(e);
+          if (e.key === 'Enter') {
+            applyDirect(e);
+            directInput.blur();
+          }
         });
 
         card.appendChild(poolDiv);
@@ -8780,6 +8898,10 @@ const App = {
 
     // Bind event listeners on popDoc for cross-window reliability
     if (popDoc.addEventListener) {
+      popDoc.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') this.handleGlobalEnter(e);
+        if (e.key === 'Escape') this.handleGlobalEscape(e);
+      });
       popDoc.addEventListener('click', (e) => {
         const btn = e.target.closest && e.target.closest('button');
         if (!btn) return;
@@ -11152,6 +11274,7 @@ const App = {
 
     if (specInput) {
       specInput.value = '';
+      specInput.blur();
     }
 
     this.recordCharacterEdit(`Added talent: ${catTalent.name}`, 'talent');
@@ -11184,9 +11307,15 @@ const App = {
         this.applySwitchToModeledMode();
       }
     }
-    const name = document.getElementById('input-contact-name').value.trim();
-    const role = document.getElementById('input-contact-role').value.trim() || 'Ally';
-    if (!name) return;
+    const nameInp = document.getElementById('input-contact-name');
+    const roleInp = document.getElementById('input-contact-role');
+    const name = nameInp ? nameInp.value.trim() : '';
+    const role = (roleInp ? roleInp.value.trim() : '') || 'Ally';
+    if (!name) {
+      if (nameInp) nameInp.blur();
+      if (roleInp) roleInp.blur();
+      return;
+    }
 
     this.character.contacts.push({
       id: 'c_' + Date.now(),
@@ -11195,8 +11324,14 @@ const App = {
       notes: `Trusted contact and ally in ${role}.`
     });
 
-    document.getElementById('input-contact-name').value = '';
-    document.getElementById('input-contact-role').value = '';
+    if (nameInp) {
+      nameInp.value = '';
+      nameInp.blur();
+    }
+    if (roleInp) {
+      roleInp.value = '';
+      roleInp.blur();
+    }
 
     this.recordCharacterEdit(`Added contact: ${name} (${role})`, 'talent');
     this.render();
@@ -11971,6 +12106,13 @@ const App = {
     if (popBtn) {
       popBtn.textContent = '↘ Dock';
       popBtn.title = 'Dock roller back into main sheet window';
+    }
+
+    if (popDoc.addEventListener) {
+      popDoc.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') this.handleGlobalEnter(e);
+        if (e.key === 'Escape') this.handleGlobalEscape(e);
+      });
     }
 
     // Track resizing and movements
@@ -13751,6 +13893,10 @@ const App = {
 
     // Bind event listeners on popDoc for cross-window reliability
     if (popDoc.addEventListener) {
+      popDoc.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') this.handleGlobalEnter(e);
+        if (e.key === 'Escape') this.handleGlobalEscape(e);
+      });
 
       popDoc.addEventListener('click', (e) => {
         const btn = e.target.closest && e.target.closest('button');
@@ -20199,6 +20345,10 @@ const App = {
         if (e.target && e.target.id === 'tsr-custom-contact-input' && e.key === 'Enter') {
           e.preventDefault();
           this.tsrGenAddCustomContact();
+        } else if (e.key === 'Enter') {
+          this.handleGlobalEnter(e);
+        } else if (e.key === 'Escape') {
+          this.handleGlobalEscape(e);
         }
       });
       popDoc.addEventListener('change', (e) => {
@@ -22173,19 +22323,24 @@ const App = {
 
   tsrGenAddCustomContact() {
     if (!this.tsrGenState) return;
-    if (this.tsrGenState.selectedContacts && this.tsrGenState.selectedContacts.length >= this.tsrGenState.contactSlots) {
-      this.showStatusToast(`⚠️ Cannot add more than ${this.tsrGenState.contactSlots} contact slot(s).`);
-      return;
-    }
     const inp = this.getTsrEl('tsr-custom-contact-input');
     if (!inp) return;
+    if (this.tsrGenState.selectedContacts && this.tsrGenState.selectedContacts.length >= this.tsrGenState.contactSlots) {
+      this.showStatusToast(`⚠️ Cannot add more than ${this.tsrGenState.contactSlots} contact slot(s).`);
+      inp.blur();
+      return;
+    }
     const val = inp.value.trim();
-    if (!val) return;
+    if (!val) {
+      inp.blur();
+      return;
+    }
     if (!this.tsrGenState.selectedContacts) this.tsrGenState.selectedContacts = [];
     if (!this.tsrGenState.selectedContacts.includes(val)) {
       this.tsrGenState.selectedContacts.push(val);
     }
     inp.value = '';
+    inp.blur();
     this.renderTsrGeneratorUI();
     this.showStatusToast(`Added custom contact: "${val}"`);
   },

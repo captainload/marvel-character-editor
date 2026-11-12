@@ -1,7 +1,7 @@
 {
-  "version": "1.6.08",
+  "version": "1.6.09",
   "releaseDate": "2026-11-12",
   "name": "MSH RPGen",
   "repo": "https://github.com/captainload/marvel-character-editor",
-  "notes": "v1.6.08: Updated equipment table and inventory in Manilla theme to use the uniform lighter background (#f0ede6) instead of alternating white and grey rows."
+  "notes": "v1.6.09: Eliminated the '?' button column in Equipment table and inventory cards, turning item names into clickable links that open full description popups; deepened the light blue in Damage/Protection to a richer, higher-contrast shade."
 }

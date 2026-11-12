@@ -62,7 +62,7 @@ const App = {
     this.superiorOptionCost = !!val;
   },
   humanAbilityCaps: false,
-  VERSION: '1.6.08',
+  VERSION: '1.6.09',
   editLogFilter: 'all',
   editLogSearchQuery: '',
   BUILD_DATE: '2026-11-12',
@@ -7805,14 +7805,13 @@ const App = {
           tr.innerHTML = `
             <td>
               <div style="display: flex; align-items: center; gap: 6px;">
-                <button type="button" class="help-circle-btn" data-help-equip="${item.id}" title="View details of ${item.name}">?</button>
-                <strong class="eq-item-name">${item.name}</strong> ${item.isUnique ? '<span class="meta-tag tag-unique">Unique</span>' : ''}
+                <a href="#" class="eq-item-name-link" data-help-equip="${item.id}" title="View details of ${item.name}">${item.name}</a> ${item.isUnique ? '<span class="meta-tag tag-unique">Unique</span>' : ''}
               </div>
             </td>
             <td><span class="meta-tag">${item.category}</span></td>
             <td>${accessBadge}</td>
             <td>${costDisplay}</td>
-            <td style="color: #38bdf8; font-weight: 600;" title="${String(rawDmg).replace(/"/g, '&quot;')}">${dmgProt}</td>
+            <td class="eq-dmg-prot" style="color: #0284c7; font-weight: 600;" title="${String(rawDmg).replace(/"/g, '&quot;')}">${dmgProt}</td>
             <td><div class="store-desc-clamp" data-desc-full="${(item.description || '').replace(/"/g, '&quot;')}" data-desc-title="${(item.name || '').replace(/"/g, '&quot;')}">${item.description || '--'}</div></td>
             <td style="text-align: center;">
               <button class="icon-btn primary btn-store-procure" style="padding: 4px 6px; min-height: 32px; font-size: 10pt;" data-procure-item="${item.id}" title="Open procurement window to evaluate Resources and acquire per TSR rules">
@@ -7824,8 +7823,16 @@ const App = {
           const helpBtn = tr.querySelector('[data-help-equip]');
           if (helpBtn) {
             helpBtn.addEventListener('click', (e) => {
+              e.preventDefault();
               e.stopPropagation();
               this.showHelpModal('equipment', item.id);
+            });
+            helpBtn.addEventListener('keydown', (e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                e.stopPropagation();
+                this.showHelpModal('equipment', item.id);
+              }
             });
           }
 
@@ -7870,8 +7877,7 @@ const App = {
           card.innerHTML = `
             <div class="attack-header">
               <div style="display: flex; align-items: center; gap: 6px;">
-                <button type="button" class="help-circle-btn" data-help-gear="${idx}" title="View details of ${eq.name}">?</button>
-                <strong style="color: #38bdf8; font-size: 11pt;">${eq.name}</strong>
+                <a href="#" class="eq-item-name-link" data-help-gear="${idx}" title="View details of ${eq.name}" style="font-size: 11pt;">${eq.name}</a>
               </div>
               <div style="display: flex; gap: 8px; align-items: center;">
                 <label class="checkbox-label"><input type="checkbox" data-equip-toggle="${idx}" ${eq.equipped ? 'checked' : ''}> Equipped</label>
@@ -7880,7 +7886,7 @@ const App = {
             </div>
             <div class="attack-meta">
               <span class="meta-tag">${eq.type}</span>
-              ${eq.damage ? `<span class="meta-tag" style="color:#38bdf8;" title="${String(eq.damage).replace(/"/g, '&quot;')}">${this.formatShortRankInText(eq.damage)}</span>` : ''}
+              ${eq.damage ? `<span class="meta-tag eq-dmg-prot" style="color:#0284c7;" title="${String(eq.damage).replace(/"/g, '&quot;')}">${this.formatShortRankInText(eq.damage)}</span>` : ''}
               <span class="meta-tag">Range: ${eq.range || 'Contact'}</span>
               <span class="meta-tag">Material: ${eq.materialStrength || 'Good'}</span>
             </div>
@@ -7889,8 +7895,17 @@ const App = {
 
           const helpGearBtn = card.querySelector(`[data-help-gear="${idx}"]`);
           if (helpGearBtn) {
-            helpGearBtn.addEventListener('click', () => {
+            helpGearBtn.addEventListener('click', (e) => {
+              e.preventDefault();
+              e.stopPropagation();
               this.showHelpModal('equipment', eq.name || eq.id);
+            });
+            helpGearBtn.addEventListener('keydown', (e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                e.stopPropagation();
+                this.showHelpModal('equipment', eq.name || eq.id);
+              }
             });
           }
 
@@ -14227,6 +14242,7 @@ const App = {
   },
 
   showHelpModal(type, queryKey) {
+    try { if (typeof window !== 'undefined' && window.focus) window.focus(); } catch (e) {}
     const modal = document.getElementById('help-modal');
     const titleEl = document.getElementById('help-title');
     const bodyEl = document.getElementById('help-body');
@@ -14457,7 +14473,7 @@ const App = {
             ${item.materialStrength ? `<span class="meta-tag">Material: ${item.materialStrength}</span>` : ''}
             ${item.range ? `<span class="meta-tag">Range: ${item.range}</span>` : ''}
             ${item.rateOfFire ? `<span class="meta-tag">ROF: ${item.rateOfFire}</span>` : ''}
-            ${item.damage ? `<span class="meta-tag" style="color: #38bdf8;">Damage / Effect: ${item.damage}</span>` : ''}
+            ${item.damage ? `<span class="meta-tag eq-dmg-prot" style="color: #0284c7;">Damage / Effect: ${item.damage}</span>` : ''}
           </div>
           <div class="rulebook-desc" style="margin: 12px 0; line-height: 1.6; font-size: 10.5pt;">
             ${item.description || item.notes || 'Standard equipment specification.'}

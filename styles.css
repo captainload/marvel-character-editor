@@ -2720,6 +2720,34 @@ body.touch-friendly .divider-grip-line {
   white-space: nowrap;
 }
 
+/* Equipment Store & Inventory Item Name Links and Damage/Protection */
+.eq-item-name-link {
+  color: #f1f5f9;
+  font-weight: 700;
+  text-decoration: underline dotted rgba(255, 255, 255, 0.45);
+  text-underline-offset: 3px;
+  cursor: pointer;
+  background: transparent;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font-family: inherit;
+  font-size: 10pt;
+  display: inline;
+  text-align: left;
+  transition: color 0.15s ease, text-decoration 0.15s ease;
+}
+
+.eq-item-name-link:hover {
+  color: var(--marvel-gold, #f59e0b);
+  text-decoration: underline solid var(--marvel-gold, #f59e0b);
+}
+
+.eq-dmg-prot {
+  color: #0284c7;
+  font-weight: 600;
+}
+
 /* Store Description Hover Popover Tooltip (Persistent on hover) */
 .store-desc-popover {
   position: fixed;
@@ -7620,6 +7648,21 @@ body[data-theme="manilla"] #equipment-container .attack-card {
   background: #f0ede6 !important;
 }
 
+body[data-theme="manilla"] .eq-item-name-link {
+  color: #000000 !important;
+  text-decoration: underline dotted #64748b;
+}
+
+body[data-theme="manilla"] .eq-item-name-link:hover {
+  color: #b91c1c !important;
+  text-decoration: underline solid #b91c1c;
+}
+
+body[data-theme="manilla"] .eq-dmg-prot {
+  color: #0369a1 !important;
+  font-weight: 700;
+}
+
 body[data-theme="manilla"] .store-desc-clamp,
 body[data-theme="manilla"] #cheatsheet-modal .cheat-text {
   color: #000000;
@@ -9316,6 +9359,20 @@ body[data-theme="aqua"] .store-wide-table td {
 
 body[data-theme="aqua"] .store-wide-table tr:hover {
   background: #1c497d;
+}
+
+body[data-theme="aqua"] .eq-item-name-link {
+  color: #f0fdfa;
+  text-decoration: underline dotted rgba(125, 211, 252, 0.5);
+}
+
+body[data-theme="aqua"] .eq-item-name-link:hover {
+  color: #38bdf8;
+  text-decoration: underline solid #38bdf8;
+}
+
+body[data-theme="aqua"] .eq-dmg-prot {
+  color: #0284c7;
 }
 
 body[data-theme="aqua"] .store-cost-tag {

@@ -648,7 +648,7 @@
           </div>
           <div class="topic-body">
             <p>
-              The program provides comprehensive, first-class support for both <strong>Vanilla TSR MSHRPG</strong> (canonical 1986 Advanced Set / 1984 Basic Set) and <strong>Classic Marvel Forever (CMF)</strong>. You can switch between these modes seamlessly at any time via the <strong>Build Mode</strong> dropdown on the creation toolbar or directly from the <strong>Rules Cheat Sheet</strong>.
+              The program provides comprehensive, first-class support for both <strong>Vanilla TSR MSHRPG</strong> (canonical 1986 Advanced Set / 1984 Basic Set) and <strong>Classic Marvel Forever (CMF)</strong>. You can switch between rulesets and creation methods seamlessly at any time using the <strong>Mode:</strong> dropdown on the persistent top toolbar, or via <strong>📁 File / Options ▾ &rarr; 🔄 Choose Mode...</strong>.
             </p>
 
             <h3>Side-by-Side System Comparison</h3>
@@ -675,7 +675,7 @@
                   <tr>
                     <td><strong>Character Creation</strong></td>
                     <td>Random dice generation or fixed archetype templates</td>
-                    <td><strong>Flexible Point-Buy:</strong> Tier budgets (400, 600, 800, 1000, 1200, 1500 CP) with point-by-point purchasing</td>
+                    <td><strong>Flexible Point-Buy:</strong> Standard tier budgets (150, 200, 300 default, 400, 500, 600, 800 CP, or custom) with point-by-point purchasing</td>
                   </tr>
                   <tr>
                     <td><strong>Ground Movement</strong></td>
@@ -728,14 +728,21 @@
               </div>
             </div>
 
-            <h3>How to Switch Rulesets</h3>
+            <h3>How to Switch Rulesets &amp; Creation Modes</h3>
+            <p>
+              Rulesets and character generation schemes are not toggled in general preferences; instead, they are unified under the <strong>Mode:</strong> dropdown selector located prominently in the persistent top toolbar (and also available via <strong>📁 File / Options ▾ &rarr; 🔄 Choose Mode...</strong>):
+            </p>
             <ol class="step-list">
-              <li>Click <strong>📁 File / Options ▾</strong> in the top header and select <strong>⚙️ Preferences &amp; Options...</strong></li>
-              <li>Under <strong>Universal Action Table Mode</strong>, toggle between:
-                <br>• <code>Modified CMF (22 Ranks - Default)</code>
-                <br>• <code>Standard TSR (18 Ranks)</code>
+              <li>Click the <strong>Mode:</strong> dropdown in the top header (right next to your character name).</li>
+              <li>Select your desired combination of character generation style and Universal Action Table ruleset:
+                <br>• <strong>🎲 TSR random with TSR tables:</strong> Canonical 1986 random rolling rules with the 18-rank standard table.
+                <br>• <strong>🎲 TSR random with CMF tables:</strong> Canonical 1986 rolling mapped to the 22-rank CMF table with Dark Blue Fumbles.
+                <br>• <strong>📐 TSR modeled with TSR tables:</strong> Free-form trait assignment with Karma Point (KP) tracking and 18 ranks.
+                <br>• <strong>📐 TSR modeled with CMF tables:</strong> Free-form modeling with 22 ranks and Karma Point (KP) tracking.
+                <br>• <strong>⚖️ CMF point buy with TSR tables:</strong> Point-buy CP budgets with 18-rank TSR progressions.
+                <br>• <strong>⚖️ CMF point buy with CMF tables (Default):</strong> Point-buy CP budgets with 22-rank CMF progressions.
               </li>
-              <li>Click <strong>Save &amp; Close</strong>. The dice roller, Universal Action Table matrix, combat maneuvers, and cheat sheet instantly re-render according to your selection.</li>
+              <li>The active ruleset applies immediately. The Universal Action Table matrix, 3D dice roller color bands, combat maneuvers, movement speeds, material strengths, and character sheet dropdowns instantly re-render across the entire workstation and all popped-out windows.</li>
             </ol>
           </div>
         </article>
@@ -830,15 +837,34 @@
               <li><strong>Resetting Starting Budget:</strong> To adjust or reset your character's starting budget after creation, start a new character or roll back to the first character save point in <strong>Revision History</strong>. The first save point occurs immediately after the hero name, CP allotment, and physical form are chosen.</li>
             </ul>
 
-            <h3>New Character Generation Mode Prompt (TSR Standard, TSR Modeled, CMF Point-Buy)</h3>
+            <h3>Character Creation Modes &amp; Universal Table Selection (6 Total Modes)</h3>
             <p>
-              When a new character is created (via <em>File &gt; New Character</em> or on initial launch without a saved character), the application presents an interactive <strong>Generation Mode Selection</strong> dialog allowing players to choose their desired ruleset and creation method:
+              When a new character is created (via <em>File &gt; New Character</em>, <em>File &gt; Choose Mode...</em>, or the persistent toolbar <strong>Mode:</strong> dropdown), the application provides <strong>6 distinct creation modes</strong> grouped into two major ruleset traditions:
             </p>
-            <ul class="feature-list">
-              <li><strong>🎲 TSR Standard (1986 Random Roll):</strong> Canonical 1986 Player's Book rolling rules. Roll Origin on UPB Table 1, FASERIP abilities on Table 1, power slots on Table 2, and talents/contacts using the interactive 3D dice generator. Rolled slot limits are strictly enforced. Characters can graduate to Modeled mode at any time.</li>
-              <li><strong>📐 TSR Modeled (Free-Form):</strong> Free-form TSR character modeling without random roll tables or slot constraints. Directly assign FASERIP abilities, superpower ranks, and traits. Trait costs are tracked in real-time in <strong>Karma Points (KP)</strong> with optional GM campaign budget limits.</li>
-              <li><strong>⚖️ CMF Point-Buy:</strong> Classic Marvel Forever point-buy system. Start with a Character Point budget (300 CP default tier), choose a starting Physical Form with attribute modifiers, and spend points to purchase abilities and powers. Opens the Character Creation Setup Wizard.</li>
-            </ul>
+            <div class="comparison-grid" style="margin-bottom: 16px;">
+              <div class="comparison-box">
+                <div class="comparison-box-title" style="color: #60a5fa;">
+                  <span>🏛️ TSR Canonical Ruleset (18 Ranks)</span>
+                  <span class="badge badge-blue">Standard Table</span>
+                </div>
+                <ul class="feature-list">
+                  <li><strong>🎲 TSR Standard (tsr-standard):</strong> Canonical 1986 Player's Book rolling rules with 18 ranks (Shift 0 through Beyond). Roll Origin on UPB Table 1, FASERIP abilities on Table 1, power slots on Table 2, and talents/contacts. Rolled slot limits are strictly enforced.</li>
+                  <li><strong>📐 TSR Modeled (tsr-modeled):</strong> Free-form TSR character modeling using standard 18 ranks without slot constraints. Directly assign FASERIP abilities, superpower ranks, and traits, tracked in real-time in <strong>Karma Points (KP)</strong> with optional GM campaign budget limits.</li>
+                  <li><strong>⚖️ TSR CP Buy (tsr-cp-buy):</strong> Point-Buy character creation using a Character Point budget (300 CP default tier) with Physical Form selection, operating under the 18-rank TSR Universal Action Table.</li>
+                </ul>
+              </div>
+              <div class="comparison-box">
+                <div class="comparison-box-title" style="color: #f59e0b;">
+                  <span>🌐 CMF Modified Ruleset (22 Ranks + Fumbles)</span>
+                  <span class="badge badge-gold">CMF Table</span>
+                </div>
+                <ul class="feature-list">
+                  <li><strong>🎲 CMF Standard (cmf-standard):</strong> Canonical 1986 random rolling mapped onto the expanded 22-rank CMF table, introducing the high-drama Dark Blue Fumble column.</li>
+                  <li><strong>📐 CMF Modeled (cmf-modeled):</strong> Free-form character modeling with full access to all 22 expanded CMF ranks (including Fantastic through Awesome) and real-time KP tracking.</li>
+                  <li><strong>⚖️ CMF CP Buy (cmf-cp-buy - Default):</strong> Classic Marvel Forever point-buy system. Start with a Character Point budget (300 CP default tier), choose a starting Physical Form with attribute modifiers, and spend points across 22 ranks.</li>
+                </ul>
+              </div>
+            </div>
 
             <h3>Character Creation Phase, KP Lock &amp; Finalization Flow</h3>
             <p>
@@ -862,14 +888,10 @@
               <li><strong>Step 3: Superpowers (PB p. 10 Category Model):</strong> Roll the number of power slots on Table 2, then roll each power's Category on Table 4 (Defensive, Detection, Fighting, Travel, Matter Control, Energy Emission, Self-Alteration, Matter Conversion, Mental Enhancement, or Magical). Following the Player's Book page 10 example, the player chooses their specific power from that rolled category, then rolls its starting rank on Table 1.</li>
               <li><strong>Vanilla Power Limitations (PB p. 9):</strong> In original TSR rules, accepting a limitation grants a <strong>+1CS (one column shift higher) rank bump</strong> to the power. Each limitation tier has a strict <strong>maximum ceiling</strong> (Maximum of Excellent, Remarkable, Incredible, Amazing, Monstrous, or Unearthly). A limitation can only raise a power rank up to that ceiling tier (e.g., a Remarkable ceiling can raise Good to Remarkable, but cannot raise a power that is already Remarkable or higher). If a power rank is already at or above the ceiling, the limitation cannot be applied.</li>
               <li><strong>Step 4: Talents &amp; Contacts (PB pp. 7 &amp; 10 &amp; UPB):</strong> Roll talent slots on Table 3 (0 to 4 slots + form bonus). Select from all 56 canonical talents across all 7 disciplines (Weapon, Fighting, Professional, Scientific, Mystic/Mental, Piloting, Other) with interactive category filtering. Establish contacts across 19 canonical categories or add custom NPC contacts.</li>
-              <li><strong>Unified 3-Way Mode Switch &amp; Combined Pulsing Header Tag:</strong> Character creation strictly distinguishes between <strong>TSR standard</strong> (canonical 1986 random roll), <strong>TSR modeled</strong> (free-form modeling with Karma Point tracking), and <strong>CMF CP buy</strong> (Classic Marvel Forever point-buy). In the creation block on the Main Stats tab, these three modes are unified into an intuitive <strong>three-way switch</strong> where the active mode is brightly highlighted and clicking any segment seamlessly switches modes. In the top toolbar, the previous "Creating" and mode tags are combined into a single, pulsing status badge (displaying <code>TSR standard</code>, <code>TSR modeled</code>, or <code>CMF CP buy</code>) with theme-coordinated glow effects that stays visible throughout character creation and transitions to "Finalize" once all creation requirements are satisfied.</li>
-              <li><strong>Interactive TSR Submode Selection Dialog:</strong> Switching to TSR mode does not immediately open the random generator. Instead, an interactive selection modal appears presenting clear cards for both <strong>Random Roll Mode</strong> and <strong>Modeled Mode</strong> with explanations:
-                <br>• Choosing <strong>Random Roll Mode</strong> sets the character to TSR Random mode and launches the TSR Generator modal with 3D dice.
-                <br>• Choosing <strong>Modeled Mode</strong> sets the character to TSR Modeled mode and directly opens the character sheet without launching the generator, allowing free-form modeling immediately.
-                <br>• Users are reminded that they can switch from Random to Modeled mode at any time, but returning from Modeled to Random requires rolling back to Revision #1 in the Personal/Log tab.</li>
-              <li><strong>TSR Modeled Mode &amp; Submode Split Toggle:</strong> When in TSR mode, the creation block displays an obvious submode split toggle between <strong>Random</strong> and <strong>Modeled</strong>:
-                <br>• <strong>Random Mode (Default):</strong> Pure canonical 1986 Advanced Set Player's Book rolling rules with strict rolled slot limits across powers, talents, and contacts.
-                <br>• <strong>Modeled Mode (Free-Form):</strong> Bypasses rolled slot limits and random roll requirements, allowing GMs and players to model established heroes or free-form concepts. Trait investment is tracked in real-time in <strong>Karma Points (KP)</strong> using canonical advancement scaling (Abilities: 10 KP per rank number; Powers: 100/200 KP base + 10/20 per rank number minus limitation discounts; Talents: 100/200 KP; Contacts: 50 KP each; Resources: 10 KP per rank number).
+              <li><strong>Persistent Header Mode Selector &amp; Creation Throbber:</strong> The persistent top toolbar features a direct <strong>Mode:</strong> dropdown selector (<code>#select-creation-mode</code>), allowing instantaneous switching between all 6 creation modes. Adjacent to the mode selector, the persistent status tag displays a pulsing <code>Creating</code> throbber throughout hero creation, updating to <code>Finalize</code> as soon as all creation constraints (such as spending all CP or filling rolled slots) are satisfied.</li>
+              <li><strong>TSR Random Mode vs. Modeled Mode Mechanics:</strong>
+                <br>• <strong>Random Mode:</strong> Canonical 1986 Advanced Set Player's Book rolling rules with strict rolled slot limits across powers, talents, and contacts using the interactive 3D dice generator.
+                <br>• <strong>Modeled Mode (Free-Form):</strong> Bypasses rolled slot limits and random roll tables, allowing GMs and players to model established heroes or free-form concepts. Trait investment is tracked in real-time in <strong>Karma Points (KP)</strong> using canonical advancement scaling (Abilities: 10 KP per rank number; Powers: 100/200 KP base + 10/20 per rank number minus limitation discounts; Talents: 100/200 KP; Contacts: 50 KP each; Resources: 10 KP per rank number).
                 <br>• <strong>Campaign KP Budget Limit:</strong> In Modeled mode, GMs can optionally set a maximum campaign KP ceiling in the Mode Detail dialog, displaying live budget tracking (e.g. <code>2,450 / 3,000 KP (550 left)</code>) and warning when over budget.
                 <br>• <strong>Manual Trait Assignment Protection:</strong> If a user in TSR Random mode begins manually assigning or adjusting traits directly on the sheet (such as FASERIP ability ranks, Resources ranks, adding powers, changing power ranks on power cards, or adding talents/contacts), the application displays a confirmation prompt. The prompt warns that manual assignment switches the character to TSR Modeled mode (bypassing slot limits and switching to KP tracking) and that reverting back to Random mode will require a history rollback. If the user cancels, the manual edit is aborted and the sheet remains in TSR Random mode.
                 <br>• <strong>Irreversible Activation Warning:</strong> Because Modeled mode permits free-form creation without slot constraints, entering Modeled mode displays an explicit warning modal confirming that switching to Modeled mode is irreversible without rolling back character edit history to Revision #1 (or before Modeled mode was activated) on the Personal/Log tab. Attempting to toggle back to Random from Modeled informs the user and offers direct navigation to the Personal/Log tab.</li>
@@ -892,7 +914,7 @@
               <li><strong>The 7 Primary Abilities:</strong> Fighting (F), Agility (A), Strength (S), Endurance (E), Reason (R), Intuition (I), and Psyche (P).</li>
               <li><strong>Column Shift Steppers:</strong> Adjust temporary combat modifiers (+1 CS, -2 CS) for environmental hazards, spells, or tactical positioning.</li>
               <li><strong>Live Health &amp; Karma Trackers:</strong> Dedicated rapid-click and accelerating stepper buttons (+1, +5, +10) let you adjust vitals during fast-paced combat rounds. Includes full recovery and quick-heal buttons.</li>
-              <li><strong>Karma Modes:</strong> Switch between Standard TSR, CMF Option, and House Rule pool caps.</li>
+              <li><strong>Karma Operating Modes:</strong> Click the Karma vital block or badge in the top vitals bar to toggle between <strong>Session Mode</strong> (standard live play where Karma is spent on rolls and maneuvers), <strong>Advancement Mode</strong> (unlocks spending accumulated Karma on permanent trait advancements per TSR rules), and <strong>Test Mode</strong> (infinite KP sandbox for experimental theorycrafting and testing without altering your saved character).</li>
               <li><strong>Human Ability Rank Caps (House Rule):</strong> When enabled in <em>Preferences &amp; Options</em>, unpowered human characters are capped at <strong>Incredible (IN, 40)</strong> in TSR mode or <strong>Fantastic (FA, 35)</strong> in CMF mode for the physical FASE series (Fighting, Agility, Strength, Endurance), and capped at <strong>Amazing (AM, 50)</strong> in both modes for the mental RIP series (Reason, Intuition, Psyche). Ranks above these natural limits are disabled and marked <code>[Requires Power]</code> unless the character possesses an ability-enhancing superpower or equipment boost. Non-human origins (Mutants, Aliens, Androids, Deities, etc.) remain uncapped.</li>
             </ul>
 
@@ -1143,7 +1165,7 @@
               Click <strong>📖 Cheat Sheet</strong> in the top header to open a multi-tab quick-reference console designed for instantaneous tabletop lookups during live play:
             </p>
             <ul class="feature-list">
-              <li><strong>Rank Scheme Switcher &amp; App-Wide Sync:</strong> The header selector labeled <strong>Rank Scheme</strong> (toggling between <em>Modified CMF (22 Ranks)</em> and <em>Standard TSR (18 Ranks)</em>) is a two-way shortcut to the Preferences setting. Changing it alters the active rank scheme throughout the entire application—synchronizing the Universal Action Table matrix, movement speed charts, material strengths, integrated d100 dice roller color thresholds, and character sheet dropdowns—while displaying a confirmation status toast across all active windows. It does <em>not</em> alter character creation mode or point budgets.</li>
+              <li><strong>Active Rank Scheme &amp; Dynamic Synchronization:</strong> The Rules Cheat Sheet displays a prominent Rank Scheme badge (<code>Standard TSR Scheme (18 Ranks)</code> or <code>CMF Scheme (22 Ranks)</code>), automatically reflecting the active table ruleset selected in the top toolbar's <strong>Mode:</strong> dropdown. Changing the mode instantly updates the Cheat Sheet's Action Table matrix, combat maneuvers, ground/flight movement speed benchmarks, and material strength charts in both the inline dialog and detached pop-out window.</li>
               <li><strong>Action Table Matrix Tab:</strong> The complete Universal Action Table matrix showing exact percentile thresholds for every rank.</li>
               <li><strong>Combat Maneuvers Tab:</strong> Full rules text, trigger requirements, and consequences for Charging, Escaping, Grappling, Dodging, Evading, Blocking, and Catching.</li>
               <li><strong>Movement Tab:</strong> Canonical Ground and Flight speed charts showing miles-per-hour and tactical areas-per-round across all ranks. Dynamically toggles between CMF (21 ranks) and Standard (15/17 ranks).</li>
@@ -1186,12 +1208,24 @@
                 <br>• <strong>Manilla:</strong> Clean, soft light stationery palette with crisp dark typography.
                 <br>• <strong>Aqua:</strong> Radiant oceanic theme featuring cyans, sea greens, and deep navy tones.
               </li>
-              <li><strong>Campaign House Rules:</strong> Toggle optional rules in Preferences, including <em>Convert Unspent CP to KP</em> (awards bonus starting Karma for up to 5 unspent creation points), <em>Superior Option Tax</em> (retains or waives surcharge on superior power options), and <em>Human Ability Rank Caps</em> (caps natural unpowered human FASE at IN in TSR mode or FA in CMF mode, and RIP at AM in both modes).</li>
+              <li><strong>Campaign House Rules:</strong> Toggle optional rules in Preferences:
+                <br>• <strong>Power Adjustment:</strong> Enables stat trading within individual powers (&plusmn;1 CS shifts free; &gt;1 CS shifts cost KP).
+                <br>• <strong>Karmic Success:</strong> Refunds up to 20 spent KP when shifting a blue fumble result upward.
+                <br>• <strong>Convert Unspent CP to KP:</strong> Awards bonus starting Karma (1 CP = 5 KP) for up to 5 unspent creation points upon finalization.
+                <br>• <strong>Superior Option Tax:</strong> Adds a +100% CP base unlock surcharge when selecting superior power options manually.
+                <br>• <strong>Human Ability Rank Caps:</strong> Enforces natural biological ceilings for unpowered humans (FASE capped at IN in TSR / FA in CMF; RIP capped at AM).
+                <br>• <strong>Tactical Movement Area Division:</strong> Configures tactical movement grids (Standard 132-ft, 33-ft Quarter Quadrants, 22-ft Six Subareas, or 16.5-ft Eight Subareas).
+              </li>
               <li><strong>Touch-Friendly Mode:</strong> Enlarges interactive buttons, steppers, and inputs for tablets and touchscreens. The File menu displays an intuitive vibrant green <strong>(ON)</strong> indicator when active.</li>
               <li><strong>Sticky Navigation (Persistent Top Bars):</strong> Pins the hero header and tabs bar to the top of the viewport during scrolling, ensuring character vitals and navigation remain accessible. When unchecked in Preferences, the header scrolls naturally with page content.</li>
               <li><strong>Automated Updates &amp; One-Click Reload:</strong> Checks the GitHub repository for new program releases. When an update is detected, the version checker displays the new remote release version alongside a prominent <strong>"🔄 Reload Application"</strong> button and an immediate confirmation dialog offering to reload your browser session now to activate the new version.</li>
               <li><strong>Embedded Surprise:</strong> A hidden secret awaits curious players somewhere in the interface—which can be discovered simply by mousehovering somewhere briefly (see Section 13).</li>
             </ul>
+
+            <div class="callout callout-info" style="margin-top: 14px;">
+              <strong>💡 Ruleset and Mode Configuration:</strong>
+              <br>Note that rank schemes (Standard TSR 18-rank vs. CMF 22-rank) and character generation methods (Random Roll, Modeled, and Point-Buy) are selected directly using the <strong>Mode:</strong> dropdown on the top persistent toolbar (or via <strong>📁 File / Options ▾ &rarr; 🔄 Choose Mode...</strong>), rather than in the Preferences dialog.
+            </div>
           </div>
         </article>
 

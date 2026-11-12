@@ -3,5 +3,5 @@
   "releaseDate": "2026-11-12",
   "name": "MSH RPGen",
   "repo": "https://github.com/captainload/marvel-character-editor",
-  "notes": "v1.6.11: Renamed History tab to Personal/Log across application navigation and dialogs; added one-click reload button and prompt to the update checker upon update detection; updated Help documentation for equipment modal links, high-contrast themes, and update reloading."
+  "notes": "v1.6.11: Renamed History tab to Personal/Log across application navigation and dialogs; added one-click reload button and prompt to the update checker upon update detection; updated Help documentation for the 6-mode toolbar dropdown, rank scheme synchronization, equipment modal links, high-contrast themes, and update reloading."
 }

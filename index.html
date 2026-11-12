@@ -5,7 +5,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>MSH RPGen</title>
-  <link rel="stylesheet" href="styles.css?v=1.6.10">
+  <link rel="stylesheet" href="styles.css?v=1.6.11">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bangers&display=swap" rel="stylesheet">
@@ -204,7 +204,7 @@
         <button class="nav-tab-btn" data-tab="invention">🔬 Invention Lab</button>
         <button class="nav-tab-btn" data-tab="equipment">🎒 Equipment (<span id="tab-equipment-count">0</span>)</button>
         <button class="nav-tab-btn" data-tab="talents">🥋 Talents & Contacts</button>
-        <button class="nav-tab-btn" data-tab="background">📜 History</button>
+        <button class="nav-tab-btn" data-tab="background">📜 Personal/Log</button>
       </div>
     </nav>
   </div>
@@ -1010,7 +1010,7 @@
 
     </section>
 
-    <!-- TAB 6: HISTORY (BIOGRAPHY, RESOURCES & EDIT LOG) -->
+    <!-- TAB 6: PERSONAL/LOG (BIOGRAPHY, RESOURCES & EDIT LOG) -->
     <section class="tab-pane" id="tab-pane-background">
       <!-- Hidden compatibility elements -->
       <span id="progression-karma-val" style="display: none;" aria-hidden="true">0</span>
@@ -2110,7 +2110,7 @@
           <!-- SECTION: PROGRAM UPDATES & AUTOMATED CHECKING -->
           <div style="font-weight: 700; color: var(--text-main); font-size: 11pt; border-bottom: 1px solid var(--border-color); padding-bottom: 6px; margin-top: 10px; display: flex; justify-content: space-between; align-items: center;">
             <span>🔄 Program Updates &amp; Automated Checking</span>
-            <span class="meta-tag" id="update-version-tag" style="color: var(--marvel-gold); font-size: 10pt;">v1.6.10</span>
+            <span class="meta-tag" id="update-version-tag" style="color: var(--marvel-gold); font-size: 10pt;">v1.6.11</span>
           </div>
 
           <div class="update-settings-panel" style="background: rgba(0, 0, 0, 0.2); border: 1px solid var(--border-color); border-radius: 6px; padding: 12px; display: flex; flex-direction: column; gap: 10px;">
@@ -2133,9 +2133,14 @@
                 <span>Last checked: <strong id="update-last-checked-text" style="color: var(--text-main);">Never</strong></span>
                 <span id="update-status-badge" style="margin-left: 8px; font-weight: 700; color: #4ade80;"></span>
               </div>
-              <button type="button" class="icon-btn" id="btn-check-updates-now" style="font-size: 10pt; padding: 4px 12px;">
-                🔄 Check for Updates Now
-              </button>
+              <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                <button type="button" class="icon-btn primary" id="btn-reload-app-update" style="display: none; font-size: 10pt; padding: 4px 12px; background: #0284c7; border-color: #38bdf8; color: #ffffff; font-weight: 700;" title="Reload application to apply the latest update">
+                  🔄 Reload Application
+                </button>
+                <button type="button" class="icon-btn" id="btn-check-updates-now" style="font-size: 10pt; padding: 4px 12px;">
+                  🔄 Check for Updates Now
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -2661,7 +2666,7 @@
         </div>
 
         <div style="font-size: 10pt; color: var(--text-muted); background: rgba(0, 0, 0, 0.2); border: 1px solid var(--border-color); border-radius: 6px; padding: 8px 12px; line-height: 1.4;">
-          💡 <strong>Notice:</strong> Characters started in Random mode can freely graduate to Modeled mode at any time. However, because Modeled mode removes slot constraints, returning from Modeled to Random requires rolling back to Revision #1 in the History tab.
+          💡 <strong>Notice:</strong> Characters started in Random mode can freely graduate to Modeled mode at any time. However, because Modeled mode removes slot constraints, returning from Modeled to Random requires rolling back to Revision #1 in the Personal/Log tab.
         </div>
       </div>
       <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 10px; padding: 10px 18px; border-top: 1px solid var(--border-color);">
@@ -4053,7 +4058,7 @@
             Starting CP or KP has already been spent on this character's abilities, powers, or talents.
           </div>
           <div style="margin-top: 4px; color: #fecaca;">
-            To unlock the form selection dropdown, roll back to the <strong>first character history entry (Revision #1)</strong> in the <strong>📜 History</strong> tab.
+            To unlock the form selection dropdown, roll back to the <strong>first character history entry (Revision #1)</strong> in the <strong>📜 Personal/Log</strong> tab.
           </div>
           <button type="button" class="icon-btn compact" id="btn-change-form-rollback-action" style="margin-top: 8px; font-size: 10pt;" title="Rewind character to initial save point">
             ⏮️ Roll Back to First Save Point (Revision #1)
@@ -4213,13 +4218,13 @@
   </div>
 
   <!-- Scripts Loading -->
-  <script src="universal_table.js?v=1.6.10"></script>
-  <script src="data_forms.js?v=1.6.10"></script>
-  <script src="data_powers.js?v=1.6.10"></script>
-  <script src="data_talents.js?v=1.6.10"></script>
-  <script src="data_equipment.js?v=1.6.10"></script>
-  <script src="inventions.js?v=1.6.10"></script>
-  <script src="character_model.js?v=1.6.10"></script>
-  <script src="app.js?v=1.6.10"></script>
+  <script src="universal_table.js?v=1.6.11"></script>
+  <script src="data_forms.js?v=1.6.11"></script>
+  <script src="data_powers.js?v=1.6.11"></script>
+  <script src="data_talents.js?v=1.6.11"></script>
+  <script src="data_equipment.js?v=1.6.11"></script>
+  <script src="inventions.js?v=1.6.11"></script>
+  <script src="character_model.js?v=1.6.11"></script>
+  <script src="app.js?v=1.6.11"></script>
 </body>
 </html>

@@ -62,7 +62,7 @@ const App = {
     this.superiorOptionCost = !!val;
   },
   humanAbilityCaps: false,
-  VERSION: '1.6.10',
+  VERSION: '1.6.11',
   editLogFilter: 'all',
   editLogSearchQuery: '',
   BUILD_DATE: '2026-11-12',
@@ -2214,6 +2214,15 @@ const App = {
     if (btnCheckNow) {
       btnCheckNow.addEventListener('click', () => {
         this.checkForUpdates({ trigger: 'manual', silent: false });
+      });
+    }
+
+    const btnReloadUpdate = document.getElementById('btn-reload-app-update');
+    if (btnReloadUpdate) {
+      btnReloadUpdate.addEventListener('click', () => {
+        if (typeof window !== 'undefined' && window.location) {
+          window.location.reload(true);
+        }
       });
     }
 
@@ -18941,6 +18950,12 @@ const App = {
 
   updateLastCheckedUI() {
     const textEl = document.getElementById('update-last-checked-text');
+    const reloadBtn = document.getElementById('btn-reload-app-update');
+    if (reloadBtn) {
+      const isNewer = this.updateSettings.lastKnownRemoteVersion &&
+        (this.compareVersions(this.updateSettings.lastKnownRemoteVersion, this.VERSION) > 0);
+      reloadBtn.style.display = isNewer ? 'inline-flex' : 'none';
+    }
     if (!textEl) return;
 
     if (!this.updateSettings.lastChecked) {
@@ -19170,25 +19185,40 @@ const App = {
         badgeEl.textContent = `Update available: v${remoteVersion}`;
         badgeEl.style.color = '#f59e0b';
       }
+      const reloadBtn = document.getElementById('btn-reload-app-update');
+      if (reloadBtn) {
+        reloadBtn.style.display = 'inline-flex';
+      }
 
       if (silent) {
-        this.showStatusToast(`🔄 Update Available: New version (${remoteVersion}) is available on GitHub!`);
+        this.showStatusToast(`🔄 Update Available: New version (${remoteVersion}) is available on GitHub! Reload to update.`);
       } else {
         const notes = remoteNotes ? `\n\nRelease / Commit Info:\n${remoteNotes}` : '';
-        await this.showCustomAlert(
+        const reloadNow = await this.showCustomConfirm(
           `A new version of MSH RPGen is available!\n\n` +
           `Current Version: v${currentVer}\n` +
           `New Version: ${remoteVersion.startsWith('v') ? remoteVersion : 'v' + remoteVersion} (${remoteReleaseDate || 'Latest'})\n` +
           `Repository: ${remoteUrl}` +
-          notes,
-          '🚀 Program Update Available'
+          notes +
+          `\n\nWould you like to reload now to apply this update?`,
+          '🚀 Program Update Available',
+          null,
+          '🔄 Reload Now',
+          'Later'
         );
+        if (reloadNow && typeof window !== 'undefined' && window.location) {
+          window.location.reload(true);
+        }
       }
     } else {
       // Up to date
       if (badgeEl) {
         badgeEl.textContent = `Up to date (v${currentVer})`;
         badgeEl.style.color = '#4ade80';
+      }
+      const reloadBtn = document.getElementById('btn-reload-app-update');
+      if (reloadBtn) {
+        reloadBtn.style.display = 'none';
       }
 
       if (!silent) {
@@ -19732,7 +19762,7 @@ const App = {
     if (!this.character) return;
     if (this.isFormChangeLocked()) {
       this.showCustomAlert(
-        'Physical form changes are locked because starting CP or KP has already been spent.\n\nRoll back to the first character history entry (Revision #1) in the History tab to unlock.',
+        'Physical form changes are locked because starting CP or KP has already been spent.\n\nRoll back to the first character history entry (Revision #1) in the Personal/Log tab to unlock.',
         '🔒 Form Selection Locked'
       );
       return;
@@ -19986,7 +20016,7 @@ const App = {
       `Manually customizing traits switches your character to TSR Modeled (Free-Form) Mode.\n\n` +
       `• Trait slot limits and random roll requirements will be bypassed.\n` +
       `• Character trait investment is tracked in Karma Points (KP) instead of CP.\n` +
-      `• ⚠️ WARNING: Entering Modeled mode is IRREVERSIBLE without reverting to an earlier character history point (Revision #1) on the History tab.\n\n` +
+      `• ⚠️ WARNING: Entering Modeled mode is IRREVERSIBLE without reverting to an earlier character history point (Revision #1) on the Personal/Log tab.\n\n` +
       `Would you like to switch to Modeled Mode and proceed with this assignment?`,
       '⚠️ Switch to TSR Modeled Mode?',
       null,
@@ -20028,7 +20058,7 @@ const App = {
       '⚠️ WARNING: Entering TSR Modeled Mode is IRREVERSIBLE without reverting to an earlier character history point!\n\n' +
       '• Modeled mode enables TSR free-form creation without random rolls or trait slot limits.\n' +
       '• Trait investment is tracked in Karma Points (KP) instead of CP, allowing GMs to apply campaign KP limits if desired.\n' +
-      '• Once activated, you cannot directly toggle back to Random Roll mode without rolling back character history on the History tab.\n\n' +
+      '• Once activated, you cannot directly toggle back to Random Roll mode without rolling back character history on the Personal/Log tab.\n\n' +
       'Are you sure you want to proceed and switch to Modeled Mode?',
       '⚠️ Enter TSR Modeled Mode?'
     );
@@ -20052,11 +20082,11 @@ const App = {
   async promptCannotRevertToRandom() {
     const confirmed = await this.showCustomConfirm(
       'Cannot directly switch from Modeled back to Random Roll mode because free-form modeling is irreversible.\n\n' +
-      'To restore canonical random rolling, you can roll back your character to an earlier history point (Revision #1 or before Modeled mode was activated) on the History tab.\n\n' +
-      'Would you like to open the History tab now to view your edit history and roll back?',
+      'To restore canonical random rolling, you can roll back your character to an earlier history point (Revision #1 or before Modeled mode was activated) on the Personal/Log tab.\n\n' +
+      'Would you like to open the Personal/Log tab now to view your edit history and roll back?',
       '⚠️ Modeled Mode is Irreversible',
       null,
-      'Go to History',
+      'Go to Personal/Log',
       'Cancel'
     );
     if (confirmed) {

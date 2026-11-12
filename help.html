@@ -539,7 +539,7 @@
         <button type="button" class="nav-btn" onclick="window.print()">🖨️ Print / Save as PDF</button>
       </div>
       <div style="font-size: 10pt; color: var(--text-muted);">
-        MSH RPGen Suite • <strong>Version 1.6.10</strong>
+        MSH RPGen Suite • <strong>Version 1.6.11</strong>
       </div>
     </div>
 
@@ -816,7 +816,7 @@
             <div class="callout callout-green">
               <strong>Extended CP &amp; Tier Block with Breakdown Pop-up:</strong> The vitals row features a unified <strong>Combined Point-Buy &amp; Tier Block</strong> that extends into the space above it to align with the Health and Karma chips. The block displays the active starting <strong>Tier Name</strong> across the top (e.g., <code>⚡ Tier: Established Hero / Mutant</code>), the live <strong>CP Used</strong> meter in the middle (<code>📊 CP Used: 48 / 550 (502 left) [Breakdown ▾]</code>), and the <strong>Budget</strong> readout at the bottom (<code>Budget: 400 CP [±0%] [⚡ Set Tier &amp; Form]</code>). Clicking this combined block opens the <strong>Character Point Breakdown &amp; Budget Adjuster</strong> pop-up dialog.
               <br><br>
-              <strong>Physical Form Dual Controls (Simple Dropdown &amp; Modal Pop-up):</strong> Under <strong>Main Stats</strong> (top bar) and <strong>History</strong> (📜 History tab), physical form controls function as <strong>simple, direct dropdowns</strong> until Character Points (CP) have been spent. Players can select and change their physical form directly in-place during initial hero setup. Once starting CP or KP has been spent on abilities, powers, or talents, these controls switch to locked buttons that invoke the <strong>Change Physical Form &amp; Origin</strong> pop-up dialog. In this dialog, players are informed that physical form changes caused by the character's own powers (e.g. Shapeshifting, Alter Ego, Density Manipulation) are handled through gameplay rather than modifying the base sheet, and permanent changes require external forces or GM approval. If locked, players can use the rollback button to return to the first save point (Revision #1), which rewinds spent points and restores the direct dropdowns.
+              <strong>Physical Form Dual Controls (Simple Dropdown &amp; Modal Pop-up):</strong> Under <strong>Main Stats</strong> (top bar) and <strong>Personal/Log</strong> (📜 Personal/Log tab), physical form controls function as <strong>simple, direct dropdowns</strong> until Character Points (CP) have been spent. Players can select and change their physical form directly in-place during initial hero setup. Once starting CP or KP has been spent on abilities, powers, or talents, these controls switch to locked buttons that invoke the <strong>Change Physical Form &amp; Origin</strong> pop-up dialog. In this dialog, players are informed that physical form changes caused by the character's own powers (e.g. Shapeshifting, Alter Ego, Density Manipulation) are handled through gameplay rather than modifying the base sheet, and permanent changes require external forces or GM approval. If locked, players can use the rollback button to return to the first save point (Revision #1), which rewinds spent points and restores the direct dropdowns.
             </div>
 
             <h3>CP Breakdown Pop-up &amp; Starting CP Budget Slider (-25% to +50%)</h3>
@@ -849,7 +849,7 @@
               <li><strong>Free Character Point (CP) Spending:</strong> Players freely allocate Character Points across primary abilities, superpowers, talents, contacts, and resources. Any changes legal under your selected form and tier are permitted in real-time. If total spending exceeds your CP budget, the interface issues clear warning alerts and turns meters red.</li>
               <li><strong>Finalize Character Creation Button &amp; Persistent Topbar Throbber:</strong> Located in the persistent top toolbar (the pulsing <code>Creating</code> throbber / <code>Finalize</code> button), this button completes hero creation and permanently transitions your character into active <strong>Session Play</strong> from any tab. Finalization unlocks manual Karma adjustments, live Karma spending in the Universal Die Roller, and character advancement. Finalization requires that total CP spent does not exceed your assigned budget.</li>
               <li><strong>Optional House Rule — Convert Unspent CP to KP:</strong> Located in <em>File &gt; Preferences / House Rules</em>, enabling this rule allows players who finalize their character with up to 5 leftover, unspent Character Points to convert those remaining points into bonus <strong>Starting Karma</strong> at a 1 CP to 5 KP rate (added directly to starting KP). When disabled, all Character Points must be spent (0 CP remaining) before a character can be finalized.</li>
-              <li><strong>Rewinding Creation:</strong> To return to the Character Creation Phase at any time, open <strong>📜 History</strong> and roll back to <strong>Revision #1 (Initial save point)</strong>. This returns the character to creation mode, re-enables free CP configuration, and relocks KP until finalized anew.</li>
+              <li><strong>Rewinding Creation:</strong> To return to the Character Creation Phase at any time, open <strong>📜 Personal/Log</strong> and roll back to <strong>Revision #1 (Initial save point)</strong>. This returns the character to creation mode, re-enables free CP configuration, and relocks KP until finalized anew.</li>
             </ul>
 
             <h3>TSR 1986 Random Generation &amp; Vanilla Limitations (PB pp. 4–10)</h3>
@@ -866,13 +866,13 @@
               <li><strong>Interactive TSR Submode Selection Dialog:</strong> Switching to TSR mode does not immediately open the random generator. Instead, an interactive selection modal appears presenting clear cards for both <strong>Random Roll Mode</strong> and <strong>Modeled Mode</strong> with explanations:
                 <br>• Choosing <strong>Random Roll Mode</strong> sets the character to TSR Random mode and launches the TSR Generator modal with 3D dice.
                 <br>• Choosing <strong>Modeled Mode</strong> sets the character to TSR Modeled mode and directly opens the character sheet without launching the generator, allowing free-form modeling immediately.
-                <br>• Users are reminded that they can switch from Random to Modeled mode at any time, but returning from Modeled to Random requires rolling back to Revision #1 in the History tab.</li>
+                <br>• Users are reminded that they can switch from Random to Modeled mode at any time, but returning from Modeled to Random requires rolling back to Revision #1 in the Personal/Log tab.</li>
               <li><strong>TSR Modeled Mode &amp; Submode Split Toggle:</strong> When in TSR mode, the creation block displays an obvious submode split toggle between <strong>Random</strong> and <strong>Modeled</strong>:
                 <br>• <strong>Random Mode (Default):</strong> Pure canonical 1986 Advanced Set Player's Book rolling rules with strict rolled slot limits across powers, talents, and contacts.
                 <br>• <strong>Modeled Mode (Free-Form):</strong> Bypasses rolled slot limits and random roll requirements, allowing GMs and players to model established heroes or free-form concepts. Trait investment is tracked in real-time in <strong>Karma Points (KP)</strong> using canonical advancement scaling (Abilities: 10 KP per rank number; Powers: 100/200 KP base + 10/20 per rank number minus limitation discounts; Talents: 100/200 KP; Contacts: 50 KP each; Resources: 10 KP per rank number).
                 <br>• <strong>Campaign KP Budget Limit:</strong> In Modeled mode, GMs can optionally set a maximum campaign KP ceiling in the Mode Detail dialog, displaying live budget tracking (e.g. <code>2,450 / 3,000 KP (550 left)</code>) and warning when over budget.
                 <br>• <strong>Manual Trait Assignment Protection:</strong> If a user in TSR Random mode begins manually assigning or adjusting traits directly on the sheet (such as FASERIP ability ranks, Resources ranks, adding powers, changing power ranks on power cards, or adding talents/contacts), the application displays a confirmation prompt. The prompt warns that manual assignment switches the character to TSR Modeled mode (bypassing slot limits and switching to KP tracking) and that reverting back to Random mode will require a history rollback. If the user cancels, the manual edit is aborted and the sheet remains in TSR Random mode.
-                <br>• <strong>Irreversible Activation Warning:</strong> Because Modeled mode permits free-form creation without slot constraints, entering Modeled mode displays an explicit warning modal confirming that switching to Modeled mode is irreversible without rolling back character edit history to Revision #1 (or before Modeled mode was activated) on the History tab. Attempting to toggle back to Random from Modeled informs the user and offers direct navigation to the History tab.</li>
+                <br>• <strong>Irreversible Activation Warning:</strong> Because Modeled mode permits free-form creation without slot constraints, entering Modeled mode displays an explicit warning modal confirming that switching to Modeled mode is irreversible without rolling back character edit history to Revision #1 (or before Modeled mode was activated) on the Personal/Log tab. Attempting to toggle back to Random from Modeled informs the user and offers direct navigation to the Personal/Log tab.</li>
               <li><strong>Multi-Window Pop-out &amp; Cheat Sheet Reference:</strong> The TSR 1986 Character Generator features an independent <strong>↗ Pop-out</strong> window mode, allowing you to detach the rolling workshop into a separate floating monitor window with preserved dimensions, live theme synchronization, and full interactive control. Additionally, click <strong>📖 Cheat Sheet</strong> directly in the generator header to open the Rules Cheat Sheet side-by-side during character rolling.</li>
             </ul>
           </div>
@@ -1084,6 +1084,11 @@
             <div class="callout callout-gold">
               <strong>Mastered Schematics Benefit:</strong> Any device previously built or successfully reverse-engineered is stored in your character's Known Blueprints Archive. Building from a known blueprint <strong>automatically bypasses the Phase 1 Blueprint Design FEAT</strong>!
             </div>
+
+            <h3>High-Contrast Theme Legibility</h3>
+            <p>
+              The Invention Lab interface is fully calibrated across all color themes. When utilizing the warm <strong>Manilla</strong> stationery theme, specialized contrast overrides eliminate problematic low-contrast combinations (such as yellow-on-yellow difficulty tags or red-on-red warning badges), ensuring that Phase status, Complexity ranks, and blueprint cards are always crisp and easily readable.
+            </p>
           </div>
         </article>
 
@@ -1099,6 +1104,8 @@
             </p>
             <ul class="feature-list">
               <li><strong>Prebuilt Equipment Store:</strong> Browse hundreds of catalog items divided into Weapons (Guns, Blades, Blunt), Armor &amp; Vests, Electronics &amp; Sensors, Vehicles, Survival Gear, and Special Materials.</li>
+              <li><strong>Interactive Item Details:</strong> Equipment item names in both your inventory table and the prebuilt catalog are direct clickable links that instantly open the item's complete technical specifications, rules description, and damage profile pop-up modal. Separate help columns are eliminated for a cleaner, unified presentation.</li>
+              <li><strong>Enhanced Table Readability:</strong> In the Manilla theme, equipment tables use uniform soft-light backgrounds for seamless reading. Across all themes, the Damage / Protection column features darkened, high-contrast cyan/blue tones for instant recognition during combat.</li>
               <li><strong>Automated Procurement Rolls:</strong> Click "Procure" on any store item. The modal compares the item's Cost Rank against your hero's Resources rank, displaying Universal Table thresholds and rolling a procurement FEAT.</li>
               <li><strong>Equipped Status &amp; Encumbrance:</strong> Toggle equipped/unequipped status. Equipped weapons automatically register on your Main Stats combat attack table.</li>
               <li><strong>Custom Gear Builder:</strong> Create bespoke weapons, armor, or utility items with custom damage ranks, range brackets, and rules text.</li>
@@ -1182,7 +1189,7 @@
               <li><strong>Campaign House Rules:</strong> Toggle optional rules in Preferences, including <em>Convert Unspent CP to KP</em> (awards bonus starting Karma for up to 5 unspent creation points), <em>Superior Option Tax</em> (retains or waives surcharge on superior power options), and <em>Human Ability Rank Caps</em> (caps natural unpowered human FASE at IN in TSR mode or FA in CMF mode, and RIP at AM in both modes).</li>
               <li><strong>Touch-Friendly Mode:</strong> Enlarges interactive buttons, steppers, and inputs for tablets and touchscreens. The File menu displays an intuitive vibrant green <strong>(ON)</strong> indicator when active.</li>
               <li><strong>Sticky Navigation (Persistent Top Bars):</strong> Pins the hero header and tabs bar to the top of the viewport during scrolling, ensuring character vitals and navigation remain accessible. When unchecked in Preferences, the header scrolls naturally with page content.</li>
-              <li><strong>Automated Updates:</strong> Checks the GitHub repository for new program releases with one-click notifications.</li>
+              <li><strong>Automated Updates &amp; One-Click Reload:</strong> Checks the GitHub repository for new program releases. When an update is detected, the version checker displays the new remote release version alongside a prominent <strong>"🔄 Reload Application"</strong> button and an immediate confirmation dialog offering to reload your browser session now to activate the new version.</li>
               <li><strong>Embedded Surprise:</strong> A hidden secret awaits curious players somewhere in the interface—which can be discovered simply by mousehovering somewhere briefly (see Section 13).</li>
             </ul>
           </div>
@@ -1232,7 +1239,7 @@
       <p>
         Marvel Super Heroes Roleplaying Game (MSHRPG / FASERIP) &copy; TSR, Inc. / Marvel Entertainment.<br>
         Classic Marvel Forever (CMF) enhancements &copy; Classic Marvel Forever community.<br>
-        Application Suite v1.6.10 &bull; Built with pure offline web technologies.
+        Application Suite v1.6.11 &bull; Built with pure offline web technologies.
       </p>
     </footer>
 

@@ -2748,6 +2748,26 @@ body.touch-friendly .divider-grip-line {
   font-weight: 600;
 }
 
+/* Update Checker Reload Button */
+#btn-reload-app-update {
+  background: #0284c7;
+  border-color: #38bdf8;
+  color: #ffffff;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.35);
+  transition: transform 0.15s ease, background-color 0.15s ease;
+}
+
+#btn-reload-app-update:hover {
+  background: #0369a1;
+  border-color: #7dd3fc;
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+
 /* Store Description Hover Popover Tooltip (Persistent on hover) */
 .store-desc-popover {
   position: fixed;
@@ -8437,6 +8457,19 @@ body[data-theme="manilla"] #btn-add-inv-boost:hover {
   color: #ffffff !important;
 }
 
+body[data-theme="manilla"] #btn-reload-app-update {
+  background: #0369a1 !important;
+  border-color: #0284c7 !important;
+  color: #ffffff !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15) !important;
+}
+
+body[data-theme="manilla"] #btn-reload-app-update:hover {
+  background: #075985 !important;
+  border-color: #0369a1 !important;
+  color: #ffffff !important;
+}
+
 body[data-theme="manilla"] .inv-rev-working-model-box {
   background: #e0f2fe !important;
   border-color: #0284c7 !important;
@@ -10127,6 +10160,18 @@ body[data-theme="aqua"] .inv-rev-fail-box {
   background: rgba(239, 68, 68, 0.2);
   border-color: #ef4444;
   color: #fca5a5;
+}
+
+body[data-theme="aqua"] #btn-reload-app-update {
+  background: #0284c7;
+  border-color: #38bdf8;
+  color: #ffffff;
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.4);
+}
+
+body[data-theme="aqua"] #btn-reload-app-update:hover {
+  background: #0369a1;
+  border-color: #7dd3fc;
 }
 
 /* Aqua: Help & Rulebook Modals */

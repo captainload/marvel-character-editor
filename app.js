@@ -62,10 +62,10 @@ const App = {
     this.superiorOptionCost = !!val;
   },
   humanAbilityCaps: false,
-  VERSION: '1.6.07',
+  VERSION: '1.6.08',
   editLogFilter: 'all',
   editLogSearchQuery: '',
-  BUILD_DATE: '2026-10-15',
+  BUILD_DATE: '2026-11-12',
   COMMIT_SHA: '6a15ff5',
   REPO_OWNER: 'captainload',
   REPO_NAME: 'marvel-character-editor',

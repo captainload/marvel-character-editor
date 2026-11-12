@@ -7590,8 +7590,34 @@ body[data-theme="manilla"] .cheat-table td {
   color: #000000;
 }
 
-body[data-theme="manilla"] .store-wide-table tr:hover {
-  background: #e6e2d8;
+/* Manilla: Equipment table uses uniform lighter background (#f0ede6), eliminating alternating white/grey rows */
+body[data-theme="manilla"] .store-wide-table tr,
+body[data-theme="manilla"] .store-wide-table tr:nth-child(even),
+body[data-theme="manilla"] .store-wide-table tr:nth-child(odd),
+body[data-theme="manilla"] .equipment-table tr,
+body[data-theme="manilla"] .equipment-table tr:nth-child(even),
+body[data-theme="manilla"] .equipment-table tr:nth-child(odd) {
+  background: #f0ede6 !important;
+}
+
+body[data-theme="manilla"] .store-wide-table td,
+body[data-theme="manilla"] .store-wide-table tr:nth-child(even) td,
+body[data-theme="manilla"] .store-wide-table tr:nth-child(odd) td,
+body[data-theme="manilla"] .equipment-table td,
+body[data-theme="manilla"] .equipment-table tr:nth-child(even) td,
+body[data-theme="manilla"] .equipment-table tr:nth-child(odd) td {
+  background: transparent !important;
+}
+
+body[data-theme="manilla"] .store-wide-table tr:hover,
+body[data-theme="manilla"] .store-wide-table tr:hover td,
+body[data-theme="manilla"] .equipment-table tr:hover,
+body[data-theme="manilla"] .equipment-table tr:hover td {
+  background: #e6e2d8 !important;
+}
+
+body[data-theme="manilla"] #equipment-container .attack-card {
+  background: #f0ede6 !important;
 }
 
 body[data-theme="manilla"] .store-desc-clamp,

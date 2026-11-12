@@ -1,7 +1,7 @@
 {
-  "version": "1.6.07",
-  "releaseDate": "2026-10-15",
+  "version": "1.6.08",
+  "releaseDate": "2026-11-12",
   "name": "MSH RPGen",
   "repo": "https://github.com/captainload/marvel-character-editor",
-  "notes": "v1.6.07: Added universal Enter key handling across all text, number, and action fields (hero name, bio attributes, conditions, contacts, talent specializations, power pools, and settings) to immediately commit edits, save character state, and exit the field."
+  "notes": "v1.6.08: Updated equipment table and inventory in Manilla theme to use the uniform lighter background (#f0ede6) instead of alternating white and grey rows."
 }

@@ -6447,8 +6447,118 @@ body[data-theme="aqua"] .split-mode-segment.active.segment-modeled {
   color: var(--marvel-gold);
 }
 
-.material-warn-text {
+/* Feasibility & Invention Callouts (Default / Slate) */
+.inv-special-req-box {
+  font-size: 10pt;
+  margin-top: 6px;
+  padding: 6px 10px;
+  border-radius: 4px;
+}
+
+.inv-special-req-box.special-needed {
+  background: rgba(245, 158, 11, 0.15);
+  border: 1px solid #f59e0b;
   color: #fde68a;
+}
+
+.inv-special-req-box.standard-materials {
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  color: #a7f3d0;
+}
+
+.inv-facility-warn-box {
+  font-size: 10pt;
+  margin-top: 4px;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.inv-facility-warn-box.has-warnings {
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid #ef4444;
+  color: #fca5a5;
+}
+
+.material-warn-text {
+  font-size: 10pt;
+  padding: 4px 8px;
+  border-radius: 4px;
+  margin-top: 4px;
+  color: #fde68a;
+}
+
+.material-warn-text.has-overload {
+  background: rgba(245, 158, 11, 0.15);
+  border: 1px solid #f59e0b;
+  color: #fde68a;
+}
+
+.inv-boosts-header {
+  color: #34d399;
+  font-size: 10.5pt;
+}
+
+.inv-limits-header {
+  color: #f87171;
+  font-size: 10.5pt;
+}
+
+.inv-section-title-blue {
+  color: #38bdf8;
+}
+
+.inv-realtime-badge {
+  color: var(--marvel-gold);
+}
+
+.inv-rev-working-model-box {
+  background: rgba(56, 189, 248, 0.12);
+  border: 1px solid #38bdf8;
+  border-radius: 4px;
+  padding: 6px 10px;
+  font-size: 10pt;
+  color: #bae6fd;
+}
+
+.inv-rev-nonrep-box {
+  border-left: 4px solid #ef4444;
+  padding-left: 10px;
+}
+
+.inv-rev-warn-title,
+.inv-rev-fail-title {
+  color: #f87171;
+  font-size: 11pt;
+}
+
+.inv-rev-warn-desc {
+  color: #fca5a5;
+  margin-top: 6px;
+  font-size: 10pt;
+}
+
+.inv-rev-fail-box {
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid #ef4444;
+  border-radius: 4px;
+  padding: 8px 10px;
+  font-size: 10pt;
+  color: #fca5a5;
+}
+
+.inv-roll-success-box {
+  background: rgba(16, 185, 129, 0.2);
+  border: 1px solid #10b981;
+  border-radius: 4px;
+  color: #a7f3d0;
+}
+
+.inv-roll-fail-box {
+  background: rgba(239, 68, 68, 0.2);
+  border: 1px solid #ef4444;
+  border-radius: 4px;
+  color: #fca5a5;
 }
 
 .inv-item-row {
@@ -8232,6 +8342,167 @@ body[data-theme="manilla"] .material-warn-text {
   font-weight: 700;
 }
 
+body[data-theme="manilla"] .material-warn-text.has-overload {
+  background: #fee2e2 !important;
+  border: 1px solid #ef4444 !important;
+  color: #991b1b !important;
+  font-weight: 700 !important;
+}
+
+body[data-theme="manilla"] .inv-special-req-box.special-needed {
+  background: #fef3c7 !important;
+  border: 1px solid #d97706 !important;
+  color: #000000 !important;
+}
+
+body[data-theme="manilla"] .inv-special-req-box.special-needed strong {
+  color: #92400e !important;
+}
+
+body[data-theme="manilla"] .inv-special-req-box.standard-materials {
+  background: #d1fae5 !important;
+  border: 1px solid #10b981 !important;
+  color: #064e3b !important;
+}
+
+body[data-theme="manilla"] .inv-special-req-box.standard-materials strong {
+  color: #064e3b !important;
+}
+
+body[data-theme="manilla"] .inv-facility-warn-box.has-warnings {
+  background: #fee2e2 !important;
+  border: 1px solid #ef4444 !important;
+  color: #000000 !important;
+}
+
+body[data-theme="manilla"] .inv-facility-warn-box.has-warnings strong {
+  color: #991b1b !important;
+}
+
+body[data-theme="manilla"] .inv-boosts-header {
+  color: #065f46 !important;
+  font-weight: 800 !important;
+}
+
+body[data-theme="manilla"] .inv-limits-header {
+  color: #991b1b !important;
+  font-weight: 800 !important;
+}
+
+body[data-theme="manilla"] .inv-section-title-blue {
+  color: #0369a1 !important;
+  font-weight: 800 !important;
+}
+
+body[data-theme="manilla"] #inv-feasibility-title,
+body[data-theme="manilla"] #inv-workshop-options-title {
+  color: #000000 !important;
+  font-weight: 800 !important;
+}
+
+body[data-theme="manilla"] .inv-realtime-badge {
+  color: #92400e !important;
+  background: #fef3c7 !important;
+  border-color: #d97706 !important;
+  font-weight: 700 !important;
+}
+
+body[data-theme="manilla"] #inv-talent-detected-badge {
+  color: #065f46 !important;
+  border-color: #10b981 !important;
+  background: #d1fae5 !important;
+  font-weight: 700 !important;
+}
+
+body[data-theme="manilla"] #inv-build-days {
+  color: #0369a1 !important;
+  font-weight: 800 !important;
+}
+
+body[data-theme="manilla"] #inv-blueprint-target-text,
+body[data-theme="manilla"] #inv-resource-target-text,
+body[data-theme="manilla"] #inv-assembly-target-text {
+  color: #0369a1 !important;
+  font-weight: 800 !important;
+}
+
+body[data-theme="manilla"] #btn-add-inv-boost {
+  background: #0284c7 !important;
+  border-color: #0284c7 !important;
+  color: #ffffff !important;
+}
+
+body[data-theme="manilla"] #btn-add-inv-boost:hover {
+  background: #0369a1 !important;
+  color: #ffffff !important;
+}
+
+body[data-theme="manilla"] .inv-rev-working-model-box {
+  background: #e0f2fe !important;
+  border-color: #0284c7 !important;
+  color: #0369a1 !important;
+}
+
+body[data-theme="manilla"] .inv-rev-working-model-box strong {
+  color: #075985 !important;
+}
+
+body[data-theme="manilla"] .inv-rev-nonrep-box {
+  border-left-color: #dc2626 !important;
+}
+
+body[data-theme="manilla"] .inv-rev-warn-title,
+body[data-theme="manilla"] .inv-rev-fail-title {
+  color: #991b1b !important;
+  font-weight: 800 !important;
+}
+
+body[data-theme="manilla"] .inv-rev-warn-desc {
+  color: #000000 !important;
+}
+
+body[data-theme="manilla"] .inv-rev-fail-box {
+  background: #fee2e2 !important;
+  border-color: #ef4444 !important;
+  color: #000000 !important;
+}
+
+body[data-theme="manilla"] .inv-rev-fail-box div,
+body[data-theme="manilla"] .inv-rev-fail-box strong {
+  color: #000000 !important;
+}
+
+body[data-theme="manilla"] .inv-roll-success-box {
+  background: #d1fae5 !important;
+  border: 1px solid #10b981 !important;
+  color: #064e3b !important;
+  font-weight: 700 !important;
+}
+
+body[data-theme="manilla"] .inv-roll-success-box span {
+  color: #064e3b !important;
+}
+
+body[data-theme="manilla"] .inv-roll-fail-box {
+  background: #fee2e2 !important;
+  border: 1px solid #ef4444 !important;
+  color: #000000 !important;
+}
+
+body[data-theme="manilla"] .inv-roll-fail-box div {
+  color: #000000 !important;
+}
+
+body[data-theme="manilla"] .inv-roll-fail-box .inv-retry-title {
+  color: #991b1b !important;
+  font-weight: 800 !important;
+}
+
+body[data-theme="manilla"] .inv-roll-fail-box .inv-retry-details,
+body[data-theme="manilla"] .inv-roll-fail-box .inv-retry-details div {
+  color: #1e293b !important;
+}
+
 body[data-theme="manilla"] .inv-item-row {
   background: #eae6df !important;
   border-color: #c2bcaf !important;
@@ -8487,9 +8758,13 @@ body[data-theme="manilla"] .store-access-toggle[data-access="military"].active {
 }
 
 body[data-theme="manilla"] .calc-rule-callout {
-  background: #fef3c7 !important;
-  border-left-color: #d97706 !important;
-  color: #78350f !important;
+  background: #f0ede6 !important;
+  border-left-color: #b91c1c !important;
+  color: #000000 !important;
+}
+
+body[data-theme="manilla"] .calc-rule-callout strong {
+  color: #000000 !important;
 }
 
 body[data-theme="manilla"] .karma-no-spend-warn {
@@ -8684,8 +8959,9 @@ body[data-theme="manilla"] .inv-retry-title {
   font-weight: 800 !important;
 }
 
-body[data-theme="manilla"] .inv-retry-details {
-  color: #7f1d1d !important;
+body[data-theme="manilla"] .inv-retry-details,
+body[data-theme="manilla"] .inv-retry-details div {
+  color: #1e293b !important;
 }
 
 body[data-theme="manilla"] .inv-stage-badge.pending {
@@ -9815,6 +10091,42 @@ body[data-theme="aqua"] .rev-result-days {
 
 body[data-theme="aqua"] .rev-result-summary {
   color: #a5f3fc;
+}
+
+body[data-theme="aqua"] .inv-special-req-box.special-needed {
+  background: rgba(245, 158, 11, 0.2);
+  border-color: #f59e0b;
+  color: #fde68a;
+}
+
+body[data-theme="aqua"] .inv-special-req-box.standard-materials {
+  background: rgba(20, 184, 166, 0.2);
+  border-color: #14b8a6;
+  color: #99f6e4;
+}
+
+body[data-theme="aqua"] .inv-facility-warn-box.has-warnings {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: #ef4444;
+  color: #fca5a5;
+}
+
+body[data-theme="aqua"] .material-warn-text.has-overload {
+  background: rgba(245, 158, 11, 0.2);
+  border-color: #f59e0b;
+  color: #fde68a;
+}
+
+body[data-theme="aqua"] .inv-rev-working-model-box {
+  background: rgba(56, 189, 248, 0.15);
+  border-color: #38bdf8;
+  color: #bae6fd;
+}
+
+body[data-theme="aqua"] .inv-rev-fail-box {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: #ef4444;
+  color: #fca5a5;
 }
 
 /* Aqua: Help & Rulebook Modals */

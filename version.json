@@ -1,7 +1,7 @@
 {
-  "version": "1.6.09",
+  "version": "1.6.10",
   "releaseDate": "2026-11-12",
   "name": "MSH RPGen",
   "repo": "https://github.com/captainload/marvel-character-editor",
-  "notes": "v1.6.09: Eliminated the '?' button column in Equipment table and inventory cards, turning item names into clickable links that open full description popups; deepened the light blue in Damage/Protection to a richer, higher-contrast shade."
+  "notes": "v1.6.10: Fixed unreadable color combinations in Manilla theme for Invention Lab, including special requirements yellow-on-yellow, facility/overload warnings red-on-red, engineering callouts, and roller failure/retry states."
 }

@@ -62,7 +62,7 @@ const App = {
     this.superiorOptionCost = !!val;
   },
   humanAbilityCaps: false,
-  VERSION: '1.6.09',
+  VERSION: '1.6.10',
   editLogFilter: 'all',
   editLogSearchQuery: '',
   BUILD_DATE: '2026-11-12',
@@ -9952,17 +9952,16 @@ const App = {
     const specBox = document.getElementById('inv-special-req-box');
     if (specBox && project.specialRequirement) {
       const sr = project.specialRequirement;
+      specBox.style.background = '';
+      specBox.style.border = '';
+      specBox.style.color = '';
       if (sr.requiresSpecial) {
+        specBox.className = 'inv-special-req-box special-needed';
         specBox.style.display = 'block';
-        specBox.style.background = 'rgba(245, 158, 11, 0.15)';
-        specBox.style.border = '1px solid #f59e0b';
-        specBox.style.color = '#fde68a';
         specBox.innerHTML = `<strong>⚠️ Special Requirements (Judge's Book p. 14):</strong> ${sr.summary}`;
       } else {
+        specBox.className = 'inv-special-req-box standard-materials';
         specBox.style.display = 'block';
-        specBox.style.background = 'rgba(16, 185, 129, 0.1)';
-        specBox.style.border = '1px solid rgba(16, 185, 129, 0.3)';
-        specBox.style.color = '#a7f3d0';
         specBox.innerHTML = `✓ <strong>Standard Materials:</strong> ${sr.summary}`;
       }
     }
@@ -9977,13 +9976,15 @@ const App = {
       if (project.isKitBash) {
         warnings.push(`⚡ <strong>Kit-Bash Prototype:</strong> Assembled in hours, -1CS Assembly, temporary 1-scene lifespan (Player's Book p. 43).`);
       }
+      facilBox.style.background = '';
+      facilBox.style.border = '';
+      facilBox.style.color = '';
       if (warnings.length > 0) {
+        facilBox.className = 'inv-facility-warn-box has-warnings';
         facilBox.style.display = 'block';
-        facilBox.style.background = 'rgba(239, 68, 68, 0.15)';
-        facilBox.style.border = '1px solid #ef4444';
-        facilBox.style.color = '#fca5a5';
         facilBox.innerHTML = warnings.join('<br>');
       } else {
+        facilBox.className = 'inv-facility-warn-box';
         facilBox.style.display = 'none';
         facilBox.innerHTML = '';
       }
@@ -9991,15 +9992,15 @@ const App = {
 
     const warnEl = document.getElementById('inv-material-warn');
     if (warnEl) {
+      warnEl.style.background = '';
+      warnEl.style.border = '';
+      warnEl.style.color = '';
       if (project.hasMaterialOverload) {
+        warnEl.className = 'material-warn-text has-overload';
         warnEl.style.display = 'block';
-        warnEl.style.padding = '4px 8px';
-        warnEl.style.borderRadius = '4px';
-        warnEl.style.background = 'rgba(245, 158, 11, 0.15)';
-        warnEl.style.border = '1px solid #f59e0b';
-        warnEl.style.marginTop = '4px';
         warnEl.textContent = project.materialWarning;
       } else {
+        warnEl.className = 'material-warn-text';
         warnEl.style.display = 'none';
         warnEl.textContent = '';
       }
@@ -10553,12 +10554,12 @@ const App = {
     const box = document.getElementById('reverse-engineer-result-box');
     if (!res.success || !res.reproducible) {
       box.innerHTML = `
-        <div style="border-left: 4px solid #ef4444; padding-left: 10px;">
+        <div class="inv-rev-nonrep-box" style="border-left: 4px solid #ef4444; padding-left: 10px;">
           <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap;">
-            <strong style="color: #f87171; font-size: 11pt;">⚠️ NON-REPRODUCIBLE ARTIFACT</strong>
+            <strong class="inv-rev-warn-title" style="color: #f87171; font-size: 11pt;">⚠️ NON-REPRODUCIBLE ARTIFACT</strong>
             <button type="button" class="icon-btn" id="btn-cancel-rev-result" style="padding: 2px 10px; font-size: 10pt;">✕ Cancel</button>
           </div>
-          <p style="color: #fca5a5; margin-top: 6px; font-size: 10pt;">${res.error}</p>
+          <p class="inv-rev-warn-desc" style="color: #fca5a5; margin-top: 6px; font-size: 10pt;">${res.error}</p>
         </div>
       `;
       const cancelBtn = box.querySelector('#btn-cancel-rev-result');
@@ -10588,7 +10589,7 @@ const App = {
           <button type="button" class="icon-btn" id="btn-cancel-rev-result-top" style="padding: 2px 10px; font-size: 10pt;" title="Cancel and clear selection">✕ Cancel</button>
         </div>
 
-        <div style="background: rgba(56, 189, 248, 0.12); border: 1px solid #38bdf8; border-radius: 4px; padding: 6px 10px; font-size: 10pt; color: #bae6fd;">
+        <div class="inv-rev-working-model-box" style="background: rgba(56, 189, 248, 0.12); border: 1px solid #38bdf8; border-radius: 4px; padding: 6px 10px; font-size: 10pt; color: #bae6fd;">
           🔍 <strong>Working Model in Hand:</strong> In TSR rules, analyzing an existing working device requires a Reason FEAT with a <strong>+2CS Column Shift bonus</strong> (Reason: ${reasonRank} → <strong>${effectiveReasonRank}</strong>) to deduce internal circuitry and extract blueprints!
         </div>
 
@@ -10658,11 +10659,11 @@ const App = {
     box.innerHTML = `
       <div style="display: flex; flex-direction: column; gap: 8px;">
         <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap;">
-          <strong style="color: #f87171; font-size: 11pt;">❌ Reverse-Engineering Unsuccessful</strong>
+          <strong class="inv-rev-fail-title" style="color: #f87171; font-size: 11pt;">❌ Reverse-Engineering Unsuccessful</strong>
           <button type="button" class="icon-btn" id="btn-cancel-rev-fail-top" style="padding: 2px 10px; font-size: 10pt;" title="Cancel selection">✕ Cancel</button>
         </div>
 
-        <div style="background: rgba(239, 68, 68, 0.12); border: 1px solid #ef4444; border-radius: 4px; padding: 8px 10px; font-size: 10pt; color: #fca5a5;">
+        <div class="inv-rev-fail-box" style="background: rgba(239, 68, 68, 0.12); border: 1px solid #ef4444; border-radius: 4px; padding: 8px 10px; font-size: 10pt; color: #fca5a5;">
           <div><strong>Roll Result:</strong> Rolled <strong>${featResult.roll}</strong> (White on ${featResult.effectiveRank}). Green FEAT requires roll of <strong>${featResult.thresholds.green}+</strong>.</div>
           <div style="margin-top: 4px;">Could not decipher proprietary circuitry and internal design on this attempt.</div>
         </div>
@@ -12871,7 +12872,7 @@ const App = {
         this.render();
         if (effectEl) {
           effectEl.innerHTML += `
-            <div style="margin-top: 8px; padding: 6px 10px; background: rgba(16, 185, 129, 0.2); border: 1px solid #10b981; border-radius: 4px; color: #a7f3d0; font-weight: 700; font-size: 10pt;">
+            <div class="inv-roll-success-box" style="margin-top: 8px; padding: 6px 10px; background: rgba(16, 185, 129, 0.2); border: 1px solid #10b981; border-radius: 4px; color: #a7f3d0; font-weight: 700; font-size: 10pt;">
               🎉 SUCCESSFUL PROCUREMENT! "${pItem.name}" has been acquired and added to your equipment!
             </div>
           `;
@@ -12879,7 +12880,7 @@ const App = {
       } else {
         if (effectEl) {
           effectEl.innerHTML += `
-            <div style="margin-top: 8px; padding: 6px 10px; background: rgba(239, 68, 68, 0.2); border: 1px solid #ef4444; border-radius: 4px; color: #fca5a5; font-weight: 700; font-size: 10pt;">
+            <div class="inv-roll-fail-box" style="margin-top: 8px; padding: 6px 10px; background: rgba(239, 68, 68, 0.2); border: 1px solid #ef4444; border-radius: 4px; color: #fca5a5; font-weight: 700; font-size: 10pt;">
               ❌ PROCUREMENT FAILED: Resource FEAT did not meet ${targetCol} requirement. (Player's Book p. 18: Try again next week).
             </div>
           `;
@@ -12906,7 +12907,7 @@ const App = {
         this.updateInventionStagesUI();
         if (effectEl) {
           effectEl.innerHTML += `
-            <div style="margin-top: 8px; padding: 8px 12px; background: rgba(16, 185, 129, 0.2); border: 1px solid #10b981; border-radius: 4px; color: #a7f3d0; font-weight: 700; font-size: 10pt;">
+            <div class="inv-roll-success-box" style="margin-top: 8px; padding: 8px 12px; background: rgba(16, 185, 129, 0.2); border: 1px solid #10b981; border-radius: 4px; color: #a7f3d0; font-weight: 700; font-size: 10pt;">
               ${stageRes.title}: PASSED! (${featResult.color} FEAT)<br>
               <span style="font-weight: 400; font-size: 10pt;">${stageRes.summary}</span>
             </div>
@@ -12930,7 +12931,7 @@ const App = {
             `;
           }
           effectEl.innerHTML += `
-            <div style="margin-top: 8px; padding: 8px 12px; background: rgba(239, 68, 68, 0.2); border: 1px solid #ef4444; border-radius: 4px; color: #fca5a5; font-size: 10pt;">
+            <div class="inv-roll-fail-box" style="margin-top: 8px; padding: 8px 12px; background: rgba(239, 68, 68, 0.2); border: 1px solid #ef4444; border-radius: 4px; color: #fca5a5; font-size: 10pt;">
               <div style="font-weight: 700;">${stageRes.title}: FAILED (${featResult.color} FEAT)</div>
               <div style="font-weight: 400; margin-top: 2px;">${stageRes.summary}</div>
               ${retryHtml}

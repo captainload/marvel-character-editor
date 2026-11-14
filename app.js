@@ -62,7 +62,7 @@ const App = {
     this.superiorOptionCost = !!val;
   },
   humanAbilityCaps: false,
-  VERSION: '1.6.12',
+  VERSION: '1.6.13',
   editLogFilter: 'all',
   editLogSearchQuery: '',
   BUILD_DATE: '2026-11-12',
@@ -15019,6 +15019,24 @@ const App = {
     return 'Desktop OS';
   },
 
+  getDefaultFolderDisplayPath() {
+    const os = this.getDetectedOS();
+    if (os === 'Windows') {
+      return 'Documents\\MSHRPGen';
+    } else {
+      return 'Documents/MSHRPGen';
+    }
+  },
+
+  getDefaultFolderFullPathHint() {
+    const os = this.getDetectedOS();
+    if (os === 'Windows') {
+      return '%USERPROFILE%\\Documents\\MSHRPGen';
+    } else {
+      return '~/Documents/MSHRPGen';
+    }
+  },
+
   async getEffectiveDirectoryHandle() {
     if (this.currentDirectoryHandle) {
       try {
@@ -15169,15 +15187,18 @@ const App = {
     const hintEl = document.getElementById('folder-os-hint');
 
     const osName = this.getDetectedOS();
+    const defaultDisplay = this.getDefaultFolderDisplayPath();
+    const fullHint = this.getDefaultFolderFullPathHint();
+
     let osHintText = '';
     if (osName === 'Windows') {
-      osHintText = 'Windows detected: Default save/load location resolves to your <strong>Documents</strong> folder (<code>%USERPROFILE%\\Documents</code>).';
+      osHintText = `Windows detected: Default save/load folder is <strong>${defaultDisplay}</strong> (<code>${fullHint}</code>).`;
     } else if (osName === 'macOS') {
-      osHintText = 'macOS detected: Default save/load location resolves to your <strong>Documents</strong> folder (<code>~/Documents</code>).';
+      osHintText = `macOS detected: Default save/load folder is <strong>${defaultDisplay}</strong> (<code>${fullHint}</code>).`;
     } else if (osName === 'Linux') {
-      osHintText = 'Linux detected: Default save/load location resolves to your <strong>Documents</strong> folder (<code>~/Documents</code>).';
+      osHintText = `Linux detected: Default save/load folder is <strong>${defaultDisplay}</strong> (<code>${fullHint}</code>).`;
     } else {
-      osHintText = 'Default save/load location resolves to your operating system\'s standard <strong>Documents</strong> directory.';
+      osHintText = `Default save/load folder is <strong>${defaultDisplay}</strong> in your operating system documents folder.`;
     }
     if (hintEl) hintEl.innerHTML = osHintText;
 
@@ -15185,14 +15206,14 @@ const App = {
     if (customName) {
       if (pathEl) pathEl.innerHTML = `📁 <strong>${this.escapeHtml(customName)}</strong>`;
       if (badgeEl) {
-        badgeEl.textContent = 'Custom Location';
+        badgeEl.textContent = 'Custom Default Folder';
         badgeEl.style.background = 'rgba(56, 189, 248, 0.15)';
         badgeEl.style.color = '#38bdf8';
       }
     } else {
-      if (pathEl) pathEl.innerHTML = `📁 Documents (System Default)`;
+      if (pathEl) pathEl.innerHTML = `📁 ${defaultDisplay} (System Default)`;
       if (badgeEl) {
-        badgeEl.textContent = 'Documents (System Default)';
+        badgeEl.textContent = `${defaultDisplay} (System Default)`;
         badgeEl.style.background = 'rgba(16, 185, 129, 0.15)';
         badgeEl.style.color = '#34d399';
       }
@@ -15217,9 +15238,10 @@ const App = {
         if (raw) folders = JSON.parse(raw);
       }
     } catch (e) {}
+    const defaultName = this.getDefaultFolderDisplayPath();
     if (!folders || typeof folders !== 'object') {
       folders = {
-        name: 'Documents (Virtual Workspace)',
+        name: defaultName,
         subfolders: [
           { name: 'Campaign 1', subfolders: [], files: [] },
           { name: 'Campaign 2', subfolders: [], files: [] },
@@ -15228,6 +15250,8 @@ const App = {
         ],
         files: []
       };
+    } else if (folders.name === 'Documents (Virtual Workspace)' || folders.name === 'Documents (System Default)') {
+      folders.name = defaultName;
     }
     return folders;
   },
@@ -15470,13 +15494,14 @@ const App = {
           statusInd.style.background = 'rgba(52, 211, 153, 0.15)';
         }
       } else {
+        const defaultName = this.getDefaultFolderDisplayPath();
         const vTree = this.getVirtualFolders();
         const rootNode = {
           id: 'root',
-          name: vTree.name || 'Documents (System Default)',
+          name: vTree.name || defaultName,
           handle: null,
           parent: null,
-          path: [vTree.name || 'Documents (System Default)'],
+          path: [vTree.name || defaultName],
           subfolders: [],
           files: [],
           isLoaded: true,
@@ -15688,23 +15713,24 @@ const App = {
     }
 
     // 3. Active Folder Button State
+    // 3. Default Save Folder Button State
     const btnSetActive = document.getElementById('btn-set-active-folder');
     if (btnSetActive) {
       const isActive = this.isNodeCurrentActiveTarget(node);
       if (isActive) {
-        btnSetActive.textContent = '✓ Active Folder';
+        btnSetActive.textContent = '✓ Default Save Folder';
         btnSetActive.classList.remove('primary');
         btnSetActive.style.background = 'rgba(16, 185, 129, 0.2)';
         btnSetActive.style.color = '#34d399';
         btnSetActive.style.border = '1px solid #34d399';
-        btnSetActive.title = 'This folder is already your active character save/load location';
+        btnSetActive.title = 'This folder is already your default character save/load location';
       } else {
-        btnSetActive.textContent = '⭐ Set as Active Folder';
+        btnSetActive.textContent = '⭐ Set as Default Save Folder';
         btnSetActive.classList.add('primary');
         btnSetActive.style.background = '';
         btnSetActive.style.color = '';
         btnSetActive.style.border = '';
-        btnSetActive.title = `Set "${node.name}" as your active character save and load folder`;
+        btnSetActive.title = `Set "${node.name}" as your default character save and load folder`;
       }
     }
 
@@ -15726,7 +15752,7 @@ const App = {
           <div style="color: var(--text-dim); text-align: center; padding: 26px 12px; font-size: 9.5pt; line-height: 1.5;">
             ${filter ? `No character files match &ldquo;<strong>${this.escapeHtml(filter)}</strong>&rdquo; in this folder.` : 'No character files found in this folder.'}<br>
             <span style="font-size: 8.5pt; opacity: 0.8; margin-top: 6px; display: inline-block;">
-              Click <strong>&quot;💾 Save Hero Here&quot;</strong> or <strong>&quot;📦 Copy All Known Here&quot;</strong> to populate this folder.
+              Click <strong>&quot;💾 Save Hero Here&quot;</strong> or <strong>&quot;📦 Relocate All Known Here&quot;</strong> to populate this folder.
             </span>
           </div>
         `;
@@ -15746,9 +15772,11 @@ const App = {
                   </span>
                 </div>
               </div>
-              <div style="display: flex; gap: 6px; flex-shrink: 0;">
-                <button type="button" class="icon-btn primary compact" style="padding: 3px 8px; font-size: 9pt; font-weight: 600;" data-action="load-file" data-file-idx="${idx}" title="Open this hero into the character sheet">📂 Open</button>
-                <button type="button" class="icon-btn compact" style="padding: 3px 8px; font-size: 9pt;" data-action="export-file" data-file-idx="${idx}" title="Download a local backup of this hero file">⬇️ Save</button>
+              <div style="display: flex; gap: 4px; flex-shrink: 0; align-items: center; flex-wrap: wrap; justify-content: flex-end;">
+                <button type="button" class="icon-btn primary compact" style="padding: 3px 8px; font-size: 8.5pt; font-weight: 600;" data-action="load-file" data-file-idx="${idx}" title="Open this hero into the character sheet">📂 Open</button>
+                <button type="button" class="icon-btn compact" style="padding: 3px 8px; font-size: 8.5pt;" data-action="rename-file" data-file-idx="${idx}" title="Rename this character file">✏️ Rename</button>
+                <button type="button" class="icon-btn compact danger" style="padding: 3px 8px; font-size: 8.5pt;" data-action="delete-file" data-file-idx="${idx}" title="Delete this character file">🗑️ Delete</button>
+                <button type="button" class="icon-btn compact" style="padding: 3px 8px; font-size: 8.5pt;" data-action="export-file" data-file-idx="${idx}" title="Download a local backup of this hero file">⬇️ Save</button>
               </div>
             </div>
           `;
@@ -15760,6 +15788,26 @@ const App = {
             const targetFile = filteredFiles[idx];
             if (targetFile) {
               await this.loadHeroFromFileEntry(targetFile);
+            }
+          });
+        });
+
+        filesListEl.querySelectorAll('[data-action="rename-file"]').forEach(btn => {
+          btn.addEventListener('click', async () => {
+            const idx = parseInt(btn.getAttribute('data-file-idx'), 10);
+            const targetFile = filteredFiles[idx];
+            if (targetFile) {
+              await this.handleRenameCharacterFile(targetFile, node);
+            }
+          });
+        });
+
+        filesListEl.querySelectorAll('[data-action="delete-file"]').forEach(btn => {
+          btn.addEventListener('click', async () => {
+            const idx = parseInt(btn.getAttribute('data-file-idx'), 10);
+            const targetFile = filteredFiles[idx];
+            if (targetFile) {
+              await this.handleDeleteCharacterFile(targetFile, node);
             }
           });
         });
@@ -15799,10 +15847,50 @@ const App = {
                   <span style="color: var(--text-dim); font-size: 8.5pt;">${this.escapeHtml(f.fileName)} &bull; ${dateStr}</span>
                 </div>
               </div>
-              <button type="button" class="icon-btn compact" style="padding: 2px 7px; font-size: 9pt;" data-download-known="${i}" title="Download a copy of this character file">⬇️ Save</button>
+              <div style="display: flex; gap: 4px; flex-shrink: 0; align-items: center;">
+                <button type="button" class="icon-btn primary compact" style="padding: 2px 7px; font-size: 8.5pt;" data-open-known="${i}" title="Open this hero into the character sheet">📂 Open</button>
+                <button type="button" class="icon-btn compact" style="padding: 2px 7px; font-size: 8.5pt;" data-rename-known="${i}" title="Rename this character file">✏️ Rename</button>
+                <button type="button" class="icon-btn compact danger" style="padding: 2px 7px; font-size: 8.5pt;" data-delete-known="${i}" title="Delete this character record">🗑️ Delete</button>
+                <button type="button" class="icon-btn compact" style="padding: 2px 7px; font-size: 8.5pt;" data-download-known="${i}" title="Download a copy of this character file">⬇️ Save</button>
+              </div>
             </div>
           `;
         }).join('');
+
+        listEl.querySelectorAll('[data-open-known]').forEach(btn => {
+          btn.addEventListener('click', async () => {
+            const idx = parseInt(btn.getAttribute('data-open-known'), 10);
+            const target = files[idx];
+            if (target) {
+              await this.loadHeroFromFileEntry({
+                name: target.fileName,
+                heroName: target.name || target.fileName.replace(/\.[^/.]+$/, ''),
+                data: target.data,
+                modTime: target.timestamp
+              });
+            }
+          });
+        });
+
+        listEl.querySelectorAll('[data-rename-known]').forEach(btn => {
+          btn.addEventListener('click', async () => {
+            const idx = parseInt(btn.getAttribute('data-rename-known'), 10);
+            const target = files[idx];
+            if (target) {
+              await this.handleRenameKnownFile(target);
+            }
+          });
+        });
+
+        listEl.querySelectorAll('[data-delete-known]').forEach(btn => {
+          btn.addEventListener('click', async () => {
+            const idx = parseInt(btn.getAttribute('data-delete-known'), 10);
+            const target = files[idx];
+            if (target) {
+              await this.handleDeleteKnownFile(target);
+            }
+          });
+        });
 
         listEl.querySelectorAll('[data-download-known]').forEach(btn => {
           btn.addEventListener('click', () => {
@@ -15825,6 +15913,268 @@ const App = {
         });
       }
     }
+  },
+
+  async handleRenameCharacterFile(fileEntry, node) {
+    if (!fileEntry) return;
+    const oldName = fileEntry.name;
+    const currentHeroName = fileEntry.heroName || oldName.replace(/\.[^/.]+$/, '');
+
+    const input = prompt(`Enter new file name for "${currentHeroName}":`, oldName);
+    if (!input || !input.trim() || input.trim() === oldName) return;
+
+    let newName = input.trim().replace(/[/\\?%*:|"<>]/g, '_');
+    if (!newName.toLowerCase().endsWith('.msh') && !newName.toLowerCase().endsWith('.json')) {
+      newName += '.msh';
+    }
+
+    try {
+      if (node && node.handle && typeof node.handle.getFileHandle === 'function') {
+        let text = null;
+        if (fileEntry.handle && typeof fileEntry.handle.getFile === 'function') {
+          const f = await fileEntry.handle.getFile();
+          text = await f.text();
+        } else if (fileEntry.data) {
+          text = typeof fileEntry.data === 'string' ? fileEntry.data : JSON.stringify(fileEntry.data, null, 2);
+        }
+
+        if (!text) {
+          const oldHandle = await node.handle.getFileHandle(oldName);
+          const f = await oldHandle.getFile();
+          text = await f.text();
+        }
+
+        const newFileHandle = await node.handle.getFileHandle(newName, { create: true });
+        const writable = await newFileHandle.createWritable();
+        await writable.write(text);
+        await writable.close();
+
+        if (oldName !== newName) {
+          await node.handle.removeEntry(oldName);
+        }
+
+        fileEntry.name = newName;
+        fileEntry.handle = newFileHandle;
+        await this.scanDirectoryTreeBranch(node);
+      } else {
+        fileEntry.name = newName;
+        const vTree = this.getVirtualFolders();
+        const updateNodeFiles = (cur) => {
+          if (!cur) return;
+          if (Array.isArray(cur.files)) {
+            const match = cur.files.find(f => f.name === oldName);
+            if (match) match.name = newName;
+          }
+          if (Array.isArray(cur.subfolders)) {
+            cur.subfolders.forEach(updateNodeFiles);
+          }
+        };
+        updateNodeFiles(vTree);
+        this.saveVirtualFolders(vTree);
+      }
+
+      const known = this.getKnownCharacterFiles();
+      const match = known.find(kf => kf.fileName === oldName);
+      if (match) {
+        match.fileName = newName;
+        try {
+          if (typeof localStorage !== 'undefined') {
+            localStorage.setItem('msh_known_character_files', JSON.stringify(known));
+          }
+        } catch (e) {}
+      }
+
+      this.renderFolderTree();
+      this.renderFolderInspector();
+      this.renderKnownFilesSection();
+      this.showStatusToast(`✏️ Renamed "${oldName}" to "${newName}"!`);
+    } catch (err) {
+      console.warn('handleRenameCharacterFile failed:', err);
+      this.showCustomAlert('Could not rename file: ' + err.message, 'Rename Error');
+    }
+  },
+
+  async handleDeleteCharacterFile(fileEntry, node) {
+    if (!fileEntry) return;
+    const fileName = fileEntry.name;
+    const heroName = fileEntry.heroName || fileName.replace(/\.[^/.]+$/, '');
+
+    const confirmed = await this.showCustomConfirm(
+      `Are you sure you want to delete "${fileName}" (${heroName})?\n\nThis character file will be permanently removed.`,
+      '🗑️ Delete Character File'
+    );
+    if (!confirmed) return;
+
+    try {
+      if (node && node.handle && typeof node.handle.removeEntry === 'function') {
+        await node.handle.removeEntry(fileName);
+        await this.scanDirectoryTreeBranch(node);
+      } else {
+        if (node && Array.isArray(node.files)) {
+          node.files = node.files.filter(f => f.name !== fileName);
+        }
+        const vTree = this.getVirtualFolders();
+        const removeFromFileList = (cur) => {
+          if (!cur) return;
+          if (Array.isArray(cur.files)) {
+            cur.files = cur.files.filter(f => f.name !== fileName);
+          }
+          if (Array.isArray(cur.subfolders)) {
+            cur.subfolders.forEach(removeFromFileList);
+          }
+        };
+        removeFromFileList(vTree);
+        this.saveVirtualFolders(vTree);
+      }
+
+      let known = this.getKnownCharacterFiles();
+      known = known.filter(kf => kf.fileName !== fileName && (kf.name || '').toLowerCase() !== heroName.toLowerCase());
+      try {
+        if (typeof localStorage !== 'undefined') {
+          localStorage.setItem('msh_known_character_files', JSON.stringify(known));
+        }
+      } catch (e) {}
+
+      this.renderFolderTree();
+      this.renderFolderInspector();
+      this.renderKnownFilesSection();
+      this.showStatusToast(`🗑️ Deleted "${fileName}".`);
+    } catch (err) {
+      console.warn('handleDeleteCharacterFile failed:', err);
+      this.showCustomAlert('Could not delete file: ' + err.message, 'Delete Error');
+    }
+  },
+
+  async handleRenameKnownFile(target) {
+    if (!target) return;
+    const oldFileName = target.fileName;
+    const oldHeroName = target.name || oldFileName.replace(/\.[^/.]+$/, '');
+    const input = prompt(`Enter new file name for "${oldHeroName}":`, oldFileName);
+    if (!input || !input.trim() || input.trim() === oldFileName) return;
+
+    let newName = input.trim().replace(/[/\\?%*:|"<>]/g, '_');
+    if (!newName.toLowerCase().endsWith('.msh') && !newName.toLowerCase().endsWith('.json')) {
+      newName += '.msh';
+    }
+
+    const node = this.selectedTreeNode || this.folderTreeData;
+    if (node && Array.isArray(node.files)) {
+      const match = node.files.find(f => f.name === oldFileName);
+      if (match) {
+        await this.handleRenameCharacterFile(match, node);
+        return;
+      }
+    }
+
+    const known = this.getKnownCharacterFiles();
+    const item = known.find(k => k.fileName === oldFileName || k.id === target.id);
+    if (item) {
+      item.fileName = newName;
+      try {
+        if (typeof localStorage !== 'undefined') {
+          localStorage.setItem('msh_known_character_files', JSON.stringify(known));
+        }
+      } catch (e) {}
+    }
+
+    this.renderFolderTree();
+    this.renderFolderInspector();
+    this.renderKnownFilesSection();
+    this.showStatusToast(`✏️ Renamed "${oldFileName}" to "${newName}"!`);
+  },
+
+  async handleDeleteKnownFile(target) {
+    if (!target) return;
+    const fileName = target.fileName;
+    const heroName = target.name || fileName.replace(/\.[^/.]+$/, '');
+    const confirmed = await this.showCustomConfirm(
+      `Are you sure you want to remove "${fileName}" (${heroName}) from your known character files?`,
+      '🗑️ Delete Character Record'
+    );
+    if (!confirmed) return;
+
+    const node = this.selectedTreeNode || this.folderTreeData;
+    if (node && Array.isArray(node.files)) {
+      const match = node.files.find(f => f.name === fileName);
+      if (match) {
+        await this.handleDeleteCharacterFile(match, node);
+        return;
+      }
+    }
+
+    let known = this.getKnownCharacterFiles();
+    known = known.filter(k => k.fileName !== fileName && k.id !== target.id);
+    try {
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem('msh_known_character_files', JSON.stringify(known));
+      }
+    } catch (e) {}
+
+    this.renderFolderTree();
+    this.renderFolderInspector();
+    this.renderKnownFilesSection();
+    this.showStatusToast(`🗑️ Removed "${fileName}".`);
+  },
+
+  async relocateCharacterFiles(targetNode) {
+    if (!targetNode) return;
+    const knownFiles = this.getKnownCharacterFiles();
+    if (!knownFiles || knownFiles.length === 0) {
+      this.showStatusToast('No character files to relocate.');
+      return;
+    }
+
+    let relocatedCount = 0;
+    if (targetNode.handle && typeof targetNode.handle.getFileHandle === 'function') {
+      for (const item of knownFiles) {
+        try {
+          const fileName = item.fileName || `${(item.name || 'Hero').replace(/\s+/g, '_')}_FASERIP.msh`;
+          const fileHandle = await targetNode.handle.getFileHandle(fileName, { create: true });
+          const writable = await fileHandle.createWritable();
+          const content = typeof item.data === 'string' ? item.data : JSON.stringify(item.data, null, 2);
+          await writable.write(content);
+          await writable.close();
+          relocatedCount++;
+        } catch (err) {
+          console.warn('Failed relocating file to directory handle:', item.fileName, err);
+        }
+      }
+      await this.scanDirectoryTreeBranch(targetNode);
+    } else {
+      targetNode.files = knownFiles.map(kf => ({
+        name: kf.fileName,
+        heroName: kf.name || kf.fileName.replace(/\.[^/.]+$/, ''),
+        handle: null,
+        modTime: kf.timestamp,
+        sizeStr: '',
+        data: kf.data
+      }));
+      const vTree = this.getVirtualFolders();
+      const findAndSet = (cur) => {
+        if (!cur) return false;
+        if (cur.name === targetNode.name) {
+          cur.files = targetNode.files;
+          return true;
+        }
+        if (Array.isArray(cur.subfolders)) {
+          for (const sf of cur.subfolders) {
+            if (findAndSet(sf)) return true;
+          }
+        }
+        return false;
+      };
+      findAndSet(vTree);
+      this.saveVirtualFolders(vTree);
+      relocatedCount = knownFiles.length;
+    }
+
+    this.renderFolderTree();
+    this.renderFolderInspector();
+    this.renderKnownFilesSection();
+    this.showCustomAlert(
+      `Successfully relocated ${relocatedCount} character file(s) to "<strong>${this.escapeHtml(targetNode.name)}</strong>"!`,
+      '📁 Files Relocated'
+    );
   },
 
   async promptCreateSubfolder() {
@@ -15882,6 +16232,10 @@ const App = {
     const node = this.selectedTreeNode || this.folderTreeData;
     if (!node) return;
 
+    const previousFolder = this.saveFolderName || this.getDefaultFolderDisplayPath();
+    const newFolderName = node.name;
+    const isDifferent = previousFolder.toLowerCase() !== newFolderName.toLowerCase();
+
     if (node.handle) {
       this.currentDirectoryHandle = node.handle;
       this.lastSaveDirectoryHandle = node.handle;
@@ -15908,7 +16262,20 @@ const App = {
     this.renderFolderTreeTopStatus();
     this.renderFolderTree();
     this.renderFolderInspector();
-    this.showStatusToast(`⭐ Active save/load folder set to "${node.name}"!`);
+    this.showStatusToast(`⭐ Default save folder set to "${newFolderName}"!`);
+
+    if (isDifferent) {
+      const knownFiles = this.getKnownCharacterFiles();
+      if (knownFiles.length > 0) {
+        const confirmed = await this.showCustomConfirm(
+          `Default save folder changed to "${newFolderName}".\n\nWould you like to relocate all ${knownFiles.length} character file(s) to the new location?`,
+          '📁 Relocate Character Files?'
+        );
+        if (confirmed) {
+          await this.relocateCharacterFiles(node);
+        }
+      }
+    }
   },
 
   async saveCharacterToSelectedFolder() {
@@ -16094,6 +16461,7 @@ const App = {
   },
 
   async browseAndSetSaveDirectory() {
+    const previousFolder = this.saveFolderName || this.getDefaultFolderDisplayPath();
     if (typeof window !== 'undefined' && window.showDirectoryPicker) {
       try {
         const startDir = await this.getEffectiveDirectoryHandle();
@@ -16102,29 +16470,39 @@ const App = {
           mode: 'readwrite'
         });
         if (handle) {
-          this.rootDirectoryHandle = handle;
-          this.currentDirectoryHandle = handle;
-          this.lastSaveDirectoryHandle = handle;
-          this.saveFolderName = handle.name;
-          if (typeof localStorage !== 'undefined') {
-            localStorage.setItem('msh_save_folder_name', handle.name);
+          let targetHandle = handle;
+          if (handle.name && handle.name.toLowerCase() === 'documents') {
+            try {
+              targetHandle = await handle.getDirectoryHandle('MSHRPGen', { create: true });
+            } catch (e) {
+              targetHandle = handle;
+            }
           }
-          await this.saveStoredRootDirectoryHandle(handle);
-          await this.saveStoredDirectoryHandle(handle);
+
+          this.rootDirectoryHandle = targetHandle;
+          this.currentDirectoryHandle = targetHandle;
+          this.lastSaveDirectoryHandle = targetHandle;
+          this.saveFolderName = targetHandle.name;
+          if (typeof localStorage !== 'undefined') {
+            localStorage.setItem('msh_save_folder_name', targetHandle.name);
+          }
+          await this.saveStoredRootDirectoryHandle(targetHandle);
+          await this.saveStoredDirectoryHandle(targetHandle);
           await this.loadFolderTree(true);
 
+          const isDifferent = previousFolder.toLowerCase() !== targetHandle.name.toLowerCase();
           const knownFiles = this.getKnownCharacterFiles();
-          if (knownFiles.length > 0) {
+          if (isDifferent && knownFiles.length > 0) {
             const confirmed = await this.showCustomConfirm(
-              `Root folder connected to "${handle.name}"!\n\nWould you like to copy all ${knownFiles.length} known character file(s) to this new folder now?`,
-              '📁 Move Character Files?'
+              `Default save folder changed to "${targetHandle.name}".\n\nWould you like to relocate all ${knownFiles.length} character file(s) to the new location?`,
+              '📁 Relocate Character Files?'
             );
             if (confirmed) {
-              await this.moveKnownFilesToDirectory(handle);
+              await this.moveKnownFilesToDirectory(targetHandle);
               await this.loadFolderTree(true);
             }
           } else {
-            this.showStatusToast(`📁 Connected and set folder to "${handle.name}"`);
+            this.showStatusToast(`📁 Connected and set default folder to "${targetHandle.name}"`);
           }
         }
       } catch (err) {
@@ -16135,27 +16513,38 @@ const App = {
     } else {
       const folderInput = prompt(
         'Enter preferred folder name or path for your character saves:',
-        this.saveFolderName || 'Documents/MarvelCharacters'
+        this.saveFolderName || this.getDefaultFolderDisplayPath()
       );
       if (folderInput) {
-        this.saveFolderName = folderInput.trim();
+        const newName = folderInput.trim();
+        const isDifferent = previousFolder.toLowerCase() !== newName.toLowerCase();
+        this.saveFolderName = newName;
         if (typeof localStorage !== 'undefined') {
           localStorage.setItem('msh_save_folder_name', this.saveFolderName);
         }
         await this.loadFolderTree(true);
+
+        const knownFiles = this.getKnownCharacterFiles();
+        if (isDifferent && knownFiles.length > 0) {
+          const confirmed = await this.showCustomConfirm(
+            `Default save folder changed to "${newName}".\n\nWould you like to relocate all ${knownFiles.length} character file(s) to the new location?`,
+            '📁 Relocate Character Files?'
+          );
+          if (confirmed) {
+            const target = this.selectedTreeNode || this.folderTreeData;
+            if (target) {
+              await this.relocateCharacterFiles(target);
+            }
+          }
+        }
       }
     }
   },
 
   async resetSaveDirectoryToDefault(offerToMove = true) {
-    const knownFiles = this.getKnownCharacterFiles();
-    let moveConfirmed = false;
-    if (offerToMove && knownFiles.length > 0) {
-      moveConfirmed = await this.showCustomConfirm(
-        `Reset character save/load location back to your system Documents folder.\n\nWould you like to copy all ${knownFiles.length} known saved character file(s) to your Documents folder now?`,
-        '🔄 Reset to Default Location?'
-      );
-    }
+    const defaultDisplay = this.getDefaultFolderDisplayPath();
+    const previousFolder = this.saveFolderName || defaultDisplay;
+    const isDifferent = !!this.saveFolderName;
 
     this.rootDirectoryHandle = null;
     this.currentDirectoryHandle = null;
@@ -16168,39 +16557,57 @@ const App = {
     await this.clearStoredDirectoryHandle();
     await this.loadFolderTree(true);
 
-    if (moveConfirmed) {
-      if (typeof window !== 'undefined' && window.showDirectoryPicker) {
-        try {
-          const docHandle = await window.showDirectoryPicker({
-            startIn: 'documents',
-            mode: 'readwrite'
-          });
-          if (docHandle) {
-            await this.moveKnownFilesToDirectory(docHandle);
-            this.showStatusToast('✅ Moved all character files to your Documents folder!');
-          }
-        } catch (err) {
-          if (err.name !== 'AbortError') {
-            console.warn('Failed opening documents picker:', err);
+    this.showStatusToast(`🔄 Default save folder reset to "${defaultDisplay}".`);
+
+    if (offerToMove && isDifferent) {
+      const knownFiles = this.getKnownCharacterFiles();
+      if (knownFiles.length > 0) {
+        const confirmed = await this.showCustomConfirm(
+          `Default save folder reset to "${defaultDisplay}".\n\nWould you like to relocate all ${knownFiles.length} character file(s) to the new location?`,
+          '📁 Relocate Character Files?'
+        );
+        if (confirmed) {
+          if (typeof window !== 'undefined' && window.showDirectoryPicker) {
+            try {
+              const docHandle = await window.showDirectoryPicker({
+                startIn: 'documents',
+                mode: 'readwrite'
+              });
+              if (docHandle) {
+                let targetHandle = docHandle;
+                try {
+                  targetHandle = await docHandle.getDirectoryHandle('MSHRPGen', { create: true });
+                } catch (e) {}
+                await this.moveKnownFilesToDirectory(targetHandle);
+                this.rootDirectoryHandle = targetHandle;
+                this.currentDirectoryHandle = targetHandle;
+                await this.saveStoredRootDirectoryHandle(targetHandle);
+                await this.saveStoredDirectoryHandle(targetHandle);
+                await this.loadFolderTree(true);
+                this.showStatusToast(`✅ Relocated all character files to ${defaultDisplay}!`);
+              }
+            } catch (err) {
+              if (err.name !== 'AbortError') {
+                console.warn('Failed opening documents picker:', err);
+              }
+            }
+          } else {
+            for (const item of knownFiles) {
+              const content = typeof item.data === 'string' ? item.data : JSON.stringify(item.data, null, 2);
+              const blob = new Blob([content], { type: 'application/json' });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = item.fileName;
+              document.body.appendChild(a);
+              a.click();
+              document.body.removeChild(a);
+              URL.revokeObjectURL(url);
+            }
+            this.showStatusToast(`📦 Downloaded character files for ${defaultDisplay}!`);
           }
         }
-      } else {
-        for (const item of knownFiles) {
-          const content = typeof item.data === 'string' ? item.data : JSON.stringify(item.data, null, 2);
-          const blob = new Blob([content], { type: 'application/json' });
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = item.fileName;
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-          URL.revokeObjectURL(url);
-        }
-        this.showStatusToast('📦 Saved character files to your Documents folder!');
       }
-    } else {
-      this.showStatusToast('🔄 Save/load folder reset to system Documents folder.');
     }
   },
 

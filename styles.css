@@ -3263,7 +3263,7 @@ html.modal-open {
   pointer-events: auto !important;
 }
 
-/* Configure Load/Save Folder Modal */
+/* File Management Modal */
 #modal-load-save-folder.modal-overlay {
   overflow-y: auto;
   padding: 12px;
@@ -3516,6 +3516,23 @@ body[data-theme="aqua"] .folder-tree-container,
 body[data-theme="aqua"] .folder-files-container {
   background: rgba(16, 45, 82, 0.7) !important;
   border-color: #23588e !important;
+}
+
+.icon-btn.danger {
+  color: #f87171 !important;
+  border-color: rgba(239, 68, 68, 0.4) !important;
+}
+.icon-btn.danger:hover {
+  background: rgba(239, 68, 68, 0.2) !important;
+  color: #fca5a5 !important;
+}
+body[data-theme="manilla"] .icon-btn.danger {
+  color: #b91c1c !important;
+  border-color: rgba(185, 28, 28, 0.4) !important;
+}
+body[data-theme="manilla"] .icon-btn.danger:hover {
+  background: rgba(185, 28, 28, 0.15) !important;
+  color: #991b1b !important;
 }
 
 /* Touch Controls Active Status (Vibrant Green for Intuitive Recognition) */

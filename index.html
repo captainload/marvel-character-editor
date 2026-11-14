@@ -5,7 +5,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>MSH RPGen</title>
-  <link rel="stylesheet" href="styles.css?v=1.6.12">
+  <link rel="stylesheet" href="styles.css?v=1.6.13">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bangers&display=swap" rel="stylesheet">
@@ -62,7 +62,7 @@
             <button type="button" class="dropdown-item" id="menu-item-save">💾 Save Character (.msh)</button>
             <button type="button" class="dropdown-item" id="menu-item-open">📂 Open Character (.msh)</button>
             <input type="file" id="import-file-input" accept=".msh,.json" style="display: none;">
-            <button type="button" class="dropdown-item" id="menu-item-set-folder">📁 Set Load/Save Folder...</button>
+            <button type="button" class="dropdown-item" id="menu-item-set-folder">📁 File Management...</button>
             <button type="button" class="dropdown-item" id="menu-item-print-preview">🖨️ Print Preview &amp; PDF Export...</button>
             <div class="dropdown-divider"></div>
             <button type="button" class="dropdown-item" id="menu-item-touch-toggle">📱 Touch Controls: <strong id="menu-item-touch-status">OFF</strong></button>
@@ -2110,7 +2110,7 @@
           <!-- SECTION: PROGRAM UPDATES & AUTOMATED CHECKING -->
           <div style="font-weight: 700; color: var(--text-main); font-size: 11pt; border-bottom: 1px solid var(--border-color); padding-bottom: 6px; margin-top: 10px; display: flex; justify-content: space-between; align-items: center;">
             <span>🔄 Program Updates &amp; Automated Checking</span>
-            <span class="meta-tag" id="update-version-tag" style="color: var(--marvel-gold); font-size: 10pt;">v1.6.12</span>
+            <span class="meta-tag" id="update-version-tag" style="color: var(--marvel-gold); font-size: 10pt;">v1.6.13</span>
           </div>
 
           <div class="update-settings-panel" style="background: rgba(0, 0, 0, 0.2); border: 1px solid var(--border-color); border-radius: 6px; padding: 12px; display: flex; flex-direction: column; gap: 10px;">
@@ -2148,13 +2148,13 @@
     </div>
   </div>
 
-  <!-- MODAL: CONFIGURE CHARACTER LOAD & SAVE FOLDER (WITH FOLDER TREE BROWSER) -->
+  <!-- MODAL: FILE MANAGEMENT (LOCAL FOLDER TREE & CHARACTER FILE BROWSER) -->
   <div id="modal-load-save-folder" class="modal-overlay">
     <div class="modal-box folder-modal-box">
       <div class="modal-header">
         <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
-          <span class="modal-title">📁 Character Save &amp; Load Folder Browser</span>
-          <span id="folder-status-badge" class="meta-tag" style="background: rgba(16, 185, 129, 0.15); color: #34d399; font-weight: 700;">Documents (System Default)</span>
+          <span class="modal-title">📁 File Management</span>
+          <span id="folder-status-badge" class="meta-tag" style="background: rgba(16, 185, 129, 0.15); color: #34d399; font-weight: 700;">Documents\MSHRPGen (System Default)</span>
         </div>
         <button type="button" class="modal-close" id="btn-close-folder-modal-x">&times;</button>
       </div>
@@ -2162,9 +2162,9 @@
         <!-- Top Location Banner & Actions -->
         <div class="folder-tree-top-bar">
           <div style="flex: 1 1 260px; min-width: 0;">
-            <div style="font-size: 8.5pt; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700;">Active Save / Load Target:</div>
+            <div style="font-size: 8.5pt; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700;">Default Save Folder:</div>
             <div id="folder-current-path" style="font-family: monospace; font-size: 11pt; color: #38bdf8; font-weight: 700; word-break: break-all; margin-top: 2px;">
-              📁 Documents (System Default)
+              📁 Documents\MSHRPGen (System Default)
             </div>
             <div id="folder-os-hint" style="font-size: 9pt; color: var(--text-muted); margin-top: 2px;">
               Detecting operating system default...
@@ -2173,7 +2173,7 @@
           <div style="display: flex; gap: 6px; flex-wrap: wrap; align-items: center;">
             <button type="button" class="icon-btn compact primary" id="btn-browse-folder" title="Open OS file dialog to select or change root folder">📁 Browse &amp; Connect Root...</button>
             <button type="button" class="icon-btn compact" id="btn-refresh-folder-tree" title="Re-scan current folder tree and characters">🔄 Refresh</button>
-            <button type="button" class="icon-btn compact" id="btn-reset-folder-default" title="Reset back to system default Documents folder">🔄 Reset Default</button>
+            <button type="button" class="icon-btn compact" id="btn-reset-folder-default" title="Reset back to default MSHRPGen folder">🔄 Reset Default</button>
           </div>
         </div>
 
@@ -2209,11 +2209,11 @@
             <div class="folder-inspector-card">
               <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 8px;">
                 <div>
-                  <h4 id="folder-inspector-name" style="margin: 0; color: var(--text-main); font-size: 11pt; font-weight: 700;">Documents (System Default)</h4>
+                  <h4 id="folder-inspector-name" style="margin: 0; color: var(--text-main); font-size: 11pt; font-weight: 700;">Documents\MSHRPGen (System Default)</h4>
                   <div id="folder-inspector-stats" style="font-size: 9pt; color: var(--text-muted); margin-top: 2px;">0 subfolders • 0 character files</div>
                 </div>
                 <div style="display: flex; gap: 6px; flex-wrap: wrap;">
-                  <button type="button" class="icon-btn primary" id="btn-set-active-folder" style="font-size: 9pt; padding: 4px 10px; font-weight: 700;">⭐ Set as Active Folder</button>
+                  <button type="button" class="icon-btn primary" id="btn-set-active-folder" style="font-size: 9pt; padding: 4px 10px; font-weight: 700;" title="Set this folder as your default character save and load location">⭐ Set as Default Save Folder</button>
                   <button type="button" class="icon-btn" id="btn-save-current-to-folder" style="font-size: 9pt; padding: 4px 10px;" title="Save current character sheet directly into this folder">💾 Save Hero Here</button>
                 </div>
               </div>
@@ -2225,7 +2225,7 @@
                 <strong style="color: var(--text-main); font-size: 10pt;">
                   🦸 Character Files in this Folder (<span id="folder-files-count">0</span>)
                 </strong>
-                <button type="button" class="icon-btn compact" id="btn-copy-known-to-folder" style="font-size: 8.5pt; padding: 2px 7px;" title="Copy all known character files into this folder">📦 Copy All Known Here</button>
+                <button type="button" class="icon-btn compact" id="btn-copy-known-to-folder" style="font-size: 8.5pt; padding: 2px 7px;" title="Relocate or copy all known character files into this folder">📦 Relocate All Known Here</button>
               </div>
               <div id="folder-tree-files-list" class="folder-files-container">
                 <!-- Dynamically populated character files in selected folder -->
@@ -2245,7 +2245,7 @@
               <div style="font-size: 9.5pt; color: var(--text-muted);">
                 Characters saved or imported during your sessions:
               </div>
-              <button type="button" class="icon-btn compact" id="btn-move-known-files" style="font-size: 9pt; padding: 3px 8px;" title="Copy all known character files into the active folder">📦 Copy All to Active Folder</button>
+              <button type="button" class="icon-btn compact" id="btn-move-known-files" style="font-size: 9pt; padding: 3px 8px;" title="Copy all known character files into the default folder">📦 Relocate All to Default Folder</button>
             </div>
             <div id="known-files-list" style="max-height: 150px; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; background: rgba(0, 0, 0, 0.25); border: 1px solid var(--border-color); border-radius: 4px; padding: 6px;"></div>
           </div>
@@ -2253,7 +2253,7 @@
       </div>
       <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center; padding: 10px 18px; border-top: 1px solid var(--border-color); flex-shrink: 0;">
         <div style="font-size: 9.5pt; color: var(--text-muted);">
-          Tip: <strong>"Open Character"</strong> and <strong>"Save Character"</strong> will start in your <strong>Active Folder</strong>.
+          Tip: <strong>"Open Character"</strong> and <strong>"Save Character"</strong> will start in your <strong>Default Save Folder</strong>.
         </div>
         <button type="button" class="icon-btn" id="btn-close-folder-modal-footer">Close</button>
       </div>
@@ -4218,13 +4218,13 @@
   </div>
 
   <!-- Scripts Loading -->
-  <script src="universal_table.js?v=1.6.12"></script>
-  <script src="data_forms.js?v=1.6.12"></script>
-  <script src="data_powers.js?v=1.6.12"></script>
-  <script src="data_talents.js?v=1.6.12"></script>
-  <script src="data_equipment.js?v=1.6.12"></script>
-  <script src="inventions.js?v=1.6.12"></script>
-  <script src="character_model.js?v=1.6.12"></script>
-  <script src="app.js?v=1.6.12"></script>
+  <script src="universal_table.js?v=1.6.13"></script>
+  <script src="data_forms.js?v=1.6.13"></script>
+  <script src="data_powers.js?v=1.6.13"></script>
+  <script src="data_talents.js?v=1.6.13"></script>
+  <script src="data_equipment.js?v=1.6.13"></script>
+  <script src="inventions.js?v=1.6.13"></script>
+  <script src="character_model.js?v=1.6.13"></script>
+  <script src="app.js?v=1.6.13"></script>
 </body>
 </html>

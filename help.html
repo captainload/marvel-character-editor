@@ -539,7 +539,7 @@
         <button type="button" class="nav-btn" onclick="window.print()">🖨️ Print / Save as PDF</button>
       </div>
       <div style="font-size: 10pt; color: var(--text-muted);">
-        MSH RPGen Suite • <strong>Version 1.6.12</strong>
+        MSH RPGen Suite • <strong>Version 1.6.13</strong>
       </div>
     </div>
 
@@ -1213,7 +1213,15 @@
             <ul class="feature-list">
               <li><strong>Save Character (.msh):</strong> Exports your complete hero sheet, powers, inventions, known blueprints, equipped gear, and history log to a portable <code>.msh</code> JSON file. Defaults to your system Documents folder or last saved location.</li>
               <li><strong>Open Character (.msh):</strong> Imports any saved hero file with full backward compatibility and automated schema migration. Automatically defaults to your last save location.</li>
-              <li><strong>Set Load/Save Folder:</strong> Select <strong>File / Options ▾ &rarr; Set Load/Save Folder...</strong> to configure your active directory. Defaults to your system Documents folder in Windows (<code>%USERPROFILE%\Documents</code>), macOS, and Linux. You can browse your local file tree to select any custom folder, and the application will offer to copy or move all known character files to your chosen location. Includes a <em>Reset to Default Location</em> button with automated character migration.</li>
+              <li><strong>File Management:</strong> Select <strong>File / Options ▾ &rarr; File Management...</strong> to open the integrated local file tree and character archive browser. Features include:
+                <br>&bull; <strong>OS-Aware Default Save Folder:</strong> Automatically assigns an intuitive default folder tailored to your operating system—for Windows, this defaults to <code>%USERPROFILE%\Documents\MSHRPGen</code> (<code>Documents\MSHRPGen</code>); for macOS and Linux, it defaults to <code>~/Documents/MSHRPGen</code>.
+                <br>&bull; <strong>Local File Tree Browser:</strong> Navigate your directory structure, create new subfolders (<code>➕ New Subfolder</code>), and inspect character files organized across campaigns and archives.
+                <br>&bull; <strong>Set Default Save Folder:</strong> Select any folder node in your tree and click <code>⭐ Set as Default Save Folder</code> to designate it as your active character save/load target. All subsequent <em>Save Character</em> and <em>Open Character</em> operations will automatically start in this location.
+                <br>&bull; <strong>Automated Character Relocation:</strong> Whenever your default save folder is changed or reset, the application prompts you to relocate (copy) all known character files to the new location, preventing misplaced heroes.
+                <br>&bull; <strong>File Commands (Rename &amp; Delete):</strong> Directly rename character files (<code>✏️ Rename</code>) or permanently delete obsolete ones (<code>🗑️ Delete</code>) with real-time directory synchronization and confirmation safeguards.
+                <br>&bull; <strong>Direct Hero Loading &amp; Export:</strong> Open any character from the browser directly into your sheet (<code>📂 Open</code>) or download a backup copy (<code>⬇️ Save</code>).
+                <br>&bull; <strong>Reset to Default Location:</strong> Restore your default folder back to <code>Documents\MSHRPGen</code> at any time with optional character file relocation.
+              </li>
               <li><strong>Undo / Redo History Navigation:</strong> Use the <code>⮜</code> and <code>⮞</code> arrows in the top tab bar to step backward or forward through your edits.</li>
               <li><strong>Visual Color Themes:</strong>
                 <br>• <strong>Slate (Default):</strong> High-contrast dark comic theme with Marvel Red and Gold accents.
@@ -1285,7 +1293,7 @@
       <p>
         Marvel Super Heroes Roleplaying Game (MSHRPG / FASERIP) &copy; TSR, Inc. / Marvel Entertainment.<br>
         Classic Marvel Forever (CMF) enhancements &copy; Classic Marvel Forever community.<br>
-        Application Suite v1.6.12 &bull; Built with pure offline web technologies.
+        Application Suite v1.6.13 &bull; Built with pure offline web technologies.
       </p>
     </footer>
 

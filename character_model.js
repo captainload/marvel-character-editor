@@ -3934,8 +3934,8 @@ class FASERIPCharacter {
       }
 
       if (isOffensive) {
-        const adjSuffix = p.adjustments ? ` [Adjusted]` : '';
-        const adjNote = p.adjustments ? ` [Adjusted: +${p.adjustments.shift} ${p.adjustments.aspectA.label} / -${p.adjustments.shift} ${p.adjustments.aspectB.label}]` : '';
+        const adjSuffix = p.adjustments ? ` [Tradeoff]` : '';
+        const adjNote = p.adjustments ? ` [Tradeoff: +${p.adjustments.shift} ${p.adjustments.aspectA.label} / -${p.adjustments.shift} ${p.adjustments.aspectB.label}]` : '';
         attacks.push({
           id: 'atk_p_' + p.id,
           name: `${p.name} (${effectiveAtkRank})${specLabel}${adjSuffix}${statusTag}`,

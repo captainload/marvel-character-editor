@@ -62,7 +62,7 @@ const App = {
     this.superiorOptionCost = !!val;
   },
   humanAbilityCaps: false,
-  VERSION: '1.6.11',
+  VERSION: '1.6.12',
   editLogFilter: 'all',
   editLogSearchQuery: '',
   BUILD_DATE: '2026-11-12',
@@ -4570,7 +4570,7 @@ const App = {
       if (p.adjustments && p.adjustments.shift) {
         const incAspect = p.adjustments.aspectA?.label || 'Aspect';
         const decAspect = p.adjustments.aspectB?.label || 'Aspect';
-        adjustedBadgeHtml = `<span class="meta-tag tag-power-adjusted" title="Power Adjusted: +${p.adjustments.shift} CS ${incAspect}, -${p.adjustments.shift} CS ${decAspect}">⚡ Adjusted</span>`;
+        adjustedBadgeHtml = `<span class="meta-tag tag-power-adjusted" title="Power Tradeoff: +${p.adjustments.shift} CS ${incAspect}, -${p.adjustments.shift} CS ${decAspect}">⚡ Tradeoff</span>`;
       }
 
       let limitationBadgeHtml = '';
@@ -4582,7 +4582,7 @@ const App = {
 
       const powerTitleHtml = `
         <div class="power-title-container dropdown-container">
-          <button type="button" class="power-title-btn dropdown-toggle" data-power-menu-toggle="${idx}" title="Click for Power Menu (Change Rank, Triggers, Adjust, Limitations, Disable, Remove)">
+          <button type="button" class="power-title-btn dropdown-toggle" data-power-menu-toggle="${idx}" title="Click for Power Menu (Change Rank, Triggers, Tradeoff, Limitations, Disable, Remove)">
             ${p.name} <span class="power-menu-caret">▾</span>
           </button>
           <div class="dropdown-menu power-dropdown-menu" id="power-menu-${idx}">
@@ -4598,7 +4598,7 @@ const App = {
               🔗 Triggers &amp; Operational Mode
             </button>
             <button type="button" class="dropdown-item power-menu-item" data-action="adjust-power" data-power-idx="${idx}">
-              ⚡ Adjust Power
+              ⚡ Power Tradeoff
             </button>
             <button type="button" class="dropdown-item power-menu-item" data-action="manage-power-limitation" data-power-idx="${idx}">
               ⚖️ Limitations ${p.limitation ? `(${p.limitation.name})` : ''}
@@ -5206,9 +5206,9 @@ const App = {
     const isCurrentlyAdjusted = !!(power.adjustments && power.adjustments.shift);
     if (statusEl) {
       if (isCurrentlyAdjusted) {
-        statusEl.innerHTML = `<span style="color: #22c55e;">⚡ Active Adjustment (+${power.adjustments.shift} / -${power.adjustments.shift} CS)</span>`;
+        statusEl.innerHTML = `<span style="color: #22c55e;">⚡ Active Tradeoff (+${power.adjustments.shift} / -${power.adjustments.shift} CS)</span>`;
       } else {
-        statusEl.innerHTML = `<span style="color: var(--text-muted);">Unadjusted (Base Stats)</span>`;
+        statusEl.innerHTML = `<span style="color: var(--text-muted);">No Tradeoff (Base Stats)</span>`;
       }
     }
 
@@ -5276,11 +5276,23 @@ const App = {
       }
     }
 
-    // Check if re-adjustment
+    // Check if tradeoff is made after power was first obtained
     const hasPriorAdjustments = isCurrentlyAdjusted || (power.adjustmentHistory && power.adjustmentHistory.length > 0) || (power.adjustments?.history?.length > 0);
+    const isAfterFirstObtained = !charCreationCheck?.checked || hasPriorAdjustments;
     const reqBadge = document.getElementById('adj-rationale-required-badge');
     if (reqBadge) {
-      reqBadge.style.display = hasPriorAdjustments ? 'inline' : 'none';
+      reqBadge.style.display = isAfterFirstObtained ? 'inline' : 'none';
+    }
+
+    if (charCreationCheck && !charCreationCheck._hasRationaleToggleListener) {
+      charCreationCheck._hasRationaleToggleListener = true;
+      charCreationCheck.addEventListener('change', () => {
+        const powerNow = this.character?.powers?.[this.activeAdjustmentPowerIndex];
+        const prior = !!(powerNow?.adjustments?.shift) || (powerNow?.adjustmentHistory && powerNow.adjustmentHistory.length > 0) || (powerNow?.adjustments?.history?.length > 0);
+        const afterObtained = !charCreationCheck.checked || prior;
+        const badge = document.getElementById('adj-rationale-required-badge');
+        if (badge) badge.style.display = afterObtained ? 'inline' : 'none';
+      });
     }
 
     const rationaleInput = document.getElementById('adj-rationale');
@@ -5413,7 +5425,7 @@ const App = {
     }
 
     if (!aspA || !aspB || shift <= 0) {
-      previewBody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: var(--text-muted); padding: 10px;">Cannot adjust (at rank limits)</td></tr>`;
+      previewBody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: var(--text-muted); padding: 10px;">Cannot trade off (at rank limits)</td></tr>`;
       return;
     }
 
@@ -5457,7 +5469,7 @@ const App = {
     const keyA = incSel.value;
     const keyB = decSel.value;
     if (keyA === keyB) {
-      await this.showCustomAlert('Please select two different aspects to adjust (one to increase and one to decrease).', 'Invalid Aspects', mouseEvent);
+      await this.showCustomAlert('Please select two different aspects for the tradeoff (one to increase and one to decrease).', 'Invalid Aspects', mouseEvent);
       return;
     }
 
@@ -5469,18 +5481,19 @@ const App = {
 
     const isCurrentlyAdjusted = !!(power.adjustments && power.adjustments.shift);
     const hasPriorAdjustments = isCurrentlyAdjusted || (power.adjustmentHistory && power.adjustmentHistory.length > 0) || (power.adjustments?.history?.length > 0);
+    const isCharCreation = !!(charCreationCheck && charCreationCheck.checked);
+    const isAfterFirstObtained = !isCharCreation || hasPriorAdjustments;
     const rationale = (rationaleInput ? rationaleInput.value : '').trim();
 
-    if (hasPriorAdjustments && !rationale) {
+    if (isAfterFirstObtained && !rationale) {
       await this.showCustomAlert(
-        'Adjusting the same power more than once strictly requires an in-game explanation (e.g. intensive training, mutation evolution, tech modification) approved by your GM.\n\nPlease enter an explanation in the Rationale field before applying.',
+        'Rank tradeoffs made after a power is first obtained require an in-game explanation (mutation, gadget modification, etc.) approved by your GM.\n\nPlease enter an explanation in the Rationale field before applying.',
         '⚠️ In-Game Explanation Required',
         mouseEvent
       );
       return;
     }
 
-    const isCharCreation = !!(charCreationCheck && charCreationCheck.checked);
     const cost = (typeof calculatePowerAdjustmentCost === 'function')
       ? calculatePowerAdjustmentCost(shift, isCharCreation)
       : (isCharCreation || shift <= 1 ? 0 : (shift - 1) * 100);
@@ -5488,7 +5501,7 @@ const App = {
     const availableKarma = this.character.currentKarma || 0;
     if (cost > availableKarma && !isCharCreation) {
       await this.showCustomAlert(
-        `This adjustment costs ${cost} Karma Points, but you only have ${availableKarma} KP available. Cannot complete adjustment!`,
+        `This tradeoff costs ${cost} Karma Points, but you only have ${availableKarma} KP available. Cannot complete tradeoff!`,
         '⚠️ Inadequate Karma Points',
         mouseEvent
       );
@@ -5497,7 +5510,7 @@ const App = {
 
     if (cost > 0) {
       const confirmed = await this.showCustomConfirm(
-        `Applying a +${shift} / -${shift} CS adjustment costs ${cost} Karma Points.\n\nHero currently has ${availableKarma} KP.\nDo you want to spend ${cost} KP to apply this permanent power adjustment?`,
+        `Applying a +${shift} / -${shift} CS tradeoff costs ${cost} Karma Points.\n\nHero currently has ${availableKarma} KP.\nDo you want to spend ${cost} KP to apply this permanent power tradeoff?`,
         '⚡ Confirm Karma Spend',
         mouseEvent,
         `Spend ${cost} KP`,
@@ -5505,7 +5518,7 @@ const App = {
       );
       if (!confirmed) return;
 
-      this.character.updateKarma(-cost, `Power Adjustment: ${power.name} (+${shift}CS ${keyA} / -${shift}CS ${keyB})`);
+      this.character.updateKarma(-cost, `Power Tradeoff: ${power.name} (+${shift}CS ${keyA} / -${shift}CS ${keyB})`);
     }
 
     const aspects = (typeof getPowerRankAspects === 'function') ? getPowerRankAspects(power, power.rankName) : [];
@@ -5558,7 +5571,7 @@ const App = {
 
     delete power.adjustmentHistory;
 
-    this.recordCharacterEdit(`Adjusted power: ${power.name} (+${shift}CS ${aspA.label} / -${shift}CS ${aspB.label})`, 'power');
+    this.recordCharacterEdit(`Power tradeoff: ${power.name} (+${shift}CS ${aspA.label} / -${shift}CS ${aspB.label})`, 'power');
     this.renderPowers();
     this.renderAttacks();
     this.renderVitals();
@@ -5567,8 +5580,8 @@ const App = {
     if (modal) modal.classList.remove('open');
 
     await this.showCustomAlert(
-      `"${power.name}" adjusted successfully!\n\n• ${aspA.label}: +${shift} CS ➔ ${rankA.name} (${aspA.getValue(rankA.name)})\n• ${aspB.label}: -${shift} CS ➔ ${rankB.name} (${aspB.getValue(rankB.name)})${cost > 0 ? `\n• Karma Spent: ${cost} KP` : ' (Free)'}`,
-      '⚡ Power Adjusted',
+      `"${power.name}" tradeoff applied successfully!\n\n• ${aspA.label}: +${shift} CS ➔ ${rankA.name} (${aspA.getValue(rankA.name)})\n• ${aspB.label}: -${shift} CS ➔ ${rankB.name} (${aspB.getValue(rankB.name)})${cost > 0 ? `\n• Karma Spent: ${cost} KP` : ' (Free)'}`,
+      '⚡ Power Tradeoff Applied',
       mouseEvent
     );
   },
@@ -5578,10 +5591,10 @@ const App = {
     if (!power || !power.adjustments) return;
 
     const confirmed = await this.showCustomConfirm(
-      `Reset "${power.name}" back to its base rank statistics?\n\nNote: Any Karma spent on prior adjustments is not refunded.`,
-      '↩️ Reset Power Adjustment',
+      `Reset "${power.name}" back to its base rank statistics?\n\nNote: Any Karma spent on prior tradeoffs is not refunded.`,
+      '↩️ Reset Power Tradeoff',
       mouseEvent,
-      'Reset to Base',
+      'Reset Tradeoff',
       'Cancel'
     );
     if (!confirmed) return;
@@ -5607,7 +5620,7 @@ const App = {
       power.adjustmentHistory = existingHistory;
     }
 
-    this.recordCharacterEdit(`Reset adjustments for power: ${power.name}`, 'power');
+    this.recordCharacterEdit(`Reset tradeoffs for power: ${power.name}`, 'power');
     this.renderPowers();
     this.renderAttacks();
     this.renderVitals();

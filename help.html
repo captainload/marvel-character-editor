@@ -539,7 +539,7 @@
         <button type="button" class="nav-btn" onclick="window.print()">🖨️ Print / Save as PDF</button>
       </div>
       <div style="font-size: 10pt; color: var(--text-muted);">
-        MSH RPGen Suite • <strong>Version 1.6.11</strong>
+        MSH RPGen Suite • <strong>Version 1.6.12</strong>
       </div>
     </div>
 
@@ -1016,6 +1016,18 @@
               <li><strong>Built-In Rules Inspector (?):</strong> Click the question mark icon on any power card or dropdown to open a rich modal displaying the complete canonical mechanical rules text from the <em>Ultimate Powers Book</em> and <em>Player's Book</em>, including full FEAT charts, duration scales, ranges, area calculations, damage formulas, modifiers, and drawbacks (with narrative comic analogies and conversational asides trimmed for fast reference).</li>
             </ul>
 
+            <h3>Power Tradeoff (House Rule)</h3>
+            <p>
+              When enabled in <em>Preferences &amp; Options</em>, the <strong>Power Tradeoff</strong> house rule allows heroes to trade rank-based statistics within a single superpower (for example, trading +1 CS Range for -1 CS Intensity/Damage, or vice versa):
+            </p>
+            <ul class="feature-list">
+              <li><strong>Equal Shift Exchange:</strong> An increase in one rank aspect must be balanced by an equal column shift decrease in another rank aspect of the same power.</li>
+              <li><strong>Rank Boundaries:</strong> Tradeoffs cannot raise an aspect above <strong>Amazing (AM, 50)</strong> or reduce an aspect below <strong>Feeble (FE, 2)</strong>. Powers with only a single rank-based aspect cannot make tradeoffs.</li>
+              <li><strong>Karma Investment:</strong> Tradeoffs of &plusmn;1 CS are free at character creation or in active play. Shifts greater than 1 CS (e.g. &plusmn;2 CS) require spending Karma (100 KP per additional column shifted beyond the first).</li>
+              <li><strong>In-Game Explanation Requirement:</strong> Rank tradeoffs made after a power is first obtained require an in-game explanation (mutation, gadget modification, etc.) approved by the GM.</li>
+              <li><strong>Card Menu Access:</strong> Open the power card menu (<code>⋮</code> or <code>▾</code>) on any eligible superpower and select <strong>⚡ Power Tradeoff</strong> to configure or reset tradeoffs. Powers with active tradeoffs display a visible <code>⚡ Tradeoff</code> badge.</li>
+            </ul>
+
             <h3>Power Limitations &amp; Restrictions Pop-up</h3>
             <p>
               Under both canonical TSR rulebooks and modern CMF Point-Buy design, superpowers can have <strong>Limitations and Restrictions</strong> that temper their scope, reflect narrative vulnerabilities, and provide Character Point (CP) discounts:
@@ -1209,7 +1221,7 @@
                 <br>• <strong>Aqua:</strong> Radiant oceanic theme featuring cyans, sea greens, and deep navy tones.
               </li>
               <li><strong>Campaign House Rules:</strong> Toggle optional rules in Preferences:
-                <br>• <strong>Power Adjustment:</strong> Enables stat trading within individual powers (&plusmn;1 CS shifts free; &gt;1 CS shifts cost KP).
+                <br>• <strong>Power Tradeoff:</strong> Enables stat trading within individual powers (&plusmn;1 CS shifts free; &gt;1 CS shifts cost KP). Rank tradeoffs made after a power is first obtained require an in-game explanation (mutation, gadget modification, etc.).
                 <br>• <strong>Karmic Success:</strong> Refunds up to 20 spent KP when shifting a blue fumble result upward.
                 <br>• <strong>Convert Unspent CP to KP:</strong> Awards bonus starting Karma (1 CP = 5 KP) for up to 5 unspent creation points upon finalization.
                 <br>• <strong>Superior Option Tax:</strong> Adds a +100% CP base unlock surcharge when selecting superior power options manually.
@@ -1273,7 +1285,7 @@
       <p>
         Marvel Super Heroes Roleplaying Game (MSHRPG / FASERIP) &copy; TSR, Inc. / Marvel Entertainment.<br>
         Classic Marvel Forever (CMF) enhancements &copy; Classic Marvel Forever community.<br>
-        Application Suite v1.6.11 &bull; Built with pure offline web technologies.
+        Application Suite v1.6.12 &bull; Built with pure offline web technologies.
       </p>
     </footer>
 

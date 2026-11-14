@@ -1,7 +1,7 @@
 {
-  "version": "1.6.13",
+  "version": "1.6.14",
   "releaseDate": "2026-11-14",
   "name": "MSH RPGen",
   "repo": "https://github.com/captainload/marvel-character-editor",
-  "notes": "v1.6.13: Updated 'Set Load/Save Folder' to 'File Management' with local file tree browsing and default save folder assignment; added Rename and Delete file commands with confirmation safeguards; configured OS-specific default folders (Documents\\MSHRPGen for Windows, ~/Documents/MSHRPGen for macOS/Linux); added automatic character file relocation prompts upon changing the default folder; updated Help documentation."
+  "notes": "v1.6.14: Streamlined File Management dialog sized to 90% horizontal and vertical tab dimensions; removed folder hierarchy tree in favor of a clean character files list displaying full file paths; added Change Default Folder button and path field with local file tree traversal; preserved Reset to Default (Documents\\MSHRPGen) and Open/Rename/Delete actions; updated Save Character to directly target the OS default character folder dialog while skipping browser download popups; updated Help documentation."
 }

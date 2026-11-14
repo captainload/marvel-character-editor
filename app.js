@@ -62,7 +62,7 @@ const App = {
     this.superiorOptionCost = !!val;
   },
   humanAbilityCaps: false,
-  VERSION: '1.6.13',
+  VERSION: '1.6.14',
   editLogFilter: 'all',
   editLogSearchQuery: '',
   BUILD_DATE: '2026-11-12',
@@ -1947,29 +1947,9 @@ const App = {
       btnResetFolderDefault.addEventListener('click', () => this.resetSaveDirectoryToDefault(true));
     }
 
-    const btnRefreshFolderTree = document.getElementById('btn-refresh-folder-tree');
-    if (btnRefreshFolderTree) {
-      btnRefreshFolderTree.addEventListener('click', () => this.loadFolderTree(true));
-    }
-
-    const inputFilterFolderTree = document.getElementById('input-filter-folder-tree');
-    if (inputFilterFolderTree) {
-      inputFilterFolderTree.addEventListener('input', (e) => this.handleFolderTreeFilter(e.target.value));
-    }
-
-    const btnTreeNewFolder = document.getElementById('btn-tree-new-folder');
-    if (btnTreeNewFolder) {
-      btnTreeNewFolder.addEventListener('click', () => this.promptCreateSubfolder());
-    }
-
-    const btnSetActiveFolder = document.getElementById('btn-set-active-folder');
-    if (btnSetActiveFolder) {
-      btnSetActiveFolder.addEventListener('click', () => this.setActiveFolderFromSelectedNode());
-    }
-
-    const btnSaveCurrentToFolder = document.getElementById('btn-save-current-to-folder');
-    if (btnSaveCurrentToFolder) {
-      btnSaveCurrentToFolder.addEventListener('click', () => this.saveCharacterToSelectedFolder());
+    const inputFilterFiles = document.getElementById('input-filter-files') || document.getElementById('input-filter-folder-tree');
+    if (inputFilterFiles) {
+      inputFilterFiles.addEventListener('input', (e) => this.renderFileManagementList(e.target.value));
     }
 
     const btnCopyKnownToFolder = document.getElementById('btn-copy-known-to-folder');
@@ -15087,11 +15067,23 @@ const App = {
         } catch (e) {}
       }
     }
+    const sep = this.getDetectedOS() === 'Windows' ? '\\' : '/';
+    const currentFolder = this.saveFolderName || this.getDefaultFolderDisplayPath();
+    list.forEach(item => {
+      if (!item.path && item.fileName) {
+        item.path = `${currentFolder}${sep}${item.fileName}`;
+      }
+    });
     return list;
   },
 
   registerKnownCharacterFile(item) {
     if (!item || !item.fileName) return;
+    if (!item.path) {
+      const sep = this.getDetectedOS() === 'Windows' ? '\\' : '/';
+      const currentFolder = this.saveFolderName || this.getDefaultFolderDisplayPath();
+      item.path = `${currentFolder}${sep}${item.fileName}`;
+    }
     const list = this.getKnownCharacterFiles();
     const idx = list.findIndex(x => x.fileName === item.fileName || (x.name && item.name && x.name.toLowerCase() === item.name.toLowerCase()));
     if (idx >= 0) {
@@ -15165,8 +15157,7 @@ const App = {
     if (!modal) return;
     modal.classList.add('open');
     this.renderFolderTreeTopStatus();
-    await this.loadFolderTree();
-    this.renderKnownFilesSection();
+    await this.renderFileManagementList();
   },
 
   closeLoadSaveFolderModal() {
@@ -15176,13 +15167,12 @@ const App = {
 
   renderLoadSaveFolderModal() {
     this.renderFolderTreeTopStatus();
-    this.renderFolderTree();
-    this.renderFolderInspector();
-    this.renderKnownFilesSection();
+    this.renderFileManagementList();
   },
 
   renderFolderTreeTopStatus() {
-    const pathEl = document.getElementById('folder-current-path');
+    const pathField = document.getElementById('folder-current-path-field');
+    const pathLegacyEl = document.getElementById('folder-current-path');
     const badgeEl = document.getElementById('folder-status-badge');
     const hintEl = document.getElementById('folder-os-hint');
 
@@ -15204,14 +15194,16 @@ const App = {
 
     const customName = this.saveFolderName || (typeof localStorage !== 'undefined' ? localStorage.getItem('msh_save_folder_name') : null);
     if (customName) {
-      if (pathEl) pathEl.innerHTML = `📁 <strong>${this.escapeHtml(customName)}</strong>`;
+      if (pathField) pathField.value = customName;
+      if (pathLegacyEl) pathLegacyEl.innerHTML = `📁 <strong>${this.escapeHtml(customName)}</strong>`;
       if (badgeEl) {
-        badgeEl.textContent = 'Custom Default Folder';
+        badgeEl.textContent = `Custom Default: ${customName}`;
         badgeEl.style.background = 'rgba(56, 189, 248, 0.15)';
         badgeEl.style.color = '#38bdf8';
       }
     } else {
-      if (pathEl) pathEl.innerHTML = `📁 ${defaultDisplay} (System Default)`;
+      if (pathField) pathField.value = defaultDisplay;
+      if (pathLegacyEl) pathLegacyEl.innerHTML = `📁 ${defaultDisplay} (System Default)`;
       if (badgeEl) {
         badgeEl.textContent = `${defaultDisplay} (System Default)`;
         badgeEl.style.background = 'rgba(16, 185, 129, 0.15)';
@@ -15230,1203 +15222,242 @@ const App = {
       .replace(/'/g, '&#39;');
   },
 
-  getVirtualFolders() {
-    let folders = null;
-    try {
-      if (typeof localStorage !== 'undefined') {
-        const raw = localStorage.getItem('msh_virtual_folders');
-        if (raw) folders = JSON.parse(raw);
-      }
-    } catch (e) {}
-    const defaultName = this.getDefaultFolderDisplayPath();
-    if (!folders || typeof folders !== 'object') {
-      folders = {
-        name: defaultName,
-        subfolders: [
-          { name: 'Campaign 1', subfolders: [], files: [] },
-          { name: 'Campaign 2', subfolders: [], files: [] },
-          { name: 'NPCs', subfolders: [], files: [] },
-          { name: 'Archived Heroes', subfolders: [], files: [] }
-        ],
-        files: []
-      };
-    } else if (folders.name === 'Documents (Virtual Workspace)' || folders.name === 'Documents (System Default)') {
-      folders.name = defaultName;
-    }
-    return folders;
-  },
+  async renderFileManagementList(filterQuery = '') {
+    const listContainer = document.getElementById('folder-tree-files-list');
+    const countBadge = document.getElementById('folder-files-count');
+    if (!listContainer) return;
 
-  saveVirtualFolders(folders) {
-    try {
-      if (typeof localStorage !== 'undefined') {
-        localStorage.setItem('msh_virtual_folders', JSON.stringify(folders));
-      }
-    } catch (e) {
-      console.warn('Could not save virtual folders:', e);
-    }
-  },
-
-  findNodeByPath(rootNode, path) {
-    if (!rootNode || !Array.isArray(path) || path.length === 0) return null;
-    if (rootNode.path && rootNode.path.join('/') === path.join('/')) return rootNode;
-    if (Array.isArray(rootNode.subfolders)) {
-      for (const child of rootNode.subfolders) {
-        const res = this.findNodeByPath(child, path);
-        if (res) return res;
-      }
-    }
-    return null;
-  },
-
-  findNodeByHandleOrName(rootNode, handle, name) {
-    if (!rootNode) return null;
-    if (handle && rootNode.handle && rootNode.handle === handle) return rootNode;
-    if (name && rootNode.name && rootNode.name.toLowerCase() === name.toLowerCase()) return rootNode;
-    if (Array.isArray(rootNode.subfolders)) {
-      for (const child of rootNode.subfolders) {
-        const res = this.findNodeByHandleOrName(child, handle, name);
-        if (res) return res;
-      }
-    }
-    return null;
-  },
-
-  findNodeById(rootNode, id) {
-    if (!rootNode || !id) return null;
-    if (rootNode.id === id) return rootNode;
-    if (Array.isArray(rootNode.subfolders)) {
-      for (const child of rootNode.subfolders) {
-        const found = this.findNodeById(child, id);
-        if (found) return found;
-      }
-    }
-    return null;
-  },
-
-  isNodeCurrentActiveTarget(node) {
-    if (!node) return false;
     if (this.currentDirectoryHandle) {
-      if (node.handle && node.handle === this.currentDirectoryHandle) return true;
-      if (this.saveFolderName && node.name && node.name.toLowerCase() === this.saveFolderName.toLowerCase()) {
-        return true;
-      }
-      return false;
-    }
-    // If no custom directory handle is set, check if saveFolderName matches
-    if (this.saveFolderName) {
-      return node.name && node.name.toLowerCase() === this.saveFolderName.toLowerCase();
-    }
-    // Default: root Documents folder is the active target
-    return node === this.folderTreeData || node.id === 'root' || (node.path && node.path.length === 1);
-  },
-
-  nodeMatchesFilter(node, filter) {
-    if (!filter) return true;
-    if (node.name && node.name.toLowerCase().includes(filter)) return true;
-    if (Array.isArray(node.files) && node.files.some(f => (f.name && f.name.toLowerCase().includes(filter)) || (f.heroName && f.heroName.toLowerCase().includes(filter)))) {
-      return true;
-    }
-    if (Array.isArray(node.subfolders) && node.subfolders.some(child => this.nodeMatchesFilter(child, filter))) {
-      return true;
-    }
-    return false;
-  },
-
-  async scanDirectoryTreeBranch(node) {
-    if (!node) return;
-    if (node.isVirtual || !node.handle || typeof node.handle.values !== 'function') {
-      node.isLoaded = true;
-      return;
-    }
-
-    try {
-      if (typeof node.handle.queryPermission === 'function') {
-        const perm = await node.handle.queryPermission({ mode: 'readwrite' });
-        if (perm === 'prompt') {
-          try {
-            await node.handle.requestPermission({ mode: 'readwrite' });
-          } catch (pe) {}
-        }
-      }
-
-      const existingExpandedMap = new Map();
-      if (Array.isArray(node.subfolders)) {
-        node.subfolders.forEach(sf => {
-          if (sf.isExpanded) existingExpandedMap.set(sf.name, true);
-        });
-      }
-
-      const subfolders = [];
-      const files = [];
-
-      for await (const entry of node.handle.values()) {
-        if (entry.kind === 'directory') {
-          const childPath = [...node.path, entry.name];
-          const isPreviouslyExpanded = existingExpandedMap.has(entry.name);
-          const childNode = {
-            id: childPath.join('/'),
-            name: entry.name,
-            handle: entry,
-            parent: node,
-            path: childPath,
-            subfolders: [],
-            files: [],
-            isLoaded: false,
-            isExpanded: isPreviouslyExpanded,
-            isVirtual: false
-          };
-          if (isPreviouslyExpanded) {
-            await this.scanDirectoryTreeBranch(childNode);
-          }
-          subfolders.push(childNode);
-        } else if (entry.kind === 'file') {
-          if (entry.name.endsWith('.msh') || entry.name.endsWith('.json')) {
-            let heroName = entry.name.replace(/\.[^/.]+$/, '');
-            let heroData = null;
-            let fileSize = '';
-            let modTime = null;
-            try {
-              const file = await entry.getFile();
-              modTime = file.lastModified;
-              fileSize = file.size > 1024 ? `${Math.round(file.size / 1024)} KB` : `${file.size} B`;
-              const text = await file.text();
-              const parsed = JSON.parse(text);
-              if (parsed && (parsed.name || parsed.abilities || parsed.faserip || parsed.vitals)) {
-                heroName = parsed.name || heroName;
-                heroData = parsed;
-                this.registerKnownCharacterFile({
-                  name: heroName,
-                  fileName: entry.name,
-                  data: parsed,
-                  timestamp: modTime || Date.now()
-                });
-              }
-            } catch (fe) {}
-
-            files.push({
-              name: entry.name,
-              heroName: heroName,
-              handle: entry,
-              modTime: modTime,
-              sizeStr: fileSize,
-              data: heroData
-            });
-          }
-        }
-      }
-
-      subfolders.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
-      files.sort((a, b) => (a.heroName || a.name).localeCompare((b.heroName || b.name), undefined, { sensitivity: 'base' }));
-
-      node.subfolders = subfolders;
-      node.files = files;
-      node.isLoaded = true;
-    } catch (err) {
-      console.warn('scanDirectoryTreeBranch error for node:', node.name, err);
-      node.isLoaded = true;
-    }
-  },
-
-  async loadFolderTree(forceRefresh = false) {
-    const statusInd = document.getElementById('folder-tree-status-indicator');
-    if (statusInd) {
-      statusInd.textContent = 'Scanning...';
-      statusInd.style.color = '#fbbf24';
-      statusInd.style.background = 'rgba(251, 191, 36, 0.15)';
-    }
-
-    try {
-      let rootHandle = this.rootDirectoryHandle;
-      if (!rootHandle && typeof window !== 'undefined' && window.showDirectoryPicker) {
-        rootHandle = await this.getStoredRootDirectoryHandle();
-        if (rootHandle) {
-          this.rootDirectoryHandle = rootHandle;
-        }
-      }
-
-      if (!rootHandle && this.currentDirectoryHandle) {
-        rootHandle = this.currentDirectoryHandle;
-        this.rootDirectoryHandle = rootHandle;
-      }
-
-      if (rootHandle) {
-        if (typeof rootHandle.queryPermission === 'function') {
-          const perm = await rootHandle.queryPermission({ mode: 'readwrite' });
-          if (perm !== 'granted' && forceRefresh) {
-            try {
-              await rootHandle.requestPermission({ mode: 'readwrite' });
-            } catch (pe) {}
-          }
-        }
-
-        const rootName = rootHandle.name || 'Root Folder';
-        const rootNode = {
-          id: rootName,
-          name: rootName,
-          handle: rootHandle,
-          parent: null,
-          path: [rootName],
-          subfolders: [],
-          files: [],
-          isLoaded: false,
-          isExpanded: true,
-          isVirtual: false
-        };
-
-        await this.scanDirectoryTreeBranch(rootNode);
-        this.folderTreeData = rootNode;
-
-        if (!this.selectedTreeNode || forceRefresh) {
-          if (this.currentDirectoryHandle && this.saveFolderName) {
-            const found = this.findNodeByHandleOrName(rootNode, this.currentDirectoryHandle, this.saveFolderName);
-            this.selectedTreeNode = found || rootNode;
-          } else {
-            this.selectedTreeNode = rootNode;
-          }
-        } else {
-          const reFound = this.findNodeByPath(rootNode, this.selectedTreeNode.path);
-          this.selectedTreeNode = reFound || rootNode;
-        }
-
-        if (statusInd) {
-          statusInd.textContent = 'Connected (FS API)';
-          statusInd.style.color = '#34d399';
-          statusInd.style.background = 'rgba(52, 211, 153, 0.15)';
-        }
-      } else {
-        const defaultName = this.getDefaultFolderDisplayPath();
-        const vTree = this.getVirtualFolders();
-        const rootNode = {
-          id: 'root',
-          name: vTree.name || defaultName,
-          handle: null,
-          parent: null,
-          path: [vTree.name || defaultName],
-          subfolders: [],
-          files: [],
-          isLoaded: true,
-          isExpanded: true,
-          isVirtual: true
-        };
-
-        const knownFiles = this.getKnownCharacterFiles();
-        rootNode.files = knownFiles.map(kf => ({
-          name: kf.fileName,
-          heroName: kf.name || kf.fileName.replace(/\.[^/.]+$/, ''),
-          handle: null,
-          modTime: kf.timestamp,
-          sizeStr: '',
-          data: kf.data
-        }));
-
-        if (Array.isArray(vTree.subfolders)) {
-          rootNode.subfolders = vTree.subfolders.map(sf => ({
-            id: 'root/' + sf.name,
-            name: sf.name,
-            handle: null,
-            parent: rootNode,
-            path: [rootNode.name, sf.name],
-            subfolders: Array.isArray(sf.subfolders) ? sf.subfolders.map(sub2 => ({
-              id: 'root/' + sf.name + '/' + sub2.name,
-              name: sub2.name,
-              handle: null,
-              parent: null,
-              path: [rootNode.name, sf.name, sub2.name],
-              subfolders: [],
-              files: sub2.files || [],
-              isLoaded: true,
-              isExpanded: false,
-              isVirtual: true
-            })) : [],
-            files: sf.files || [],
-            isLoaded: true,
-            isExpanded: false,
-            isVirtual: true
-          }));
-        }
-
-        this.folderTreeData = rootNode;
-        if (!this.selectedTreeNode || forceRefresh) {
-          this.selectedTreeNode = rootNode;
-        } else {
-          const reFound = this.findNodeByPath(rootNode, this.selectedTreeNode.path);
-          this.selectedTreeNode = reFound || rootNode;
-        }
-
-        if (statusInd) {
-          statusInd.textContent = 'Virtual / Default';
-          statusInd.style.color = '#38bdf8';
-          statusInd.style.background = 'rgba(56, 189, 248, 0.15)';
-        }
-      }
-
-      this.renderFolderTree();
-      this.renderFolderInspector();
-      this.renderFolderTreeTopStatus();
-    } catch (e) {
-      console.warn('loadFolderTree error:', e);
-      if (statusInd) {
-        statusInd.textContent = 'Tree Ready';
-        statusInd.style.color = '#38bdf8';
-        statusInd.style.background = 'rgba(56, 189, 248, 0.1)';
+      try {
+        await this.scanDirectoryForCharacters(this.currentDirectoryHandle);
+      } catch (e) {
+        console.warn('Could not scan directory handle:', e);
       }
     }
-  },
 
-  renderFolderTree() {
-    const treeView = document.getElementById('folder-tree-view');
-    if (!treeView) return;
-    if (!this.folderTreeData) {
-      treeView.innerHTML = '<div style="color: var(--text-dim); padding: 12px; font-size: 9.5pt; text-align: center;">No folder tree available. Click "Browse & Connect Root..." above.</div>';
-      return;
-    }
+    const knownFiles = this.getKnownCharacterFiles();
+    if (countBadge) countBadge.textContent = String(knownFiles.length);
 
-    const filter = (this.folderTreeFilter || '').trim().toLowerCase();
-    const html = this.renderFolderTreeNodeHtml(this.folderTreeData, 0, filter);
-    treeView.innerHTML = html;
-
-    treeView.querySelectorAll('.folder-tree-node').forEach(el => {
-      const nodeId = el.getAttribute('data-node-id');
-      const node = this.findNodeById(this.folderTreeData, nodeId);
-      if (!node) return;
-
-      el.addEventListener('click', (e) => {
-        if (e.target.closest('.folder-tree-chevron')) return;
-        this.selectFolderTreeNode(node);
-      });
-
-      const chevron = el.querySelector('.folder-tree-chevron');
-      if (chevron) {
-        chevron.addEventListener('click', async (e) => {
-          e.stopPropagation();
-          await this.toggleFolderTreeNodeExpand(node);
-        });
-      }
+    const q = (filterQuery || '').trim().toLowerCase();
+    const filtered = knownFiles.filter(item => {
+      if (!q) return true;
+      const name = (item.name || '').toLowerCase();
+      const fileName = (item.fileName || '').toLowerCase();
+      const p = (item.path || '').toLowerCase();
+      return name.includes(q) || fileName.includes(q) || p.includes(q);
     });
-  },
 
-  renderFolderTreeNodeHtml(node, depth, filter) {
-    if (!node) return '';
-
-    const matches = !filter || this.nodeMatchesFilter(node, filter);
-    if (!matches) return '';
-
-    const isExpanded = filter ? true : !!node.isExpanded;
-    const isSelected = this.selectedTreeNode && this.selectedTreeNode.id === node.id;
-    const isActiveTarget = this.isNodeCurrentActiveTarget(node);
-
-    const hasChildren = Array.isArray(node.subfolders) && node.subfolders.length > 0;
-    const canExpand = hasChildren || (!node.isLoaded && node.handle);
-    const chevronIcon = canExpand ? (isExpanded ? '▼' : '▶') : '&nbsp;';
-    const folderIcon = depth === 0 ? '💻' : (isExpanded ? '📂' : '📁');
-
-    const heroCount = Array.isArray(node.files) ? node.files.length : 0;
-
-    const nodeClasses = ['folder-tree-node'];
-    if (isSelected) nodeClasses.push('selected');
-    if (isActiveTarget) nodeClasses.push('is-active-target');
-
-    let subHtml = '';
-    if (isExpanded && hasChildren) {
-      subHtml = node.subfolders.map(child => this.renderFolderTreeNodeHtml(child, depth + 1, filter)).join('');
-    }
-
-    const paddingLeft = depth * 16 + 6;
-
-    return `
-      <div class="${nodeClasses.join(' ')}" data-node-id="${this.escapeHtml(node.id)}" style="padding-left: ${paddingLeft}px;" title="${this.escapeHtml((node.path || []).join(' / '))}">
-        <span class="folder-tree-chevron" style="visibility: ${canExpand ? 'visible' : 'hidden'};">${chevronIcon}</span>
-        <span class="folder-tree-icon">${folderIcon}</span>
-        <span class="folder-tree-label">${this.escapeHtml(node.name)}</span>
-        ${isActiveTarget ? '<span class="folder-tree-badge active-badge" title="Active Save & Load Folder">ACTIVE</span>' : ''}
-        ${heroCount > 0 ? `<span class="folder-tree-badge" title="${heroCount} hero file(s)">${heroCount} 🦸</span>` : ''}
-      </div>
-      ${subHtml}
-    `;
-  },
-
-  selectFolderTreeNode(node) {
-    if (!node) return;
-    this.selectedTreeNode = node;
-    this.renderFolderTree();
-    this.renderFolderInspector();
-  },
-
-  async toggleFolderTreeNodeExpand(node) {
-    if (!node) return;
-    node.isExpanded = !node.isExpanded;
-    if (node.isExpanded && !node.isLoaded && node.handle) {
-      await this.scanDirectoryTreeBranch(node);
-    }
-    this.renderFolderTree();
-  },
-
-  handleFolderTreeFilter(value) {
-    this.folderTreeFilter = value;
-    this.renderFolderTree();
-    this.renderFolderInspector();
-  },
-
-  renderFolderInspector() {
-    const node = this.selectedTreeNode || this.folderTreeData;
-    if (!node) return;
-
-    // 1. Breadcrumbs
-    const breadcrumbsEl = document.getElementById('folder-tree-breadcrumbs');
-    if (breadcrumbsEl) {
-      const pathArr = Array.isArray(node.path) ? node.path : [node.name];
-      breadcrumbsEl.innerHTML = pathArr.map((seg, idx) => {
-        const isLast = idx === pathArr.length - 1;
-        if (isLast) {
-          return `<span class="folder-breadcrumb-item active">📁 ${this.escapeHtml(seg)}</span>`;
-        }
-        return `
-          <span class="folder-breadcrumb-item" data-breadcrumb-idx="${idx}" title="Navigate to ${this.escapeHtml(seg)}">📁 ${this.escapeHtml(seg)}</span>
-          <span style="opacity: 0.4;">/</span>
-        `;
-      }).join('');
-
-      breadcrumbsEl.querySelectorAll('[data-breadcrumb-idx]').forEach(el => {
-        el.addEventListener('click', () => {
-          const idx = parseInt(el.getAttribute('data-breadcrumb-idx'), 10);
-          const subPath = pathArr.slice(0, idx + 1);
-          const ancestor = this.findNodeByPath(this.folderTreeData, subPath);
-          if (ancestor) {
-            this.selectFolderTreeNode(ancestor);
-          }
-        });
-      });
-    }
-
-    // 2. Folder Info Header Card
-    const nameEl = document.getElementById('folder-inspector-name');
-    if (nameEl) nameEl.textContent = node.name || 'Folder';
-
-    const filter = (this.folderTreeFilter || '').trim().toLowerCase();
-    const allFiles = Array.isArray(node.files) ? node.files : [];
-    const filteredFiles = filter ? allFiles.filter(f => (f.name && f.name.toLowerCase().includes(filter)) || (f.heroName && f.heroName.toLowerCase().includes(filter))) : allFiles;
-
-    const statsEl = document.getElementById('folder-inspector-stats');
-    if (statsEl) {
-      const subCount = Array.isArray(node.subfolders) ? node.subfolders.length : 0;
-      statsEl.textContent = `${subCount} subfolder${subCount === 1 ? '' : 's'} • ${filteredFiles.length} character file${filteredFiles.length === 1 ? '' : 's'}${filter ? ` (filtered from ${allFiles.length})` : ''}`;
-    }
-
-    // 3. Active Folder Button State
-    // 3. Default Save Folder Button State
-    const btnSetActive = document.getElementById('btn-set-active-folder');
-    if (btnSetActive) {
-      const isActive = this.isNodeCurrentActiveTarget(node);
-      if (isActive) {
-        btnSetActive.textContent = '✓ Default Save Folder';
-        btnSetActive.classList.remove('primary');
-        btnSetActive.style.background = 'rgba(16, 185, 129, 0.2)';
-        btnSetActive.style.color = '#34d399';
-        btnSetActive.style.border = '1px solid #34d399';
-        btnSetActive.title = 'This folder is already your default character save/load location';
-      } else {
-        btnSetActive.textContent = '⭐ Set as Default Save Folder';
-        btnSetActive.classList.add('primary');
-        btnSetActive.style.background = '';
-        btnSetActive.style.color = '';
-        btnSetActive.style.border = '';
-        btnSetActive.title = `Set "${node.name}" as your default character save and load folder`;
-      }
-    }
-
-    // 4. Save Hero Here Button
-    const btnSaveHere = document.getElementById('btn-save-current-to-folder');
-    if (btnSaveHere) {
-      const heroName = this.character && this.character.name ? this.character.name : 'Hero';
-      btnSaveHere.title = `Save current character "${heroName}" directly into "${node.name}"`;
-    }
-
-    // 5. Files Count & Files List
-    const countEl = document.getElementById('folder-files-count');
-    if (countEl) countEl.textContent = String(filteredFiles.length);
-
-    const filesListEl = document.getElementById('folder-tree-files-list');
-    if (filesListEl) {
-      if (filteredFiles.length === 0) {
-        filesListEl.innerHTML = `
-          <div style="color: var(--text-dim); text-align: center; padding: 26px 12px; font-size: 9.5pt; line-height: 1.5;">
-            ${filter ? `No character files match &ldquo;<strong>${this.escapeHtml(filter)}</strong>&rdquo; in this folder.` : 'No character files found in this folder.'}<br>
-            <span style="font-size: 8.5pt; opacity: 0.8; margin-top: 6px; display: inline-block;">
-              Click <strong>&quot;💾 Save Hero Here&quot;</strong> or <strong>&quot;📦 Relocate All Known Here&quot;</strong> to populate this folder.
-            </span>
+    if (filtered.length === 0) {
+      if (knownFiles.length === 0) {
+        listContainer.innerHTML = `
+          <div style="text-align: center; padding: 36px 20px; color: var(--text-muted); font-size: 10pt;">
+            <div style="font-size: 24pt; margin-bottom: 8px;">📂</div>
+            <strong>No character files saved yet.</strong>
+            <p style="margin: 6px 0 0 0; font-size: 9pt;">
+              Characters you save via <strong>File &gt; Save Character</strong> will appear here automatically.
+            </p>
           </div>
         `;
       } else {
-        filesListEl.innerHTML = filteredFiles.map((file, idx) => {
-          const dateStr = file.modTime ? new Date(file.modTime).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
-          return `
-            <div class="folder-file-row">
-              <div style="display: flex; align-items: center; gap: 8px; min-width: 0;">
-                <span style="font-size: 13pt;">🦸</span>
-                <div style="min-width: 0;">
-                  <strong style="color: var(--text-main); font-size: 10pt; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                    ${this.escapeHtml(file.heroName || file.name)}
-                  </strong>
-                  <span style="color: var(--text-dim); font-size: 8.5pt;">
-                    ${this.escapeHtml(file.name)}${file.sizeStr ? ` &bull; ${this.escapeHtml(file.sizeStr)}` : ''}${dateStr ? ` &bull; ${dateStr}` : ''}
-                  </span>
-                </div>
-              </div>
-              <div style="display: flex; gap: 4px; flex-shrink: 0; align-items: center; flex-wrap: wrap; justify-content: flex-end;">
-                <button type="button" class="icon-btn primary compact" style="padding: 3px 8px; font-size: 8.5pt; font-weight: 600;" data-action="load-file" data-file-idx="${idx}" title="Open this hero into the character sheet">📂 Open</button>
-                <button type="button" class="icon-btn compact" style="padding: 3px 8px; font-size: 8.5pt;" data-action="rename-file" data-file-idx="${idx}" title="Rename this character file">✏️ Rename</button>
-                <button type="button" class="icon-btn compact danger" style="padding: 3px 8px; font-size: 8.5pt;" data-action="delete-file" data-file-idx="${idx}" title="Delete this character file">🗑️ Delete</button>
-                <button type="button" class="icon-btn compact" style="padding: 3px 8px; font-size: 8.5pt;" data-action="export-file" data-file-idx="${idx}" title="Download a local backup of this hero file">⬇️ Save</button>
-              </div>
-            </div>
-          `;
-        }).join('');
-
-        filesListEl.querySelectorAll('[data-action="load-file"]').forEach(btn => {
-          btn.addEventListener('click', async () => {
-            const idx = parseInt(btn.getAttribute('data-file-idx'), 10);
-            const targetFile = filteredFiles[idx];
-            if (targetFile) {
-              await this.loadHeroFromFileEntry(targetFile);
-            }
-          });
-        });
-
-        filesListEl.querySelectorAll('[data-action="rename-file"]').forEach(btn => {
-          btn.addEventListener('click', async () => {
-            const idx = parseInt(btn.getAttribute('data-file-idx'), 10);
-            const targetFile = filteredFiles[idx];
-            if (targetFile) {
-              await this.handleRenameCharacterFile(targetFile, node);
-            }
-          });
-        });
-
-        filesListEl.querySelectorAll('[data-action="delete-file"]').forEach(btn => {
-          btn.addEventListener('click', async () => {
-            const idx = parseInt(btn.getAttribute('data-file-idx'), 10);
-            const targetFile = filteredFiles[idx];
-            if (targetFile) {
-              await this.handleDeleteCharacterFile(targetFile, node);
-            }
-          });
-        });
-
-        filesListEl.querySelectorAll('[data-action="export-file"]').forEach(btn => {
-          btn.addEventListener('click', async () => {
-            const idx = parseInt(btn.getAttribute('data-file-idx'), 10);
-            const targetFile = filteredFiles[idx];
-            if (targetFile) {
-              await this.exportFileFromEntry(targetFile);
-            }
-          });
-        });
+        listContainer.innerHTML = `
+          <div style="text-align: center; padding: 24px 16px; color: var(--text-muted); font-size: 9.5pt;">
+            🔍 No character files matching "<strong>${this.escapeHtml(filterQuery)}</strong>".
+          </div>
+        `;
       }
+      return;
     }
+
+    const defaultFolderPath = this.saveFolderName || this.getDefaultFolderDisplayPath();
+    const sep = this.getDetectedOS() === 'Windows' ? '\\' : '/';
+
+    listContainer.innerHTML = '';
+    filtered.forEach(item => {
+      const row = document.createElement('div');
+      row.className = 'folder-file-row';
+
+      const filePath = item.path || `${defaultFolderPath}${sep}${item.fileName}`;
+      const modDate = item.timestamp ? new Date(item.timestamp).toLocaleString(undefined, {
+        dateStyle: 'short',
+        timeStyle: 'short'
+      }) : '';
+
+      const infoCol = document.createElement('div');
+      infoCol.style.cssText = 'flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 3px;';
+
+      const topRow = document.createElement('div');
+      topRow.style.cssText = 'display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap;';
+
+      const heroTitle = document.createElement('strong');
+      heroTitle.style.cssText = 'color: var(--text-main); font-size: 10.5pt;';
+      heroTitle.textContent = item.name || 'Hero';
+
+      const fileLabel = document.createElement('span');
+      fileLabel.style.cssText = 'color: var(--text-muted); font-size: 8.5pt;';
+      fileLabel.textContent = item.fileName || '';
+
+      topRow.appendChild(heroTitle);
+      topRow.appendChild(fileLabel);
+
+      if (modDate) {
+        const dateSpan = document.createElement('span');
+        dateSpan.style.cssText = 'color: var(--text-muted); font-size: 8pt; margin-left: auto;';
+        dateSpan.textContent = modDate;
+        topRow.appendChild(dateSpan);
+      }
+
+      const pathRow = document.createElement('div');
+      pathRow.style.cssText = 'font-family: monospace; font-size: 9pt; color: #38bdf8; word-break: break-all; display: flex; align-items: center; gap: 4px;';
+      pathRow.innerHTML = `<span>📁</span> <span>${this.escapeHtml(filePath)}</span>`;
+
+      infoCol.appendChild(topRow);
+      infoCol.appendChild(pathRow);
+
+      const actionsCol = document.createElement('div');
+      actionsCol.style.cssText = 'display: flex; gap: 6px; align-items: center; flex-shrink: 0;';
+
+      const btnOpen = document.createElement('button');
+      btnOpen.type = 'button';
+      btnOpen.className = 'icon-btn compact primary';
+      btnOpen.title = `Open "${item.name || item.fileName}" in generator`;
+      btnOpen.innerHTML = '📂 Open';
+      btnOpen.addEventListener('click', () => this.loadCharacterFromEntry(item));
+
+      const btnRename = document.createElement('button');
+      btnRename.type = 'button';
+      btnRename.className = 'icon-btn compact';
+      btnRename.title = `Rename "${item.fileName}"`;
+      btnRename.innerHTML = '✏️ Rename';
+      btnRename.addEventListener('click', () => this.handleRenameCharacterFile(item));
+
+      const btnDelete = document.createElement('button');
+      btnDelete.type = 'button';
+      btnDelete.className = 'icon-btn compact danger';
+      btnDelete.title = `Delete "${item.fileName}"`;
+      btnDelete.innerHTML = '🗑️ Delete';
+      btnDelete.addEventListener('click', () => this.handleDeleteCharacterFile(item));
+
+      actionsCol.appendChild(btnOpen);
+      actionsCol.appendChild(btnRename);
+      actionsCol.appendChild(btnDelete);
+
+      row.appendChild(infoCol);
+      row.appendChild(actionsCol);
+
+      listContainer.appendChild(row);
+    });
   },
 
-  renderKnownFilesSection() {
-    const countEl = document.getElementById('known-files-count');
-    const listEl = document.getElementById('known-files-list');
+  async handleRenameCharacterFile(fileEntry) {
+    if (!fileEntry || !fileEntry.fileName) return;
+    const oldFileName = fileEntry.fileName;
+    const defaultNewName = oldFileName.replace(/\.(msh|json)$/i, '');
+    const newBaseName = prompt('Enter new filename for this character:', defaultNewName);
+    if (!newBaseName || !newBaseName.trim()) return;
 
-    const files = this.getKnownCharacterFiles();
-    if (countEl) countEl.textContent = String(files.length);
+    let cleanName = newBaseName.trim().replace(/[/\\?%*:|"<>]/g, '_');
+    if (!cleanName.toLowerCase().endsWith('.msh') && !cleanName.toLowerCase().endsWith('.json')) {
+      cleanName += '.msh';
+    }
 
-    if (listEl) {
-      if (files.length === 0) {
-        listEl.innerHTML = '<span style="color: var(--text-dim); text-align: center; padding: 12px; font-size: 9.5pt;">No saved character files recorded yet. Any characters you save or load will automatically appear here.</span>';
-      } else {
-        listEl.innerHTML = files.map((f, i) => {
-          const dateStr = f.timestamp ? new Date(f.timestamp).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Saved Hero';
-          return `
-            <div class="known-file-row">
-              <div style="display: flex; align-items: center; gap: 8px; min-width: 0;">
-                <span style="font-size: 11pt;">🦸</span>
-                <div style="min-width: 0;">
-                  <strong style="color: var(--text-main); font-size: 9.5pt; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${this.escapeHtml(f.name || 'Hero')}</strong>
-                  <span style="color: var(--text-dim); font-size: 8.5pt;">${this.escapeHtml(f.fileName)} &bull; ${dateStr}</span>
-                </div>
-              </div>
-              <div style="display: flex; gap: 4px; flex-shrink: 0; align-items: center;">
-                <button type="button" class="icon-btn primary compact" style="padding: 2px 7px; font-size: 8.5pt;" data-open-known="${i}" title="Open this hero into the character sheet">📂 Open</button>
-                <button type="button" class="icon-btn compact" style="padding: 2px 7px; font-size: 8.5pt;" data-rename-known="${i}" title="Rename this character file">✏️ Rename</button>
-                <button type="button" class="icon-btn compact danger" style="padding: 2px 7px; font-size: 8.5pt;" data-delete-known="${i}" title="Delete this character record">🗑️ Delete</button>
-                <button type="button" class="icon-btn compact" style="padding: 2px 7px; font-size: 8.5pt;" data-download-known="${i}" title="Download a copy of this character file">⬇️ Save</button>
-              </div>
-            </div>
-          `;
-        }).join('');
+    if (cleanName === oldFileName) return;
 
-        listEl.querySelectorAll('[data-open-known]').forEach(btn => {
-          btn.addEventListener('click', async () => {
-            const idx = parseInt(btn.getAttribute('data-open-known'), 10);
-            const target = files[idx];
-            if (target) {
-              await this.loadHeroFromFileEntry({
-                name: target.fileName,
-                heroName: target.name || target.fileName.replace(/\.[^/.]+$/, ''),
-                data: target.data,
-                modTime: target.timestamp
-              });
-            }
-          });
-        });
+    const defaultFolderPath = this.saveFolderName || this.getDefaultFolderDisplayPath();
+    const sep = this.getDetectedOS() === 'Windows' ? '\\' : '/';
 
-        listEl.querySelectorAll('[data-rename-known]').forEach(btn => {
-          btn.addEventListener('click', async () => {
-            const idx = parseInt(btn.getAttribute('data-rename-known'), 10);
-            const target = files[idx];
-            if (target) {
-              await this.handleRenameKnownFile(target);
-            }
-          });
-        });
-
-        listEl.querySelectorAll('[data-delete-known]').forEach(btn => {
-          btn.addEventListener('click', async () => {
-            const idx = parseInt(btn.getAttribute('data-delete-known'), 10);
-            const target = files[idx];
-            if (target) {
-              await this.handleDeleteKnownFile(target);
-            }
-          });
-        });
-
-        listEl.querySelectorAll('[data-download-known]').forEach(btn => {
-          btn.addEventListener('click', () => {
-            const idx = parseInt(btn.getAttribute('data-download-known'), 10);
-            const target = files[idx];
-            if (target) {
-              const content = typeof target.data === 'string' ? target.data : JSON.stringify(target.data, null, 2);
-              const blob = new Blob([content], { type: 'application/json' });
-              const url = URL.createObjectURL(blob);
-              const a = document.createElement('a');
-              a.href = url;
-              a.download = target.fileName || 'Hero_FASERIP.msh';
-              document.body.appendChild(a);
-              a.click();
-              document.body.removeChild(a);
-              URL.revokeObjectURL(url);
-              this.showStatusToast(`💾 Exported "${target.name}"!`);
-            }
-          });
-        });
+    // If connected to physical directory handle
+    if (this.currentDirectoryHandle && typeof this.currentDirectoryHandle.getFileHandle === 'function') {
+      try {
+        const oldHandle = await this.currentDirectoryHandle.getFileHandle(oldFileName);
+        if (oldHandle && typeof oldHandle.move === 'function') {
+          await oldHandle.move(cleanName);
+        } else if (oldHandle) {
+          const oldFile = await oldHandle.getFile();
+          const content = await oldFile.text();
+          const newHandle = await this.currentDirectoryHandle.getFileHandle(cleanName, { create: true });
+          const writable = await newHandle.createWritable();
+          await writable.write(content);
+          await writable.close();
+          await this.currentDirectoryHandle.removeEntry(oldFileName);
+        }
+      } catch (err) {
+        console.warn('Physical file rename skipped or failed:', err);
       }
     }
+
+    // Update in known files list
+    const knownFiles = this.getKnownCharacterFiles();
+    const idx = knownFiles.findIndex(x => x.fileName === oldFileName || (x.id && x.id === fileEntry.id));
+    if (idx >= 0) {
+      knownFiles[idx].fileName = cleanName;
+      knownFiles[idx].path = `${defaultFolderPath}${sep}${cleanName}`;
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem('msh_known_character_files', JSON.stringify(knownFiles));
+      }
+    }
+
+    this.showStatusToast(`✏️ Renamed "${oldFileName}" to "${cleanName}"`);
+    await this.renderFileManagementList();
   },
 
-  async handleRenameCharacterFile(fileEntry, node) {
-    if (!fileEntry) return;
-    const oldName = fileEntry.name;
-    const currentHeroName = fileEntry.heroName || oldName.replace(/\.[^/.]+$/, '');
-
-    const input = prompt(`Enter new file name for "${currentHeroName}":`, oldName);
-    if (!input || !input.trim() || input.trim() === oldName) return;
-
-    let newName = input.trim().replace(/[/\\?%*:|"<>]/g, '_');
-    if (!newName.toLowerCase().endsWith('.msh') && !newName.toLowerCase().endsWith('.json')) {
-      newName += '.msh';
-    }
-
-    try {
-      if (node && node.handle && typeof node.handle.getFileHandle === 'function') {
-        let text = null;
-        if (fileEntry.handle && typeof fileEntry.handle.getFile === 'function') {
-          const f = await fileEntry.handle.getFile();
-          text = await f.text();
-        } else if (fileEntry.data) {
-          text = typeof fileEntry.data === 'string' ? fileEntry.data : JSON.stringify(fileEntry.data, null, 2);
-        }
-
-        if (!text) {
-          const oldHandle = await node.handle.getFileHandle(oldName);
-          const f = await oldHandle.getFile();
-          text = await f.text();
-        }
-
-        const newFileHandle = await node.handle.getFileHandle(newName, { create: true });
-        const writable = await newFileHandle.createWritable();
-        await writable.write(text);
-        await writable.close();
-
-        if (oldName !== newName) {
-          await node.handle.removeEntry(oldName);
-        }
-
-        fileEntry.name = newName;
-        fileEntry.handle = newFileHandle;
-        await this.scanDirectoryTreeBranch(node);
-      } else {
-        fileEntry.name = newName;
-        const vTree = this.getVirtualFolders();
-        const updateNodeFiles = (cur) => {
-          if (!cur) return;
-          if (Array.isArray(cur.files)) {
-            const match = cur.files.find(f => f.name === oldName);
-            if (match) match.name = newName;
-          }
-          if (Array.isArray(cur.subfolders)) {
-            cur.subfolders.forEach(updateNodeFiles);
-          }
-        };
-        updateNodeFiles(vTree);
-        this.saveVirtualFolders(vTree);
-      }
-
-      const known = this.getKnownCharacterFiles();
-      const match = known.find(kf => kf.fileName === oldName);
-      if (match) {
-        match.fileName = newName;
-        try {
-          if (typeof localStorage !== 'undefined') {
-            localStorage.setItem('msh_known_character_files', JSON.stringify(known));
-          }
-        } catch (e) {}
-      }
-
-      this.renderFolderTree();
-      this.renderFolderInspector();
-      this.renderKnownFilesSection();
-      this.showStatusToast(`✏️ Renamed "${oldName}" to "${newName}"!`);
-    } catch (err) {
-      console.warn('handleRenameCharacterFile failed:', err);
-      this.showCustomAlert('Could not rename file: ' + err.message, 'Rename Error');
-    }
-  },
-
-  async handleDeleteCharacterFile(fileEntry, node) {
-    if (!fileEntry) return;
-    const fileName = fileEntry.name;
-    const heroName = fileEntry.heroName || fileName.replace(/\.[^/.]+$/, '');
+  async handleDeleteCharacterFile(fileEntry) {
+    if (!fileEntry || !fileEntry.fileName) return;
+    const fileName = fileEntry.fileName;
+    const heroName = fileEntry.name || 'Hero';
+    const filePath = fileEntry.path || fileName;
 
     const confirmed = await this.showCustomConfirm(
-      `Are you sure you want to delete "${fileName}" (${heroName})?\n\nThis character file will be permanently removed.`,
+      `Are you sure you want to delete character file "<strong>${this.escapeHtml(fileName)}</strong>" (<em>${this.escapeHtml(heroName)}</em>)?\n\nPath: ${this.escapeHtml(filePath)}`,
       '🗑️ Delete Character File'
     );
     if (!confirmed) return;
 
-    try {
-      if (node && node.handle && typeof node.handle.removeEntry === 'function') {
-        await node.handle.removeEntry(fileName);
-        await this.scanDirectoryTreeBranch(node);
-      } else {
-        if (node && Array.isArray(node.files)) {
-          node.files = node.files.filter(f => f.name !== fileName);
-        }
-        const vTree = this.getVirtualFolders();
-        const removeFromFileList = (cur) => {
-          if (!cur) return;
-          if (Array.isArray(cur.files)) {
-            cur.files = cur.files.filter(f => f.name !== fileName);
-          }
-          if (Array.isArray(cur.subfolders)) {
-            cur.subfolders.forEach(removeFromFileList);
-          }
-        };
-        removeFromFileList(vTree);
-        this.saveVirtualFolders(vTree);
-      }
-
-      let known = this.getKnownCharacterFiles();
-      known = known.filter(kf => kf.fileName !== fileName && (kf.name || '').toLowerCase() !== heroName.toLowerCase());
+    // Delete from physical directory handle if present
+    if (this.currentDirectoryHandle && typeof this.currentDirectoryHandle.removeEntry === 'function') {
       try {
-        if (typeof localStorage !== 'undefined') {
-          localStorage.setItem('msh_known_character_files', JSON.stringify(known));
-        }
-      } catch (e) {}
-
-      this.renderFolderTree();
-      this.renderFolderInspector();
-      this.renderKnownFilesSection();
-      this.showStatusToast(`🗑️ Deleted "${fileName}".`);
-    } catch (err) {
-      console.warn('handleDeleteCharacterFile failed:', err);
-      this.showCustomAlert('Could not delete file: ' + err.message, 'Delete Error');
+        await this.currentDirectoryHandle.removeEntry(fileName);
+      } catch (err) {
+        console.warn('Physical file removal failed or file not in directory:', err);
+      }
     }
+
+    // Remove from known files list
+    let knownFiles = this.getKnownCharacterFiles();
+    knownFiles = knownFiles.filter(x => x.fileName !== fileName && (!fileEntry.id || x.id !== fileEntry.id));
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem('msh_known_character_files', JSON.stringify(knownFiles));
+    }
+
+    this.showStatusToast(`🗑️ Deleted "${fileName}"`);
+    await this.renderFileManagementList();
   },
 
-  async handleRenameKnownFile(target) {
-    if (!target) return;
-    const oldFileName = target.fileName;
-    const oldHeroName = target.name || oldFileName.replace(/\.[^/.]+$/, '');
-    const input = prompt(`Enter new file name for "${oldHeroName}":`, oldFileName);
-    if (!input || !input.trim() || input.trim() === oldFileName) return;
-
-    let newName = input.trim().replace(/[/\\?%*:|"<>]/g, '_');
-    if (!newName.toLowerCase().endsWith('.msh') && !newName.toLowerCase().endsWith('.json')) {
-      newName += '.msh';
-    }
-
-    const node = this.selectedTreeNode || this.folderTreeData;
-    if (node && Array.isArray(node.files)) {
-      const match = node.files.find(f => f.name === oldFileName);
-      if (match) {
-        await this.handleRenameCharacterFile(match, node);
-        return;
-      }
-    }
-
-    const known = this.getKnownCharacterFiles();
-    const item = known.find(k => k.fileName === oldFileName || k.id === target.id);
-    if (item) {
-      item.fileName = newName;
-      try {
-        if (typeof localStorage !== 'undefined') {
-          localStorage.setItem('msh_known_character_files', JSON.stringify(known));
-        }
-      } catch (e) {}
-    }
-
-    this.renderFolderTree();
-    this.renderFolderInspector();
-    this.renderKnownFilesSection();
-    this.showStatusToast(`✏️ Renamed "${oldFileName}" to "${newName}"!`);
-  },
-
-  async handleDeleteKnownFile(target) {
-    if (!target) return;
-    const fileName = target.fileName;
-    const heroName = target.name || fileName.replace(/\.[^/.]+$/, '');
-    const confirmed = await this.showCustomConfirm(
-      `Are you sure you want to remove "${fileName}" (${heroName}) from your known character files?`,
-      '🗑️ Delete Character Record'
-    );
-    if (!confirmed) return;
-
-    const node = this.selectedTreeNode || this.folderTreeData;
-    if (node && Array.isArray(node.files)) {
-      const match = node.files.find(f => f.name === fileName);
-      if (match) {
-        await this.handleDeleteCharacterFile(match, node);
-        return;
-      }
-    }
-
-    let known = this.getKnownCharacterFiles();
-    known = known.filter(k => k.fileName !== fileName && k.id !== target.id);
-    try {
-      if (typeof localStorage !== 'undefined') {
-        localStorage.setItem('msh_known_character_files', JSON.stringify(known));
-      }
-    } catch (e) {}
-
-    this.renderFolderTree();
-    this.renderFolderInspector();
-    this.renderKnownFilesSection();
-    this.showStatusToast(`🗑️ Removed "${fileName}".`);
-  },
-
-  async relocateCharacterFiles(targetNode) {
-    if (!targetNode) return;
-    const knownFiles = this.getKnownCharacterFiles();
-    if (!knownFiles || knownFiles.length === 0) {
-      this.showStatusToast('No character files to relocate.');
-      return;
-    }
-
-    let relocatedCount = 0;
-    if (targetNode.handle && typeof targetNode.handle.getFileHandle === 'function') {
-      for (const item of knownFiles) {
-        try {
-          const fileName = item.fileName || `${(item.name || 'Hero').replace(/\s+/g, '_')}_FASERIP.msh`;
-          const fileHandle = await targetNode.handle.getFileHandle(fileName, { create: true });
-          const writable = await fileHandle.createWritable();
-          const content = typeof item.data === 'string' ? item.data : JSON.stringify(item.data, null, 2);
-          await writable.write(content);
-          await writable.close();
-          relocatedCount++;
-        } catch (err) {
-          console.warn('Failed relocating file to directory handle:', item.fileName, err);
-        }
-      }
-      await this.scanDirectoryTreeBranch(targetNode);
-    } else {
-      targetNode.files = knownFiles.map(kf => ({
-        name: kf.fileName,
-        heroName: kf.name || kf.fileName.replace(/\.[^/.]+$/, ''),
-        handle: null,
-        modTime: kf.timestamp,
-        sizeStr: '',
-        data: kf.data
-      }));
-      const vTree = this.getVirtualFolders();
-      const findAndSet = (cur) => {
-        if (!cur) return false;
-        if (cur.name === targetNode.name) {
-          cur.files = targetNode.files;
-          return true;
-        }
-        if (Array.isArray(cur.subfolders)) {
-          for (const sf of cur.subfolders) {
-            if (findAndSet(sf)) return true;
-          }
-        }
-        return false;
-      };
-      findAndSet(vTree);
-      this.saveVirtualFolders(vTree);
-      relocatedCount = knownFiles.length;
-    }
-
-    this.renderFolderTree();
-    this.renderFolderInspector();
-    this.renderKnownFilesSection();
-    this.showCustomAlert(
-      `Successfully relocated ${relocatedCount} character file(s) to "<strong>${this.escapeHtml(targetNode.name)}</strong>"!`,
-      '📁 Files Relocated'
-    );
-  },
-
-  async promptCreateSubfolder() {
-    const parentNode = this.selectedTreeNode || this.folderTreeData;
-    if (!parentNode) {
-      this.showStatusToast('Please select a parent folder first.');
-      return;
-    }
-    const folderName = prompt(`Enter name for new subfolder inside "${parentNode.name}":`, 'New Folder');
-    if (!folderName || !folderName.trim()) return;
-    const cleanName = folderName.trim().replace(/[/\\?%*:|"<>]/g, '_');
-
-    try {
-      if (parentNode.handle && typeof parentNode.handle.getDirectoryHandle === 'function') {
-        await parentNode.handle.getDirectoryHandle(cleanName, { create: true });
-        await this.scanDirectoryTreeBranch(parentNode);
-        parentNode.isExpanded = true;
-        const newChildNode = (parentNode.subfolders || []).find(sf => sf.name.toLowerCase() === cleanName.toLowerCase());
-        if (newChildNode) {
-          this.selectedTreeNode = newChildNode;
-        }
-        this.renderFolderTree();
-        this.renderFolderInspector();
-        this.showStatusToast(`📁 Created subfolder "${cleanName}" in "${parentNode.name}"!`);
-      } else {
-        const vTree = this.getVirtualFolders();
-        const findAndAdd = (cur, pathIdx) => {
-          if (!cur) return false;
-          if (pathIdx >= parentNode.path.length - 1) {
-            if (!Array.isArray(cur.subfolders)) cur.subfolders = [];
-            if (!cur.subfolders.some(sf => sf.name.toLowerCase() === cleanName.toLowerCase())) {
-              cur.subfolders.push({ name: cleanName, subfolders: [], files: [] });
-            }
-            return true;
-          }
-          const nextName = parentNode.path[pathIdx + 1];
-          if (Array.isArray(cur.subfolders)) {
-            const nextNode = cur.subfolders.find(sf => sf.name === nextName);
-            if (nextNode) return findAndAdd(nextNode, pathIdx + 1);
-          }
-          return false;
-        };
-        findAndAdd(vTree, 0);
-        this.saveVirtualFolders(vTree);
-        await this.loadFolderTree(false);
-        this.showStatusToast(`📁 Created virtual subfolder "${cleanName}"!`);
-      }
-    } catch (err) {
-      console.warn('Could not create subfolder:', err);
-      this.showCustomAlert('Could not create subfolder: ' + err.message, 'Folder Error');
-    }
-  },
-
-  async setActiveFolderFromSelectedNode() {
-    const node = this.selectedTreeNode || this.folderTreeData;
-    if (!node) return;
-
-    const previousFolder = this.saveFolderName || this.getDefaultFolderDisplayPath();
-    const newFolderName = node.name;
-    const isDifferent = previousFolder.toLowerCase() !== newFolderName.toLowerCase();
-
-    if (node.handle) {
-      this.currentDirectoryHandle = node.handle;
-      this.lastSaveDirectoryHandle = node.handle;
-      this.saveFolderName = node.name;
-      if (typeof localStorage !== 'undefined') {
-        localStorage.setItem('msh_save_folder_name', node.name);
-      }
-      await this.saveStoredDirectoryHandle(node.handle);
-    } else {
-      this.currentDirectoryHandle = null;
-      this.saveFolderName = (node === this.folderTreeData || node.id === 'root') ? null : node.name;
-      if (this.saveFolderName) {
-        if (typeof localStorage !== 'undefined') {
-          localStorage.setItem('msh_save_folder_name', this.saveFolderName);
-        }
-      } else {
-        if (typeof localStorage !== 'undefined') {
-          localStorage.removeItem('msh_save_folder_name');
-        }
-        await this.clearStoredDirectoryHandle();
-      }
-    }
-
-    this.renderFolderTreeTopStatus();
-    this.renderFolderTree();
-    this.renderFolderInspector();
-    this.showStatusToast(`⭐ Default save folder set to "${newFolderName}"!`);
-
-    if (isDifferent) {
-      const knownFiles = this.getKnownCharacterFiles();
-      if (knownFiles.length > 0) {
-        const confirmed = await this.showCustomConfirm(
-          `Default save folder changed to "${newFolderName}".\n\nWould you like to relocate all ${knownFiles.length} character file(s) to the new location?`,
-          '📁 Relocate Character Files?'
-        );
-        if (confirmed) {
-          await this.relocateCharacterFiles(node);
-        }
-      }
-    }
-  },
-
-  async saveCharacterToSelectedFolder() {
-    if (!this.character || !this.character.name) {
-      this.showStatusToast('No character loaded to save.');
-      return;
-    }
-    const node = this.selectedTreeNode || this.folderTreeData;
-    if (!node) return;
-
-    const char = this.character;
-    const cleanName = (char.name || 'Hero').replace(/[/\\?%*:|"<>]/g, '_').trim() || 'Hero';
-    const fileName = `${cleanName.replace(/\s+/g, '_')}_FASERIP.msh`;
-    const jsonStr = JSON.stringify(char.toJSON(), null, 2);
-
-    try {
-      if (node.handle && typeof node.handle.getFileHandle === 'function') {
-        const fileHandle = await node.handle.getFileHandle(fileName, { create: true });
-        const writable = await fileHandle.createWritable();
-        await writable.write(jsonStr);
-        await writable.close();
-
-        this.registerKnownCharacterFile({
-          name: char.name,
-          fileName: fileName,
-          data: char.toJSON(),
-          timestamp: Date.now()
-        });
-
-        this.lastSavedFileSnapshot = jsonStr;
-        await this.scanDirectoryTreeBranch(node);
-        this.renderFolderTree();
-        this.renderFolderInspector();
-        this.renderKnownFilesSection();
-        this.showStatusToast(`💾 Saved "${char.name}" directly into "${node.name}"!`);
-      } else {
-        const blob = new Blob([jsonStr], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = fileName;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-
-        this.registerKnownCharacterFile({
-          name: char.name,
-          fileName: fileName,
-          data: char.toJSON(),
-          timestamp: Date.now()
-        });
-        this.lastSavedFileSnapshot = jsonStr;
-        if (node.isVirtual) {
-          if (!Array.isArray(node.files)) node.files = [];
-          const exists = node.files.some(f => f.name === fileName);
-          if (!exists) {
-            node.files.push({
-              name: fileName,
-              heroName: char.name,
-              handle: null,
-              modTime: Date.now(),
-              sizeStr: `${Math.round(jsonStr.length / 1024)} KB`,
-              data: char.toJSON()
-            });
-          }
-        }
-        this.renderFolderTree();
-        this.renderFolderInspector();
-        this.renderKnownFilesSection();
-        this.showStatusToast(`💾 Saved "${char.name}" to Downloads/Documents!`);
-      }
-    } catch (err) {
-      console.warn('saveCharacterToSelectedFolder failed:', err);
-      this.showCustomAlert('Could not save character to folder: ' + err.message, 'Save Error');
-    }
-  },
-
-  async copyKnownFilesToSelectedFolder() {
-    const node = this.selectedTreeNode || this.folderTreeData;
-    if (!node) return;
-
-    const knownFiles = this.getKnownCharacterFiles();
-    if (!knownFiles || knownFiles.length === 0) {
-      this.showStatusToast('No known character files to copy.');
-      return;
-    }
-
-    if (node.handle && typeof node.handle.getFileHandle === 'function') {
-      await this.moveKnownFilesToDirectory(node.handle);
-      await this.scanDirectoryTreeBranch(node);
-      this.renderFolderTree();
-      this.renderFolderInspector();
-    } else {
-      for (const item of knownFiles) {
-        const content = typeof item.data === 'string' ? item.data : JSON.stringify(item.data, null, 2);
-        const blob = new Blob([content], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = item.fileName || 'Hero_FASERIP.msh';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-      }
-      this.showStatusToast(`📦 Downloaded ${knownFiles.length} character file(s)!`);
-    }
-  },
-
-  async loadHeroFromFileEntry(fileEntry) {
+  async loadCharacterFromEntry(fileEntry) {
     if (!fileEntry) return;
-
-    if (this.character && this.character.name) {
-      const currentJson = JSON.stringify(this.character.toJSON());
-      if (this.lastSavedFileSnapshot && this.lastSavedFileSnapshot !== currentJson) {
-        const proceed = await this.showCustomConfirm(
-          `You have unsaved changes on "${this.character.name}". Loading "${fileEntry.heroName || fileEntry.name}" will replace your current sheet.\n\nDo you want to continue?`,
-          '⚠️ Unsaved Changes'
-        );
-        if (!proceed) return;
-      }
-    }
-
     try {
+      let data = null;
       if (fileEntry.handle && typeof fileEntry.handle.getFile === 'function') {
         const file = await fileEntry.handle.getFile();
-        await this.loadCharacterFromFile(file);
+        const text = await file.text();
+        data = JSON.parse(text);
       } else if (fileEntry.data) {
-        const data = typeof fileEntry.data === 'string' ? JSON.parse(fileEntry.data) : fileEntry.data;
-        this.character = FASERIPCharacter.fromJSON(data);
-        this.karmaMode = 'session';
-        this.advancementSnapshot = null;
-        this.testModeSnapshot = null;
-        this.lastSavedFileSnapshot = JSON.stringify(this.character.toJSON());
-        if (!this.character.editLog || this.character.editLog.length === 0) {
-          this.character.recordEdit(`Imported character: ${this.character.name}`, 'initial');
-        }
-        this.saveState();
-        this.render();
-        this.updateHistoryNavButtons();
-        this.renderEditLog();
-        this.registerKnownCharacterFile({
-          name: this.character.name,
-          fileName: fileEntry.name,
-          data: this.character.toJSON(),
-          timestamp: fileEntry.modTime || Date.now()
-        });
+        data = typeof fileEntry.data === 'string' ? JSON.parse(fileEntry.data) : fileEntry.data;
       }
+      if (!data) {
+        this.showCustomAlert('Unable to read character file data.', 'File Read Error');
+        return;
+      }
+      this.character = FASERIPCharacter.fromJSON(data);
+      this.karmaMode = 'session';
+      this.advancementSnapshot = null;
+      this.testModeSnapshot = null;
+      this.lastSavedFileSnapshot = JSON.stringify(this.character.toJSON());
+      this.saveState();
+      this.render();
+      this.updateHistoryNavButtons();
+      this.renderEditLog();
       this.closeLoadSaveFolderModal();
-      this.showStatusToast(`🦸 Loaded "${fileEntry.heroName || fileEntry.name}"!`);
+      this.showStatusToast(`🦸 Loaded "${fileEntry.name || fileEntry.heroName || fileEntry.fileName}"!`);
     } catch (err) {
       console.warn('Could not load hero from file entry:', err);
       this.showCustomAlert('Could not open character: ' + err.message, 'Load Error');
@@ -16448,12 +15479,12 @@ const App = {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = fileEntry.name || 'Hero_FASERIP.msh';
+      a.download = fileEntry.fileName || fileEntry.name || 'Hero_FASERIP.msh';
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-      this.showStatusToast(`💾 Exported "${fileEntry.heroName || fileEntry.name}"!`);
+      this.showStatusToast(`💾 Exported "${fileEntry.name || fileEntry.fileName}"!`);
     } catch (err) {
       console.warn('exportFileFromEntry failed:', err);
       this.showStatusToast('Could not export file: ' + err.message);
@@ -16488,22 +15519,33 @@ const App = {
           }
           await this.saveStoredRootDirectoryHandle(targetHandle);
           await this.saveStoredDirectoryHandle(targetHandle);
-          await this.loadFolderTree(true);
 
+          const defaultFolderPath = targetHandle.name;
+          const sep = this.getDetectedOS() === 'Windows' ? '\\' : '/';
           const isDifferent = previousFolder.toLowerCase() !== targetHandle.name.toLowerCase();
           const knownFiles = this.getKnownCharacterFiles();
+
           if (isDifferent && knownFiles.length > 0) {
             const confirmed = await this.showCustomConfirm(
-              `Default save folder changed to "${targetHandle.name}".\n\nWould you like to relocate all ${knownFiles.length} character file(s) to the new location?`,
+              `Default save folder changed to "<strong>${this.escapeHtml(targetHandle.name)}</strong>".\n\nWould you like to relocate all ${knownFiles.length} character file(s) to the new location?`,
               '📁 Relocate Character Files?'
             );
             if (confirmed) {
               await this.moveKnownFilesToDirectory(targetHandle);
-              await this.loadFolderTree(true);
+              knownFiles.forEach(f => {
+                f.path = `${defaultFolderPath}${sep}${f.fileName}`;
+              });
+              if (typeof localStorage !== 'undefined') {
+                localStorage.setItem('msh_known_character_files', JSON.stringify(knownFiles));
+              }
+              this.showStatusToast(`✅ Relocated character files to ${targetHandle.name}!`);
             }
           } else {
-            this.showStatusToast(`📁 Connected and set default folder to "${targetHandle.name}"`);
+            this.showStatusToast(`📁 Set default folder to "${targetHandle.name}"`);
           }
+
+          this.renderFolderTreeTopStatus();
+          await this.renderFileManagementList();
         }
       } catch (err) {
         if (err.name === 'AbortError') return; // User cancelled
@@ -16522,21 +15564,29 @@ const App = {
         if (typeof localStorage !== 'undefined') {
           localStorage.setItem('msh_save_folder_name', this.saveFolderName);
         }
-        await this.loadFolderTree(true);
 
+        const defaultFolderPath = newName;
+        const sep = this.getDetectedOS() === 'Windows' ? '\\' : '/';
         const knownFiles = this.getKnownCharacterFiles();
+
         if (isDifferent && knownFiles.length > 0) {
           const confirmed = await this.showCustomConfirm(
-            `Default save folder changed to "${newName}".\n\nWould you like to relocate all ${knownFiles.length} character file(s) to the new location?`,
+            `Default save folder changed to "<strong>${this.escapeHtml(newName)}</strong>".\n\nWould you like to relocate all ${knownFiles.length} character file(s) to the new location?`,
             '📁 Relocate Character Files?'
           );
           if (confirmed) {
-            const target = this.selectedTreeNode || this.folderTreeData;
-            if (target) {
-              await this.relocateCharacterFiles(target);
+            knownFiles.forEach(f => {
+              f.path = `${defaultFolderPath}${sep}${f.fileName}`;
+            });
+            if (typeof localStorage !== 'undefined') {
+              localStorage.setItem('msh_known_character_files', JSON.stringify(knownFiles));
             }
+            this.showStatusToast(`✅ Updated character file paths to "${newName}"`);
           }
         }
+
+        this.renderFolderTreeTopStatus();
+        await this.renderFileManagementList();
       }
     }
   },
@@ -16555,8 +15605,9 @@ const App = {
     }
     await this.clearStoredRootDirectoryHandle();
     await this.clearStoredDirectoryHandle();
-    await this.loadFolderTree(true);
 
+    this.renderFolderTreeTopStatus();
+    await this.renderFileManagementList();
     this.showStatusToast(`🔄 Default save folder reset to "${defaultDisplay}".`);
 
     if (offerToMove && isDifferent) {
@@ -16567,6 +15618,7 @@ const App = {
           '📁 Relocate Character Files?'
         );
         if (confirmed) {
+          const sep = this.getDetectedOS() === 'Windows' ? '\\' : '/';
           if (typeof window !== 'undefined' && window.showDirectoryPicker) {
             try {
               const docHandle = await window.showDirectoryPicker({
@@ -16583,7 +15635,13 @@ const App = {
                 this.currentDirectoryHandle = targetHandle;
                 await this.saveStoredRootDirectoryHandle(targetHandle);
                 await this.saveStoredDirectoryHandle(targetHandle);
-                await this.loadFolderTree(true);
+                knownFiles.forEach(f => {
+                  f.path = `${defaultDisplay}${sep}${f.fileName}`;
+                });
+                if (typeof localStorage !== 'undefined') {
+                  localStorage.setItem('msh_known_character_files', JSON.stringify(knownFiles));
+                }
+                await this.renderFileManagementList();
                 this.showStatusToast(`✅ Relocated all character files to ${defaultDisplay}!`);
               }
             } catch (err) {
@@ -16592,26 +15650,66 @@ const App = {
               }
             }
           } else {
-            for (const item of knownFiles) {
-              const content = typeof item.data === 'string' ? item.data : JSON.stringify(item.data, null, 2);
-              const blob = new Blob([content], { type: 'application/json' });
-              const url = URL.createObjectURL(blob);
-              const a = document.createElement('a');
-              a.href = url;
-              a.download = item.fileName;
-              document.body.appendChild(a);
-              a.click();
-              document.body.removeChild(a);
-              URL.revokeObjectURL(url);
+            knownFiles.forEach(f => {
+              f.path = `${defaultDisplay}${sep}${f.fileName}`;
+            });
+            if (typeof localStorage !== 'undefined') {
+              localStorage.setItem('msh_known_character_files', JSON.stringify(knownFiles));
             }
-            this.showStatusToast(`📦 Downloaded character files for ${defaultDisplay}!`);
+            await this.renderFileManagementList();
+            this.showStatusToast(`✅ Relocated all character files to ${defaultDisplay}!`);
           }
         }
       }
     }
   },
 
-  openCpBreakdownModal() {
+  async copyKnownFilesToSelectedFolder() {
+    const defaultDisplay = this.saveFolderName || this.getDefaultFolderDisplayPath();
+    const sep = this.getDetectedOS() === 'Windows' ? '\\' : '/';
+    let targetHandle = this.currentDirectoryHandle || this.rootDirectoryHandle;
+
+    if (!targetHandle && typeof window !== 'undefined' && window.showDirectoryPicker) {
+      try {
+        targetHandle = await window.showDirectoryPicker({
+          startIn: await this.getEffectiveDirectoryHandle(),
+          mode: 'readwrite'
+        });
+      } catch (err) {
+        if (err.name === 'AbortError') return;
+      }
+    }
+
+    if (targetHandle) {
+      await this.moveKnownFilesToDirectory(targetHandle);
+      const knownFiles = this.getKnownCharacterFiles();
+      knownFiles.forEach(f => {
+        f.path = `${defaultDisplay}${sep}${f.fileName}`;
+      });
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem('msh_known_character_files', JSON.stringify(knownFiles));
+      }
+      await this.renderFileManagementList();
+      this.showStatusToast(`📦 Transferred all character files into ${targetHandle.name || defaultDisplay}!`);
+    } else {
+      const knownFiles = this.getKnownCharacterFiles();
+      knownFiles.forEach(f => {
+        f.path = `${defaultDisplay}${sep}${f.fileName}`;
+      });
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem('msh_known_character_files', JSON.stringify(knownFiles));
+      }
+      await this.renderFileManagementList();
+      this.showStatusToast(`📦 Updated all character file paths for ${defaultDisplay}!`);
+    }
+  },
+
+  async loadFolderTree(forceRefresh = false) {
+    this.renderFolderTreeTopStatus();
+    await this.renderFileManagementList();
+  },
+
+    openCpBreakdownModal() {
     if (this.character && this.character.creationMode === 'tsr') {
       this.openTsrModeDialog();
       return;
@@ -17127,6 +16225,8 @@ const App = {
     const jsonStr = JSON.stringify(char.toJSON(), null, 2);
     const cleanName = (char.name || 'Hero').replace(/[/\\?%*:|"<>]/g, '_').trim() || 'Hero';
     const fileName = `${cleanName.replace(/\s+/g, '_')}_FASERIP.msh`;
+    const defaultFolderPath = this.saveFolderName || this.getDefaultFolderDisplayPath();
+    const sep = this.getDetectedOS() === 'Windows' ? '\\' : '/';
 
     if (typeof window !== 'undefined' && window.showSaveFilePicker) {
       try {
@@ -17144,25 +16244,57 @@ const App = {
           await writable.write(jsonStr);
           await writable.close();
 
-          // Register in known character files
+          // Register in known character files with full computed path
           this.registerKnownCharacterFile({
             name: char.name,
             fileName: fileHandle.name || fileName,
+            path: `${defaultFolderPath}${sep}${fileHandle.name || fileName}`,
             data: char.toJSON(),
             timestamp: Date.now()
           });
 
           this.lastSavedFileSnapshot = JSON.stringify(char.toJSON());
-          this.showStatusToast(`💾 Saved "${char.name}" to ${(this.saveFolderName || 'Documents')}!`);
+          this.showStatusToast(`💾 Saved "${char.name}" to ${defaultFolderPath}!`);
           return true;
         }
       } catch (err) {
         if (err.name === 'AbortError') return false; // User cancelled save dialog
-        console.warn('showSaveFilePicker failed, falling back to download:', err);
+        console.warn('showSaveFilePicker failed with startIn, retrying with documents:', err);
+        try {
+          const fileHandle = await window.showSaveFilePicker({
+            suggestedName: fileName,
+            startIn: 'documents',
+            types: [{
+              description: 'Marvel Super Heroes Character File (*.msh, *.json)',
+              accept: { 'application/json': ['.msh', '.json'] }
+            }]
+          });
+          if (fileHandle) {
+            const writable = await fileHandle.createWritable();
+            await writable.write(jsonStr);
+            await writable.close();
+
+            this.registerKnownCharacterFile({
+              name: char.name,
+              fileName: fileHandle.name || fileName,
+              path: `${defaultFolderPath}${sep}${fileHandle.name || fileName}`,
+              data: char.toJSON(),
+              timestamp: Date.now()
+            });
+
+            this.lastSavedFileSnapshot = JSON.stringify(char.toJSON());
+            this.showStatusToast(`💾 Saved "${char.name}" to ${defaultFolderPath}!`);
+            return true;
+          }
+        } catch (retryErr) {
+          if (retryErr.name === 'AbortError') return false;
+          console.warn('Retry showSaveFilePicker failed:', retryErr);
+        }
       }
+      return false;
     }
 
-    // Fallback browser download
+    // Fallback browser download (only for legacy browsers lacking File System Access API)
     const blob = new Blob([jsonStr], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -17176,11 +16308,12 @@ const App = {
     this.registerKnownCharacterFile({
       name: char.name,
       fileName: fileName,
+      path: `${defaultFolderPath}${sep}${fileName}`,
       data: char.toJSON(),
       timestamp: Date.now()
     });
     this.lastSavedFileSnapshot = JSON.stringify(char.toJSON());
-    this.showStatusToast(`💾 Saved "${char.name}" to Downloads/Documents!`);
+    this.showStatusToast(`💾 Saved "${char.name}"!`);
     return true;
   },
 

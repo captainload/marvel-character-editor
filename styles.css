@@ -3263,7 +3263,7 @@ html.modal-open {
   pointer-events: auto !important;
 }
 
-/* File Management Modal */
+/* File Management Modal (Docked in tab space below persistent top rows, matching tab size) */
 #modal-load-save-folder.modal-overlay {
   display: none;
   position: fixed;
@@ -3272,20 +3272,28 @@ html.modal-open {
   height: 100vh;
   align-items: center;
   justify-content: center;
-  padding: 0;
+  padding: 10px;
   background: rgba(0, 0, 0, 0.7);
   backdrop-filter: blur(4px);
   z-index: 10000;
 }
+
+body.sticky-header-active #modal-load-save-folder.modal-overlay {
+  top: var(--app-sticky-header-height, 120px) !important;
+  height: calc(100vh - var(--app-sticky-header-height, 120px)) !important;
+  inset: var(--app-sticky-header-height, 120px) 0 0 0 !important;
+}
+
 #modal-load-save-folder.modal-overlay.open {
   display: flex !important;
 }
+
 #modal-load-save-folder .modal-box,
 .modal-box.folder-modal-box {
   width: 90% !important;
+  max-width: 1040px !important;
   height: 90% !important;
-  max-width: 90vw !important;
-  max-height: 90vh !important;
+  max-height: calc(100% - 16px) !important;
   display: flex;
   flex-direction: column;
   min-height: 0;

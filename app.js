@@ -62,7 +62,7 @@ const App = {
     this.superiorOptionCost = !!val;
   },
   humanAbilityCaps: false,
-  VERSION: '1.6.14',
+  VERSION: '1.6.15',
   editLogFilter: 'all',
   editLogSearchQuery: '',
   BUILD_DATE: '2026-11-12',
@@ -2811,6 +2811,7 @@ const App = {
   },
 
   switchTab(tabKey) {
+    this.closeLoadSaveFolderModal();
     this.activeTab = tabKey;
     const isEquipment = (tabKey === 'equipment');
     if (document.body && document.body.classList) {
@@ -15153,6 +15154,7 @@ const App = {
   },
 
   async openLoadSaveFolderModal() {
+    this.updateStickyHeaderHeight();
     const modal = document.getElementById('modal-load-save-folder');
     if (!modal) return;
     modal.classList.add('open');

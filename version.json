@@ -1,7 +1,7 @@
 {
-  "version": "1.6.15",
-  "releaseDate": "2026-11-17",
+  "version": "1.6.16",
+  "releaseDate": "2026-11-19",
   "name": "MSH RPGen",
   "repo": "https://github.com/captainload/marvel-character-editor",
-  "notes": "v1.6.15: Fixed File Management dialog overlay positioning to dock cleanly within the tab space below the persistent top rows (using --app-sticky-header-height offset), preventing the sticky header from covering up the dialog's header, close button, and top controls; sized dialog to 90% of tab dimensions."
+  "notes": "v1.6.16: Allowed Character Gear & Carrying Inventory to seamlessly expand to 100% full height and width of the Equipment tab whenever the Rulebook Equipment Store is popped out into a separate window, moving dock and window focus actions directly into the inventory header and suppressing the top banner and collapse buttons."
 }

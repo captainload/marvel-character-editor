@@ -2410,17 +2410,17 @@ body.equipment-splitter-resizing .divider-label {
 }
 
 /* Auto-Position Mode (Default) - Hugs content with no empty space, capped at 50% max-height */
-.equipment-split-layout.split-auto .equipment-store-section {
+.equipment-split-layout.split-auto:not(.store-popped-out) .equipment-store-section {
   flex: 1 1 0% !important;
   height: auto !important;
   min-height: 0 !important;
 }
 
-.equipment-split-layout.split-auto .equipment-split-divider {
+.equipment-split-layout.split-auto:not(.store-popped-out) .equipment-split-divider {
   flex: 0 0 16px !important;
 }
 
-.equipment-split-layout.split-auto .equipment-inventory-section {
+.equipment-split-layout.split-auto:not(.store-popped-out) .equipment-inventory-section {
   flex: 0 1 auto !important;
   max-height: calc(50% - 6px) !important;
   min-height: 0 !important;
@@ -2429,7 +2429,7 @@ body.equipment-splitter-resizing .divider-label {
   flex-direction: column !important;
 }
 
-.equipment-split-layout.split-auto .equipment-inventory-section .equipment-section-inner {
+.equipment-split-layout.split-auto:not(.store-popped-out) .equipment-inventory-section .equipment-section-inner {
   display: flex !important;
   flex-direction: column !important;
   flex: 1 1 auto !important;
@@ -2438,37 +2438,71 @@ body.equipment-splitter-resizing .divider-label {
   overflow: hidden !important;
 }
 
-.equipment-split-layout.split-auto .equipment-inventory-body {
+.equipment-split-layout.split-auto:not(.store-popped-out) .equipment-inventory-body {
   flex: 1 1 auto !important;
   min-height: 0 !important;
   overflow-y: auto !important;
 }
 
-.equipment-split-layout.collapsed-top .equipment-store-section {
+.equipment-split-layout.collapsed-top:not(.store-popped-out) .equipment-store-section {
   display: none !important;
 }
-.equipment-split-layout.collapsed-top .equipment-inventory-section {
+.equipment-split-layout.collapsed-top:not(.store-popped-out) .equipment-inventory-section {
   flex: 1 !important;
   height: calc(100% - 28px) !important;
   max-height: none !important;
 }
-.equipment-split-layout.collapsed-bottom .equipment-inventory-section {
+.equipment-split-layout.collapsed-bottom:not(.store-popped-out) .equipment-inventory-section {
   display: none !important;
 }
-.equipment-split-layout.collapsed-bottom .equipment-store-section {
+.equipment-split-layout.collapsed-bottom:not(.store-popped-out) .equipment-store-section {
   flex: 1 !important;
   height: calc(100% - 28px) !important;
 }
 
 /* Popped-out store state in Tab 4 */
 .equipment-split-layout.store-popped-out .equipment-store-section,
-.equipment-split-layout.store-popped-out #equipment-split-divider {
+.equipment-split-layout.store-popped-out #equipment-split-divider,
+.equipment-split-layout.store-popped-out .equipment-store-popped-banner,
+.equipment-split-layout.store-popped-out #btn-collapse-inventory {
   display: none !important;
 }
-.equipment-split-layout.store-popped-out .equipment-inventory-section {
-  flex: 1 !important;
+
+.equipment-split-layout.store-popped-out #inv-store-popped-actions {
+  display: flex !important;
+}
+
+.equipment-split-layout.store-popped-out {
   height: 100% !important;
-  max-height: none !important;
+  max-height: 100% !important;
+  flex: 1 1 100% !important;
+}
+
+.equipment-split-layout.store-popped-out .equipment-inventory-section {
+  flex: 1 1 100% !important;
+  height: 100% !important;
+  max-height: 100% !important;
+  min-height: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  border: none !important;
+}
+
+.equipment-split-layout.store-popped-out .equipment-section-inner {
+  display: flex !important;
+  flex-direction: column !important;
+  flex: 1 1 auto !important;
+  height: 100% !important;
+  max-height: 100% !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+}
+
+.equipment-split-layout.store-popped-out .equipment-inventory-body {
+  flex: 1 1 auto !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  overflow-y: auto !important;
 }
 
 .equipment-store-popped-banner {

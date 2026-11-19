@@ -62,7 +62,7 @@ const App = {
     this.superiorOptionCost = !!val;
   },
   humanAbilityCaps: false,
-  VERSION: '1.6.15',
+  VERSION: '1.6.16',
   editLogFilter: 'all',
   editLogSearchQuery: '',
   BUILD_DATE: '2026-11-12',
@@ -8905,7 +8905,16 @@ const App = {
     const layoutEl = document.getElementById('equipment-split-layout');
     if (layoutEl) layoutEl.classList.add('store-popped-out');
     const bannerEl = document.getElementById('equipment-store-popped-banner');
-    if (bannerEl) bannerEl.style.display = 'flex';
+    if (bannerEl) bannerEl.style.display = 'none';
+    const invActions = document.getElementById('inv-store-popped-actions');
+    if (invActions) invActions.style.display = 'flex';
+    const invSec = document.getElementById('equipment-inventory-section');
+    if (invSec) {
+      invSec.style.display = 'flex';
+      invSec.style.flex = '1 1 100%';
+      invSec.style.height = '100%';
+      invSec.style.maxHeight = '100%';
+    }
 
     // Update Pop-out button to Dock
     const popBtn = this.getStoreEl('btn-popout-store');
@@ -8970,6 +8979,14 @@ const App = {
       if (mainLayout) mainLayout.classList.remove('store-popped-out');
       const bEl = document.getElementById('equipment-store-popped-banner');
       if (bEl) bEl.style.display = 'none';
+      const invActions = document.getElementById('inv-store-popped-actions');
+      if (invActions) invActions.style.display = 'none';
+      const invSec = document.getElementById('equipment-inventory-section');
+      if (invSec) {
+        invSec.style.flex = '';
+        invSec.style.height = '';
+        invSec.style.maxHeight = '';
+      }
 
       storeSec.style.width = '';
       storeSec.style.position = '';
@@ -9067,6 +9084,14 @@ const App = {
     if (mainLayout) mainLayout.classList.remove('store-popped-out');
     const bEl = document.getElementById('equipment-store-popped-banner');
     if (bEl) bEl.style.display = 'none';
+    const invActions = document.getElementById('inv-store-popped-actions');
+    if (invActions) invActions.style.display = 'none';
+    const invSec = document.getElementById('equipment-inventory-section');
+    if (invSec) {
+      invSec.style.flex = '';
+      invSec.style.height = '';
+      invSec.style.maxHeight = '';
+    }
 
     if (this.equipmentSplitCollapsed) {
       this.setEquipmentSplit(this.equipmentSplitRatio, false, this.equipmentSplitCollapsed);
@@ -9129,6 +9154,28 @@ const App = {
     const focusBannerBtn = document.getElementById('btn-focus-store-popout');
     if (focusBannerBtn) {
       focusBannerBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (this.isStorePoppedOut()) {
+          try {
+            this.storePopoutWindow.focus();
+          } catch (err) {}
+        }
+      });
+    }
+
+    const dockInvBtn = document.getElementById('btn-dock-store-inv');
+    if (dockInvBtn) {
+      dockInvBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        this.dockEquipmentStore(true);
+      });
+    }
+
+    const focusInvBtn = document.getElementById('btn-focus-store-inv');
+    if (focusInvBtn) {
+      focusInvBtn.addEventListener('click', (e) => {
         e.preventDefault();
         e.stopPropagation();
         if (this.isStorePoppedOut()) {

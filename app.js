@@ -34,6 +34,7 @@ const App = {
   equipmentSplitRatio: 50,
   equipmentSplitCollapsed: null,
   equipmentSplitMode: 'auto',
+  equipmentTabVisited: false,
   _justDraggedEquipmentSplitter: false,
   storePopoutWindow: null,
   storePoppedOut: false,
@@ -62,7 +63,7 @@ const App = {
     this.superiorOptionCost = !!val;
   },
   humanAbilityCaps: false,
-  VERSION: '1.6.16',
+  VERSION: '1.6.17',
   editLogFilter: 'all',
   editLogSearchQuery: '',
   BUILD_DATE: '2026-11-12',
@@ -2839,12 +2840,17 @@ const App = {
       if (typeof window !== 'undefined') {
         window.scrollTo({ top: 0, behavior: 'instant' });
       }
-      if (this.equipmentSplitCollapsed) {
-        this.setEquipmentSplit(this.equipmentSplitRatio, false, this.equipmentSplitCollapsed);
-      } else if (this.equipmentSplitMode === 'auto') {
-        this.setEquipmentSplitAuto(false);
+      if (!this.equipmentTabVisited) {
+        this.equipmentTabVisited = true;
+        this.setEquipmentSplit(100, false, 'bottom');
       } else {
-        this.setEquipmentSplit(this.equipmentSplitRatio, false, null);
+        if (this.equipmentSplitCollapsed) {
+          this.setEquipmentSplit(this.equipmentSplitRatio, false, this.equipmentSplitCollapsed);
+        } else if (this.equipmentSplitMode === 'auto') {
+          this.setEquipmentSplitAuto(false);
+        } else {
+          this.setEquipmentSplit(this.equipmentSplitRatio, false, null);
+        }
       }
     }
   },
@@ -8275,7 +8281,9 @@ const App = {
     }
 
     // Apply initial state
-    if (this.equipmentSplitCollapsed) {
+    if (!this.equipmentTabVisited) {
+      this.setEquipmentSplit(100, false, 'bottom');
+    } else if (this.equipmentSplitCollapsed) {
       this.setEquipmentSplit(this.equipmentSplitRatio, false, this.equipmentSplitCollapsed);
     } else if (this.equipmentSplitMode === 'auto') {
       this.setEquipmentSplitAuto(false);
@@ -8475,6 +8483,7 @@ const App = {
     if (labelEl) {
       labelEl.textContent = '⇕ Auto-fit (Max 50%) · Drag to resize · Double-click to auto-fit';
     }
+    this.updateCollapseInvButton(false);
 
     if (layoutEl && storeSec && dividerEl && layoutEl.offsetHeight > 0) {
       const liveRatio = Math.round((storeSec.offsetHeight / layoutEl.offsetHeight) * 100);
@@ -8485,6 +8494,18 @@ const App = {
       localStorage.setItem('msh_equipment_split_mode', 'auto');
       localStorage.removeItem('msh_equipment_split_collapsed');
       localStorage.removeItem('msh_equipment_split_ratio');
+    }
+  },
+
+  updateCollapseInvButton(isMinimized) {
+    const btnCollapseInv = document.getElementById('btn-collapse-inventory');
+    if (!btnCollapseInv) return;
+    if (isMinimized) {
+      btnCollapseInv.textContent = '▲ Expand';
+      btnCollapseInv.title = 'Expand Character Inventory';
+    } else {
+      btnCollapseInv.textContent = '▼ Collapse';
+      btnCollapseInv.title = 'Minimize Inventory to header to maximize equipment store';
     }
   },
 
@@ -8534,6 +8555,7 @@ const App = {
       if (labelEl) {
         labelEl.textContent = '▲ Store Collapsed — Click or double-click to auto-fit';
       }
+      this.updateCollapseInvButton(false);
     } else if (collapsed === 'bottom') {
       this.equipmentSplitCollapsed = 'bottom';
       if (layoutEl) {
@@ -8547,17 +8569,20 @@ const App = {
         dividerEl.setAttribute('aria-expanded', 'false');
       }
       if (invSec) {
-        invSec.style.display = 'none';
-        invSec.style.height = '0px';
+        invSec.style.display = 'flex';
+        invSec.style.flex = '0 0 auto';
+        invSec.style.height = 'auto';
+        invSec.style.maxHeight = '';
       }
       if (storeSec) {
         storeSec.style.display = 'flex';
-        storeSec.style.flex = '1';
-        storeSec.style.height = 'calc(100% - 28px)';
+        storeSec.style.flex = '1 1 0%';
+        storeSec.style.height = 'auto';
       }
       if (labelEl) {
-        labelEl.textContent = '▼ Inventory Collapsed — Click or double-click to auto-fit';
+        labelEl.textContent = '▲ Inventory Minimized — Drag to resize · Click ▲ to expand';
       }
+      this.updateCollapseInvButton(true);
     } else {
       this.equipmentSplitMode = 'manual';
       this.equipmentSplitCollapsed = null;
@@ -8587,6 +8612,7 @@ const App = {
       if (labelEl) {
         labelEl.textContent = '⇕ Drag to resize · Double-click to auto-fit';
       }
+      this.updateCollapseInvButton(false);
     }
 
     if (save && typeof localStorage !== 'undefined') {
@@ -14630,6 +14656,7 @@ const App = {
     this.advancementSnapshot = null;
     this.testModeSnapshot = null;
     this.lastSavedFileSnapshot = null;
+    this.equipmentTabVisited = false;
 
     const fullTitle = this.getCreationModeFullTitle(normalizedMode);
 
@@ -15501,6 +15528,7 @@ const App = {
       this.advancementSnapshot = null;
       this.testModeSnapshot = null;
       this.lastSavedFileSnapshot = JSON.stringify(this.character.toJSON());
+      this.equipmentTabVisited = false;
       this.saveState();
       this.render();
       this.updateHistoryNavButtons();
@@ -16239,6 +16267,7 @@ const App = {
       this.advancementSnapshot = null;
       this.testModeSnapshot = null;
       this.lastSavedFileSnapshot = JSON.stringify(this.character.toJSON());
+      this.equipmentTabVisited = false;
       if (!this.character.editLog || this.character.editLog.length === 0) {
         this.character.recordEdit(`Imported character: ${this.character.name}`, 'initial');
       }

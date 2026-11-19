@@ -1,7 +1,7 @@
 {
-  "version": "1.6.16",
+  "version": "1.6.17",
   "releaseDate": "2026-11-19",
   "name": "MSH RPGen",
   "repo": "https://github.com/captainload/marvel-character-editor",
-  "notes": "v1.6.16: Allowed Character Gear & Carrying Inventory to seamlessly expand to 100% full height and width of the Equipment tab whenever the Rulebook Equipment Store is popped out into a separate window, moving dock and window focus actions directly into the inventory header and suppressing the top banner and collapse buttons."
+  "notes": "v1.6.17: Show minimal inventory section (collapsed header with item count and Expand toggle) on initial switch to the Equipment tab to maximize store browsing space while indicating the inventory's presence; clicking Expand or dragging the splitter restores full inventory view."
 }
